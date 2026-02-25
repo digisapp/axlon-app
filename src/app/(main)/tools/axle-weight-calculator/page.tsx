@@ -1,6 +1,20 @@
-import { AxleWeightCalculator } from '@/components/tools/AxleWeightCalculator';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowLeft, Scale } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const AxleWeightCalculator = dynamic(
+  () => import('@/components/tools/AxleWeightCalculator').then((mod) => mod.AxleWeightCalculator),
+  {
+    loading: () => (
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <Skeleton className="h-64 w-full rounded-lg" />
+        <Skeleton className="h-48 w-full rounded-lg" />
+      </div>
+    ),
+  }
+);
 
 export const metadata = {
   title: 'Axle Weight Calculator - Truck & Trailer Weight Distribution',

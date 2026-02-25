@@ -41,7 +41,18 @@ import {
   Copy,
   CalendarClock,
 } from 'lucide-react';
-import { ImageUpload } from '@/components/listings/ImageUpload';
+import dynamic from 'next/dynamic';
+
+const ImageUpload = dynamic(
+  () => import('@/components/listings/ImageUpload').then((mod) => mod.ImageUpload),
+  {
+    loading: () => (
+      <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">
+        Loading image upload...
+      </div>
+    ),
+  }
+);
 import type { Category, AIPriceEstimate } from '@/types';
 import { logger } from '@/lib/logger';
 

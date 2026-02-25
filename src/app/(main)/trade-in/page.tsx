@@ -1,6 +1,21 @@
-import { TradeInForm } from '@/components/trade-in/TradeInForm';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const TradeInForm = dynamic(
+  () => import('@/components/trade-in/TradeInForm').then((mod) => mod.TradeInForm),
+  {
+    loading: () => (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full rounded-lg" />
+        <Skeleton className="h-10 w-full rounded-lg" />
+        <Skeleton className="h-32 w-full rounded-lg" />
+        <Skeleton className="h-10 w-48 rounded-lg" />
+      </div>
+    ),
+  }
+);
 
 export const metadata = {
   title: 'Trade-In Your Equipment',

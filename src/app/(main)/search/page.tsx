@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState, useMemo, Suspense, useRef, useCallback } from 'react';
+import { useState, useMemo, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { AISearchBar } from '@/components/search/AISearchBar';
 import { useListingTranslations } from '@/hooks/useListingTranslations';
+import { useSearchListings } from '@/hooks/useSearchListings';
+import { useCategories } from '@/hooks/useCategories';
 
 // Dynamically import MapView to avoid SSR issues with Leaflet
 const MapView = dynamic(
@@ -56,8 +58,15 @@ import { SaveSearchButton } from '@/components/search/SaveSearchButton';
 import { ScrollToTop } from '@/components/ui/scroll-to-top';
 import { SearchListingCard } from '@/components/search/SearchListingCard';
 import { QuickFilterChip } from '@/components/search/QuickFilterChip';
-import type { Listing, AISearchResult, Category } from '@/types';
-import { logger } from '@/lib/logger';
+
+// Sort URL param to internal value mapping
+const SORT_MAP: Record<string, string> = {
+  price: 'price',
+  price_desc: 'price_desc',
+  year: 'year',
+  mileage: 'mileage',
+  created_at: 'created_at',
+};
 
 function SearchPageContent() {
   const searchParams = useSearchParams();
@@ -65,295 +74,52 @@ function SearchPageContent() {
   const query = searchParams.get('q') || '';
   const category = searchParams.get('category') || '';
   const page = parseInt(searchParams.get('page') || '1');
+  const initialSort = SORT_MAP[searchParams.get('sort') || ''] || 'created_at';
 
-  // Map URL sort values to internal sort values
-  const urlSort = searchParams.get('sort') || '';
-  const initialSort = (() => {
-    const sortMap: Record<string, string> = {
-      price: 'price',
-      price_desc: 'price_desc',
-      year: 'year',
-      mileage: 'mileage',
-      created_at: 'created_at',
-    };
-    return sortMap[urlSort] || 'created_at';
-  })();
-
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-  const [_aiInterpretation, setAiInterpretation] = useState<AISearchResult | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('grid');
   const [sortBy, setSortBy] = useState(initialSort);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [advancedFilters, setAdvancedFilters] = useState<FilterValues>({});
-  const [totalWithoutPriceFilter, setTotalWithoutPriceFilter] = useState<number | null>(null);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [useInfiniteMode, setUseInfiniteMode] = useState(false);
 
-  // Refs to prevent infinite loops
-  const fetchIdRef = useRef(0);
-  const lastFetchParamsRef = useRef<string>('');
+  const categories = useCategories();
 
-  // Memoize listing data for translation hook to prevent unnecessary re-renders
+  const {
+    listings,
+    totalCount,
+    totalPages,
+    isLoading,
+    isLoadingMore,
+    totalWithoutPriceFilter,
+    handleLoadMore,
+  } = useSearchListings(query, category, page, sortBy, advancedFilters, searchParams.toString());
+
+  // Memoize listing data for translation hook
   const translationInput = useMemo(
     () => listings.map((l) => ({ id: l.id, title: l.title, description: l.description })),
     [listings]
   );
+  const { getTranslatedListing } = useListingTranslations(translationInput);
 
-  // Translation hook for non-English users
-  const { getTranslatedListing } = useListingTranslations(
-    translationInput
-  );
-
-  // Fetch categories on mount
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch('/api/categories');
-        if (response.ok) {
-          const data = await response.json();
-          setCategories(data.data || []);
-        }
-      } catch (error) {
-        logger.error('Error fetching categories', { error });
-      }
-    };
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    // Create a stable key for this set of params to prevent duplicate fetches
-    const filterKey = JSON.stringify(advancedFilters);
-    const paramsKey = `${query}|${category}|${page}|${sortBy}|${filterKey}`;
-
-    // Skip if we already fetched with these exact params
-    if (paramsKey === lastFetchParamsRef.current) {
-      return;
-    }
-    lastFetchParamsRef.current = paramsKey;
-
-    const currentFetchId = ++fetchIdRef.current;
-
-    const fetchListings = async () => {
-      setIsLoading(true);
-
-      try {
-        // Simple category detection for common searches (fallback if AI fails)
-        const categoryKeywords: Record<string, string> = {
-          'trailers': 'trailers',
-          'trailer': 'trailers',
-          'trucks': 'trucks',
-          'truck': 'trucks',
-          'equipment': 'heavy-equipment',
-          'heavy equipment': 'heavy-equipment',
-        };
-        const queryLower = query?.toLowerCase().trim() || '';
-        const detectedCategory = categoryKeywords[queryLower];
-
-        // If there's a natural language query, parse it with AI first
-        let currentAiFilters = null;
-        if (query && !category) {
-          try {
-            logger.debug('Search page calling AI search', { query });
-            const aiResponse = await fetch('/api/ai/search', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ query }),
-            });
-
-            if (aiResponse.ok) {
-              const { data } = await aiResponse.json();
-              logger.debug('Search page AI response', { data });
-              // Only update state if this is still the current fetch
-              if (currentFetchId === fetchIdRef.current) {
-                setAiInterpretation(data);
-              }
-              currentAiFilters = data?.filters;
-            } else {
-              logger.error('Search page AI search returned error', { status: aiResponse.status });
-            }
-          } catch (aiError) {
-            logger.error('Search page AI search failed', { error: aiError });
-          }
-
-          // Fallback: if AI didn't return a category but we detected one, use it
-          if (!currentAiFilters?.category_slug && detectedCategory) {
-            currentAiFilters = { ...currentAiFilters, category_slug: detectedCategory };
-          }
-        }
-
-        // Abort if a newer fetch was started
-        if (currentFetchId !== fetchIdRef.current) return;
-
-        // Build the API URL with filters
-        const params = new URLSearchParams();
-        params.set('page', page.toString());
-        // Map client sort values to API sort + order params
-        if (sortBy === 'price_desc') {
-          params.set('sort', 'price');
-          params.set('order', 'desc');
-        } else if (sortBy === 'price') {
-          params.set('sort', 'price');
-          params.set('order', 'asc');
-        } else {
-          params.set('sort', sortBy);
-        }
-        if (category) params.set('category', category);
-
-        // Add advanced filters
-        if (advancedFilters.priceMin) params.set('min_price', advancedFilters.priceMin.toString());
-        if (advancedFilters.priceMax) params.set('max_price', advancedFilters.priceMax.toString());
-        if (advancedFilters.yearMin) params.set('min_year', advancedFilters.yearMin.toString());
-        if (advancedFilters.yearMax) params.set('max_year', advancedFilters.yearMax.toString());
-        if (advancedFilters.mileageMax) params.set('max_mileage', advancedFilters.mileageMax.toString());
-        if (advancedFilters.makes?.length) params.set('make', advancedFilters.makes.join(','));
-        if (advancedFilters.conditions?.length) params.set('condition', advancedFilters.conditions.join(','));
-        if (advancedFilters.states?.length) params.set('state', advancedFilters.states.join(','));
-        if (advancedFilters.category) params.set('category', advancedFilters.category);
-
-        // Add AI-extracted filters
-        const aiFilters = currentAiFilters;
-        if (aiFilters) {
-          const f = aiFilters;
-          if (!advancedFilters.category && !category && f.category_slug) params.set('category', f.category_slug);
-          if (!advancedFilters.priceMin && f.min_price) params.set('min_price', f.min_price.toString());
-          if (!advancedFilters.priceMax && f.max_price) params.set('max_price', f.max_price.toString());
-          if (!advancedFilters.yearMin && f.min_year) params.set('min_year', f.min_year.toString());
-          if (!advancedFilters.yearMax && f.max_year) params.set('max_year', f.max_year.toString());
-          if (!advancedFilters.makes?.length && f.make) params.set('make', f.make);
-          if (!advancedFilters.states?.length && f.state) params.set('state', f.state);
-          if (!advancedFilters.mileageMax && f.max_mileage) params.set('max_mileage', f.max_mileage.toString());
-          if (!advancedFilters.conditions?.length && f.condition) params.set('condition', f.condition.join(','));
-        }
-
-        // Check ALL possible category sources
-        const hasCategory = params.has('category') || !!advancedFilters.category || !!category || !!aiFilters?.category_slug || !!detectedCategory;
-
-        // Only add text search if NO category filter exists
-        if (query && !hasCategory) {
-          params.set('q', query);
-        } else {
-          params.delete('q');
-        }
-
-        const response = await fetch(`/api/listings?${params.toString()}`);
-        const data = await response.json();
-
-        // If we got 0 results but had AI filters (especially price), retry without strict filters
-        const hasPriceFilter = params.has('min_price') || params.has('max_price');
-        const hasAIFilters = aiFilters && Object.keys(aiFilters).length > 0;
-
-        if ((data.data?.length === 0 || data.total === 0) && hasAIFilters && hasPriceFilter) {
-          // Retry without price filter to see if there are results
-          const fallbackParams = new URLSearchParams(params);
-          fallbackParams.delete('min_price');
-          fallbackParams.delete('max_price');
-
-          const fallbackResponse = await fetch(`/api/listings?${fallbackParams.toString()}`);
-          const fallbackData = await fallbackResponse.json();
-
-          if (currentFetchId === fetchIdRef.current) {
-            if (fallbackData.total > 0) {
-              // Show results without price filter, with a note
-              setListings(fallbackData.data || []);
-              setTotalCount(fallbackData.total || 0);
-              setTotalPages(fallbackData.total_pages || 1);
-              setTotalWithoutPriceFilter(fallbackData.total);
-            } else {
-              // No results either way
-              setListings([]);
-              setTotalCount(0);
-              setTotalPages(1);
-              setTotalWithoutPriceFilter(null);
-            }
-          }
-        } else {
-          // Only update state if this is still the current fetch
-          if (currentFetchId === fetchIdRef.current) {
-            setListings(data.data || []);
-            setTotalCount(data.total || 0);
-            setTotalPages(data.total_pages || 1);
-            setTotalWithoutPriceFilter(null);
-          }
-        }
-      } catch (error) {
-        logger.error('Search error', { error });
-      } finally {
-        if (currentFetchId === fetchIdRef.current) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchListings();
-  }, [query, category, page, sortBy, advancedFilters]);
-
-  const handlePageChange = (newPage: number) => {
-    if (useInfiniteMode) {
-      setUseInfiniteMode(false);
-    }
+  const handlePageChange = useCallback((newPage: number) => {
+    if (useInfiniteMode) setUseInfiniteMode(false);
     const params = new URLSearchParams(searchParams.toString());
     params.set('page', newPage.toString());
     router.push(`/search?${params.toString()}`);
-    // Scroll to top when changing pages
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, [useInfiniteMode, searchParams, router]);
 
-  // Load more handler for infinite scroll mode
-  const handleLoadMore = useCallback(async () => {
-    if (isLoadingMore || page >= totalPages) return;
+  const handleQuickFilter = useCallback((filter: FilterValues) => {
+    setAdvancedFilters((prev) => {
+      // Check if this exact filter is already active
+      const isActive = Object.entries(filter).every(
+        ([key, value]) => JSON.stringify(prev[key as keyof FilterValues]) === JSON.stringify(value)
+      );
+      return isActive ? {} : filter;
+    });
+  }, []);
 
-    setIsLoadingMore(true);
-    setUseInfiniteMode(true);
-
-    try {
-      const nextPage = page + 1;
-
-      // Build the API URL with current filters
-      const params = new URLSearchParams();
-      params.set('page', nextPage.toString());
-      // Map client sort values to API sort + order params
-      if (sortBy === 'price_desc') {
-        params.set('sort', 'price');
-        params.set('order', 'desc');
-      } else if (sortBy === 'price') {
-        params.set('sort', 'price');
-        params.set('order', 'asc');
-      } else {
-        params.set('sort', sortBy);
-      }
-      if (category) params.set('category', category);
-
-      // Add advanced filters
-      if (advancedFilters.priceMin) params.set('min_price', advancedFilters.priceMin.toString());
-      if (advancedFilters.priceMax) params.set('max_price', advancedFilters.priceMax.toString());
-      if (advancedFilters.yearMin) params.set('min_year', advancedFilters.yearMin.toString());
-      if (advancedFilters.yearMax) params.set('max_year', advancedFilters.yearMax.toString());
-      if (advancedFilters.mileageMax) params.set('max_mileage', advancedFilters.mileageMax.toString());
-      if (advancedFilters.makes?.length) params.set('make', advancedFilters.makes.join(','));
-      if (advancedFilters.conditions?.length) params.set('condition', advancedFilters.conditions.join(','));
-      if (advancedFilters.states?.length) params.set('state', advancedFilters.states.join(','));
-      if (advancedFilters.category) params.set('category', advancedFilters.category);
-
-      const response = await fetch(`/api/listings?${params.toString()}`);
-      const data = await response.json();
-
-      if (data.data?.length > 0) {
-        setListings((prev) => [...prev, ...data.data]);
-        // Update URL without full navigation
-        const urlParams = new URLSearchParams(searchParams.toString());
-        urlParams.set('page', nextPage.toString());
-        window.history.replaceState(null, '', `/search?${urlParams.toString()}`);
-      }
-    } catch (error) {
-      logger.error('Load more error', { error });
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [isLoadingMore, page, totalPages, sortBy, category, advancedFilters, searchParams]);
+  const activeFilterCount = Object.keys(advancedFilters).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -368,7 +134,7 @@ function SearchPageContent() {
           <AISearchBar defaultValue={query} />
         </div>
 
-        {/* Price filter fallback notice - only show when relevant */}
+        {/* Price filter fallback notice */}
         {totalWithoutPriceFilter !== null && (
           <div className="mb-4 md:mb-6 p-3 md:p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl">
             <p className="text-xs md:text-sm text-amber-700 dark:text-amber-400">
@@ -379,121 +145,57 @@ function SearchPageContent() {
 
         {/* Quick Filter Chips */}
         <div className="flex flex-wrap gap-2 mb-4 md:mb-6 overflow-x-auto pb-1">
-          {/* Price filters */}
           <QuickFilterChip
             label="Under $50K"
             icon={<DollarSign className="w-3 h-3" />}
             isActive={advancedFilters.priceMax === 50000 && !advancedFilters.category}
-            onClick={() => {
-              const isActive = advancedFilters.priceMax === 50000 && !advancedFilters.category;
-              if (isActive) {
-                setAdvancedFilters({});
-              } else {
-                setAdvancedFilters({ priceMax: 50000 });
-              }
-            }}
+            onClick={() => handleQuickFilter({ priceMax: 50000 })}
           />
           <QuickFilterChip
             label="Under $100K"
             icon={<DollarSign className="w-3 h-3" />}
             isActive={advancedFilters.priceMax === 100000 && !advancedFilters.category}
-            onClick={() => {
-              const isActive = advancedFilters.priceMax === 100000 && !advancedFilters.category;
-              if (isActive) {
-                setAdvancedFilters({});
-              } else {
-                setAdvancedFilters({ priceMax: 100000 });
-              }
-            }}
+            onClick={() => handleQuickFilter({ priceMax: 100000 })}
           />
-
-          {/* Year filter */}
           <QuickFilterChip
             label="2020+"
             icon={<Clock className="w-3 h-3" />}
             isActive={advancedFilters.yearMin === 2020 && !advancedFilters.category}
-            onClick={() => {
-              const isActive = advancedFilters.yearMin === 2020 && !advancedFilters.category;
-              if (isActive) {
-                setAdvancedFilters({});
-              } else {
-                setAdvancedFilters({ yearMin: 2020 });
-              }
-            }}
+            onClick={() => handleQuickFilter({ yearMin: 2020 })}
           />
-
-          {/* Low mileage */}
           <QuickFilterChip
             label="Low Miles"
             icon={<Gauge className="w-3 h-3" />}
             isActive={advancedFilters.mileageMax === 200000 && !advancedFilters.category}
-            onClick={() => {
-              const isActive = advancedFilters.mileageMax === 200000 && !advancedFilters.category;
-              if (isActive) {
-                setAdvancedFilters({});
-              } else {
-                setAdvancedFilters({ mileageMax: 200000 });
-              }
-            }}
+            onClick={() => handleQuickFilter({ mileageMax: 200000 })}
           />
 
-          {/* Divider */}
           <div className="w-px h-6 bg-border self-center hidden sm:block" />
 
-          {/* Category filters */}
           <QuickFilterChip
             label="New Trucks"
             icon={<Sparkles className="w-3 h-3" />}
             isActive={advancedFilters.category === 'trucks' && (advancedFilters.conditions?.includes('new') || false)}
-            onClick={() => {
-              const isActive = advancedFilters.category === 'trucks' && advancedFilters.conditions?.includes('new');
-              if (isActive) {
-                setAdvancedFilters({});
-              } else {
-                setAdvancedFilters({ category: 'trucks', conditions: ['new'] });
-              }
-            }}
+            onClick={() => handleQuickFilter({ category: 'trucks', conditions: ['new'] })}
           />
           <QuickFilterChip
             label="Used Trucks"
             icon={<Truck className="w-3 h-3" />}
             isActive={advancedFilters.category === 'trucks' && (advancedFilters.conditions?.includes('used') || false)}
-            onClick={() => {
-              const isActive = advancedFilters.category === 'trucks' && advancedFilters.conditions?.includes('used');
-              if (isActive) {
-                setAdvancedFilters({});
-              } else {
-                setAdvancedFilters({ category: 'trucks', conditions: ['used'] });
-              }
-            }}
+            onClick={() => handleQuickFilter({ category: 'trucks', conditions: ['used'] })}
           />
           <QuickFilterChip
             label="Trailers"
             isActive={advancedFilters.category === 'trailers' && !advancedFilters.conditions?.length}
-            onClick={() => {
-              const isActive = advancedFilters.category === 'trailers' && !advancedFilters.conditions?.length;
-              if (isActive) {
-                setAdvancedFilters({});
-              } else {
-                setAdvancedFilters({ category: 'trailers' });
-              }
-            }}
+            onClick={() => handleQuickFilter({ category: 'trailers' })}
           />
           <QuickFilterChip
             label="Equipment"
             isActive={advancedFilters.category === 'heavy-equipment'}
-            onClick={() => {
-              const isActive = advancedFilters.category === 'heavy-equipment';
-              if (isActive) {
-                setAdvancedFilters({});
-              } else {
-                setAdvancedFilters({ category: 'heavy-equipment' });
-              }
-            }}
+            onClick={() => handleQuickFilter({ category: 'heavy-equipment' })}
           />
 
-          {/* Clear all button when filters are active */}
-          {Object.keys(advancedFilters).length > 0 && (
+          {activeFilterCount > 0 && (
             <button
               onClick={() => setAdvancedFilters({})}
               className="px-3 py-1.5 text-xs md:text-sm rounded-full border border-destructive/50 text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-1.5"
@@ -515,22 +217,22 @@ function SearchPageContent() {
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
-            {/* Save Search Button */}
-            {(query || Object.keys(advancedFilters).length > 0) && (
+            {(query || activeFilterCount > 0) && (
               <SaveSearchButton
                 query={query}
                 filters={advancedFilters as Record<string, unknown>}
               />
             )}
+
             {/* Mobile Filter Button */}
             <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2 flex-shrink-0 md:hidden">
                   <SlidersHorizontal className="w-4 h-4" />
                   Filters
-                  {Object.keys(advancedFilters).length > 0 && (
+                  {activeFilterCount > 0 && (
                     <Badge variant="secondary" className="ml-1 text-xs px-1.5">
-                      {Object.keys(advancedFilters).length}
+                      {activeFilterCount}
                     </Badge>
                   )}
                 </Button>
@@ -556,9 +258,9 @@ function SearchPageContent() {
                 <Button variant="outline" size="sm" className="gap-2 hidden md:flex">
                   <SlidersHorizontal className="w-4 h-4" />
                   Filters
-                  {Object.keys(advancedFilters).length > 0 && (
+                  {activeFilterCount > 0 && (
                     <Badge variant="secondary" className="ml-1 text-xs px-1.5">
-                      {Object.keys(advancedFilters).length}
+                      {activeFilterCount}
                     </Badge>
                   )}
                 </Button>
@@ -682,10 +384,9 @@ function SearchPageContent() {
           </div>
         )}
 
-        {/* Pagination / Load More - hide when in map view */}
+        {/* Pagination / Load More */}
         {totalPages > 1 && viewMode !== 'map' && (
           <div className="flex flex-col items-center gap-4 mt-6 md:mt-8">
-            {/* Load More Button */}
             {page < totalPages && (
               <div className="flex flex-col items-center gap-2">
                 <p className="text-sm text-muted-foreground">
@@ -693,7 +394,7 @@ function SearchPageContent() {
                 </p>
                 <Button
                   variant="outline"
-                  onClick={handleLoadMore}
+                  onClick={() => { setUseInfiniteMode(true); handleLoadMore(); }}
                   disabled={isLoadingMore}
                   className="min-w-[200px]"
                 >
@@ -709,7 +410,6 @@ function SearchPageContent() {
               </div>
             )}
 
-            {/* Traditional Pagination */}
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
@@ -738,7 +438,6 @@ function SearchPageContent() {
           </div>
         )}
 
-        {/* Show count when on last page or single page */}
         {(totalPages === 1 || page >= totalPages) && listings.length > 0 && viewMode !== 'map' && (
           <p className="text-center text-sm text-muted-foreground mt-6">
             Showing all {listings.length} results
@@ -746,7 +445,6 @@ function SearchPageContent() {
         )}
       </div>
 
-      {/* Scroll to top button */}
       <ScrollToTop />
     </div>
   );
