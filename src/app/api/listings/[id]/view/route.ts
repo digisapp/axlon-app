@@ -16,16 +16,10 @@ async function getSessionId(req: NextRequest): Promise<string> {
   return sessionId;
 }
 
-// Hash IP for privacy-safe deduplication
+// Hash IP for privacy-safe deduplication using cryptographic hash
 function hashIP(ip: string): string {
-  // Simple hash - in production you might use crypto
-  let hash = 0;
-  for (let i = 0; i < ip.length; i++) {
-    const char = ip.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return hash.toString(16);
+  const crypto = require('crypto');
+  return crypto.createHash('sha256').update(ip).digest('hex').substring(0, 16);
 }
 
 export async function POST(

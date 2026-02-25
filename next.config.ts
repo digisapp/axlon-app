@@ -32,7 +32,7 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
-      "img-src 'self' data: blob: https: http:",
+      "img-src 'self' data: blob: https:",
       "font-src 'self' https://fonts.gstatic.com",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.upstash.io https://api.x.ai https://*.sentry.io",
       "frame-src 'self' https://js.stripe.com",
@@ -249,10 +249,14 @@ export default withSentryConfig(nextConfig, {
   // Upload source maps for better stack traces
   widenClientFileUpload: true,
 
-  // Tree-shake Sentry logger statements in production
-  disableLogger: true,
-
-  // Automatically instrument API routes and server components
-  autoInstrumentServerFunctions: true,
-  autoInstrumentMiddleware: true,
+  // Webpack-specific options (non-Turbopack)
+  webpack: {
+    // Tree-shake Sentry debug logging in production
+    treeshake: {
+      removeDebugLogging: true,
+    },
+    // Automatically instrument API routes and server components
+    autoInstrumentServerFunctions: true,
+    autoInstrumentMiddleware: true,
+  },
 });

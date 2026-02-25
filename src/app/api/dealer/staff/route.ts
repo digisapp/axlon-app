@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, createStaffSchema } from '@/lib/validations/api';
+import crypto from 'crypto';
+
+function hashPin(pin: string): string {
+  return crypto.createHash('sha256').update(pin).digest('hex');
+}
 
 // GET - List dealer staff
 export async function GET(request: NextRequest) {
@@ -102,12 +107,15 @@ export async function POST(request: NextRequest) {
       throw err;
     }
 
+    // Hash the PIN before storage and comparison
+    const hashedPin = hashPin(validatedData.voice_pin);
+
     // Check if PIN already exists for this dealer
     const { data: existing } = await supabase
       .from('dealer_staff')
       .select('id')
       .eq('dealer_id', user.id)
-      .eq('voice_pin', validatedData.voice_pin)
+      .eq('voice_pin', hashedPin)
       .single();
 
     if (existing) {
@@ -126,7 +134,7 @@ export async function POST(request: NextRequest) {
         role: validatedData.role || 'sales',
         phone_number: validatedData.phone_number || null,
         email: validatedData.email || null,
-        voice_pin: validatedData.voice_pin,
+        voice_pin: hashedPin,
         access_level: validatedData.access_level || 'standard',
         can_view_costs: validatedData.can_view_costs || false,
         can_view_margins: validatedData.can_view_margins || false,

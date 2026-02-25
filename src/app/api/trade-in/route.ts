@@ -4,6 +4,7 @@ import { Resend } from 'resend';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, tradeInRequestSchema } from '@/lib/validations/api';
+import { escapeHtml } from '@/lib/utils/html-escape';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'sales@axlon.ai';
 
@@ -86,24 +87,24 @@ export async function POST(request: NextRequest) {
 
               <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                 <h3 style="color: #333; margin: 0 0 15px 0;">Equipment Details</h3>
-                <p style="margin: 5px 0;"><strong>Equipment:</strong> ${equipmentInfo || 'Not specified'}</p>
-                ${validatedData.equipment_vin ? `<p style="margin: 5px 0;"><strong>VIN:</strong> ${validatedData.equipment_vin}</p>` : ''}
+                <p style="margin: 5px 0;"><strong>Equipment:</strong> ${escapeHtml(equipmentInfo) || 'Not specified'}</p>
+                ${validatedData.equipment_vin ? `<p style="margin: 5px 0;"><strong>VIN:</strong> ${escapeHtml(validatedData.equipment_vin)}</p>` : ''}
                 ${validatedData.equipment_mileage ? `<p style="margin: 5px 0;"><strong>Mileage:</strong> ${validatedData.equipment_mileage.toLocaleString()} miles</p>` : ''}
                 ${validatedData.equipment_hours ? `<p style="margin: 5px 0;"><strong>Hours:</strong> ${validatedData.equipment_hours.toLocaleString()}</p>` : ''}
-                ${validatedData.equipment_condition ? `<p style="margin: 5px 0;"><strong>Condition:</strong> ${validatedData.equipment_condition}</p>` : ''}
-                ${validatedData.equipment_description ? `<p style="margin: 10px 0 0 0;"><strong>Description:</strong><br/>${validatedData.equipment_description}</p>` : ''}
+                ${validatedData.equipment_condition ? `<p style="margin: 5px 0;"><strong>Condition:</strong> ${escapeHtml(validatedData.equipment_condition)}</p>` : ''}
+                ${validatedData.equipment_description ? `<p style="margin: 10px 0 0 0;"><strong>Description:</strong><br/>${escapeHtml(validatedData.equipment_description)}</p>` : ''}
               </div>
 
               <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                 <h3 style="color: #333; margin: 0 0 15px 0;">Contact Information</h3>
-                <p style="margin: 5px 0;"><strong>Name:</strong> ${validatedData.contact_name}</p>
-                <p style="margin: 5px 0;"><strong>Email:</strong> <a href="mailto:${validatedData.contact_email}">${validatedData.contact_email}</a></p>
-                ${body.contact_phone ? `<p style="margin: 5px 0;"><strong>Phone:</strong> <a href="tel:${validatedData.contact_phone}">${validatedData.contact_phone}</a></p>` : ''}
+                <p style="margin: 5px 0;"><strong>Name:</strong> ${escapeHtml(validatedData.contact_name)}</p>
+                <p style="margin: 5px 0;"><strong>Email:</strong> <a href="mailto:${escapeHtml(validatedData.contact_email)}">${escapeHtml(validatedData.contact_email)}</a></p>
+                ${validatedData.contact_phone ? `<p style="margin: 5px 0;"><strong>Phone:</strong> <a href="tel:${escapeHtml(validatedData.contact_phone)}">${escapeHtml(validatedData.contact_phone)}</a></p>` : ''}
               </div>
 
               ${validatedData.purchase_timeline ? `
               <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <p style="margin: 0;"><strong>Purchase Timeline:</strong> ${validatedData.purchase_timeline.replace('_', ' ')}</p>
+                <p style="margin: 0;"><strong>Purchase Timeline:</strong> ${escapeHtml(validatedData.purchase_timeline.replace('_', ' '))}</p>
               </div>
               ` : ''}
 

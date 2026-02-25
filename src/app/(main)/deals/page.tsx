@@ -20,11 +20,11 @@ import {
   MapPin,
   Calendar,
   Gauge,
-  Heart,
   Grid3X3,
   List,
 } from 'lucide-react';
 import { CompareButton } from '@/components/listings/CompareButton';
+import { FavoriteButton } from '@/components/listings/FavoriteButton';
 import { ListingCardWrapper } from '@/components/listings/ListingCardWrapper';
 import { useImageFallback } from '@/hooks/useImageFallback';
 import { logger } from '@/lib/logger';
@@ -51,6 +51,7 @@ export default function DealsPage() {
   const [deals, setDeals] = useState<DealListing[]>([]);
   const [filteredDeals, setFilteredDeals] = useState<DealListing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('discount');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -63,9 +64,12 @@ export default function DealsPage() {
           const data = await response.json();
           setDeals(data.data || []);
           setFilteredDeals(data.data || []);
+        } else {
+          setError('Failed to load deals. Please try again.');
         }
       } catch (error) {
         logger.error('Error fetching deals', { error });
+        setError('Failed to load deals. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -196,7 +200,16 @@ export default function DealsPage() {
         </p>
 
         {/* Deals Grid */}
-        {isLoading ? (
+        {error ? (
+          <div className="text-center py-12 md:py-16">
+            <Flame className="w-12 h-12 md:w-16 md:h-16 text-destructive mx-auto mb-4" />
+            <h2 className="text-lg md:text-xl font-semibold mb-2">Something went wrong</h2>
+            <p className="text-sm md:text-base text-muted-foreground mb-4">{error}</p>
+            <Button onClick={() => { setError(null); window.location.reload(); }}>
+              Try Again
+            </Button>
+          </div>
+        ) : isLoading ? (
           <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4' : 'space-y-4'}>
             {[...Array(8)].map((_, i) => (
               <DealCardSkeleton key={i} viewMode={viewMode} />
@@ -314,9 +327,7 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
                   }}
                   variant="icon"
                 />
-                <Button variant="ghost" size="icon" className="flex-shrink-0">
-                  <Heart className="w-4 h-4 md:w-5 md:h-5" />
-                </Button>
+                <FavoriteButton listingId={deal.id} variant="ghost" size="icon" showText={false} />
               </div>
             </div>
 
@@ -389,13 +400,12 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
               variant="icon"
               className="bg-white/80 hover:bg-white w-7 h-7 md:w-8 md:h-8"
             />
-            <Button
+            <FavoriteButton
+              listingId={deal.id}
               variant="ghost"
               size="icon"
-              className="bg-white/80 hover:bg-white w-7 h-7 md:w-8 md:h-8"
-            >
-              <Heart className="w-3 h-3 md:w-4 md:h-4" />
-            </Button>
+              showText={false}
+            />
           </div>
         </div>
 

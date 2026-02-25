@@ -28,95 +28,50 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient();
 
-    // Get overall stats
-    const { count: totalUsers } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true });
-
-    const { count: totalDealers } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_dealer', true);
-
-    const { count: pendingDealers } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('dealer_status', 'pending');
-
-    const { count: totalListings } = await supabase
-      .from('listings')
-      .select('*', { count: 'exact', head: true });
-
-    const { count: activeListings } = await supabase
-      .from('listings')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'active');
-
-    const { count: totalLeads } = await supabase
-      .from('leads')
-      .select('*', { count: 'exact', head: true });
-
-    const { count: totalMessages } = await supabase
-      .from('messages')
-      .select('*', { count: 'exact', head: true });
-
-    // Get total views
-    const { data: viewsData } = await supabase
-      .from('listings')
-      .select('views_count');
-
-    const totalViews = viewsData?.reduce((sum, l) => sum + (l.views_count || 0), 0) || 0;
-
     // Calculate date range
     const daysAgo = parseInt(range);
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysAgo);
     const startDateStr = startDate.toISOString();
 
-    // Get new users in range
-    const { count: newUsers } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', startDateStr);
+    // Batch all independent count queries in parallel
+    const [
+      { count: totalUsers },
+      { count: totalDealers },
+      { count: pendingDealers },
+      { count: totalListings },
+      { count: activeListings },
+      { count: totalLeads },
+      { count: totalMessages },
+      { data: viewsData },
+      { count: newUsers },
+      { count: newListings },
+      { count: newLeads },
+      { data: dailySignups },
+      { data: dailyListings },
+      { data: dailyLeads },
+    ] = await Promise.all([
+      supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_dealer', true),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('dealer_status', 'pending'),
+      supabase.from('listings').select('*', { count: 'exact', head: true }),
+      supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+      supabase.from('leads').select('*', { count: 'exact', head: true }),
+      supabase.from('messages').select('*', { count: 'exact', head: true }),
+      supabase.from('listings').select('views_count'),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', startDateStr),
+      supabase.from('listings').select('*', { count: 'exact', head: true }).gte('created_at', startDateStr),
+      supabase.from('leads').select('*', { count: 'exact', head: true }).gte('created_at', startDateStr),
+      supabase.from('profiles').select('created_at').gte('created_at', startDateStr).order('created_at', { ascending: true }).limit(10000),
+      supabase.from('listings').select('created_at').gte('created_at', startDateStr).order('created_at', { ascending: true }).limit(10000),
+      supabase.from('leads').select('created_at').gte('created_at', startDateStr).order('created_at', { ascending: true }).limit(10000),
+    ]);
 
-    // Get new listings in range
-    const { count: newListings } = await supabase
-      .from('listings')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', startDateStr);
-
-    // Get new leads in range
-    const { count: newLeads } = await supabase
-      .from('leads')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', startDateStr);
-
-    // Get daily signups for chart
-    const { data: dailySignups } = await supabase
-      .from('profiles')
-      .select('created_at')
-      .gte('created_at', startDateStr)
-      .order('created_at', { ascending: true });
+    const totalViews = viewsData?.reduce((sum, l) => sum + (l.views_count || 0), 0) || 0;
 
     // Group by day
     const signupsByDay = groupByDay(dailySignups || [], 'created_at', daysAgo);
-
-    // Get daily listings for chart
-    const { data: dailyListings } = await supabase
-      .from('listings')
-      .select('created_at')
-      .gte('created_at', startDateStr)
-      .order('created_at', { ascending: true });
-
     const listingsByDay = groupByDay(dailyListings || [], 'created_at', daysAgo);
-
-    // Get daily leads for chart
-    const { data: dailyLeads } = await supabase
-      .from('leads')
-      .select('created_at')
-      .gte('created_at', startDateStr)
-      .order('created_at', { ascending: true });
-
     const leadsByDay = groupByDay(dailyLeads || [], 'created_at', daysAgo);
 
     // Get top dealers by listings
