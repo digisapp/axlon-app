@@ -50,8 +50,13 @@ export async function generateMetadata(
       title: 'Search Trucks, Trailers & Equipment | AxlonAI',
       description: 'Find your next truck, trailer, or equipment with AI-powered search. Filter by price, year, make, and location.',
     },
+    twitter: {
+      card: 'summary_large_image',
+      title: 'Search Trucks, Trailers & Equipment | AxlonAI',
+      description: 'AI-powered search across thousands of trucks, trailers, and equipment listings.',
+    },
     alternates: {
-      canonical: `${process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai'}/search`,
+      canonical: '/search',
     },
   };
 }

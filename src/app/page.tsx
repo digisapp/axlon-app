@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -6,9 +7,47 @@ import { HomeHeader } from '@/components/home/HomeHeader';
 import { HomeSearchSection } from '@/components/home/HomeSearchSection';
 import { HomeDeals } from '@/components/home/HomeDeals';
 
+export const metadata: Metadata = {
+  alternates: {
+    canonical: '/',
+  },
+};
+
+function HomePageJsonLd() {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'AxlonAI',
+    url: 'https://axlon.ai',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    description: 'AI-powered marketplace for buying and selling trucks, trailers, and heavy equipment. Search with natural language, get smart pricing, and list equipment instantly.',
+    offers: {
+      '@type': 'AggregateOffer',
+      priceCurrency: 'USD',
+      availability: 'https://schema.org/InStock',
+      offerCount: '5000+',
+      lowPrice: '5000',
+      highPrice: '500000',
+    },
+    provider: {
+      '@type': 'Organization',
+      name: 'AxlonAI',
+      url: 'https://axlon.ai',
+    },
+  };
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
+}
+
 export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col gradient-bg relative overflow-hidden">
+      <HomePageJsonLd />
       {/* Subtle noise texture */}
       <div className="noise-overlay" />
 

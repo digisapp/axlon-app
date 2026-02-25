@@ -20,6 +20,14 @@ export const metadata: Metadata = {
     title: 'Browse Equipment Categories | AxlonAI',
     description: 'Browse trucks, trailers, heavy equipment, and parts categories.',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Browse Equipment Categories | AxlonAI',
+    description: 'Semi trucks, lowboy trailers, flatbed trailers, heavy equipment, and parts.',
+  },
+  alternates: {
+    canonical: '/categories',
+  },
 };
 
 const categoryIcons: Record<string, React.ReactNode> = {

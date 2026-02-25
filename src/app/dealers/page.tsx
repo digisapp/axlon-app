@@ -15,8 +15,20 @@ import {
 } from 'lucide-react';
 
 export const metadata = {
-  title: 'Dealer Directory | AxlonAI',
-  description: 'Browse trusted truck and equipment dealers on AxlonAI',
+  title: 'Dealer Directory - Find Trusted Truck & Equipment Dealers',
+  description: 'Browse verified truck and equipment dealers on AxlonAI. Find trusted dealers near you with AI-powered storefronts, inventory, and direct messaging.',
+  openGraph: {
+    title: 'Dealer Directory | AxlonAI',
+    description: 'Find trusted truck and equipment dealers near you. Verified dealers with direct messaging.',
+  },
+  twitter: {
+    card: 'summary_large_image' as const,
+    title: 'Dealer Directory | AxlonAI',
+    description: 'Find trusted truck and equipment dealers near you.',
+  },
+  alternates: {
+    canonical: '/dealers',
+  },
 };
 
 interface PageProps {

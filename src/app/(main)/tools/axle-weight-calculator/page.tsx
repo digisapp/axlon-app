@@ -3,8 +3,20 @@ import Link from 'next/link';
 import { ArrowLeft, Scale } from 'lucide-react';
 
 export const metadata = {
-  title: 'Axle Weight Calculator | AxlonAI',
-  description: 'Calculate axle weight distribution for your truck and trailer combination. Ensure compliance with federal weight limits and avoid overweight fines.',
+  title: 'Axle Weight Calculator - Truck & Trailer Weight Distribution',
+  description: 'Calculate axle weight distribution for your truck and trailer combination. Ensure compliance with federal bridge formula and FHWA weight limits. Avoid overweight fines.',
+  openGraph: {
+    title: 'Axle Weight Calculator | AxlonAI',
+    description: 'Calculate truck and trailer axle weight distribution. Check federal weight limit compliance.',
+  },
+  twitter: {
+    card: 'summary' as const,
+    title: 'Axle Weight Calculator | AxlonAI',
+    description: 'Calculate axle weight distribution for truck and trailer combinations.',
+  },
+  alternates: {
+    canonical: '/tools/axle-weight-calculator',
+  },
 };
 
 export default function AxleWeightCalculatorPage() {

@@ -3,8 +3,20 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
 export const metadata = {
-  title: 'Trade-In Your Equipment | AxlonAI',
-  description: 'Get a quick valuation for your truck, trailer, or equipment. Submit a trade-in request and receive a response within 24-48 hours.',
+  title: 'Trade-In Your Equipment',
+  description: 'Get a free valuation for your truck, trailer, or equipment. Submit a trade-in request and receive a response within 24-48 hours.',
+  openGraph: {
+    title: 'Trade-In Your Equipment | AxlonAI',
+    description: 'Get a free valuation for your truck, trailer, or equipment. Fast response within 24-48 hours.',
+  },
+  twitter: {
+    card: 'summary' as const,
+    title: 'Trade-In Your Equipment | AxlonAI',
+    description: 'Get a free valuation for your truck, trailer, or equipment.',
+  },
+  alternates: {
+    canonical: '/trade-in',
+  },
 };
 
 export default function TradeInPage() {

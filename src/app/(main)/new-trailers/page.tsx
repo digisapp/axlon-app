@@ -6,11 +6,19 @@ import { ProductCard } from '@/components/new-trailers/ProductCard';
 import type { ManufacturerProduct } from '@/types';
 
 export const metadata: Metadata = {
-  title: 'New Trailers | Browse Lowboy & Heavy Haul Trailers by Manufacturer | AxlonAI',
+  title: 'New Trailers | Browse Lowboy & Heavy Haul Trailers by Manufacturer',
   description: 'Browse new lowboy trailers, heavy haul trailers, and specialized hauling equipment from top manufacturers like Trail King, Fontaine, Talbert, XL Specialized, and more.',
   openGraph: {
     title: 'New Trailers - Heavy Haul Trailer Catalog | AxlonAI',
     description: 'Browse new lowboy trailers from 13+ top manufacturers. Compare specs, tonnage, deck heights, and gooseneck types.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'New Trailers - Heavy Haul Catalog | AxlonAI',
+    description: 'Browse new lowboy trailers from 13+ manufacturers. Compare specs, tonnage, and deck heights.',
+  },
+  alternates: {
+    canonical: '/new-trailers',
   },
 };
 
