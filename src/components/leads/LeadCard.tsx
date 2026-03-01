@@ -99,9 +99,26 @@ export const LeadCard = memo(function LeadCard({
         )}
 
         <div className="flex items-start justify-between">
-          <div className="min-w-0">
+          <div className="min-w-0 space-y-0.5">
             <p className="font-medium truncate">{lead.buyer_name}</p>
-            <p className="text-xs text-muted-foreground truncate">{lead.buyer_email}</p>
+            <a
+              href={`mailto:${lead.buyer_email}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-xs text-muted-foreground hover:text-foreground truncate flex items-center gap-1"
+            >
+              <Mail className="w-3 h-3 flex-shrink-0" />
+              {lead.buyer_email}
+            </a>
+            {lead.buyer_phone && (
+              <a
+                href={`tel:${lead.buyer_phone}`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-xs text-muted-foreground hover:text-foreground truncate flex items-center gap-1"
+              >
+                <Phone className="w-3 h-3 flex-shrink-0" />
+                {lead.buyer_phone}
+              </a>
+            )}
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>

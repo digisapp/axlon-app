@@ -1,33 +1,26 @@
-import type { Metadata } from 'next';
-
-interface SearchLayoutProps {
-  children: React.ReactNode;
-  params: Promise<Record<string, string>>;
-}
-
-// Category-specific SEO content
-const categoryMeta: Record<string, { title: string; description: string }> = {
+// Category-specific SEO descriptions for crawlable content
+const categoryDescriptions: Record<string, { title: string; description: string }> = {
   'lowboy-trailers': {
     title: 'Lowboy Trailers for Sale',
     description: 'Browse lowboy trailers for sale. Compare prices on detachable, fixed-neck, and hydraulic lowboy trailers from top manufacturers.',
   },
   'sleeper-trucks': {
     title: 'Sleeper Trucks for Sale',
-    description: 'Find sleeper trucks for sale from Peterbilt, Freightliner, Kenworth, Volvo, and more. Compare prices, mileage, and specs.',
+    description: 'Find sleeper trucks for sale from Peterbilt, Freightliner, Kenworth, Volvo, and more.',
   },
   'flatbed-trailers': {
     title: 'Flatbed Trailers for Sale',
-    description: 'Browse flatbed trailers for sale. Standard, step-deck, and extendable flatbeds from leading manufacturers.',
+    description: 'Browse flatbed trailers for sale. Standard, step-deck, and extendable flatbeds.',
   },
   'day-cab-trucks': {
     title: 'Day Cab Trucks for Sale',
-    description: 'Find day cab trucks for sale. Semi trucks for local and regional hauling from top brands.',
+    description: 'Find day cab trucks for sale. Semi trucks for local and regional hauling.',
   },
-  'trucks': {
+  trucks: {
     title: 'Semi Trucks for Sale',
-    description: 'Browse semi trucks for sale including sleeper trucks, day cabs, and vocational trucks from all major manufacturers.',
+    description: 'Browse semi trucks for sale including sleeper trucks, day cabs, and vocational trucks.',
   },
-  'trailers': {
+  trailers: {
     title: 'Trailers for Sale',
     description: 'Find trailers for sale including lowboys, flatbeds, reefers, dry vans, and specialty trailers.',
   },
@@ -37,31 +30,7 @@ const categoryMeta: Record<string, { title: string; description: string }> = {
   },
 };
 
-export async function generateMetadata(
-  { params: _params }: SearchLayoutProps,
-): Promise<Metadata> {
-  // Note: searchParams are not available in layouts in Next.js App Router
-  // The layout provides base metadata; the page's client-side rendering
-  // handles dynamic content based on searchParams
-  return {
-    title: 'Search Trucks, Trailers & Equipment',
-    description: 'Search thousands of trucks, trailers, and heavy equipment listings. Filter by price, year, make, condition, and location. AI-powered search understands natural language.',
-    openGraph: {
-      title: 'Search Trucks, Trailers & Equipment | AxlonAI',
-      description: 'Find your next truck, trailer, or equipment with AI-powered search. Filter by price, year, make, and location.',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: 'Search Trucks, Trailers & Equipment | AxlonAI',
-      description: 'AI-powered search across thousands of trucks, trailers, and equipment listings.',
-    },
-    alternates: {
-      canonical: '/search',
-    },
-  };
-}
-
-export default function SearchLayout({ children }: SearchLayoutProps) {
+export default function SearchLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
@@ -70,7 +39,7 @@ export default function SearchLayout({ children }: SearchLayoutProps) {
       <section className="sr-only" aria-label="Search Information">
         <h2>Browse Equipment by Category</h2>
         <ul>
-          {Object.entries(categoryMeta).map(([slug, meta]) => (
+          {Object.entries(categoryDescriptions).map(([slug, meta]) => (
             <li key={slug}>
               <a href={`/search?category=${slug}`}>{meta.title}</a>
               <p>{meta.description}</p>

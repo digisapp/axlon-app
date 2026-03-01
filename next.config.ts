@@ -57,187 +57,44 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'trailerimages.haletrailer.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.haletrailer.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'www.pinnacletrailers.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.pinnacletrailers.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.supabase.co',
-      },
-      {
-        protocol: 'https',
-        hostname: 'cdn11.bigcommerce.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.bigcommerce.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'd17qgzvii7d4wm.cloudfront.net',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.cloudfront.net',
-      },
-      {
-        protocol: 'https',
-        hostname: 'royaltrailersales.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'midcosales.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'www.jhtt.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'jhtt.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'www.truckpaper.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.truckpaper.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.sandhills.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.imanpro.net',
-      },
+      // Supabase storage
+      { protocol: 'https', hostname: '*.supabase.co' },
+      // CDN providers
+      { protocol: 'https', hostname: '*.cloudfront.net' },
+      { protocol: 'https', hostname: '*.azureedge.net' },
+      { protocol: 'https', hostname: '*.bigcommerce.com' },
+      { protocol: 'https', hostname: '*.website-files.com' },
+      { protocol: 'https', hostname: '*.azurewebsites.net' },
+      // Dealer & listing image sources
+      { protocol: 'https', hostname: '*.haletrailer.com' },
+      { protocol: 'https', hostname: '*.pinnacletrailers.com' },
+      { protocol: 'https', hostname: '*.tecequipment.com' },
+      { protocol: 'https', hostname: '*.soarr.com' },
+      { protocol: 'https', hostname: '*.truckpaper.com' },
+      { protocol: 'https', hostname: '*.sandhills.com' },
+      { protocol: 'https', hostname: '*.imanpro.net' },
+      { protocol: 'https', hostname: '*.lumbermenonline.com' },
+      { protocol: 'https', hostname: '*.renostrailer.com' },
+      { protocol: 'https', hostname: '*.semitrailers.net' },
+      { protocol: 'https', hostname: 'royaltrailersales.com' },
+      { protocol: 'https', hostname: 'midcosales.com' },
+      { protocol: 'https', hostname: 'jhtt.com' },
+      { protocol: 'https', hostname: '*.jhtt.com' },
       // Manufacturer product catalog images
-      {
-        protocol: 'https',
-        hostname: 'trailking.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.trailking.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'fontainespecialized.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.fontainespecialized.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'talbertmfg.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.talbertmfg.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'xlspecializedtrailer.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.xlspecializedtrailer.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'pittstrailers.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.pittstrailers.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'eagerbeavertrailers.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.eagerbeavertrailers.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'kaufmantrailers.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.kaufmantrailers.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'witzco.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.witzco.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'globetrailers.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.globetrailers.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'etnyre.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.etnyre.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'landoll.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.landoll.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'maxtrailer.us',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.maxtrailer.us',
-      },
-      {
-        protocol: 'https',
-        hostname: 'faymonville.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.faymonville.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'loadstartrailers.com',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.loadstartrailers.com',
-      },
+      { protocol: 'https', hostname: '*.trailking.com' },
+      { protocol: 'https', hostname: '*.fontainespecialized.com' },
+      { protocol: 'https', hostname: '*.talbertmfg.com' },
+      { protocol: 'https', hostname: '*.xlspecializedtrailer.com' },
+      { protocol: 'https', hostname: '*.pittstrailers.com' },
+      { protocol: 'https', hostname: '*.eagerbeavertrailers.com' },
+      { protocol: 'https', hostname: '*.kaufmantrailers.com' },
+      { protocol: 'https', hostname: '*.witzco.com' },
+      { protocol: 'https', hostname: '*.globetrailers.com' },
+      { protocol: 'https', hostname: '*.etnyre.com' },
+      { protocol: 'https', hostname: '*.landoll.com' },
+      { protocol: 'https', hostname: '*.maxtrailer.us' },
+      { protocol: 'https', hostname: '*.faymonville.com' },
+      { protocol: 'https', hostname: '*.loadstartrailers.com' },
     ],
   },
 };

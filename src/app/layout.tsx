@@ -96,11 +96,13 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "AxlonAI",
     locale: "en_US",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "AxlonAI - AI-Powered Truck & Equipment Marketplace" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "AxlonAI - AI-Powered Truck & Equipment Marketplace",
     description: "The future of buying and selling trucks, trailers, and equipment.",
+    images: ["/opengraph-image"],
   },
   robots: {
     index: true,

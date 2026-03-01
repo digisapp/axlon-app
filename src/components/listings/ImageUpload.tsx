@@ -285,6 +285,7 @@ export function ImageUpload({
                     alt={`Image ${index + 1}`}
                     fill
                     className="object-cover opacity-50"
+                    unoptimized
                   />
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
                     <Sparkles className="w-6 h-6 text-primary animate-pulse" />
@@ -297,6 +298,7 @@ export function ImageUpload({
                   alt={`Image ${index + 1}`}
                   fill
                   className="object-cover"
+                  unoptimized
                 />
               )}
 

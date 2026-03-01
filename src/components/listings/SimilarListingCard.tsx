@@ -31,6 +31,7 @@ export function SimilarListingCard({ item }: SimilarListingCardProps) {
               alt={item.title}
               fill
               className="object-cover"
+              unoptimized
               onError={handleError}
             />
           ) : (
