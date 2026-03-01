@@ -13,6 +13,15 @@ import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } f
 import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
+  const identifier = getClientIdentifier(request);
+  const rateLimitResult = await checkRateLimit(identifier, {
+    ...RATE_LIMITS.standard,
+    prefix: 'ratelimit:listings-get',
+  });
+  if (!rateLimitResult.success) {
+    return rateLimitResponse(rateLimitResult);
+  }
+
   const { searchParams } = new URL(request.url);
   const supabase = await createClient();
 

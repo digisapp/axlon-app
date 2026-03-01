@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import Image from 'next/image';
+import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -98,6 +99,20 @@ export function ImageUpload({
   };
 
   const uploadImage = async (file: File): Promise<string | null> => {
+    // Validate file size (max 10MB)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(`File "${file.name}" exceeds 10MB limit`);
+      return null;
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(`File "${file.name}" is not a supported image format`);
+      return null;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 

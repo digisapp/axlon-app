@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 
         // Validate required metadata fields
         const validProducts = ['featured_week', 'featured_month', 'bump', 'dealer_pro', 'dealer_pro_annual'];
-        if (product && !validProducts.some(p => product.startsWith(p))) {
+        if (product && !validProducts.includes(product)) {
           logger.error('Invalid product in webhook metadata', { product });
           break;
         }

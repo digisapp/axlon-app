@@ -16,9 +16,25 @@ export async function POST(request: NextRequest) {
 
     const { imageUrl } = await request.json();
 
-    if (!imageUrl) {
+    if (!imageUrl || typeof imageUrl !== 'string') {
       return NextResponse.json(
         { error: 'Image URL is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate URL format and restrict to HTTPS
+    try {
+      const parsed = new URL(imageUrl);
+      if (parsed.protocol !== 'https:') {
+        return NextResponse.json(
+          { error: 'Only HTTPS image URLs are allowed' },
+          { status: 400 }
+        );
+      }
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid image URL' },
         { status: 400 }
       );
     }

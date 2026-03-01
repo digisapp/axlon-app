@@ -9,8 +9,8 @@ function verifyRequest(request: NextRequest): boolean {
     return true;
   }
 
-  const vercelCron = request.headers.get('x-vercel-cron');
-  if (vercelCron) {
+  // Check for Vercel internal cron (only accept in Vercel environment)
+  if (process.env.VERCEL && request.headers.get('x-vercel-cron') === '1') {
     return true;
   }
 

@@ -135,6 +135,8 @@ export function useServiceWorker() {
       return;
     }
 
+    let intervalId: ReturnType<typeof setInterval>;
+
     // Register service worker
     navigator.serviceWorker
       .register('/sw.js')
@@ -142,13 +144,17 @@ export function useServiceWorker() {
         logger.debug('SW registered', { scope: registration.scope });
 
         // Check for updates periodically
-        setInterval(() => {
+        intervalId = setInterval(() => {
           registration.update();
         }, 60 * 60 * 1000); // Every hour
       })
       .catch((error) => {
         logger.error('SW registration failed', { error });
       });
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, []);
 }
 

@@ -57,7 +57,7 @@ export function ContactSeller({ listingId, sellerId, listingTitle }: ContactSell
       setError('Please enter your email');
       return;
     }
-    if (!formData.email.includes('@')) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       setError('Please enter a valid email');
       return;
     }
