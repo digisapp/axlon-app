@@ -1,5 +1,5 @@
-// AxlonAI Service Worker v1.0.0
-const CACHE_NAME = 'axlonai-v1';
+// AxlonAI Service Worker v1.0.1
+const CACHE_NAME = 'axlonai-v1.0.1';
 const OFFLINE_URL = '/offline';
 
 // Assets to cache immediately on install
@@ -48,6 +48,9 @@ self.addEventListener('fetch', (event) => {
 
   // Skip chrome-extension and other non-http(s) requests
   if (!url.protocol.startsWith('http')) return;
+
+  // Skip cross-origin requests (external images, CDNs, third-party resources)
+  if (url.origin !== self.location.origin) return;
 
   // Skip API requests - always go to network
   if (url.pathname.startsWith('/api/')) return;
