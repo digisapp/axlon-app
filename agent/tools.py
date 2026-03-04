@@ -161,7 +161,7 @@ Common equipment types:
 - Trucks: semi trucks, day cabs, sleeper cabs, box trucks, dump trucks
 - Heavy equipment: excavators, loaders, bulldozers, cranes
 """,
-    "model": "grok-2-public",
+    "model": "grok-4-1-fast-non-reasoning",
     "temperature": 0.7,
     "is_active": True,
 }
@@ -1177,7 +1177,7 @@ async def summarize_call(
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": "grok-2-latest",
+                    "model": "grok-4-1-fast-non-reasoning",
                     "messages": [
                         {
                             "role": "system",

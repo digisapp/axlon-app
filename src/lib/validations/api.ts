@@ -378,6 +378,21 @@ export const newTrailersQuerySchema = z.object({
   sort: z.enum(['name', 'tonnage', 'deck_height', 'newest', 'manufacturer']).default('manufacturer'),
 });
 
+// Knowledge Base validation
+export const kbActionSchema = z.object({
+  action: z.enum(['enable', 'disable']),
+});
+
+export const kbSyncSchema = z.object({
+  listing_id: z.string().uuid().optional(),
+});
+
+export const kbDocumentUploadSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
+  description: z.string().max(2000).optional(),
+  document_type: z.enum(['spec_sheet', 'warranty', 'policy', 'brochure', 'price_list', 'general']).default('general'),
+});
+
 /**
  * Helper to validate request body with Zod schema
  * Returns parsed data or throws formatted error

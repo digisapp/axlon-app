@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
     const safePersonality = personality.replace(/[<>"'`]/g, '').slice(0, 200);
 
     const { text: response } = await generateText({
-      model: xai('grok-2-latest'),
+      model: xai('grok-4-1-fast-non-reasoning'),
       system: `You are an AI sales assistant for a truck and equipment dealer. Follow these rules strictly:
 1. Answer questions about the dealer's inventory based on the listings provided
 2. If asked about specific equipment, reference the inventory

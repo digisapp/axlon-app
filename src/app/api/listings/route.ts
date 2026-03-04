@@ -11,6 +11,7 @@ import {
 import { createListingSchema, validateBody, ValidationError } from '@/lib/validations/api';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { syncListingToCollection } from '@/lib/ai/listing-sync';
 
 export async function GET(request: NextRequest) {
   const identifier = getClientIdentifier(request);
@@ -329,6 +330,13 @@ export async function POST(request: NextRequest) {
         logger.error('Price estimate error', { estimateError });
         // Don't fail the request if estimation fails
       }
+    }
+
+    // Fire-and-forget: sync to KB collection if active
+    if (data.status === 'active') {
+      syncListingToCollection(user.id, data.id).catch(e =>
+        logger.error('KB sync after create failed', { error: e })
+      );
     }
 
     return NextResponse.json({ data });

@@ -35,6 +35,12 @@ import {
   Sparkles,
   Lock,
   Crown,
+  Database,
+  RefreshCw,
+  Upload,
+  FileText,
+  Trash2,
+  AlertCircle,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 
@@ -95,6 +101,83 @@ const defaultSettings: AISettings = {
   total_leads_generated: 0,
 };
 
+function KBDocumentUploadForm({
+  onUpload,
+  isUploading,
+}: {
+  onUpload: (file: File, title: string, docType: string) => Promise<boolean>;
+  isUploading: boolean;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [title, setTitle] = useState('');
+  const [docType, setDocType] = useState('general');
+
+  const handleSubmit = async () => {
+    if (!file || !title.trim()) return;
+    const success = await onUpload(file, title.trim(), docType);
+    if (success) {
+      setFile(null);
+      setTitle('');
+      setDocType('general');
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label htmlFor="kb-file">File</Label>
+        <Input
+          id="kb-file"
+          type="file"
+          accept=".pdf,.txt,.md,.csv,.json,.docx"
+          onChange={(e) => setFile(e.target.files?.[0] || null)}
+          className="cursor-pointer"
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          PDF, Text, Markdown, CSV, JSON, DOCX (max 50MB)
+        </p>
+      </div>
+      <div>
+        <Label htmlFor="kb-title">Document Title</Label>
+        <Input
+          id="kb-title"
+          placeholder="E.g., 2024 Price List, Warranty Policy"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+      </div>
+      <div>
+        <Label htmlFor="kb-type">Document Type</Label>
+        <Select value={docType} onValueChange={setDocType}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="general">General</SelectItem>
+            <SelectItem value="spec_sheet">Spec Sheet</SelectItem>
+            <SelectItem value="warranty">Warranty</SelectItem>
+            <SelectItem value="policy">Policy</SelectItem>
+            <SelectItem value="brochure">Brochure</SelectItem>
+            <SelectItem value="price_list">Price List</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <Button
+        onClick={handleSubmit}
+        disabled={isUploading || !file || !title.trim()}
+        className="w-full"
+      >
+        {isUploading ? (
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+        ) : (
+          <Upload className="w-4 h-4 mr-2" />
+        )}
+        Upload Document
+      </Button>
+    </div>
+  );
+}
+
 export default function AIAssistantPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -110,6 +193,28 @@ export default function AIAssistantPage() {
   const [newValueProp, setNewValueProp] = useState('');
   const [newServiceArea, setNewServiceArea] = useState('');
   const [newFaq, setNewFaq] = useState<FAQ>({ question: '', answer: '' });
+
+  // Knowledge Base state
+  const [kbStatus, setKbStatus] = useState<{
+    enabled: boolean;
+    collection_status: string;
+    collection_error: string | null;
+    listing_docs: number;
+    custom_docs: number;
+    error_docs: number;
+  } | null>(null);
+  const [kbDocuments, setKbDocuments] = useState<Array<{
+    id: string;
+    title: string;
+    document_type: string;
+    file_name: string;
+    file_size: number;
+    upload_status: string;
+    created_at: string;
+  }>>([]);
+  const [kbLoading, setKbLoading] = useState(false);
+  const [kbSyncing, setKbSyncing] = useState(false);
+  const [kbUploading, setKbUploading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -294,6 +399,115 @@ export default function AIAssistantPage() {
       faqs: prev.faqs.filter((_, i) => i !== index),
     }));
   };
+
+  // Knowledge Base functions
+  const fetchKBStatus = async () => {
+    try {
+      const res = await fetch('/api/dealer/knowledge-base');
+      if (res.ok) {
+        const data = await res.json();
+        setKbStatus(data);
+      }
+    } catch (e) {
+      logger.error('Failed to fetch KB status', { error: e });
+    }
+  };
+
+  const fetchKBDocuments = async () => {
+    try {
+      const res = await fetch('/api/dealer/knowledge-base/documents');
+      if (res.ok) {
+        const data = await res.json();
+        setKbDocuments(data.data || []);
+      }
+    } catch (e) {
+      logger.error('Failed to fetch KB documents', { error: e });
+    }
+  };
+
+  const toggleKB = async (enable: boolean) => {
+    setKbLoading(true);
+    try {
+      const res = await fetch('/api/dealer/knowledge-base', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: enable ? 'enable' : 'disable' }),
+      });
+      if (res.ok) {
+        await fetchKBStatus();
+      }
+    } catch (e) {
+      logger.error('Failed to toggle KB', { error: e });
+    } finally {
+      setKbLoading(false);
+    }
+  };
+
+  const syncAllKB = async () => {
+    setKbSyncing(true);
+    try {
+      await fetch('/api/dealer/knowledge-base/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      // Refresh status after a short delay to let sync start
+      setTimeout(() => fetchKBStatus(), 2000);
+    } catch (e) {
+      logger.error('Failed to trigger KB sync', { error: e });
+    } finally {
+      setKbSyncing(false);
+    }
+  };
+
+  const uploadKBDocument = async (file: File, title: string, docType: string) => {
+    setKbUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', title);
+      formData.append('document_type', docType);
+
+      const res = await fetch('/api/dealer/knowledge-base/documents', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        await fetchKBDocuments();
+        await fetchKBStatus();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      logger.error('Failed to upload KB document', { error: e });
+      return false;
+    } finally {
+      setKbUploading(false);
+    }
+  };
+
+  const deleteKBDocument = async (docId: string) => {
+    try {
+      const res = await fetch(`/api/dealer/knowledge-base/documents/${docId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        setKbDocuments(prev => prev.filter(d => d.id !== docId));
+        await fetchKBStatus();
+      }
+    } catch (e) {
+      logger.error('Failed to delete KB document', { error: e });
+    }
+  };
+
+  // Fetch KB data when page loads
+  useEffect(() => {
+    if (isDealer && !isLoading) {
+      fetchKBStatus();
+      fetchKBDocuments();
+    }
+  }, [isDealer, isLoading]);
 
   const isPro = subscriptionTier === 'pro' || subscriptionTier === 'enterprise';
 
@@ -520,7 +734,7 @@ export default function AIAssistantPage() {
         </Card>
 
         <Tabs defaultValue="identity" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="identity">
               <Bot className="w-4 h-4 mr-2" />
               Identity
@@ -528,6 +742,10 @@ export default function AIAssistantPage() {
             <TabsTrigger value="knowledge">
               <Sparkles className="w-4 h-4 mr-2" />
               Knowledge
+            </TabsTrigger>
+            <TabsTrigger value="knowledge-base">
+              <Database className="w-4 h-4 mr-2" />
+              KB
             </TabsTrigger>
             <TabsTrigger value="faqs">
               <HelpCircle className="w-4 h-4 mr-2" />
@@ -761,6 +979,159 @@ export default function AIAssistantPage() {
                 />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Knowledge Base Tab */}
+          <TabsContent value="knowledge-base" className="space-y-6">
+            {/* KB Status Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="w-5 h-5" />
+                  AI Knowledge Base
+                </CardTitle>
+                <CardDescription>
+                  Give your AI assistant deep knowledge of your entire inventory and custom documents.
+                  When enabled, the AI searches your knowledge base semantically instead of using basic keyword matching.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-full ${kbStatus?.collection_status === 'active' ? 'bg-green-500' : 'bg-muted'}`}>
+                      <Database className={`w-5 h-5 ${kbStatus?.collection_status === 'active' ? 'text-white' : 'text-muted-foreground'}`} />
+                    </div>
+                    <div>
+                      <p className="font-medium">
+                        {kbStatus?.collection_status === 'active'
+                          ? 'Knowledge Base Active'
+                          : kbStatus?.collection_status === 'creating'
+                          ? 'Setting Up...'
+                          : 'Knowledge Base Disabled'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {kbStatus?.collection_status === 'active'
+                          ? `${kbStatus.listing_docs} listings synced, ${kbStatus.custom_docs} documents uploaded`
+                          : 'Enable to give your AI deep knowledge of your inventory'}
+                      </p>
+                      {kbStatus?.collection_status === 'error' && kbStatus.collection_error && (
+                        <p className="text-sm text-destructive flex items-center gap-1 mt-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {kbStatus.collection_error}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    variant={kbStatus?.enabled ? 'outline' : 'default'}
+                    onClick={() => toggleKB(!kbStatus?.enabled)}
+                    disabled={kbLoading || kbStatus?.collection_status === 'creating'}
+                  >
+                    {kbLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    {kbStatus?.enabled ? 'Disable' : 'Enable'}
+                  </Button>
+                </div>
+
+                {kbStatus?.collection_status === 'active' && (
+                  <>
+                    {/* Stats */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="p-3 bg-muted/50 rounded-lg text-center">
+                        <p className="text-2xl font-bold">{kbStatus.listing_docs}</p>
+                        <p className="text-xs text-muted-foreground">Listings Synced</p>
+                      </div>
+                      <div className="p-3 bg-muted/50 rounded-lg text-center">
+                        <p className="text-2xl font-bold">{kbStatus.custom_docs}</p>
+                        <p className="text-xs text-muted-foreground">Custom Docs</p>
+                      </div>
+                      <div className="p-3 bg-muted/50 rounded-lg text-center">
+                        <p className="text-2xl font-bold text-destructive">{kbStatus.error_docs}</p>
+                        <p className="text-xs text-muted-foreground">Sync Errors</p>
+                      </div>
+                    </div>
+
+                    {/* Sync Button */}
+                    <Button
+                      variant="outline"
+                      onClick={syncAllKB}
+                      disabled={kbSyncing}
+                      className="w-full"
+                    >
+                      {kbSyncing ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                      )}
+                      Re-sync All Listings
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Document Upload */}
+            {kbStatus?.collection_status === 'active' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Upload className="w-5 h-5" />
+                    Upload Documents
+                  </CardTitle>
+                  <CardDescription>
+                    Upload spec sheets, warranty info, price lists, or other documents
+                    to give your AI even more knowledge.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <KBDocumentUploadForm
+                    onUpload={uploadKBDocument}
+                    isUploading={kbUploading}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Documents List */}
+            {kbStatus?.collection_status === 'active' && kbDocuments.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Uploaded Documents
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {kbDocuments.map(doc => (
+                      <div key={doc.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{doc.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {doc.file_name} &middot; {doc.document_type.replace(/_/g, ' ')}
+                              {doc.file_size && ` \u00B7 ${(doc.file_size / 1024).toFixed(0)} KB`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Badge variant={doc.upload_status === 'synced' ? 'default' : doc.upload_status === 'error' ? 'destructive' : 'secondary'}>
+                            {doc.upload_status}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteKBDocument(doc.id)}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* FAQs Tab */}

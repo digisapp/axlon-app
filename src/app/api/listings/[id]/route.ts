@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { estimatePrice } from '@/lib/price-estimator';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, updateListingSchema } from '@/lib/validations/api';
+import { syncListingToCollection, removeListingFromCollection } from '@/lib/ai/listing-sync';
 
 // GET - Fetch a single listing
 export async function GET(
@@ -146,6 +147,17 @@ export async function PUT(
     }
   }
 
+  // Fire-and-forget: sync to KB collection if active, or remove if no longer active
+  if (listing.status === 'active') {
+    syncListingToCollection(user.id, id).catch(e =>
+      logger.error('KB sync after update failed', { error: e })
+    );
+  } else {
+    removeListingFromCollection(user.id, id).catch(e =>
+      logger.error('KB remove after status change failed', { error: e })
+    );
+  }
+
   return NextResponse.json({ data: listing });
 }
 
@@ -192,6 +204,11 @@ export async function DELETE(
       await supabase.storage.from('listing-images').remove(paths);
     }
   }
+
+  // Fire-and-forget: remove from KB collection
+  removeListingFromCollection(user.id, id).catch(e =>
+    logger.error('KB remove after delete failed', { error: e })
+  );
 
   // Delete the listing (images cascade due to ON DELETE CASCADE)
   const { error } = await supabase

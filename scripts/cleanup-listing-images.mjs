@@ -94,7 +94,7 @@ async function analyzeImage(base64Data) {
     const xai = getXai();
 
     const { object } = await generateObject({
-      model: xai('grok-2-vision-1212'),
+      model: xai('grok-4-1-fast-non-reasoning'),
       schema: imageAnalysisSchema,
       messages: [
         {

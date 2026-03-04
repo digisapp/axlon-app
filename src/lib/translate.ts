@@ -84,7 +84,7 @@ export async function translateListing(
   try {
     // Translate using Grok
     const { text } = await generateText({
-      model: xai('grok-2-latest'),
+      model: xai('grok-4-1-fast-non-reasoning'),
       prompt: `Translate the following truck/trailer listing to ${getLanguageName(targetLang)}.
 Keep it natural and professional. Preserve any technical terms, brand names, measurements, and numbers.
 Return ONLY a JSON object with "title" and "description" keys, no other text.

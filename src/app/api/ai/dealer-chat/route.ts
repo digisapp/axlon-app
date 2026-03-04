@@ -4,6 +4,7 @@ import { generateText } from 'ai';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { searchCollection, SearchResult } from '@/lib/ai/collections';
 
 // Types
 interface DealerAISettings {
@@ -370,9 +371,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Query dealer's inventory
-    const { listings, stats } = await queryDealerListings(dealerId, query);
-
     // If asking about a specific listing, fetch its details
     let specificListing: ListingResult | null = null;
     const queryListingId = listingId || extractListingId(query);
@@ -390,6 +388,75 @@ export async function POST(request: NextRequest) {
 
       if (listing) {
         specificListing = listing as ListingResult;
+      }
+    }
+
+    // Determine inventory context: KB collection search vs. legacy prompt stuffing
+    let listings: ListingResult[] = [];
+    let stats: { total: number; avgPrice: number; minPrice: number; maxPrice: number } | null = null;
+    let kbSearchResults: SearchResult[] = [];
+    let usedKB = false;
+
+    const kbEnabled = aiSettings.knowledge_base_enabled
+      && aiSettings.xai_collection_status === 'active'
+      && aiSettings.xai_collection_id;
+
+    if (kbEnabled && !specificListing) {
+      // Try collection search first
+      try {
+        kbSearchResults = await searchCollection(
+          aiSettings.xai_collection_id,
+          query,
+          { mode: 'hybrid', limit: 15 }
+        );
+        usedKB = kbSearchResults.length > 0;
+      } catch (searchError) {
+        logger.warn('KB collection search failed, falling back to DB', { error: searchError, dealerId });
+      }
+    }
+
+    // Fallback: legacy DB query if KB search didn't produce results
+    if (!usedKB) {
+      const result = await queryDealerListings(dealerId, query);
+      listings = result.listings;
+      stats = result.stats;
+    } else {
+      // Still fetch stats for the system prompt
+      const { data: allListings } = await supabase
+        .from('listings')
+        .select('price')
+        .eq('user_id', dealerId)
+        .eq('status', 'active')
+        .not('price', 'is', null);
+
+      if (allListings && allListings.length > 0) {
+        const prices = allListings.map(p => p.price).filter((p): p is number => p !== null);
+        if (prices.length > 0) {
+          stats = {
+            total: prices.length,
+            avgPrice: Math.round(prices.reduce((a, b) => a + b, 0) / prices.length),
+            minPrice: Math.min(...prices),
+            maxPrice: Math.max(...prices),
+          };
+        }
+      }
+
+      // Extract listing IDs from KB results to fetch summaries for suggested listings
+      const listingIdPattern = /listing\/([a-f0-9-]+)/;
+      const extractedIds = kbSearchResults
+        .map(r => r.content.match(listingIdPattern)?.[1])
+        .filter((id): id is string => !!id);
+
+      if (extractedIds.length > 0) {
+        const { data: kbListings } = await supabase
+          .from('listings')
+          .select('id, title, price, year, make, model, condition, city, state, mileage, hours, description, ai_price_estimate')
+          .in('id', extractedIds.slice(0, 5))
+          .eq('status', 'active');
+
+        if (kbListings) {
+          listings = kbListings as ListingResult[];
+        }
       }
     }
 
@@ -438,6 +505,17 @@ ${specificListing.mileage ? 'Mileage: ' + specificListing.mileage.toLocaleString
 ${specificListing.description ? 'Description: ' + specificListing.description.substring(0, 500) : ''}
 
 Customer question: ${query}`;
+    } else if (usedKB && kbSearchResults.length > 0) {
+      // Use KB search results as context
+      const kbContext = kbSearchResults
+        .map((r, i) => `[Result ${i + 1} (relevance: ${(r.score * 100).toFixed(0)}%)]\n${r.content}`)
+        .join('\n\n---\n\n');
+      userPrompt = `${query}
+
+[KNOWLEDGE BASE SEARCH RESULTS - use these to answer the customer's question:]
+${kbContext}
+
+Based on these search results from the dealer's knowledge base (inventory, documents, specs), help the customer. Only reference information found in these results.`;
     } else if (listings.length > 0) {
       const inventoryContext = formatListingsForAI(listings);
       userPrompt = `${query}
@@ -456,7 +534,7 @@ Based on this inventory, help the customer find what they need. Only recommend e
 
     // Generate AI response
     const { text } = await generateText({
-      model: xai('grok-3-mini'),
+      model: xai('grok-4-1-fast-non-reasoning'),
       system: systemPrompt,
       messages: [
         ...messageHistory,

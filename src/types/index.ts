@@ -286,6 +286,42 @@ export interface ManufacturerProductSpec {
   sort_order: number;
 }
 
+// Dealer Knowledge Base
+export type KBCollectionStatus = 'none' | 'creating' | 'active' | 'error';
+export type KBDocumentType = 'spec_sheet' | 'warranty' | 'policy' | 'brochure' | 'price_list' | 'general';
+export type KBSyncStatus = 'synced' | 'pending' | 'error';
+export type KBUploadStatus = 'pending' | 'uploading' | 'synced' | 'error';
+
+export interface DealerKBListingDoc {
+  id: string;
+  dealer_id: string;
+  listing_id: string;
+  xai_file_id: string;
+  content_hash?: string;
+  last_synced_at: string;
+  sync_status: KBSyncStatus;
+  sync_error?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DealerKBDocument {
+  id: string;
+  dealer_id: string;
+  xai_file_id?: string;
+  title: string;
+  description?: string;
+  document_type: KBDocumentType;
+  file_name: string;
+  file_size?: number;
+  mime_type?: string;
+  storage_path?: string;
+  upload_status: KBUploadStatus;
+  upload_error?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // API Response Types
 export interface ApiResponse<T> {
   data?: T;

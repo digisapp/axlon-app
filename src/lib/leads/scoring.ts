@@ -151,7 +151,7 @@ export async function calculateLeadScoreWithAI(params: {
   try {
     // Use Grok to analyze message sentiment and intent
     const { text } = await generateText({
-      model: xai('grok-3-mini'),
+      model: xai('grok-4-1-fast-non-reasoning'),
       prompt: `Analyze this buyer inquiry for a truck/equipment listing and respond with ONLY a JSON object:
 
 Listing: "${params.listingTitle || 'Equipment listing'}"

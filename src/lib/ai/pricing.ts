@@ -52,7 +52,7 @@ export async function estimatePrice(listing: Partial<Listing>): Promise<AIPriceE
   const xai = getXai();
 
   const { object } = await generateObject({
-    model: xai('grok-2-latest'),
+    model: xai('grok-4-1-fast-non-reasoning'),
     schema: priceEstimateSchema,
     prompt: `You are a pricing expert for commercial trucks, trailers, and heavy equipment.
 

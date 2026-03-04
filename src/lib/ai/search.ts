@@ -349,7 +349,7 @@ export async function parseSearchQuery(query: string): Promise<AISearchResult> {
   try {
     logger.info('[AI Search] Using xAI (Grok) for query', { query });
     const { object } = await generateObject({
-      model: xai('grok-3-mini'),
+      model: xai('grok-4-1-fast-non-reasoning'),
       schema: searchResultSchema,
       prompt: `You are an AI assistant for AxlonAI, a marketplace for buying and selling trucks, trailers, and heavy equipment.
 
@@ -416,7 +416,7 @@ export async function generateSearchSuggestions(partialQuery: string): Promise<s
 
   try {
     const { object } = await generateObject({
-      model: xai('grok-3-mini'),
+      model: xai('grok-4-1-fast-non-reasoning'),
       schema: z.object({
         suggestions: z.array(z.string()).max(5),
       }),

@@ -320,9 +320,9 @@ export default function AIAgentSettingsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="grok-2-public">Grok 2 (Recommended)</SelectItem>
-                  <SelectItem value="grok-2-latest">Grok 2 Latest</SelectItem>
-                  <SelectItem value="grok-3-mini">Grok 3 Mini (Faster)</SelectItem>
+                  <SelectItem value="grok-4-1-fast-non-reasoning">Grok 4.1 Fast (Recommended)</SelectItem>
+                  <SelectItem value="grok-4-1-fast-reasoning">Grok 4.1 Fast Reasoning</SelectItem>
+                  <SelectItem value="grok-3-mini">Grok 3 Mini (Legacy)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

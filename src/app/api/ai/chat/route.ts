@@ -1146,7 +1146,7 @@ Based on this real inventory data, answer the user's question with specific list
     }
 
     const { text } = await generateText({
-      model: xai('grok-3-mini'),
+      model: xai('grok-4-1-fast-non-reasoning'),
       system: systemPrompt,
       prompt,
     });
