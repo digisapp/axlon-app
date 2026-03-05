@@ -393,6 +393,26 @@ export const kbDocumentUploadSchema = z.object({
   document_type: z.enum(['spec_sheet', 'warranty', 'policy', 'brochure', 'price_list', 'general']).default('general'),
 });
 
+// CRM Contact validation
+export const createCrmContactSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(200),
+  email: z.string().email('Invalid email').max(254).optional().or(z.literal('')),
+  phone: z.string().max(30).optional().or(z.literal('')),
+  company: z.string().max(200).optional().or(z.literal('')),
+  status: z.enum(['new', 'contacted', 'qualified', 'proposal', 'won', 'lost']).default('new'),
+  source: z.enum(['manual', 'ai_chat', 'website', 'storefront', 'outreach', 'referral']).default('manual'),
+  notes: z.string().max(5000).optional().or(z.literal('')),
+  deal_value: z.coerce.number().min(0).max(999999999999).default(0),
+});
+
+export const updateCrmContactSchema = createCrmContactSchema.partial();
+
+export const createCrmActivitySchema = z.object({
+  contact_id: z.string().uuid(),
+  type: z.enum(['note', 'call', 'email', 'meeting', 'deal_update']),
+  description: z.string().min(1, 'Description is required').max(5000),
+});
+
 /**
  * Helper to validate request body with Zod schema
  * Returns parsed data or throws formatted error

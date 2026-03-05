@@ -1,12 +1,29 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Users,
   Search,
@@ -14,7 +31,6 @@ import {
   Phone,
   Mail,
   Building2,
-  Calendar,
   MessageSquare,
   TrendingUp,
   Filter,
@@ -29,20 +45,35 @@ import {
   DollarSign,
   Target,
   Loader2,
+  Trash2,
 } from 'lucide-react';
 
 interface Contact {
   id: string;
+  dealer_id: string;
   name: string;
-  email: string;
-  phone: string;
-  company: string;
-  status: 'lead' | 'prospect' | 'customer' | 'churned';
+  email: string | null;
+  phone: string | null;
+  company: string | null;
+  status: 'new' | 'contacted' | 'qualified' | 'proposal' | 'won' | 'lost';
   source: string;
-  last_contact: string;
-  notes: string;
+  notes: string | null;
   deal_value: number;
+  last_contact_at: string | null;
   created_at: string;
+  updated_at: string;
+}
+
+interface CrmData {
+  contacts: Contact[];
+  pipeline: Record<string, number>;
+  pipelineValues: Record<string, number>;
+  stats: {
+    totalContacts: number;
+    totalValue: number;
+    wonValue: number;
+    conversionRate: number;
+  };
 }
 
 const PIPELINE_STAGES = [
@@ -54,91 +85,22 @@ const PIPELINE_STAGES = [
   { key: 'lost', label: 'Lost', color: 'bg-red-500', icon: XCircle },
 ];
 
-// Mock data for initial CRM display
-const MOCK_CONTACTS: Contact[] = [
-  {
-    id: '1',
-    name: 'John Martinez',
-    email: 'john@acmecrane.com',
-    phone: '(555) 123-4567',
-    company: 'Acme Crane Services',
-    status: 'prospect',
-    source: 'AI Chat',
-    last_contact: '2026-03-02',
-    notes: 'Interested in 200-ton crawler crane listing',
-    deal_value: 185000,
-    created_at: '2026-02-15',
-  },
-  {
-    id: '2',
-    name: 'Sarah Williams',
-    email: 'sarah@heavyhaulpro.com',
-    phone: '(555) 234-5678',
-    company: 'Heavy Haul Pro Transport',
-    status: 'lead',
-    source: 'Website Inquiry',
-    last_contact: '2026-03-04',
-    notes: 'Looking for 3-axle lowboy trailer',
-    deal_value: 65000,
-    created_at: '2026-03-01',
-  },
-  {
-    id: '3',
-    name: 'Mike Rodriguez',
-    email: 'mike@riggingplus.com',
-    phone: '(555) 345-6789',
-    company: 'Rigging Plus LLC',
-    status: 'customer',
-    source: 'Storefront',
-    last_contact: '2026-02-28',
-    notes: 'Repeat customer — bought 2 trailers last year',
-    deal_value: 320000,
-    created_at: '2025-11-10',
-  },
-  {
-    id: '4',
-    name: 'Lisa Chen',
-    email: 'lisa@westcoastlifting.com',
-    phone: '(555) 456-7890',
-    company: 'West Coast Lifting',
-    status: 'prospect',
-    source: 'SC&RA Outreach',
-    last_contact: '2026-03-03',
-    notes: 'Interested in AI storefront features',
-    deal_value: 0,
-    created_at: '2026-03-03',
-  },
-  {
-    id: '5',
-    name: 'Dave Thompson',
-    email: 'dave@nationalrigging.com',
-    phone: '(555) 567-8901',
-    company: 'National Rigging & Transport',
-    status: 'lead',
-    source: 'AI Chat',
-    last_contact: '2026-03-04',
-    notes: 'Needs multiple flatbed trailers for Q2',
-    deal_value: 150000,
-    created_at: '2026-03-04',
-  },
+const SOURCE_OPTIONS = [
+  { value: 'manual', label: 'Manual Entry' },
+  { value: 'ai_chat', label: 'AI Chat' },
+  { value: 'website', label: 'Website' },
+  { value: 'storefront', label: 'Storefront' },
+  { value: 'outreach', label: 'Outreach' },
+  { value: 'referral', label: 'Referral' },
 ];
 
-const MOCK_PIPELINE = {
-  new: 12,
-  contacted: 8,
-  qualified: 5,
-  proposal: 3,
-  won: 15,
-  lost: 4,
-};
-
-const MOCK_PIPELINE_VALUES = {
-  new: 245000,
-  contacted: 180000,
-  qualified: 420000,
-  proposal: 310000,
-  won: 1250000,
-  lost: 95000,
+const STATUS_BADGE_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  new: 'outline',
+  contacted: 'secondary',
+  qualified: 'secondary',
+  proposal: 'default',
+  won: 'default',
+  lost: 'destructive',
 };
 
 export default function CRMPage() {
@@ -147,10 +109,34 @@ export default function CRMPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [contacts] = useState<Contact[]>(MOCK_CONTACTS);
+  const [crmData, setCrmData] = useState<CrmData | null>(null);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  // Form state
+  const [formName, setFormName] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+  const [formPhone, setFormPhone] = useState('');
+  const [formCompany, setFormCompany] = useState('');
+  const [formSource, setFormSource] = useState('manual');
+  const [formDealValue, setFormDealValue] = useState('');
+  const [formNotes, setFormNotes] = useState('');
+
+  const fetchCrmData = useCallback(async (status?: string, search?: string) => {
+    const params = new URLSearchParams();
+    if (status && status !== 'all') params.set('status', status);
+    if (search) params.set('search', search);
+
+    const res = await fetch(`/api/dashboard/crm?${params.toString()}`);
+    if (!res.ok) return;
+
+    const data = await res.json();
+    setCrmData(data);
+  }, []);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
@@ -169,28 +155,98 @@ export default function CRMPage() {
         return;
       }
 
+      await fetchCrmData();
       setIsLoading(false);
     };
 
-    checkAuth();
-  }, [supabase, router]);
+    init();
+  }, [supabase, router, fetchCrmData]);
 
-  const filteredContacts = useMemo(() => {
-    return contacts.filter(c => {
-      const matchesSearch = !searchQuery ||
-        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.email.toLowerCase().includes(searchQuery.toLowerCase());
+  // Debounced search
+  useEffect(() => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    const timeout = setTimeout(() => {
+      fetchCrmData(statusFilter, searchQuery);
+    }, 300);
+    setSearchTimeout(timeout);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, statusFilter]);
 
-      const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
+  const handleAddContact = async () => {
+    if (!formName.trim()) return;
+    setIsSaving(true);
 
-      return matchesSearch && matchesStatus;
+    try {
+      const res = await fetch('/api/dashboard/crm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formName.trim(),
+          email: formEmail.trim() || undefined,
+          phone: formPhone.trim() || undefined,
+          company: formCompany.trim() || undefined,
+          source: formSource,
+          deal_value: formDealValue ? parseFloat(formDealValue) : 0,
+          notes: formNotes.trim() || undefined,
+        }),
+      });
+
+      if (res.ok) {
+        setAddDialogOpen(false);
+        resetForm();
+        await fetchCrmData(statusFilter, searchQuery);
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleUpdateStatus = async (contactId: string, newStatus: string) => {
+    const res = await fetch(`/api/dashboard/crm/${contactId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
     });
-  }, [contacts, searchQuery, statusFilter]);
 
-  const totalPipelineValue = Object.values(MOCK_PIPELINE_VALUES).reduce((a, b) => a + b, 0);
-  const activePipelineValue = MOCK_PIPELINE_VALUES.new + MOCK_PIPELINE_VALUES.contacted +
-    MOCK_PIPELINE_VALUES.qualified + MOCK_PIPELINE_VALUES.proposal;
+    if (res.ok) {
+      await fetchCrmData(statusFilter, searchQuery);
+    }
+  };
+
+  const handleDeleteContact = async (contactId: string) => {
+    const res = await fetch(`/api/dashboard/crm/${contactId}`, {
+      method: 'DELETE',
+    });
+
+    if (res.ok) {
+      await fetchCrmData(statusFilter, searchQuery);
+    }
+  };
+
+  const resetForm = () => {
+    setFormName('');
+    setFormEmail('');
+    setFormPhone('');
+    setFormCompany('');
+    setFormSource('manual');
+    setFormDealValue('');
+    setFormNotes('');
+  };
+
+  const formatCurrency = (value: number) => {
+    if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`;
+    return `$${value}`;
+  };
+
+  const pipeline = crmData?.pipeline || {};
+  const pipelineValues = crmData?.pipelineValues || {};
+  const stats = crmData?.stats || { totalContacts: 0, totalValue: 0, wonValue: 0, conversionRate: 0 };
+  const contacts = crmData?.contacts || [];
+
+  const activePipelineValue = (pipelineValues['new'] || 0) + (pipelineValues['contacted'] || 0) +
+    (pipelineValues['qualified'] || 0) + (pipelineValues['proposal'] || 0);
 
   if (isLoading) {
     return (
@@ -210,10 +266,109 @@ export default function CRMPage() {
             Manage contacts, track deals, and grow your pipeline with AI
           </p>
         </div>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Contact
-        </Button>
+        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Contact
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Add New Contact</DialogTitle>
+              <DialogDescription>
+                Add a contact to your CRM pipeline.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Name *</Label>
+                <Input
+                  id="name"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="John Smith"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formEmail}
+                    onChange={(e) => setFormEmail(e.target.value)}
+                    placeholder="john@example.com"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    value={formPhone}
+                    onChange={(e) => setFormPhone(e.target.value)}
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="company">Company</Label>
+                <Input
+                  id="company"
+                  value={formCompany}
+                  onChange={(e) => setFormCompany(e.target.value)}
+                  placeholder="Acme Corp"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="source">Source</Label>
+                  <Select value={formSource} onValueChange={setFormSource}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SOURCE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="deal_value">Deal Value ($)</Label>
+                  <Input
+                    id="deal_value"
+                    type="number"
+                    min="0"
+                    value={formDealValue}
+                    onChange={(e) => setFormDealValue(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Input
+                  id="notes"
+                  value={formNotes}
+                  onChange={(e) => setFormNotes(e.target.value)}
+                  placeholder="Any notes about this contact..."
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddContact} disabled={!formName.trim() || isSaving}>
+                {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Add Contact
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Stats Cards */}
@@ -223,7 +378,7 @@ export default function CRMPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Contacts</p>
-                <p className="text-2xl font-bold">{Object.values(MOCK_PIPELINE).reduce((a, b) => a + b, 0)}</p>
+                <p className="text-2xl font-bold">{stats.totalContacts}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
                 <Users className="w-5 h-5 text-blue-600" />
@@ -236,7 +391,7 @@ export default function CRMPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Active Pipeline</p>
-                <p className="text-2xl font-bold">${(activePipelineValue / 1000).toFixed(0)}K</p>
+                <p className="text-2xl font-bold">{formatCurrency(activePipelineValue)}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-green-600" />
@@ -248,8 +403,8 @@ export default function CRMPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Won This Month</p>
-                <p className="text-2xl font-bold">${(MOCK_PIPELINE_VALUES.won / 1000).toFixed(0)}K</p>
+                <p className="text-sm text-muted-foreground">Won Value</p>
+                <p className="text-2xl font-bold">{formatCurrency(stats.wonValue)}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center">
                 <DollarSign className="w-5 h-5 text-emerald-600" />
@@ -263,7 +418,7 @@ export default function CRMPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Win Rate</p>
                 <p className="text-2xl font-bold">
-                  {Math.round((MOCK_PIPELINE.won / (MOCK_PIPELINE.won + MOCK_PIPELINE.lost)) * 100)}%
+                  {stats.conversionRate}%
                 </p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
@@ -279,14 +434,14 @@ export default function CRMPage() {
         <CardHeader>
           <CardTitle className="text-lg">Sales Pipeline</CardTitle>
           <CardDescription>
-            Total pipeline value: ${totalPipelineValue.toLocaleString()}
+            Total pipeline value: ${stats.totalValue.toLocaleString()}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
             {PIPELINE_STAGES.map((stage) => {
-              const count = MOCK_PIPELINE[stage.key as keyof typeof MOCK_PIPELINE];
-              const value = MOCK_PIPELINE_VALUES[stage.key as keyof typeof MOCK_PIPELINE_VALUES];
+              const count = pipeline[stage.key] || 0;
+              const value = pipelineValues[stage.key] || 0;
               return (
                 <button
                   key={stage.key}
@@ -302,7 +457,7 @@ export default function CRMPage() {
                   </div>
                   <p className="text-xs text-muted-foreground">{stage.label}</p>
                   <p className="text-lg font-bold">{count}</p>
-                  <p className="text-xs text-muted-foreground">${(value / 1000).toFixed(0)}K</p>
+                  <p className="text-xs text-muted-foreground">{formatCurrency(value)}</p>
                 </button>
               );
             })}
@@ -339,15 +494,15 @@ export default function CRMPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {filteredContacts.map((contact) => (
+            {contacts.map((contact) => (
               <div
                 key={contact.id}
-                className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/30 transition-colors cursor-pointer"
+                className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/30 transition-colors"
               >
                 {/* Avatar */}
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <span className="text-sm font-semibold text-primary">
-                    {contact.name.split(' ').map(n => n[0]).join('')}
+                    {contact.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                   </span>
                 </div>
 
@@ -355,23 +510,35 @@ export default function CRMPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold truncate">{contact.name}</h3>
-                    <Badge variant={
-                      contact.status === 'customer' ? 'default' :
-                      contact.status === 'prospect' ? 'secondary' :
-                      contact.status === 'churned' ? 'destructive' : 'outline'
-                    }>
-                      {contact.status}
-                    </Badge>
+                    <Select
+                      value={contact.status}
+                      onValueChange={(val) => handleUpdateStatus(contact.id, val)}
+                    >
+                      <SelectTrigger className="h-6 w-auto border-0 p-0 focus:ring-0">
+                        <Badge variant={STATUS_BADGE_VARIANT[contact.status] || 'outline'}>
+                          {contact.status}
+                        </Badge>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PIPELINE_STAGES.map((s) => (
+                          <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-                    <span className="flex items-center gap-1">
-                      <Building2 className="w-3 h-3" />
-                      {contact.company}
-                    </span>
-                    <span className="hidden sm:flex items-center gap-1">
-                      <Mail className="w-3 h-3" />
-                      {contact.email}
-                    </span>
+                    {contact.company && (
+                      <span className="flex items-center gap-1">
+                        <Building2 className="w-3 h-3" />
+                        {contact.company}
+                      </span>
+                    )}
+                    {contact.email && (
+                      <span className="hidden sm:flex items-center gap-1">
+                        <Mail className="w-3 h-3" />
+                        {contact.email}
+                      </span>
+                    )}
                   </div>
                   {contact.notes && (
                     <p className="text-sm text-muted-foreground mt-1 truncate">{contact.notes}</p>
@@ -382,37 +549,62 @@ export default function CRMPage() {
                 <div className="hidden md:flex items-center gap-4 flex-shrink-0">
                   {contact.deal_value > 0 && (
                     <div className="text-right">
-                      <p className="text-sm font-semibold">${contact.deal_value.toLocaleString()}</p>
+                      <p className="text-sm font-semibold">${Number(contact.deal_value).toLocaleString()}</p>
                       <p className="text-xs text-muted-foreground">deal value</p>
                     </div>
                   )}
                   <div className="text-right">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {new Date(contact.last_contact).toLocaleDateString()}
-                    </p>
+                    {contact.last_contact_at && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(contact.last_contact_at).toLocaleDateString()}
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground">{contact.source}</p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Phone className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Mail className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="w-4 h-4" />
+                    {contact.phone && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                        <a href={`tel:${contact.phone}`}>
+                          <Phone className="w-4 h-4" />
+                        </a>
+                      </Button>
+                    )}
+                    {contact.email && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                        <a href={`mailto:${contact.email}`}>
+                          <Mail className="w-4 h-4" />
+                        </a>
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => handleDeleteContact(contact.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
               </div>
             ))}
 
-            {filteredContacts.length === 0 && (
+            {contacts.length === 0 && !isLoading && (
               <div className="text-center py-8 text-muted-foreground">
                 <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
                 <p className="font-medium">No contacts found</p>
-                <p className="text-sm">Try adjusting your search or filter</p>
+                <p className="text-sm">
+                  {searchQuery || statusFilter !== 'all'
+                    ? 'Try adjusting your search or filter'
+                    : 'Add your first contact to get started'}
+                </p>
+                {!searchQuery && statusFilter === 'all' && (
+                  <Button className="mt-4" onClick={() => setAddDialogOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Contact
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -435,35 +627,35 @@ export default function CRMPage() {
                 <span className="text-sm font-medium text-blue-600">Follow Up Needed</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                3 leads haven&apos;t been contacted in 5+ days. Responding quickly increases conversion by 400%.
+                Contacts in &quot;new&quot; status haven&apos;t been reached out to. Responding quickly increases conversion by 400%.
               </p>
-              <Button variant="link" className="p-0 h-auto mt-2 text-blue-600">
-                View leads <ArrowUpRight className="w-3 h-3 ml-1" />
+              <Button
+                variant="link"
+                className="p-0 h-auto mt-2 text-blue-600"
+                onClick={() => setStatusFilter('new')}
+              >
+                View new leads <ArrowUpRight className="w-3 h-3 ml-1" />
               </Button>
             </div>
             <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-green-600" />
-                <span className="text-sm font-medium text-green-600">Hot Lead</span>
+                <span className="text-sm font-medium text-green-600">Pipeline Health</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Dave Thompson from National Rigging has viewed your listings 8 times this week. High buying intent.
+                {stats.totalContacts > 0
+                  ? `${stats.conversionRate}% win rate with ${formatCurrency(stats.totalValue)} in total pipeline value.`
+                  : 'Start adding contacts to build your sales pipeline.'}
               </p>
-              <Button variant="link" className="p-0 h-auto mt-2 text-green-600">
-                View contact <ArrowUpRight className="w-3 h-3 ml-1" />
-              </Button>
             </div>
             <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800">
               <div className="flex items-center gap-2 mb-2">
                 <MessageSquare className="w-4 h-4 text-purple-600" />
-                <span className="text-sm font-medium text-purple-600">AI Chat Summary</span>
+                <span className="text-sm font-medium text-purple-600">AI Integration</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Your AI assistant handled 23 conversations this week and captured 5 new leads automatically.
+                Contacts from AI chats and your storefront will automatically appear here with lead details captured.
               </p>
-              <Button variant="link" className="p-0 h-auto mt-2 text-purple-600">
-                View chats <ArrowUpRight className="w-3 h-3 ml-1" />
-              </Button>
             </div>
           </div>
         </CardContent>
