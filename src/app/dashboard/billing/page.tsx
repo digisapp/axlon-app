@@ -64,7 +64,7 @@ export default async function BillingPage() {
     .single();
 
   if (!profile?.is_dealer) {
-    redirect('/become-a-dealer');
+    redirect('/get-started');
   }
 
   const currentTier = (profile?.subscription_tier || 'free') as keyof typeof PLAN_LIMITS;

@@ -87,9 +87,9 @@ export default function StorefrontSettingsPage() {
         .single();
 
       if (profile) {
-        // Redirect non-dealers to become-a-dealer page
+        // Redirect non-dealers to get-started page
         if (!profile.is_dealer) {
-          router.push('/become-a-dealer');
+          router.push('/get-started');
           return;
         }
         setIsDealer(profile.is_dealer || false);

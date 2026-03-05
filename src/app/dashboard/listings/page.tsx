@@ -27,7 +27,7 @@ export default async function ListingsPage() {
     .single();
 
   if (!profile?.is_dealer) {
-    redirect('/become-a-dealer');
+    redirect('/get-started');
   }
 
   const { data: listings } = await supabase

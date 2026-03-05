@@ -104,7 +104,7 @@ export default function AILeadsPage() {
         .single();
 
       if (!profile?.is_dealer) {
-        router.push('/become-a-dealer');
+        router.push('/get-started');
         return;
       }
     };

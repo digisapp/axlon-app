@@ -583,7 +583,7 @@ export function scraOutreachEmail({
           </div>
 
           <p style="text-align: center; margin: 32px 0;">
-            <a href="https://axlon.ai/become-a-dealer?ref=scra" style="${buttonStyles}">
+            <a href="https://axlon.ai/get-started?ref=scra" style="${buttonStyles}">
               Get Started Free
             </a>
           </p>

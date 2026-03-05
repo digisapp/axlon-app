@@ -399,7 +399,7 @@ export default function SettingsPage() {
                 </span>
               ) : (
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/become-a-dealer">Upgrade</Link>
+                  <Link href="/get-started">Upgrade</Link>
                 </Button>
               )}
             </div>

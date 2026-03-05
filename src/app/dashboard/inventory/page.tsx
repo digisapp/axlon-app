@@ -34,7 +34,7 @@ export default async function InventoryPage() {
     .single();
 
   if (!profile?.is_dealer) {
-    redirect('/become-a-dealer');
+    redirect('/get-started');
   }
 
   // Get all listings with inventory data

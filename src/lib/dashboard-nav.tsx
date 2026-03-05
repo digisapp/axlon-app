@@ -15,6 +15,7 @@ import {
   Handshake,
   Brain,
   Sparkles,
+  Contact,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -84,6 +85,11 @@ export const dashboardNavItems: NavItem[] = [
     href: '/dashboard/ai-leads',
     label: 'AI Leads',
     icon: <Sparkles className="w-5 h-5" />,
+  },
+  {
+    href: '/dashboard/crm',
+    label: 'AI CRM',
+    icon: <Contact className="w-5 h-5" />,
   },
   {
     href: '/dashboard/voice-agent',

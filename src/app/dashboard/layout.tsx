@@ -29,7 +29,7 @@ export default async function DashboardLayout({
 
   // All dashboard users should be dealers - redirect if not
   if (!profile?.is_dealer) {
-    redirect('/become-a-dealer');
+    redirect('/get-started');
   }
 
   // Get unread messages count

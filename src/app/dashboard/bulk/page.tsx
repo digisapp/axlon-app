@@ -31,7 +31,7 @@ export default async function BulkPage() {
     .single();
 
   if (!profile?.is_dealer) {
-    redirect('/become-a-dealer');
+    redirect('/get-started');
   }
 
   // Get user's listings count for export

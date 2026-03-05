@@ -63,7 +63,7 @@ export default function ConversationsPage() {
         .single();
 
       if (!profile?.is_dealer) {
-        router.push('/become-a-dealer');
+        router.push('/get-started');
         return;
       }
 

@@ -29,7 +29,7 @@ export default async function AnalyticsPage() {
     .single();
 
   if (!profile?.is_dealer) {
-    redirect('/become-a-dealer');
+    redirect('/get-started');
   }
 
   // Get listings with view counts

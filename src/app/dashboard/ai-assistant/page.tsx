@@ -235,7 +235,7 @@ export default function AIAssistantPage() {
       if (profile) {
         // Redirect non-dealers
         if (!profile.is_dealer) {
-          router.push('/become-a-dealer');
+          router.push('/get-started');
           return;
         }
         setIsDealer(profile.is_dealer || false);

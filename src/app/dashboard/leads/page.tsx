@@ -32,7 +32,7 @@ export default async function LeadsPage() {
     .single();
 
   if (!dealerProfile?.is_dealer) {
-    redirect('/become-a-dealer');
+    redirect('/get-started');
   }
 
   // Get all leads for this user

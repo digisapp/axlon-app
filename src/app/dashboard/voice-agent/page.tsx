@@ -275,7 +275,7 @@ export default function VoiceAgentPage() {
                 Upgrade your account to get your own AI receptionist.
               </p>
               <Button asChild>
-                <Link href="/become-a-dealer">Get Started</Link>
+                <Link href="/get-started">Get Started</Link>
               </Button>
             </CardContent>
           </Card>
