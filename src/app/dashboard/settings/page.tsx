@@ -7,10 +7,21 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import {
   ArrowLeft,
   Loader2,
@@ -21,6 +32,10 @@ import {
   CheckCircle,
   Camera,
   LogOut,
+  Lock,
+  Bell,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 
@@ -31,8 +46,22 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('Settings saved successfully!');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  // Password change state
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+
+  // Delete account state
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     email: '',
@@ -41,6 +70,15 @@ export default function SettingsPage() {
     location: '',
     is_dealer: false,
     avatar_url: '',
+  });
+
+  // Notification preferences
+  const [notifications, setNotifications] = useState({
+    new_chat: true,
+    new_lead: true,
+    new_message: true,
+    weekly_digest: true,
+    marketing: false,
   });
 
   useEffect(() => {
@@ -67,6 +105,15 @@ export default function SettingsPage() {
           is_dealer: profile.is_dealer || false,
           avatar_url: profile.avatar_url || '',
         });
+
+        const notifSettings = profile.notification_settings || {};
+        setNotifications({
+          new_chat: notifSettings.new_chat !== false,
+          new_lead: notifSettings.new_lead !== false,
+          new_message: notifSettings.new_message !== false,
+          weekly_digest: notifSettings.weekly_digest !== false,
+          marketing: notifSettings.marketing === true,
+        });
       }
 
       setIsLoading(false);
@@ -74,6 +121,12 @@ export default function SettingsPage() {
 
     fetchProfile();
   }, [router, supabase]);
+
+  const showSuccessToast = (message: string) => {
+    setSuccessMessage(message);
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+  };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -118,6 +171,7 @@ export default function SettingsPage() {
           location: formData.location || null,
           is_dealer: formData.is_dealer,
           avatar_url: avatarUrl || null,
+          notification_settings: notifications,
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);
@@ -126,13 +180,64 @@ export default function SettingsPage() {
         setFormData((prev) => ({ ...prev, avatar_url: avatarUrl }));
         setAvatarFile(null);
         setAvatarPreview(null);
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 3000);
+        showSuccessToast('Settings saved successfully!');
       }
     } catch (error) {
       logger.error('Save error', { error });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    setPasswordError('');
+
+    if (passwordData.newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters');
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword,
+      });
+
+      if (error) {
+        setPasswordError(error.message);
+      } else {
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        showSuccessToast('Password updated successfully!');
+      }
+    } catch (error) {
+      logger.error('Password change error', { error });
+      setPasswordError('An unexpected error occurred');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      const res = await fetch('/api/auth/delete-account', {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        await supabase.auth.signOut();
+        router.push('/?deleted=true');
+      }
+    } catch (error) {
+      logger.error('Delete account error', { error });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -156,7 +261,7 @@ export default function SettingsPage() {
       {showSuccess && (
         <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg">
           <CheckCircle className="w-5 h-5" />
-          <span>Settings saved successfully!</span>
+          <span>{successMessage}</span>
         </div>
       )}
 
@@ -301,6 +406,126 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Password Change */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5" />
+              Change Password
+            </CardTitle>
+            <CardDescription>
+              Update your account password
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {passwordError && (
+              <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
+                {passwordError}
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                placeholder="At least 8 characters"
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Confirm new password"
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+              />
+            </div>
+
+            <Button
+              onClick={handlePasswordChange}
+              disabled={isChangingPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+              variant="outline"
+            >
+              {isChangingPassword && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Update Password
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Notification Preferences */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="w-5 h-5" />
+              Notifications
+            </CardTitle>
+            <CardDescription>
+              Choose what email notifications you receive
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <div className="flex items-center justify-between py-3">
+              <div>
+                <p className="font-medium text-sm">New chat conversations</p>
+                <p className="text-sm text-muted-foreground">When a visitor starts a chat on your storefront</p>
+              </div>
+              <Switch
+                checked={notifications.new_chat}
+                onCheckedChange={(checked) => setNotifications({ ...notifications, new_chat: checked })}
+              />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between py-3">
+              <div>
+                <p className="font-medium text-sm">New leads</p>
+                <p className="text-sm text-muted-foreground">When a buyer submits a contact form or AI captures a lead</p>
+              </div>
+              <Switch
+                checked={notifications.new_lead}
+                onCheckedChange={(checked) => setNotifications({ ...notifications, new_lead: checked })}
+              />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between py-3">
+              <div>
+                <p className="font-medium text-sm">New messages</p>
+                <p className="text-sm text-muted-foreground">When a buyer sends you a direct message</p>
+              </div>
+              <Switch
+                checked={notifications.new_message}
+                onCheckedChange={(checked) => setNotifications({ ...notifications, new_message: checked })}
+              />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between py-3">
+              <div>
+                <p className="font-medium text-sm">Weekly performance digest</p>
+                <p className="text-sm text-muted-foreground">Summary of views, leads, and sales activity each week</p>
+              </div>
+              <Switch
+                checked={notifications.weekly_digest}
+                onCheckedChange={(checked) => setNotifications({ ...notifications, weekly_digest: checked })}
+              />
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between py-3">
+              <div>
+                <p className="font-medium text-sm">Product updates & tips</p>
+                <p className="text-sm text-muted-foreground">New features, selling tips, and marketplace news</p>
+              </div>
+              <Switch
+                checked={notifications.marketing}
+                onCheckedChange={(checked) => setNotifications({ ...notifications, marketing: checked })}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Save Button */}
         <div className="flex justify-end">
           <Button onClick={handleSave} disabled={isSaving}>
@@ -312,7 +537,10 @@ export default function SettingsPage() {
         {/* Danger Zone */}
         <Card className="border-destructive/50">
           <CardHeader>
-            <CardTitle className="text-destructive">Danger Zone</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Danger Zone
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
@@ -326,6 +554,61 @@ export default function SettingsPage() {
                 <LogOut className="w-4 h-4 mr-2" />
                 Sign Out
               </Button>
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Delete Account</p>
+                <p className="text-sm text-muted-foreground">
+                  Permanently delete your account and all associated data
+                </p>
+              </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="sm">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Account
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription className="space-y-3">
+                      <span className="block">This action cannot be undone. This will permanently delete:</span>
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>Your dealer profile and storefront</li>
+                        <li>All your listings and images</li>
+                        <li>All leads, deals, and conversation history</li>
+                        <li>Your AI assistant configuration</li>
+                      </ul>
+                      <span className="block mt-4">
+                        Type <strong>DELETE</strong> to confirm:
+                      </span>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <Input
+                    placeholder="Type DELETE to confirm"
+                    value={deleteConfirmation}
+                    onChange={(e) => setDeleteConfirmation(e.target.value)}
+                    className="mt-2"
+                  />
+                  <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setDeleteConfirmation('')}>
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteAccount}
+                      disabled={deleteConfirmation !== 'DELETE' || isDeleting}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      Delete My Account
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </CardContent>
         </Card>

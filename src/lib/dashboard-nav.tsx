@@ -13,6 +13,8 @@ import {
   UserCog,
   Landmark,
   Handshake,
+  Brain,
+  Sparkles,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -69,9 +71,19 @@ export const dashboardNavItems: NavItem[] = [
     icon: <Store className="w-5 h-5" />,
   },
   {
+    href: '/dashboard/ai-assistant',
+    label: 'AI Assistant',
+    icon: <Brain className="w-5 h-5" />,
+  },
+  {
     href: '/dashboard/conversations',
     label: 'AI Chats',
     icon: <Bot className="w-5 h-5" />,
+  },
+  {
+    href: '/dashboard/ai-leads',
+    label: 'AI Leads',
+    icon: <Sparkles className="w-5 h-5" />,
   },
   {
     href: '/dashboard/voice-agent',
@@ -98,7 +110,8 @@ export const dashboardNavItems: NavItem[] = [
 export function getNavItemsWithBadges(
   items: NavItem[],
   unreadMessages: number,
-  newLeads: number
+  newLeads: number,
+  newAiLeads?: number
 ): NavItem[] {
   return items.map((item) => {
     if (item.href === '/dashboard/messages' && unreadMessages > 0) {
@@ -106,6 +119,9 @@ export function getNavItemsWithBadges(
     }
     if (item.href === '/dashboard/leads' && newLeads > 0) {
       return { ...item, badge: newLeads };
+    }
+    if (item.href === '/dashboard/ai-leads' && newAiLeads && newAiLeads > 0) {
+      return { ...item, badge: newAiLeads };
     }
     return item;
   });
