@@ -22,7 +22,7 @@ import {
   BarChart3,
   Store,
   Sparkles,
-  Crane,
+  Construction,
   Truck,
   Wrench,
 } from 'lucide-react';
@@ -67,8 +67,8 @@ const industries = [
     href: '/industries/transport',
   },
   {
-    icon: Crane,
-    label: 'Crane & Rigging',
+    icon: Construction,
+    label: 'Construction & Rigging',
     href: '/industries/crane',
   },
   {

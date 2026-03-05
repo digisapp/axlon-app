@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
   ArrowLeft,
-  Crane,
+  Construction,
   Brain,
   BarChart3,
   Users,
@@ -16,10 +16,10 @@ import {
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'AI Tools for Crane & Rigging Companies | AxlonAI',
+  title: 'AI Tools for Construction & Rigging Companies | AxlonAI',
   description: 'AxlonAI helps crane and rigging companies manage leads, automate customer inquiries, list equipment, and grow their business with AI-powered tools.',
   openGraph: {
-    title: 'AI Tools for Crane & Rigging Companies',
+    title: 'AI Tools for Construction & Rigging Companies',
     description: 'Manage leads, automate inquiries, and grow your crane business with AI.',
   },
   alternates: { canonical: '/industries/crane' },
@@ -65,7 +65,7 @@ const useCases = [
   'Your AI chatbot answers "What\'s your mobilization rate?" at 2 AM while you sleep',
 ];
 
-export default function CranePage() {
+export default function ConstructionPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -89,12 +89,12 @@ export default function CranePage() {
           <div className="max-w-3xl">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                <Crane className="w-6 h-6 text-orange-600" />
+                <Construction className="w-6 h-6 text-orange-600" />
               </div>
-              <span className="text-sm font-medium text-orange-600">For Crane & Rigging Companies</span>
+              <span className="text-sm font-medium text-orange-600">For Construction & Rigging Companies</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              AI-Powered Tools Built for Crane & Rigging
+              AI-Powered Tools Built for Construction & Rigging
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
               Stop missing leads after hours. Let AI handle customer inquiries, qualify prospects, and manage your equipment listings — so you can focus on lifting.
@@ -104,7 +104,7 @@ export default function CranePage() {
                 <Link href="/get-started?industry=crane">Get Started Free</Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link href="/search?category=crane">Browse Crane Equipment</Link>
+                <Link href="/search?category=crane">Browse Construction Equipment</Link>
               </Button>
             </div>
           </div>
