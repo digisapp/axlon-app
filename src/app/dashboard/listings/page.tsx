@@ -7,6 +7,7 @@ import {
   Plus,
   ArrowLeft,
   ImageIcon,
+  Upload,
 } from 'lucide-react';
 import { DashboardListingCard } from '@/components/dashboard/DashboardListingCard';
 
@@ -79,12 +80,20 @@ export default async function ListingsPage() {
             </div>
           </div>
 
-          <Button asChild>
-            <Link href="/dashboard/listings/new">
-              <Plus className="w-4 h-4 mr-2" />
-              New Listing
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/bulk">
+                <Upload className="w-4 h-4 mr-2" />
+                Bulk Import
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/dashboard/listings/new">
+                <Plus className="w-4 h-4 mr-2" />
+                New Listing
+              </Link>
+            </Button>
+          </div>
         </div>
       </header>
 

@@ -13,6 +13,7 @@ import {
   Filter,
   Download,
   ArrowUpRight,
+  Landmark,
 } from 'lucide-react';
 import Link from 'next/link';
 import { InventoryTable } from '@/components/dashboard/InventoryTable';
@@ -104,6 +105,12 @@ export default async function InventoryPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/dashboard/floor-plan">
+              <Landmark className="w-4 h-4 mr-2" />
+              Floor Plan
+            </Link>
+          </Button>
           <Button variant="outline" size="sm">
             <Download className="w-4 h-4 mr-2" />
             Export
