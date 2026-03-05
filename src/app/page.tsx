@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Zap, ArrowRight, RefreshCw, CalendarDays, Calculator, Truck, Store } from 'lucide-react';
+import { Zap, ArrowRight, RefreshCw, CalendarDays, Calculator, Truck, Store, Construction, Wrench } from 'lucide-react';
 import { HomeHeader } from '@/components/home/HomeHeader';
 import { HomeSearchSection } from '@/components/home/HomeSearchSection';
 import { HomeDeals } from '@/components/home/HomeDeals';
@@ -192,6 +192,58 @@ export default function HomePage() {
 
         {/* Client: Hot Deals Section */}
         <HomeDeals />
+
+        {/* Industry Solutions */}
+        <section className="w-full max-w-5xl mx-auto mb-12 px-4">
+          <h2 className="text-xl md:text-2xl font-bold text-center mb-2">AI Tools for Every Industry</h2>
+          <p className="text-sm text-muted-foreground text-center mb-8">Purpose-built solutions for heavy equipment professionals</p>
+          <div className="grid md:grid-cols-3 gap-4">
+            <Link
+              href="/industries/transport"
+              className="group p-6 rounded-xl border bg-white/80 dark:bg-white/5 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:border-blue-200 dark:hover:border-blue-800 transition-all"
+            >
+              <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-3">
+                <Truck className="w-5 h-5 text-blue-600" />
+              </div>
+              <h3 className="font-semibold mb-1 group-hover:text-blue-600 transition-colors">Heavy Haul & Transport</h3>
+              <p className="text-sm text-muted-foreground">AI lead capture, fleet analytics, and equipment listings for heavy haul companies.</p>
+              <span className="inline-flex items-center gap-1 text-sm text-blue-600 mt-3 font-medium">
+                Learn more <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+              </span>
+            </Link>
+            <Link
+              href="/industries/crane"
+              className="group p-6 rounded-xl border bg-white/80 dark:bg-white/5 hover:bg-orange-50 dark:hover:bg-orange-950/20 hover:border-orange-200 dark:hover:border-orange-800 transition-all"
+            >
+              <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-3">
+                <Construction className="w-5 h-5 text-orange-600" />
+              </div>
+              <h3 className="font-semibold mb-1 group-hover:text-orange-600 transition-colors">Crane & Rigging</h3>
+              <p className="text-sm text-muted-foreground">24/7 AI assistant, smart lead qualification, and crane fleet management tools.</p>
+              <span className="inline-flex items-center gap-1 text-sm text-orange-600 mt-3 font-medium">
+                Learn more <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+              </span>
+            </Link>
+            <Link
+              href="/industries/rigging"
+              className="group p-6 rounded-xl border bg-white/80 dark:bg-white/5 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all"
+            >
+              <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-3">
+                <Wrench className="w-5 h-5 text-emerald-600" />
+              </div>
+              <h3 className="font-semibold mb-1 group-hover:text-emerald-600 transition-colors">Rigging & Heavy Lift</h3>
+              <p className="text-sm text-muted-foreground">Project pipeline tracking, AI inquiries, and rigging equipment marketplace.</p>
+              <span className="inline-flex items-center gap-1 text-sm text-emerald-600 mt-3 font-medium">
+                Learn more <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+              </span>
+            </Link>
+          </div>
+          <p className="text-center mt-6">
+            <Link href="/get-started" className="text-sm text-primary hover:underline font-medium inline-flex items-center gap-1">
+              Get started free <ArrowRight className="w-3 h-3" />
+            </Link>
+          </p>
+        </section>
 
         {/* SEO: Hidden crawlable content for search engines */}
         <section className="sr-only" aria-label="About AxlonAI">
