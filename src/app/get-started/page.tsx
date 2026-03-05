@@ -68,7 +68,7 @@ const industries = [
   },
   {
     icon: Construction,
-    label: 'Construction & Rigging',
+    label: 'Crane & Rigging',
     href: '/industries/crane',
   },
   {
