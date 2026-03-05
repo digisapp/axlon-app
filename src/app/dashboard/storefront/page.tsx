@@ -254,12 +254,12 @@ export default function StorefrontSettingsPage() {
           <Card>
             <CardContent className="py-12 text-center">
               <Store className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-2xl font-bold mb-2">Dealer Account Required</h2>
+              <h2 className="text-2xl font-bold mb-2">Business Account Required</h2>
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                Storefronts are available for dealer accounts. Upgrade to access your own branded page with AI chat assistant.
+                Storefronts are available for business accounts. Upgrade to access your own branded page with AI chat assistant.
               </p>
               <Link href="/dashboard/settings">
-                <Button>Upgrade to Dealer</Button>
+                <Button>Upgrade to Business</Button>
               </Link>
             </CardContent>
           </Card>
@@ -372,7 +372,7 @@ export default function StorefrontSettingsPage() {
                   <Label htmlFor="tagline">Tagline</Label>
                   <Input
                     id="tagline"
-                    placeholder="Your dealership's slogan or specialty"
+                    placeholder="Your company's slogan or specialty"
                     value={formData.tagline}
                     onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
                   />
@@ -382,7 +382,7 @@ export default function StorefrontSettingsPage() {
                   <Label htmlFor="about">About</Label>
                   <Textarea
                     id="about"
-                    placeholder="Tell customers about your dealership, history, specialties..."
+                    placeholder="Tell customers about your business, history, specialties..."
                     value={formData.about}
                     onChange={(e) => setFormData({ ...formData, about: e.target.value })}
                     rows={4}

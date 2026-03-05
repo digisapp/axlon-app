@@ -88,7 +88,7 @@ export default function SignupPage() {
             <CardTitle>Check Your Email</CardTitle>
             <CardDescription>
               We&apos;ve sent a confirmation link to <strong>{formData.email}</strong>.
-              Click the link to activate your dealer account.
+              Click the link to activate your account.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -122,9 +122,9 @@ export default function SignupPage() {
               className="dark:brightness-110"
             />
           </Link>
-          <CardTitle>Create Dealer Account</CardTitle>
+          <CardTitle>Create Your Account</CardTitle>
           <CardDescription>
-            Start selling trucks and trailers on AxlonAI
+            AI-powered tools for the heavy equipment industry
           </CardDescription>
         </CardHeader>
 
@@ -159,7 +159,7 @@ export default function SignupPage() {
                 <Input
                   id="companyName"
                   type="text"
-                  placeholder="Your dealership name"
+                  placeholder="Your company name"
                   value={formData.companyName}
                   onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                   className="pl-10"
@@ -218,7 +218,7 @@ export default function SignupPage() {
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Create Dealer Account
+              Create Account
             </Button>
           </form>
 

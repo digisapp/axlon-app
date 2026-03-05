@@ -383,19 +383,19 @@ export default function SettingsPage() {
               />
             </div>
 
-            {/* Dealer Status */}
+            {/* Business Status */}
             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
               <div>
-                <p className="font-medium">Dealer Account</p>
+                <p className="font-medium">Business Account</p>
                 <p className="text-sm text-muted-foreground">
                   {formData.is_dealer
-                    ? 'Your account is registered as a dealer'
-                    : 'Upgrade to a dealer account for additional features'}
+                    ? 'Your account is verified for business features'
+                    : 'Upgrade to a business account for additional features'}
                 </p>
               </div>
               {formData.is_dealer ? (
                 <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">
-                  Dealer
+                  Verified
                 </span>
               ) : (
                 <Button variant="outline" size="sm" asChild>
@@ -578,7 +578,7 @@ export default function SettingsPage() {
                     <AlertDialogDescription className="space-y-3">
                       <span className="block">This action cannot be undone. This will permanently delete:</span>
                       <ul className="list-disc pl-5 space-y-1">
-                        <li>Your dealer profile and storefront</li>
+                        <li>Your business profile and storefront</li>
                         <li>All your listings and images</li>
                         <li>All leads, deals, and conversation history</li>
                         <li>Your AI assistant configuration</li>

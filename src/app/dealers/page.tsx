@@ -15,8 +15,8 @@ import {
 } from 'lucide-react';
 
 export const metadata = {
-  title: 'Dealer Directory - Find Trusted Truck & Equipment Dealers',
-  description: 'Browse verified truck and equipment dealers on AxlonAI. Find trusted dealers near you with AI-powered storefronts, inventory, and direct messaging.',
+  title: 'Business Directory - Find Trusted Truck & Equipment Businesses',
+  description: 'Browse verified truck and equipment businesses on AxlonAI. Find trusted dealers near you with AI-powered storefronts, inventory, and direct messaging.',
   openGraph: {
     title: 'Dealer Directory | AxlonAI',
     description: 'Find trusted truck and equipment dealers near you. Verified dealers with direct messaging.',
@@ -110,7 +110,7 @@ export default async function DealersPage({ searchParams }: PageProps) {
             <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center">
               <Building2 className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Dealer Directory</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Business Directory</h1>
           </div>
           <p className="text-slate-400 text-lg max-w-2xl">
             Browse verified truck and equipment dealers. Find quality inventory from trusted professionals.
@@ -125,7 +125,7 @@ export default async function DealersPage({ searchParams }: PageProps) {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <Input
               name="q"
-              placeholder="Search dealers by name or location..."
+              placeholder="Search businesses by name or location..."
               defaultValue={q}
               className="h-12 pl-12 pr-4 bg-white border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all shadow-sm"
             />

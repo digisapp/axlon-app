@@ -542,7 +542,7 @@ export default function AIAssistantPage() {
               <Bot className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
               <h2 className="text-2xl font-bold mb-2">Dealer Account Required</h2>
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                AI Sales Assistant is available for dealer accounts. Upgrade to get your own AI that knows your inventory and sells for you 24/7.
+                AI Sales Assistant is available for business accounts. Upgrade to get your own AI that knows your inventory and sells for you 24/7.
               </p>
               <Link href="/dashboard/settings">
                 <Button>Upgrade to Dealer</Button>

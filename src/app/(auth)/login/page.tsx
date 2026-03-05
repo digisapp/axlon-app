@@ -67,7 +67,7 @@ function LoginForm() {
             className="dark:brightness-110"
           />
         </Link>
-        <CardTitle>Dealer Login</CardTitle>
+        <CardTitle>Sign In</CardTitle>
         <CardDescription>
           Sign in to manage your listings
         </CardDescription>
@@ -168,7 +168,7 @@ function LoginForm() {
 
       <CardFooter className="flex justify-center">
         <p className="text-sm text-muted-foreground">
-          New dealer?{' '}
+          Don&apos;t have an account?{' '}
           <Link href="/signup" className="text-primary hover:underline">
             Create account
           </Link>

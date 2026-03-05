@@ -47,7 +47,7 @@ const benefits = [
   },
   {
     icon: Store,
-    title: 'Dealer Storefront',
+    title: 'Business Storefront',
     description: 'Your own branded page showcasing all your inventory',
   },
   {
@@ -170,9 +170,9 @@ export default function BecomeADealerPage() {
             <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
               <Check className="w-8 h-8 text-green-600" />
             </div>
-            <CardTitle>You&apos;re Already a Dealer!</CardTitle>
+            <CardTitle>You&apos;re Already Verified!</CardTitle>
             <CardDescription>
-              Your account is already set up as a dealer account. You can start listing equipment right away.
+              Your account is already set up as a business account. You can start listing equipment right away.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -258,7 +258,7 @@ export default function BecomeADealerPage() {
             <Card className="sticky top-8">
               <CardHeader>
                 <CardTitle>
-                  {isLoggedIn ? 'Complete Your Dealer Profile' : 'Create Your Dealer Account'}
+                  {isLoggedIn ? 'Complete Your Business Profile' : 'Create Your Dealer Account'}
                 </CardTitle>
                 <CardDescription>
                   {isLoggedIn
@@ -270,10 +270,10 @@ export default function BecomeADealerPage() {
                 {!isLoggedIn ? (
                   <div className="space-y-4">
                     <p className="text-sm text-muted-foreground">
-                      Create a dealer account to start listing your equipment.
+                      Create a business account to start listing your equipment.
                     </p>
                     <Button asChild className="w-full">
-                      <Link href="/signup">Create Dealer Account</Link>
+                      <Link href="/signup">Create Account</Link>
                     </Button>
                     <div className="relative">
                       <div className="absolute inset-0 flex items-center">

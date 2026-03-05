@@ -269,13 +269,13 @@ export default function VoiceAgentPage() {
           <Card>
             <CardContent className="py-12 text-center">
               <Phone className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-xl font-bold mb-2">Dealer Account Required</h2>
+              <h2 className="text-xl font-bold mb-2">Business Account Required</h2>
               <p className="text-muted-foreground mb-6">
-                The AI Voice Agent is available exclusively for verified dealers.
+                The AI Voice Agent is available exclusively for verified businesses.
                 Upgrade your account to get your own AI receptionist.
               </p>
               <Button asChild>
-                <Link href="/become-a-dealer">Become a Dealer</Link>
+                <Link href="/become-a-dealer">Get Started</Link>
               </Button>
             </CardContent>
           </Card>

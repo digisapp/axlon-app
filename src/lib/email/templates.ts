@@ -475,7 +475,7 @@ export function confirmEmailTemplate({
 
           <p>Hi ${escapeHtml(companyName)},</p>
 
-          <p>Thanks for creating a dealer account on AxlonAI. Please confirm your email address to get started:</p>
+          <p>Thanks for creating your account on AxlonAI. Please confirm your email address to get started:</p>
 
           <p style="text-align: center; margin: 32px 0;">
             <a href="${sanitizeUrl(confirmationUrl)}" style="${buttonStyles}">
@@ -483,7 +483,7 @@ export function confirmEmailTemplate({
             </a>
           </p>
 
-          <h3>What you can do as a dealer:</h3>
+          <h3>What you can do on AxlonAI:</h3>
           <ul style="color: #666;">
             <li>List your trucks, trailers, and equipment</li>
             <li>Get AI-powered leads from interested buyers</li>
@@ -496,6 +496,110 @@ export function confirmEmailTemplate({
           </p>
 
           <div style="${footerStyles}">
+            <p>&copy; ${new Date().getFullYear()} AxlonAI. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
+export function scraOutreachEmail({
+  companyName,
+  contactName,
+  serviceCodes,
+}: {
+  companyName: string;
+  contactName?: string;
+  serviceCodes?: string[];
+}) {
+  const greeting = contactName && contactName !== 'Member Get'
+    ? `Hi ${escapeHtml(contactName)},`
+    : `Hi ${escapeHtml(companyName)} Team,`;
+
+  // Personalize value props based on service codes
+  const isTransport = serviceCodes?.some(c => /transport|trucking/i.test(c));
+  const isCrane = serviceCodes?.some(c => /crane|rigging|lift/i.test(c));
+  const isAllied = serviceCodes?.some(c => /allied|insurance|consult/i.test(c));
+
+  let industryLine = 'the heavy equipment industry';
+  if (isCrane) industryLine = 'crane, rigging, and heavy lift companies';
+  else if (isTransport) industryLine = 'specialized transportation companies';
+  else if (isAllied) industryLine = 'allied service providers in heavy haul and crane';
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
+        <div style="${containerStyles} background-color: white; border-radius: 12px;">
+          <div style="${headerStyles}">
+            <img src="https://axlon.ai/images/axlonai-logo.png" alt="AxlonAI" height="40" style="height: 40px;">
+          </div>
+
+          <h1 style="font-size: 22px; margin-bottom: 16px; color: #1a1a1a;">
+            AI-Powered Tools Built for ${escapeHtml(industryLine)}
+          </h1>
+
+          <p>${greeting}</p>
+
+          <p>As a fellow member of the SC&RA community, we wanted to introduce <strong>AxlonAI</strong> — an AI platform purpose-built for ${escapeHtml(industryLine)}.</p>
+
+          <p>We're helping companies like yours save time, capture more leads, and streamline operations with AI:</p>
+
+          <div style="margin: 24px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 12px 16px; background-color: #f0f9ff; border-radius: 8px; margin-bottom: 8px;">
+                  <strong style="color: #0066cc;">AI Equipment Marketplace</strong>
+                  <br><span style="color: #666; font-size: 14px;">List & sell trucks, trailers, and heavy equipment with AI-optimized listings</span>
+                </td>
+              </tr>
+              <tr><td style="height: 8px;"></td></tr>
+              <tr>
+                <td style="padding: 12px 16px; background-color: #f0fdf4; border-radius: 8px;">
+                  <strong style="color: #16a34a;">AI-Powered Storefront & Chat</strong>
+                  <br><span style="color: #666; font-size: 14px;">Your branded page with an AI assistant that answers customer questions 24/7</span>
+                </td>
+              </tr>
+              <tr><td style="height: 8px;"></td></tr>
+              <tr>
+                <td style="padding: 12px 16px; background-color: #fef3c7; border-radius: 8px;">
+                  <strong style="color: #d97706;">Smart Lead Capture & CRM</strong>
+                  <br><span style="color: #666; font-size: 14px;">AI automatically qualifies leads, captures contact info, and tracks your pipeline</span>
+                </td>
+              </tr>
+              <tr><td style="height: 8px;"></td></tr>
+              <tr>
+                <td style="padding: 12px 16px; background-color: #f5f3ff; border-radius: 8px;">
+                  <strong style="color: #7c3aed;">Analytics & Market Intelligence</strong>
+                  <br><span style="color: #666; font-size: 14px;">Real-time market data, pricing insights, and performance dashboards</span>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <p style="text-align: center; margin: 32px 0;">
+            <a href="https://axlon.ai/become-a-dealer?ref=scra" style="${buttonStyles}">
+              Get Started Free
+            </a>
+          </p>
+
+          <p style="color: #666; font-size: 14px; text-align: center;">
+            No credit card required. Set up your AI storefront in under 5 minutes.
+          </p>
+
+          <div style="${footerStyles}">
+            <p style="margin-bottom: 8px;">
+              <a href="https://axlon.ai" style="color: #0066cc; text-decoration: none;">axlon.ai</a>
+            </p>
+            <p style="font-size: 12px; color: #999;">
+              You're receiving this because ${escapeHtml(companyName)} is listed in the SC&RA member directory.
+              <br>If you'd prefer not to hear from us, simply reply with "unsubscribe."
+            </p>
             <p>&copy; ${new Date().getFullYear()} AxlonAI. All rights reserved.</p>
           </div>
         </div>
