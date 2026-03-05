@@ -3,12 +3,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 
+async function checkAdmin(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', userId)
+    .single();
+  return profile?.is_admin === true;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const identifier = getClientIdentifier(request);
     const rateLimitResult = await checkRateLimit(identifier, {
       ...RATE_LIMITS.standard,
-      prefix: 'ratelimit:dashboard-outreach',
+      prefix: 'ratelimit:admin-outreach',
     });
     if (!rateLimitResult.success) {
       return rateLimitResponse(rateLimitResult);
@@ -21,6 +30,10 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!(await checkAdmin(supabase, user.id))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -59,20 +72,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Get stats
-    const { data: statsData } = await supabase
-      .from('outreach_contacts')
-      .select('source, status');
+    // Get stats using count queries to avoid Supabase 1000-row default limit
+    const [
+      { count: totalCount },
+      { data: sourceData },
+      { data: statusData },
+    ] = await Promise.all([
+      supabase.from('outreach_contacts').select('*', { count: 'exact', head: true }),
+      supabase.rpc('outreach_stats_by_source'),
+      supabase.rpc('outreach_stats_by_status'),
+    ]);
 
     const stats = {
-      total: statsData?.length || 0,
+      total: totalCount || 0,
       bySource: {} as Record<string, number>,
       byStatus: {} as Record<string, number>,
     };
 
-    for (const row of statsData || []) {
-      stats.bySource[row.source] = (stats.bySource[row.source] || 0) + 1;
-      stats.byStatus[row.status] = (stats.byStatus[row.status] || 0) + 1;
+    for (const row of sourceData || []) {
+      stats.bySource[row.source] = Number(row.count);
+    }
+    for (const row of statusData || []) {
+      stats.byStatus[row.status] = Number(row.count);
     }
 
     return NextResponse.json({
@@ -81,7 +102,7 @@ export async function GET(request: NextRequest) {
       stats,
     });
   } catch (error) {
-    logger.error('Error in GET /api/dashboard/outreach', { error });
+    logger.error('Error in GET /api/admin/outreach', { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -91,7 +112,7 @@ export async function DELETE(request: NextRequest) {
     const identifier = getClientIdentifier(request);
     const rateLimitResult = await checkRateLimit(identifier, {
       ...RATE_LIMITS.standard,
-      prefix: 'ratelimit:dashboard-outreach',
+      prefix: 'ratelimit:admin-outreach',
     });
     if (!rateLimitResult.success) {
       return rateLimitResponse(rateLimitResult);
@@ -104,6 +125,10 @@ export async function DELETE(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!(await checkAdmin(supabase, user.id))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -129,7 +154,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true, deleted: ids.length });
   } catch (error) {
-    logger.error('Error in DELETE /api/dashboard/outreach', { error });
+    logger.error('Error in DELETE /api/admin/outreach', { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

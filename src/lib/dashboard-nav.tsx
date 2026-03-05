@@ -12,7 +12,6 @@ import {
   Handshake,
   Brain,
   Contact,
-  Megaphone,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -90,11 +89,6 @@ export const dashboardNavSections: NavSection[] = [
         href: '/dashboard/storefront',
         label: 'Storefront',
         icon: <Store className="w-5 h-5" />,
-      },
-      {
-        href: '/dashboard/outreach',
-        label: 'Outreach',
-        icon: <Megaphone className="w-5 h-5" />,
       },
       {
         href: '/dashboard/analytics',

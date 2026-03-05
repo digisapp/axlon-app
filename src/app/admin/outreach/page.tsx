@@ -111,7 +111,7 @@ export default function OutreachPage() {
       params.set('limit', String(LIMIT));
       params.set('offset', String(page * LIMIT));
 
-      const res = await fetch(`/api/dashboard/outreach?${params}`);
+      const res = await fetch(`/api/admin/outreach?${params}`);
       if (res.ok) {
         const data = await res.json();
         setContacts(data.contacts || []);
@@ -144,7 +144,7 @@ export default function OutreachPage() {
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     try {
-      const res = await fetch(`/api/dashboard/outreach/${id}`, {
+      const res = await fetch(`/api/admin/outreach/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -168,7 +168,7 @@ export default function OutreachPage() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch('/api/dashboard/outreach', {
+      const res = await fetch('/api/admin/outreach', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: [...selected] }),
@@ -188,7 +188,7 @@ export default function OutreachPage() {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`/api/dashboard/outreach/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/outreach/${id}`, { method: 'DELETE' });
       if (res.ok) {
         fetchContacts(true);
       }
