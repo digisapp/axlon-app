@@ -451,6 +451,59 @@ export function savedSearchAlertEmail({
   `;
 }
 
+export function confirmEmailTemplate({
+  companyName,
+  confirmationUrl,
+}: {
+  companyName: string;
+  confirmationUrl: string;
+}) {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
+        <div style="${containerStyles} background-color: white; border-radius: 12px;">
+          <div style="${headerStyles}">
+            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/axlonai-logo.png" alt="AxlonAI" height="40" style="height: 40px;">
+          </div>
+
+          <h1 style="font-size: 24px; margin-bottom: 16px;">Confirm Your Email</h1>
+
+          <p>Hi ${escapeHtml(companyName)},</p>
+
+          <p>Thanks for creating a dealer account on AxlonAI. Please confirm your email address to get started:</p>
+
+          <p style="text-align: center; margin: 32px 0;">
+            <a href="${sanitizeUrl(confirmationUrl)}" style="${buttonStyles}">
+              Confirm Email Address
+            </a>
+          </p>
+
+          <h3>What you can do as a dealer:</h3>
+          <ul style="color: #666;">
+            <li>List your trucks, trailers, and equipment</li>
+            <li>Get AI-powered leads from interested buyers</li>
+            <li>Track views, inquiries, and sales analytics</li>
+            <li>Set up your branded storefront with AI chat</li>
+          </ul>
+
+          <p style="color: #666; font-size: 14px;">
+            If you didn't create this account, you can safely ignore this email.
+          </p>
+
+          <div style="${footerStyles}">
+            <p>&copy; ${new Date().getFullYear()} AxlonAI. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
 export function newLeadEmail({
   dealerName,
   buyerName,

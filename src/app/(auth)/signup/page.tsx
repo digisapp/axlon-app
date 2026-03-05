@@ -38,28 +38,31 @@ export default function SignupPage() {
       return;
     }
 
-    const supabase = createClient();
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          companyName: formData.companyName,
+        }),
+      });
 
-    const { error } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-      options: {
-        data: {
-          company_name: formData.companyName,
-          is_dealer: true, // All signups are dealers
-        },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+      const data = await res.json();
 
-    if (error) {
-      setError(error.message);
+      if (!res.ok) {
+        setError(data.error || 'Failed to create account');
+        setIsLoading(false);
+        return;
+      }
+
+      setSuccess(true);
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    setSuccess(true);
-    setIsLoading(false);
   };
 
   const handleGoogleSignup = async () => {
