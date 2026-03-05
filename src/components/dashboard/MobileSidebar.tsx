@@ -14,7 +14,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Menu } from 'lucide-react';
-import { dashboardNavItems, getNavItemsWithBadges } from '@/lib/dashboard-nav';
+import { dashboardNavSections, getNavSectionsWithBadges } from '@/lib/dashboard-nav';
 
 interface MobileSidebarProps {
   unreadMessages?: number;
@@ -28,7 +28,7 @@ export function MobileSidebar({
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
-  const itemsWithBadges = getNavItemsWithBadges(dashboardNavItems, unreadMessages, newLeads);
+  const sections = getNavSectionsWithBadges(dashboardNavSections, unreadMessages, newLeads);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -52,35 +52,44 @@ export function MobileSidebar({
           </div>
         </SheetHeader>
 
-        <nav className="p-3 space-y-1">
-          {itemsWithBadges.map((item) => {
-            const isActive =
-              item.href === '/dashboard'
-                ? pathname === '/dashboard'
-                : pathname.startsWith(item.href);
+        <nav className="p-3 overflow-y-auto max-h-[calc(100vh-10rem)]">
+          {sections.map((section, sectionIdx) => (
+            <div key={section.label} className={cn(sectionIdx > 0 && 'mt-4')}>
+              <p className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                {section.label}
+              </p>
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const isActive =
+                    item.href === '/dashboard'
+                      ? pathname === '/dashboard'
+                      : pathname.startsWith(item.href);
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                )}
-              >
-                {item.icon}
-                <span className="flex-1">{item.label}</span>
-                {item.badge && item.badge > 0 && (
-                  <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm',
+                        isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      )}
+                    >
+                      {item.icon}
+                      <span className="flex-1">{item.label}</span>
+                      {item.badge && item.badge > 0 && (
+                        <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Bottom Banner */}

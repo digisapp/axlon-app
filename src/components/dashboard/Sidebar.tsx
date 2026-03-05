@@ -13,7 +13,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { dashboardNavItems, getNavItemsWithBadges } from '@/lib/dashboard-nav';
+import { dashboardNavSections, getNavSectionsWithBadges } from '@/lib/dashboard-nav';
 
 interface SidebarProps {
   unreadMessages?: number;
@@ -24,7 +24,7 @@ export function Sidebar({ unreadMessages = 0, newLeads = 0 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
 
-  const itemsWithBadges = getNavItemsWithBadges(dashboardNavItems, unreadMessages, newLeads);
+  const sections = getNavSectionsWithBadges(dashboardNavSections, unreadMessages, newLeads);
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -51,62 +51,76 @@ export function Sidebar({ unreadMessages = 0, newLeads = 0 }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {itemsWithBadges.map((item) => {
-            const isActive =
-              item.href === '/dashboard'
-                ? pathname === '/dashboard'
-                : pathname.startsWith(item.href);
+        <nav className="flex-1 p-3 overflow-y-auto">
+          {sections.map((section, sectionIdx) => (
+            <div key={section.label} className={cn(sectionIdx > 0 && 'mt-4')}>
+              {!collapsed && (
+                <p className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  {section.label}
+                </p>
+              )}
+              {collapsed && sectionIdx > 0 && (
+                <div className="mx-2 mb-2 border-t border-border/50" />
+              )}
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const isActive =
+                    item.href === '/dashboard'
+                      ? pathname === '/dashboard'
+                      : pathname.startsWith(item.href);
 
-            const linkContent = (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors relative',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted',
-                  collapsed && 'justify-center px-2'
-                )}
-              >
-                {item.icon}
-                {!collapsed && (
-                  <>
-                    <span className="flex-1">{item.label}</span>
-                    {item.badge && item.badge > 0 && (
-                      <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                        {item.badge}
-                      </span>
-                    )}
-                  </>
-                )}
-                {collapsed && item.badge && item.badge > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                    {item.badge > 9 ? '9+' : item.badge}
-                  </span>
-                )}
-              </Link>
-            );
+                  const linkContent = (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors relative text-sm',
+                        isActive
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+                        collapsed && 'justify-center px-2'
+                      )}
+                    >
+                      {item.icon}
+                      {!collapsed && (
+                        <>
+                          <span className="flex-1">{item.label}</span>
+                          {item.badge && item.badge > 0 && (
+                            <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                              {item.badge}
+                            </span>
+                          )}
+                        </>
+                      )}
+                      {collapsed && item.badge && item.badge > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                          {item.badge > 9 ? '9+' : item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
 
-            if (collapsed) {
-              return (
-                <Tooltip key={item.href}>
-                  <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                  <TooltipContent side="right" className="flex items-center gap-2">
-                    {item.label}
-                    {item.badge && item.badge > 0 && (
-                      <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
-              );
-            }
+                  if (collapsed) {
+                    return (
+                      <Tooltip key={item.href}>
+                        <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                        <TooltipContent side="right" className="flex items-center gap-2">
+                          {item.label}
+                          {item.badge && item.badge > 0 && (
+                            <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                              {item.badge}
+                            </span>
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  }
 
-            return linkContent;
-          })}
+                  return linkContent;
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Bottom Banner */}

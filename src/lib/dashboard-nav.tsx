@@ -4,17 +4,13 @@ import {
   BarChart3,
   Users,
   Warehouse,
-  Upload,
   Settings,
   MessageSquare,
   Store,
-  Bot,
   Phone,
   UserCog,
-  Landmark,
   Handshake,
   Brain,
-  Sparkles,
   Contact,
 } from 'lucide-react';
 
@@ -25,93 +21,106 @@ export interface NavItem {
   badge?: number;
 }
 
-export const dashboardNavItems: NavItem[] = [
+export interface NavSection {
+  label: string;
+  items: NavItem[];
+}
+
+export const dashboardNavSections: NavSection[] = [
   {
-    href: '/dashboard',
-    label: 'Overview',
-    icon: <LayoutDashboard className="w-5 h-5" />,
+    label: 'Main',
+    items: [
+      {
+        href: '/dashboard',
+        label: 'Overview',
+        icon: <LayoutDashboard className="w-5 h-5" />,
+      },
+      {
+        href: '/dashboard/listings',
+        label: 'Listings',
+        icon: <Package className="w-5 h-5" />,
+      },
+      {
+        href: '/dashboard/inventory',
+        label: 'Inventory',
+        icon: <Warehouse className="w-5 h-5" />,
+      },
+    ],
   },
   {
-    href: '/dashboard/listings',
-    label: 'Listings',
-    icon: <Package className="w-5 h-5" />,
+    label: 'Sales',
+    items: [
+      {
+        href: '/dashboard/leads',
+        label: 'Leads',
+        icon: <Users className="w-5 h-5" />,
+      },
+      {
+        href: '/dashboard/crm',
+        label: 'CRM',
+        icon: <Contact className="w-5 h-5" />,
+      },
+      {
+        href: '/dashboard/deal-desk',
+        label: 'Deal Desk',
+        icon: <Handshake className="w-5 h-5" />,
+      },
+    ],
   },
   {
-    href: '/dashboard/analytics',
-    label: 'Analytics',
-    icon: <BarChart3 className="w-5 h-5" />,
+    label: 'AI',
+    items: [
+      {
+        href: '/dashboard/ai-assistant',
+        label: 'AI Assistant',
+        icon: <Brain className="w-5 h-5" />,
+      },
+      {
+        href: '/dashboard/voice-agent',
+        label: 'Voice Agent',
+        icon: <Phone className="w-5 h-5" />,
+      },
+    ],
   },
   {
-    href: '/dashboard/leads',
-    label: 'Leads',
-    icon: <Users className="w-5 h-5" />,
+    label: 'Marketing',
+    items: [
+      {
+        href: '/dashboard/storefront',
+        label: 'Storefront',
+        icon: <Store className="w-5 h-5" />,
+      },
+      {
+        href: '/dashboard/analytics',
+        label: 'Analytics',
+        icon: <BarChart3 className="w-5 h-5" />,
+      },
+    ],
   },
   {
-    href: '/dashboard/deal-desk',
-    label: 'Deal Desk',
-    icon: <Handshake className="w-5 h-5" />,
-  },
-  {
-    href: '/dashboard/inventory',
-    label: 'Inventory',
-    icon: <Warehouse className="w-5 h-5" />,
-  },
-  {
-    href: '/dashboard/floor-plan',
-    label: 'Floor Plan',
-    icon: <Landmark className="w-5 h-5" />,
-  },
-  {
-    href: '/dashboard/bulk',
-    label: 'Bulk Import',
-    icon: <Upload className="w-5 h-5" />,
-  },
-  {
-    href: '/dashboard/storefront',
-    label: 'Storefront',
-    icon: <Store className="w-5 h-5" />,
-  },
-  {
-    href: '/dashboard/ai-assistant',
-    label: 'AI Assistant',
-    icon: <Brain className="w-5 h-5" />,
-  },
-  {
-    href: '/dashboard/conversations',
-    label: 'AI Chats',
-    icon: <Bot className="w-5 h-5" />,
-  },
-  {
-    href: '/dashboard/ai-leads',
-    label: 'AI Leads',
-    icon: <Sparkles className="w-5 h-5" />,
-  },
-  {
-    href: '/dashboard/crm',
-    label: 'AI CRM',
-    icon: <Contact className="w-5 h-5" />,
-  },
-  {
-    href: '/dashboard/voice-agent',
-    label: 'Voice Agent',
-    icon: <Phone className="w-5 h-5" />,
-  },
-  {
-    href: '/dashboard/staff',
-    label: 'Staff Access',
-    icon: <UserCog className="w-5 h-5" />,
-  },
-  {
-    href: '/dashboard/messages',
-    label: 'Messages',
-    icon: <MessageSquare className="w-5 h-5" />,
-  },
-  {
-    href: '/dashboard/settings',
-    label: 'Settings',
-    icon: <Settings className="w-5 h-5" />,
+    label: 'Admin',
+    items: [
+      {
+        href: '/dashboard/staff',
+        label: 'Staff Access',
+        icon: <UserCog className="w-5 h-5" />,
+      },
+      {
+        href: '/dashboard/messages',
+        label: 'Messages',
+        icon: <MessageSquare className="w-5 h-5" />,
+      },
+      {
+        href: '/dashboard/settings',
+        label: 'Settings',
+        icon: <Settings className="w-5 h-5" />,
+      },
+    ],
   },
 ];
+
+// Flat list for backward compatibility
+export const dashboardNavItems: NavItem[] = dashboardNavSections.flatMap(s => s.items);
 
 export function getNavItemsWithBadges(
   items: NavItem[],
@@ -126,9 +135,17 @@ export function getNavItemsWithBadges(
     if (item.href === '/dashboard/leads' && newLeads > 0) {
       return { ...item, badge: newLeads };
     }
-    if (item.href === '/dashboard/ai-leads' && newAiLeads && newAiLeads > 0) {
-      return { ...item, badge: newAiLeads };
-    }
     return item;
   });
+}
+
+export function getNavSectionsWithBadges(
+  sections: NavSection[],
+  unreadMessages: number,
+  newLeads: number,
+): NavSection[] {
+  return sections.map((section) => ({
+    ...section,
+    items: getNavItemsWithBadges(section.items, unreadMessages, newLeads),
+  }));
 }
