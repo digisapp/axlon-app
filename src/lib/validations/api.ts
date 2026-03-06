@@ -130,7 +130,7 @@ export const stripeCheckoutSchema = z.object({
     'featured_week', 'featured_month', 'bump',
     'platform_monthly', 'platform_yearly',
     'voice_addon_monthly', 'voice_addon_yearly',
-    'voice_setup', 'white_glove_setup',
+    'guided_setup', 'enterprise_onboarding',
   ]),
   listingId: z.string().uuid().optional(),
   successUrl: z.string().url().optional(),

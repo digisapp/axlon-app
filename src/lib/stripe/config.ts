@@ -32,8 +32,8 @@ export const STRIPE_PRODUCTS = {
   PLATFORM_YEARLY: 'price_platform_yearly', // $3,990/year
   VOICE_ADDON_MONTHLY: 'price_voice_addon_monthly', // $499/month
   VOICE_ADDON_YEARLY: 'price_voice_addon_yearly', // $4,990/year
-  VOICE_SETUP: 'price_voice_setup', // $499 one-time
-  WHITE_GLOVE_SETUP: 'price_white_glove_setup', // $999 one-time
+  GUIDED_SETUP: 'price_guided_setup', // $2,499 one-time
+  ENTERPRISE_ONBOARDING: 'price_enterprise_onboarding', // $14,999 one-time
 } as const;
 
 export const PRICING = {
@@ -87,14 +87,14 @@ export const PRICING = {
       'Call transfer to human',
     ],
   },
-  VOICE_SETUP: {
-    amount: 49900,
-    label: 'Voice Setup',
-    description: 'DID provisioning, voice personality configuration, testing, and go-live support',
+  GUIDED_SETUP: {
+    amount: 249900,
+    label: 'Guided Setup',
+    description: 'Remote onboarding via phone/Zoom — AI configuration, data migration assistance, and training. Waived with annual commitment.',
   },
-  WHITE_GLOVE_SETUP: {
-    amount: 99900,
-    label: 'White Glove Migration',
-    description: 'Full data migration from your existing system, AI configuration, and team training',
+  ENTERPRISE_ONBOARDING: {
+    amount: 1499900,
+    label: 'Enterprise Onboarding',
+    description: 'We fly to your office, analyze your operation, train the AI on your business, migrate all data, and have you live in 2 weeks. Waived with annual commitment.',
   },
 };

@@ -32,6 +32,7 @@ import {
   Plus,
   LayoutDashboard,
   Truck,
+  DollarSign,
 } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { QuickSearchTrigger, QuickSearch } from '@/components/search/QuickSearch';
@@ -138,6 +139,16 @@ export function Header() {
               }`}
             >
               Manufacturers
+            </Link>
+            <Link
+              href="/pricing"
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                pathname === '/pricing'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+            >
+              Pricing
             </Link>
           </nav>
 
@@ -283,6 +294,18 @@ export function Header() {
                     >
                       <Package className="w-5 h-5" />
                       Manufacturers
+                    </Link>
+                    <Link
+                      href="/pricing"
+                      onClick={() => setIsOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                        pathname === '/pricing'
+                          ? 'bg-primary/10 text-primary'
+                          : 'hover:bg-muted'
+                      }`}
+                    >
+                      <DollarSign className="w-5 h-5" />
+                      Pricing
                     </Link>
                   </nav>
                   <div className="h-px bg-border" />

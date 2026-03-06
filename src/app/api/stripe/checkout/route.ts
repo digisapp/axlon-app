@@ -189,29 +189,29 @@ export async function POST(request: NextRequest) {
         mode = 'subscription';
         break;
 
-      case 'voice_setup':
+      case 'guided_setup':
         lineItems = [{
           price_data: {
             currency: 'usd',
             product_data: {
-              name: PRICING.VOICE_SETUP.label,
-              description: PRICING.VOICE_SETUP.description,
+              name: PRICING.GUIDED_SETUP.label,
+              description: PRICING.GUIDED_SETUP.description,
             },
-            unit_amount: PRICING.VOICE_SETUP.amount,
+            unit_amount: PRICING.GUIDED_SETUP.amount,
           },
           quantity: 1,
         }];
         break;
 
-      case 'white_glove_setup':
+      case 'enterprise_onboarding':
         lineItems = [{
           price_data: {
             currency: 'usd',
             product_data: {
-              name: PRICING.WHITE_GLOVE_SETUP.label,
-              description: PRICING.WHITE_GLOVE_SETUP.description,
+              name: PRICING.ENTERPRISE_ONBOARDING.label,
+              description: PRICING.ENTERPRISE_ONBOARDING.description,
             },
-            unit_amount: PRICING.WHITE_GLOVE_SETUP.amount,
+            unit_amount: PRICING.ENTERPRISE_ONBOARDING.amount,
           },
           quantity: 1,
         }];

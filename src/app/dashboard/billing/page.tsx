@@ -433,38 +433,105 @@ export default async function BillingPage() {
             </Card>
           </div>
 
-          {/* Setup Fees */}
+          {/* Onboarding Options */}
           <Card className="bg-muted/30">
             <CardContent className="p-6">
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <h3 className="font-semibold mb-2 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary" />
                 Onboarding & Setup
               </h3>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                Choose how you want to get started
+              </p>
+              <div className="grid sm:grid-cols-3 gap-4">
                 <div className="p-4 bg-background rounded-lg border">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-sm">White Glove Migration</span>
-                    <span className="font-bold">$999</span>
+                    <span className="font-medium text-sm">Self-Service</span>
+                    <span className="font-bold text-green-600">Free</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    We migrate your data from TruckPaper, Salesforce, or any old system.
-                    Full AI configuration and team training included.
+                    Sign up online and set up everything yourself. Use Smart Import to migrate
+                    your data from spreadsheets, TruckPaper, or any other system.
                   </p>
-                  <p className="text-xs text-green-600 font-medium mt-2">
-                    Free with annual Platform plan
+                  <ul className="mt-3 space-y-1">
+                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Check className="w-3 h-3 text-green-500" />
+                      AI-powered Smart Import
+                    </li>
+                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Check className="w-3 h-3 text-green-500" />
+                      Self-guided setup wizard
+                    </li>
+                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Check className="w-3 h-3 text-green-500" />
+                      Help docs & video tutorials
+                    </li>
+                  </ul>
+                </div>
+                <div className="p-4 bg-background rounded-lg border border-primary/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">Guided Setup</span>
+                    <span className="font-bold">$2,499</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Remote onboarding via phone &amp; Zoom. We configure your AI, help migrate
+                    your data, and train your team — all remotely.
+                  </p>
+                  <ul className="mt-3 space-y-1">
+                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Check className="w-3 h-3 text-green-500" />
+                      Dedicated onboarding specialist
+                    </li>
+                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Check className="w-3 h-3 text-green-500" />
+                      AI configuration & training
+                    </li>
+                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Check className="w-3 h-3 text-green-500" />
+                      Data migration assistance
+                    </li>
+                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Check className="w-3 h-3 text-green-500" />
+                      Team training calls
+                    </li>
+                  </ul>
+                  <p className="text-xs text-green-600 font-medium mt-3">
+                    Waived with annual commitment
                   </p>
                 </div>
-                <div className="p-4 bg-background rounded-lg border">
+                <div className="p-4 bg-background rounded-lg border border-primary/50 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-sm">Voice Setup</span>
-                    <span className="font-bold">$499</span>
+                    <span className="font-medium text-sm">Enterprise Onboarding</span>
+                    <span className="font-bold">$14,999</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Dedicated phone number provisioning, voice personality configuration,
-                    test calls, and go-live support.
+                    We fly to your office, analyze your entire operation, train the AI on your
+                    specific business, migrate all your data, and have you live in 2 weeks.
                   </p>
-                  <p className="text-xs text-green-600 font-medium mt-2">
-                    Free with annual Voice add-on
+                  <ul className="mt-3 space-y-1">
+                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Check className="w-3 h-3 text-green-500" />
+                      On-site at your location
+                    </li>
+                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Check className="w-3 h-3 text-green-500" />
+                      Full company analysis
+                    </li>
+                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Check className="w-3 h-3 text-green-500" />
+                      Custom AI integration
+                    </li>
+                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Check className="w-3 h-3 text-green-500" />
+                      Complete data migration
+                    </li>
+                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Check className="w-3 h-3 text-green-500" />
+                      In-person team training
+                    </li>
+                  </ul>
+                  <p className="text-xs text-green-600 font-medium mt-3">
+                    Waived with annual commitment
                   </p>
                 </div>
               </div>
