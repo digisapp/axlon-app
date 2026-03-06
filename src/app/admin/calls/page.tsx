@@ -1,11 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Shield,
   Phone,
   User,
   Clock,
@@ -17,23 +14,6 @@ import {
 
 export default async function AdminCallLogsPage() {
   const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/login?redirect=/admin/calls');
-  }
-
-  // Check if user is admin
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile?.is_admin) {
-    redirect('/dashboard');
-  }
 
   // Get all call logs
   const { data: callLogs, count: totalCalls } = await supabase
@@ -102,177 +82,152 @@ export default async function AdminCallLogsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-background border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Phone className="w-6 h-6 text-primary" />
-            <div>
-              <h1 className="text-2xl font-bold">Call Logs</h1>
-              <p className="text-sm text-muted-foreground">
-                All incoming phone calls
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" asChild>
-              <Link href="/admin/leads">
-                View Leads
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/admin">
-                <Shield className="w-4 h-4 mr-2" />
-                Back to Admin
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Call Logs</h1>
+        <p className="text-sm text-muted-foreground">All incoming phone calls</p>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Stats */}
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <Phone className="w-5 h-5 text-blue-500" />
-              </div>
-              <p className="text-3xl font-bold">{totalCalls || 0}</p>
-              <p className="text-sm text-muted-foreground">Total Calls</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <PhoneIncoming className="w-5 h-5 text-green-500" />
-              </div>
-              <p className="text-3xl font-bold">{todayCalls || 0}</p>
-              <p className="text-sm text-muted-foreground">Today</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <CheckCircle className="w-5 h-5 text-purple-500" />
-              </div>
-              <p className="text-3xl font-bold">{callsWithLeads || 0}</p>
-              <p className="text-sm text-muted-foreground">Converted to Lead</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <Clock className="w-5 h-5 text-orange-500" />
-              </div>
-              <p className="text-3xl font-bold">{Math.round(totalMinutes / 60)}</p>
-              <p className="text-sm text-muted-foreground">Total Minutes</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Call Logs List */}
+      {/* Stats */}
+      <div className="grid md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle>All Calls</CardTitle>
-            <CardDescription>
-              Showing {callLogs?.length || 0} of {totalCalls || 0} calls
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {callLogs && callLogs.length > 0 ? (
-              <div className="space-y-3">
-                {callLogs.map((call) => (
-                  <div
-                    key={call.id}
-                    className="p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
-                  >
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      {/* Call Info */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          {getStatusIcon(call.status)}
-                          <a
-                            href={`tel:${call.caller_phone}`}
-                            className="font-medium hover:text-primary"
-                          >
-                            {formatPhone(call.caller_phone)}
-                          </a>
-                          {call.caller_name && (
-                            <span className="text-muted-foreground flex items-center gap-1">
-                              <User className="w-3 h-3" />
-                              {call.caller_name}
-                            </span>
-                          )}
-                          {getIntentBadge(call.intent)}
-                          {call.lead_id && (
-                            <Badge variant="secondary" className="text-xs">
-                              Lead Created
-                            </Badge>
-                          )}
-                        </div>
-
-                        {call.interest && (
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {call.interest}
-                          </p>
-                        )}
-
-                        {/* Recording */}
-                        {call.recording_url && (
-                          <div className="mt-2">
-                            <a
-                              href={call.recording_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1 text-sm text-primary hover:underline"
-                            >
-                              <PlayCircle className="w-4 h-4" />
-                              Play Recording
-                            </a>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Time & Duration */}
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(call.started_at).toLocaleDateString()}{' '}
-                          {new Date(call.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                        <span className="flex items-center gap-1 text-sm">
-                          <Clock className="w-3 h-3 text-muted-foreground" />
-                          {formatDuration(call.duration_seconds)}
-                        </span>
-                        {call.lead_id && (
-                          <Link
-                            href={`/admin/leads`}
-                            className="text-xs text-primary hover:underline"
-                          >
-                            View Lead
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <Phone className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No calls yet</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Incoming calls will appear here
-                </p>
-              </div>
-            )}
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <Phone className="w-5 h-5 text-blue-500" />
+            </div>
+            <p className="text-3xl font-bold">{totalCalls || 0}</p>
+            <p className="text-sm text-muted-foreground">Total Calls</p>
           </CardContent>
         </Card>
-      </main>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <PhoneIncoming className="w-5 h-5 text-green-500" />
+            </div>
+            <p className="text-3xl font-bold">{todayCalls || 0}</p>
+            <p className="text-sm text-muted-foreground">Today</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <CheckCircle className="w-5 h-5 text-purple-500" />
+            </div>
+            <p className="text-3xl font-bold">{callsWithLeads || 0}</p>
+            <p className="text-sm text-muted-foreground">Converted to Lead</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <Clock className="w-5 h-5 text-orange-500" />
+            </div>
+            <p className="text-3xl font-bold">{Math.round(totalMinutes / 60)}</p>
+            <p className="text-sm text-muted-foreground">Total Minutes</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Call Logs List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>All Calls</CardTitle>
+          <CardDescription>
+            Showing {callLogs?.length || 0} of {totalCalls || 0} calls
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {callLogs && callLogs.length > 0 ? (
+            <div className="space-y-3">
+              {callLogs.map((call) => (
+                <div
+                  key={call.id}
+                  className="p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    {/* Call Info */}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        {getStatusIcon(call.status)}
+                        <a
+                          href={`tel:${call.caller_phone}`}
+                          className="font-medium hover:text-primary"
+                        >
+                          {formatPhone(call.caller_phone)}
+                        </a>
+                        {call.caller_name && (
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <User className="w-3 h-3" />
+                            {call.caller_name}
+                          </span>
+                        )}
+                        {getIntentBadge(call.intent)}
+                        {call.lead_id && (
+                          <Badge variant="secondary" className="text-xs">
+                            Lead Created
+                          </Badge>
+                        )}
+                      </div>
+
+                      {call.interest && (
+                        <p className="text-sm text-muted-foreground line-clamp-1">
+                          {call.interest}
+                        </p>
+                      )}
+
+                      {/* Recording */}
+                      {call.recording_url && (
+                        <div className="mt-2">
+                          <a
+                            href={call.recording_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-sm text-primary hover:underline"
+                          >
+                            <PlayCircle className="w-4 h-4" />
+                            Play Recording
+                          </a>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Time & Duration */}
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(call.started_at).toLocaleDateString()}{' '}
+                        {new Date(call.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <span className="flex items-center gap-1 text-sm">
+                        <Clock className="w-3 h-3 text-muted-foreground" />
+                        {formatDuration(call.duration_seconds)}
+                      </span>
+                      {call.lead_id && (
+                        <Link
+                          href={`/admin/leads`}
+                          className="text-xs text-primary hover:underline"
+                        >
+                          View Lead
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Phone className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">No calls yet</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Incoming calls will appear here
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

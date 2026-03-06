@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,7 +36,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  ArrowLeft,
   Loader2,
   Search,
   Users,
@@ -220,25 +218,12 @@ export default function AdminStaffPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-background border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/admin" className="text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold">Dealer Staff Management</h1>
-              <p className="text-sm text-muted-foreground">
-                Manage voice PIN authentication for dealer staff
-              </p>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Dealer Staff Management</h1>
+        <p className="text-sm text-muted-foreground">Manage voice PIN authentication for dealer staff</p>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
@@ -461,7 +446,6 @@ export default function AdminStaffPage() {
             )}
           </CardContent>
         </Card>
-      </main>
 
       {/* Unlock Dialog */}
       <Dialog open={actionDialog === 'unlock'} onOpenChange={() => setActionDialog(null)}>

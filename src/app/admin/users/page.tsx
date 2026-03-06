@@ -31,7 +31,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  ArrowLeft,
   Search,
   Users,
   Building2,
@@ -175,29 +174,14 @@ export default function AdminUsersPage() {
   const dialogContent = getActionDialogContent();
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-background border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/admin">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold">User Management</h1>
-              <p className="text-sm text-muted-foreground">
-                Manage all users and their permissions
-              </p>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">User Management</h1>
+        <p className="text-sm text-muted-foreground">Manage all users and their permissions</p>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+      {/* Stats Cards */}
+        <div className="grid grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-4 flex items-center gap-4">
               <div className="p-2 bg-blue-100 rounded-lg">
@@ -236,7 +220,7 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Filters */}
-        <Card className="mb-6">
+        <Card>
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
@@ -427,7 +411,6 @@ export default function AdminUsersPage() {
             )}
           </CardContent>
         </Card>
-      </main>
 
       {/* Action Dialog */}
       <Dialog

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +25,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
-  ArrowLeft,
   Phone,
   Building2,
   Loader2,
@@ -200,31 +198,14 @@ export default function AdminVoiceAgentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-background border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/admin">
-                <Button variant="ghost" size="icon">
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-2xl font-bold">Dealer Voice Agents</h1>
-                <p className="text-sm text-muted-foreground">
-                  Manage AI phone agents for dealers
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Dealer Voice Agents</h1>
+        <p className="text-sm text-muted-foreground">Manage AI phone agents for dealers</p>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+      {/* Stats Cards */}
+        <div className="grid grid-cols-3 gap-4">
           <Card
             className={`cursor-pointer transition-colors ${statusFilter === 'all' ? 'border-primary' : ''}`}
             onClick={() => setStatusFilter('all')}
@@ -272,7 +253,7 @@ export default function AdminVoiceAgentsPage() {
         </div>
 
         {/* Search */}
-        <div className="mb-6">
+        <div>
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -372,7 +353,6 @@ export default function AdminVoiceAgentsPage() {
             )}
           </CardContent>
         </Card>
-      </main>
 
       {/* Edit Dialog */}
       <Dialog open={isEditing} onOpenChange={setIsEditing}>

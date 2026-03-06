@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +16,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Shield,
   Phone,
   Bot,
   MessageSquare,
@@ -108,7 +106,7 @@ export default function AIAgentSettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+      <div className="flex items-center justify-center py-24">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -116,46 +114,25 @@ export default function AIAgentSettingsPage() {
 
   if (!settings) {
     return (
-      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+      <div className="flex items-center justify-center py-24">
         <p className="text-muted-foreground">Failed to load settings</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-background border-b sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Bot className="w-6 h-6 text-primary" />
-            <div>
-              <h1 className="text-2xl font-bold">AI Phone Agent</h1>
-              <p className="text-sm text-muted-foreground">
-                Configure your AI-powered phone assistant
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" asChild>
-              <Link href="/admin">
-                <Shield className="w-4 h-4 mr-2" />
-                Back to Admin
-              </Link>
-            </Button>
-            <Button onClick={saveSettings} disabled={saving || !hasChanges}>
-              {saving ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              Save Changes
-            </Button>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">AI Phone Agent</h1>
+          <p className="text-sm text-muted-foreground">Configure your AI-powered phone assistant</p>
         </div>
-      </header>
+        <Button onClick={saveSettings} disabled={saving || !hasChanges}>
+          {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+          Save Changes
+        </Button>
+      </div>
 
-      <main className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         {/* Status Card */}
         <Card>
           <CardContent className="p-6">
@@ -353,7 +330,6 @@ export default function AIAgentSettingsPage() {
         <p className="text-sm text-muted-foreground text-center">
           Last updated: {new Date(settings.updated_at).toLocaleString()}
         </p>
-      </main>
     </div>
   );
 }

@@ -24,7 +24,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  ArrowLeft,
   Plus,
   Search,
   Factory,
@@ -220,33 +219,18 @@ export default function AdminManufacturersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-background border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/admin">
-                <Button variant="ghost" size="icon">
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-2xl font-bold">Manufacturer Directory</h1>
-                <p className="text-sm text-muted-foreground">
-                  Manage equipment manufacturers
-                </p>
-              </div>
-            </div>
-            <Button onClick={openAddDialog}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Manufacturer
-            </Button>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Manufacturers</h1>
+          <p className="text-sm text-muted-foreground">Manage equipment manufacturers</p>
         </div>
-      </header>
+        <Button onClick={openAddDialog}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Manufacturer
+        </Button>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <Card
@@ -436,7 +420,6 @@ export default function AdminManufacturersPage() {
             )}
           </CardContent>
         </Card>
-      </main>
 
       {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

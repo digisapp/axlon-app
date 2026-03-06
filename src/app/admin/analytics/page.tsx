@@ -14,7 +14,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  ArrowLeft,
   Users,
   Package,
   Eye,
@@ -107,40 +106,25 @@ export default function AdminAnalyticsPage() {
     : [];
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-background border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/admin">
-                <Button variant="ghost" size="icon">
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
-                <p className="text-sm text-muted-foreground">
-                  Platform performance and insights
-                </p>
-              </div>
-            </div>
-            <Select value={range} onValueChange={setRange}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Time Range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7">Last 7 days</SelectItem>
-                <SelectItem value="30">Last 30 days</SelectItem>
-                <SelectItem value="90">Last 90 days</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Analytics</h1>
+          <p className="text-sm text-muted-foreground">Platform performance and insights</p>
         </div>
-      </header>
+        <Select value={range} onValueChange={setRange}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Time Range" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7">Last 7 days</SelectItem>
+            <SelectItem value="30">Last 30 days</SelectItem>
+            <SelectItem value="90">Last 90 days</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {isLoading ? (
+      {isLoading ? (
           <div className="flex items-center justify-center py-24">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
@@ -152,7 +136,7 @@ export default function AdminAnalyticsPage() {
         ) : (
           <>
             {/* Overview Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
@@ -239,7 +223,7 @@ export default function AdminAnalyticsPage() {
             </div>
 
             {/* Charts Row 1 */}
-            <div className="grid lg:grid-cols-2 gap-6 mb-6">
+            <div className="grid lg:grid-cols-2 gap-6">
               {/* User Signups Chart */}
               <Card>
                 <CardHeader>
@@ -352,7 +336,7 @@ export default function AdminAnalyticsPage() {
             </div>
 
             {/* Charts Row 2 */}
-            <div className="grid lg:grid-cols-3 gap-6 mb-6">
+            <div className="grid lg:grid-cols-3 gap-6">
               {/* Leads Chart */}
               <Card className="lg:col-span-2">
                 <CardHeader>
@@ -513,7 +497,7 @@ export default function AdminAnalyticsPage() {
             </Card>
 
             {/* Additional Stats */}
-            <div className="grid md:grid-cols-3 gap-4 mt-6">
+            <div className="grid md:grid-cols-3 gap-4">
               <Card>
                 <CardContent className="p-6 text-center">
                   <Eye className="w-8 h-8 text-cyan-500 mx-auto mb-2" />
@@ -540,7 +524,6 @@ export default function AdminAnalyticsPage() {
             </div>
           </>
         )}
-      </main>
     </div>
   );
 }

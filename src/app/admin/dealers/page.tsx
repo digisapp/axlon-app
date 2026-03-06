@@ -24,7 +24,6 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  ArrowLeft,
   CheckCircle,
   XCircle,
   Clock,
@@ -113,29 +112,14 @@ export default function AdminDealersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-background border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/admin">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold">Dealer Verification</h1>
-              <p className="text-sm text-muted-foreground">
-                Review and approve dealer applications
-              </p>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Dealer Verification</h1>
+        <p className="text-sm text-muted-foreground">Review and approve dealer applications</p>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+      {/* Stats Cards */}
+        <div className="grid grid-cols-3 gap-4">
           <Card
             className={`cursor-pointer transition-colors ${
               statusFilter === 'pending' ? 'border-primary' : ''
@@ -306,7 +290,6 @@ export default function AdminDealersPage() {
             )}
           </CardContent>
         </Card>
-      </main>
 
       {/* Action Dialog */}
       <Dialog

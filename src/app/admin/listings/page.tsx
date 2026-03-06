@@ -1,21 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  ArrowLeft,
-} from 'lucide-react';
 import { AdminListingCard } from '@/components/admin/AdminListingCard';
 
 export default async function AdminListingsPage() {
   const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/login?redirect=/admin/listings');
-  }
 
   // Get all listings
   const { data: listings } = await supabase
@@ -59,52 +48,35 @@ export default async function AdminListingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-background border-b">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/admin"
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold">Listing Management</h1>
-              <p className="text-sm text-muted-foreground">
-                {listings?.length || 0} total listings
-              </p>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Listing Management</h1>
+        <p className="text-sm text-muted-foreground">{listings?.length || 0} total listings</p>
+      </div>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="space-y-4">
-          {listings?.map((listing) => {
-            const imageUrl = getPrimaryImage(listing.images || []);
+      <div className="space-y-4">
+        {listings?.map((listing) => {
+          const imageUrl = getPrimaryImage(listing.images || []);
 
-            return (
-              <AdminListingCard
-                key={listing.id}
-                listing={listing}
-                imageUrl={imageUrl}
-                sellerName={profileMap[listing.user_id]?.company_name || profileMap[listing.user_id]?.email || 'Unknown'}
-                statusBadge={getStatusBadge(listing.status)}
-              />
-            );
-          })}
+          return (
+            <AdminListingCard
+              key={listing.id}
+              listing={listing}
+              imageUrl={imageUrl}
+              sellerName={profileMap[listing.user_id]?.company_name || profileMap[listing.user_id]?.email || 'Unknown'}
+              statusBadge={getStatusBadge(listing.status)}
+            />
+          );
+        })}
 
-          {(!listings || listings.length === 0) && (
-            <Card>
-              <CardContent className="py-16 text-center">
-                <p className="text-muted-foreground">No listings found</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </main>
+        {(!listings || listings.length === 0) && (
+          <Card>
+            <CardContent className="py-16 text-center">
+              <p className="text-muted-foreground">No listings found</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
