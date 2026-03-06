@@ -1,16 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
+import { checkIsAdmin } from '@/lib/admin/check-admin';
 import { logger } from '@/lib/logger';
-
-async function checkAdmin(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', userId)
-    .single();
-  return profile?.is_admin === true;
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,19 +15,12 @@ export async function GET(request: NextRequest) {
       return rateLimitResponse(rateLimitResult);
     }
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!(await checkAdmin(supabase, user.id))) {
+    const { isAdmin } = await checkIsAdmin();
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    const supabase = await createClient();
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get('search');
     const source = searchParams.get('source');
@@ -118,19 +103,12 @@ export async function DELETE(request: NextRequest) {
       return rateLimitResponse(rateLimitResult);
     }
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!(await checkAdmin(supabase, user.id))) {
+    const { isAdmin } = await checkIsAdmin();
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    const supabase = await createClient();
     const body = await request.json();
     const { ids } = body;
 

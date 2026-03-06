@@ -1,16 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
+import { checkIsAdmin } from '@/lib/admin/check-admin';
 import { logger } from '@/lib/logger';
-
-async function checkAdmin(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', userId)
-    .single();
-  return profile?.is_admin === true;
-}
 
 export async function PATCH(
   request: NextRequest,
@@ -26,19 +18,12 @@ export async function PATCH(
       return rateLimitResponse(rateLimitResult);
     }
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!(await checkAdmin(supabase, user.id))) {
+    const { isAdmin } = await checkIsAdmin();
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    const supabase = await createClient();
     const { id } = await params;
     const body = await request.json();
 
@@ -87,19 +72,12 @@ export async function DELETE(
       return rateLimitResponse(rateLimitResult);
     }
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!(await checkAdmin(supabase, user.id))) {
+    const { isAdmin } = await checkIsAdmin();
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    const supabase = await createClient();
     const { id } = await params;
 
     const { error } = await supabase
