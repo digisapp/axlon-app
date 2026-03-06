@@ -9,10 +9,13 @@ import {
   CheckCircle,
   AlertCircle,
   ArrowRight,
+  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BulkImportWizard } from '@/components/dashboard/BulkImportWizard';
 import { BulkExport } from '@/components/dashboard/BulkExport';
+import { SmartImportDropzone } from '@/components/dashboard/SmartImportDropzone';
 
 export default async function BulkPage() {
   const supabase = await createClient();
@@ -50,48 +53,87 @@ export default async function BulkPage() {
         </p>
       </div>
 
-      {/* Main Grid */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Import Card */}
-        <Card className="flex flex-col">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Upload className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle>Import Listings</CardTitle>
-                <CardDescription>
-                  Upload a CSV file to create multiple listings at once
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1">
-            <BulkImportWizard />
-          </CardContent>
-        </Card>
+      {/* Import Section */}
+      <Tabs defaultValue="smart" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="smart" className="gap-2">
+            <Sparkles className="w-4 h-4" />
+            Smart Import (AI)
+          </TabsTrigger>
+          <TabsTrigger value="csv" className="gap-2">
+            <FileSpreadsheet className="w-4 h-4" />
+            CSV Import
+          </TabsTrigger>
+          <TabsTrigger value="export" className="gap-2">
+            <Download className="w-4 h-4" />
+            Export
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Export Card */}
-        <Card className="flex flex-col">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                <Download className="w-5 h-5 text-green-600" />
+        <TabsContent value="smart">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle>Smart Import</CardTitle>
+                  <CardDescription>
+                    Drop any file — CSV, Excel, PDF — and AI will auto-detect and import your data.
+                    Works with exports from TruckPaper, Salesforce, or any spreadsheet.
+                  </CardDescription>
+                </div>
               </div>
-              <div>
-                <CardTitle>Export Listings</CardTitle>
-                <CardDescription>
-                  Download your listings as a CSV file
-                </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SmartImportDropzone />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="csv">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Upload className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle>CSV Import</CardTitle>
+                  <CardDescription>
+                    Upload a CSV file with exact column headers to create listings
+                  </CardDescription>
+                </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1">
-            <BulkExport listingsCount={listingsCount || 0} />
-          </CardContent>
-        </Card>
-      </div>
+            </CardHeader>
+            <CardContent>
+              <BulkImportWizard />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="export">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                  <Download className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <CardTitle>Export Listings</CardTitle>
+                  <CardDescription>
+                    Download your listings as a CSV file
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <BulkExport listingsCount={listingsCount || 0} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* CSV Format Guide */}
       <Card>

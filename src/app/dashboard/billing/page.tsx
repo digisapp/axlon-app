@@ -16,6 +16,9 @@ import {
   Bot,
   BarChart3,
   Crown,
+  PhoneCall,
+  Sparkles,
+  Shield,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -28,14 +31,24 @@ const PLAN_LIMITS = {
     aiAssistant: false,
     advancedAnalytics: false,
     customStorefront: false,
+    crm: false,
+    dealDesk: false,
+    floorPlan: false,
+    staffManagement: false,
+    smartImport: false,
   },
   pro: {
     listings: -1, // unlimited
     aiPriceEstimates: -1,
-    featuredListings: 3,
+    featuredListings: -1,
     aiAssistant: true,
     advancedAnalytics: true,
     customStorefront: true,
+    crm: true,
+    dealDesk: true,
+    floorPlan: true,
+    staffManagement: true,
+    smartImport: true,
   },
   enterprise: {
     listings: -1,
@@ -44,6 +57,11 @@ const PLAN_LIMITS = {
     aiAssistant: true,
     advancedAnalytics: true,
     customStorefront: true,
+    crm: true,
+    dealDesk: true,
+    floorPlan: true,
+    staffManagement: true,
+    smartImport: true,
   },
 };
 
@@ -71,10 +89,20 @@ export default async function BillingPage() {
   const limits = PLAN_LIMITS[currentTier];
 
   // Get current usage
-  const { count: listingCount } = await supabase
-    .from('listings')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id);
+  const [
+    { count: listingCount },
+    { data: voiceAgent },
+  ] = await Promise.all([
+    supabase
+      .from('listings')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id),
+    supabase
+      .from('dealer_voice_agents')
+      .select('plan_tier, minutes_used, minutes_included, is_active')
+      .eq('dealer_id', user.id)
+      .single(),
+  ]);
 
   const usage = {
     listings: listingCount || 0,
@@ -84,8 +112,15 @@ export default async function BillingPage() {
     ? 0
     : Math.min(100, (usage.listings / limits.listings) * 100);
 
+  const hasVoice = voiceAgent?.is_active;
+  const voiceMinutesUsed = voiceAgent?.minutes_used || 0;
+  const voiceMinutesIncluded = voiceAgent?.minutes_included || 0;
+  const voicePercentage = voiceMinutesIncluded > 0
+    ? Math.min(100, (voiceMinutesUsed / voiceMinutesIncluded) * 100)
+    : 0;
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto">
       {/* Header */}
       <div>
         <h1 className="text-2xl md:text-3xl font-bold">Plans & Billing</h1>
@@ -105,7 +140,7 @@ export default async function BillingPage() {
               </CardTitle>
               <CardDescription>
                 {currentTier === 'free' && 'You are on the Free plan'}
-                {currentTier === 'pro' && 'You are on the Pro plan'}
+                {currentTier === 'pro' && 'You are on the AXLON Platform plan'}
                 {currentTier === 'enterprise' && 'You are on the Enterprise plan'}
               </CardDescription>
             </div>
@@ -113,14 +148,14 @@ export default async function BillingPage() {
               variant={currentTier === 'free' ? 'secondary' : 'default'}
               className={currentTier === 'pro' ? 'bg-primary' : ''}
             >
-              {currentTier.charAt(0).toUpperCase() + currentTier.slice(1)}
+              {currentTier === 'free' ? 'Free' : currentTier === 'pro' ? 'Platform' : 'Enterprise'}
             </Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Usage Stats */}
           <div className="space-y-4">
-            <h4 className="font-medium text-sm text-muted-foreground">Usage This Month</h4>
+            <h4 className="font-medium text-sm text-muted-foreground">Usage</h4>
 
             {/* Listings */}
             <div className="space-y-2">
@@ -142,6 +177,27 @@ export default async function BillingPage() {
                 </p>
               )}
             </div>
+
+            {/* Voice Minutes */}
+            {hasVoice && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <PhoneCall className="w-4 h-4 text-muted-foreground" />
+                    <span>Voice Minutes</span>
+                  </div>
+                  <span className="font-medium">
+                    {voiceMinutesUsed} / {voiceMinutesIncluded} min
+                  </span>
+                </div>
+                <Progress value={voicePercentage} className="h-2" />
+                {voicePercentage >= 80 && (
+                  <p className="text-xs text-amber-600">
+                    Approaching minute limit. Overage billed at $0.25/min.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Current Plan Features */}
@@ -159,7 +215,17 @@ export default async function BillingPage() {
                   <X className="w-4 h-4 text-muted-foreground" />
                 )}
                 <span className={!limits.aiAssistant ? 'text-muted-foreground' : ''}>
-                  AI Sales Assistant
+                  AI Sales Assistant (24/7)
+                </span>
+              </li>
+              <li className="flex items-center gap-2">
+                {limits.crm ? (
+                  <Check className="w-4 h-4 text-green-500" />
+                ) : (
+                  <X className="w-4 h-4 text-muted-foreground" />
+                )}
+                <span className={!limits.crm ? 'text-muted-foreground' : ''}>
+                  CRM + Deal Desk
                 </span>
               </li>
               <li className="flex items-center gap-2">
@@ -183,12 +249,14 @@ export default async function BillingPage() {
                 </span>
               </li>
               <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-500" />
-                Lead Management
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-500" />
-                Basic Analytics
+                {limits.smartImport ? (
+                  <Check className="w-4 h-4 text-green-500" />
+                ) : (
+                  <X className="w-4 h-4 text-muted-foreground" />
+                )}
+                <span className={!limits.smartImport ? 'text-muted-foreground' : ''}>
+                  Smart Import (AI)
+                </span>
               </li>
             </ul>
           </div>
@@ -203,8 +271,8 @@ export default async function BillingPage() {
           </h2>
 
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Pro Plan */}
-            <Card className={`relative ${currentTier === 'free' ? 'border-primary/50' : ''}`}>
+            {/* Platform Plan */}
+            <Card className={`relative ${currentTier === 'free' ? 'border-primary/50 shadow-lg' : ''}`}>
               {currentTier === 'free' && (
                 <div className="absolute -top-3 left-4">
                   <Badge className="bg-primary">Recommended</Badge>
@@ -213,22 +281,25 @@ export default async function BillingPage() {
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <Star className="w-5 h-5 text-primary" />
-                  <CardTitle>Pro</CardTitle>
+                  <CardTitle>AXLON Platform</CardTitle>
                   {currentTier === 'pro' && (
                     <Badge variant="outline" className="ml-2">Current</Badge>
                   )}
                 </div>
-                <CardDescription>For growing businesses</CardDescription>
+                <CardDescription>Everything you need to run your dealership with AI</CardDescription>
                 <div className="mt-4">
-                  <span className="text-3xl font-bold">$79</span>
+                  <span className="text-3xl font-bold">$399</span>
                   <span className="text-muted-foreground">/month</span>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    or $3,990/year (save $798)
+                  </p>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-500" />
-                    <strong>Unlimited</strong> listings
+                    <strong>Unlimited</strong> listings on marketplace
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-500" />
@@ -236,15 +307,19 @@ export default async function BillingPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-500" />
-                    Advanced analytics & trends
+                    AI Knowledge Base (trained on your inventory)
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-500" />
-                    3 featured listings/month
+                    CRM + Deal Desk + Quote PDF generation
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-500" />
-                    Priority search placement
+                    Floor Plan financing tracker
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-green-500" />
+                    AI price estimates & image analysis
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-500" />
@@ -252,14 +327,22 @@ export default async function BillingPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-500" />
-                    Unlimited AI price estimates
+                    Advanced analytics & trends
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-green-500" />
+                    Staff management with permissions
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-green-500" />
+                    Smart Import (AI-powered data migration)
                   </li>
                 </ul>
                 {currentTier === 'free' ? (
                   <Button className="w-full" asChild>
-                    <Link href="/contact?plan=pro">
+                    <Link href="/contact?plan=platform">
                       <Zap className="w-4 h-4 mr-2" />
-                      Upgrade to Pro
+                      Upgrade to Platform
                     </Link>
                   </Button>
                 ) : (
@@ -270,53 +353,174 @@ export default async function BillingPage() {
               </CardContent>
             </Card>
 
-            {/* Enterprise Plan */}
-            <Card>
+            {/* Voice Add-on */}
+            <Card className="relative border-cyan-500/30">
+              <div className="absolute -top-3 left-4">
+                <Badge className="bg-cyan-600">Add-on</Badge>
+              </div>
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-muted-foreground" />
-                  <CardTitle>Enterprise</CardTitle>
+                  <PhoneCall className="w-5 h-5 text-cyan-600" />
+                  <CardTitle>AXLON Voice</CardTitle>
+                  {hasVoice && (
+                    <Badge variant="outline" className="ml-2">Active</Badge>
+                  )}
                 </div>
-                <CardDescription>For large businesses</CardDescription>
+                <CardDescription>AI answers your phones 24/7 — never miss a lead</CardDescription>
                 <div className="mt-4">
-                  <span className="text-3xl font-bold">Custom</span>
+                  <span className="text-3xl font-bold">$499</span>
+                  <span className="text-muted-foreground">/month</span>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    or $4,990/year (save $998) &middot; Requires Platform plan
+                  </p>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-500" />
-                    Everything in Pro
+                    Dedicated AI phone number
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-500" />
-                    Multi-location support
+                    24/7 inbound call handling
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-500" />
-                    API access & integrations
+                    <strong>500 minutes</strong> included/month
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-500" />
-                    Dedicated account manager
+                    Inventory search during calls
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-500" />
-                    Custom onboarding
+                    Automatic lead capture from every call
                   </li>
                   <li className="flex items-center gap-2">
                     <Check className="w-4 h-4 text-green-500" />
-                    Priority support
+                    Call recording + AI transcription + summaries
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-green-500" />
+                    Staff PIN authentication for internal data
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-green-500" />
+                    Business hours routing + after-hours handling
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-green-500" />
+                    Call transfer to human when needed
                   </li>
                 </ul>
-                <Button variant="outline" className="w-full" asChild>
-                  <Link href="/contact?plan=enterprise">
-                    Contact Sales
-                  </Link>
-                </Button>
+                <p className="text-xs text-muted-foreground border rounded-lg p-2 bg-muted/50">
+                  Overage: $0.25/min beyond 500 included minutes
+                </p>
+                {!hasVoice ? (
+                  <Button className="w-full bg-cyan-600 hover:bg-cyan-700" asChild>
+                    <Link href="/contact?plan=voice">
+                      <PhoneCall className="w-4 h-4 mr-2" />
+                      Add Voice Agent
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button className="w-full" variant="outline" disabled>
+                    Active
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </div>
+
+          {/* Setup Fees */}
+          <Card className="bg-muted/30">
+            <CardContent className="p-6">
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                Onboarding & Setup
+              </h3>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="p-4 bg-background rounded-lg border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">White Glove Migration</span>
+                    <span className="font-bold">$999</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    We migrate your data from TruckPaper, Salesforce, or any old system.
+                    Full AI configuration and team training included.
+                  </p>
+                  <p className="text-xs text-green-600 font-medium mt-2">
+                    Free with annual Platform plan
+                  </p>
+                </div>
+                <div className="p-4 bg-background rounded-lg border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">Voice Setup</span>
+                    <span className="font-bold">$499</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Dedicated phone number provisioning, voice personality configuration,
+                    test calls, and go-live support.
+                  </p>
+                  <p className="text-xs text-green-600 font-medium mt-2">
+                    Free with annual Voice add-on
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Enterprise */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-muted-foreground" />
+                <CardTitle>Enterprise</CardTitle>
+              </div>
+              <CardDescription>For multi-location dealer groups</CardDescription>
+              <div className="mt-4">
+                <span className="text-3xl font-bold">Custom</span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-green-500" />
+                  Everything in Platform + Voice
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-green-500" />
+                  Multi-location support
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-green-500" />
+                  API access & integrations
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-green-500" />
+                  Dedicated account manager
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-green-500" />
+                  Custom onboarding & training
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-green-500" />
+                  Priority support
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-green-500" />
+                  Volume pricing on voice minutes
+                </li>
+              </ul>
+              <Button variant="outline" className="w-full" asChild>
+                <Link href="/contact?plan=enterprise">
+                  Contact Sales
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
         </>
       )}
 

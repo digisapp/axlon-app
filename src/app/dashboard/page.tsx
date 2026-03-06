@@ -15,7 +15,9 @@ import {
   BarChart3,
   Warehouse,
   Upload,
+  Sparkles,
 } from 'lucide-react';
+import { SmartImportDropzone } from '@/components/dashboard/SmartImportDropzone';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -176,6 +178,24 @@ export default async function DashboardPage() {
         />
       </div>
 
+      {/* Smart Import Card */}
+      <Card className="border-dashed border-2 border-primary/20 bg-primary/5">
+        <CardContent className="p-4 md:p-6">
+          <div className="flex items-start gap-4 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold">Smart Import</h3>
+              <p className="text-sm text-muted-foreground">
+                Switching from TruckPaper, Salesforce, or spreadsheets? Drop any file and AI imports your data automatically.
+              </p>
+            </div>
+          </div>
+          <SmartImportDropzone compact />
+        </CardContent>
+      </Card>
+
       {/* Main Content Grid */}
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Recent Listings */}
@@ -290,9 +310,9 @@ export default async function DashboardPage() {
                   <TrendingUp className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Upgrade to Pro</h3>
+                  <h3 className="font-semibold mb-1">Upgrade to AXLON Platform</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Get featured listings, priority support, and advanced analytics.
+                    Get AI sales assistant, CRM, deal desk, and unlimited listings.
                   </p>
                   <Button size="sm" asChild>
                     <Link href="/dashboard/billing">

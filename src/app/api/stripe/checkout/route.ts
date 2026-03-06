@@ -117,15 +117,15 @@ export async function POST(request: NextRequest) {
         }];
         break;
 
-      case 'dealer_pro_monthly':
+      case 'platform_monthly':
         lineItems = [{
           price_data: {
             currency: 'usd',
             product_data: {
-              name: PRICING.DEALER_PRO.label,
-              description: PRICING.DEALER_PRO.features.join(', '),
+              name: PRICING.PLATFORM.label,
+              description: PRICING.PLATFORM.features.join(', '),
             },
-            unit_amount: PRICING.DEALER_PRO.monthly,
+            unit_amount: PRICING.PLATFORM.monthly,
             recurring: {
               interval: 'month' as const,
             },
@@ -135,15 +135,15 @@ export async function POST(request: NextRequest) {
         mode = 'subscription';
         break;
 
-      case 'dealer_pro_yearly':
+      case 'platform_yearly':
         lineItems = [{
           price_data: {
             currency: 'usd',
             product_data: {
-              name: `${PRICING.DEALER_PRO.label} (Annual)`,
-              description: PRICING.DEALER_PRO.features.join(', '),
+              name: `${PRICING.PLATFORM.label} (Annual)`,
+              description: PRICING.PLATFORM.features.join(', '),
             },
-            unit_amount: PRICING.DEALER_PRO.yearly,
+            unit_amount: PRICING.PLATFORM.yearly,
             recurring: {
               interval: 'year' as const,
             },
@@ -151,6 +151,70 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         }];
         mode = 'subscription';
+        break;
+
+      case 'voice_addon_monthly':
+        lineItems = [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: PRICING.VOICE_ADDON.label,
+              description: PRICING.VOICE_ADDON.features.join(', '),
+            },
+            unit_amount: PRICING.VOICE_ADDON.monthly,
+            recurring: {
+              interval: 'month' as const,
+            },
+          },
+          quantity: 1,
+        }];
+        mode = 'subscription';
+        break;
+
+      case 'voice_addon_yearly':
+        lineItems = [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `${PRICING.VOICE_ADDON.label} (Annual)`,
+              description: PRICING.VOICE_ADDON.features.join(', '),
+            },
+            unit_amount: PRICING.VOICE_ADDON.yearly,
+            recurring: {
+              interval: 'year' as const,
+            },
+          },
+          quantity: 1,
+        }];
+        mode = 'subscription';
+        break;
+
+      case 'voice_setup':
+        lineItems = [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: PRICING.VOICE_SETUP.label,
+              description: PRICING.VOICE_SETUP.description,
+            },
+            unit_amount: PRICING.VOICE_SETUP.amount,
+          },
+          quantity: 1,
+        }];
+        break;
+
+      case 'white_glove_setup':
+        lineItems = [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: PRICING.WHITE_GLOVE_SETUP.label,
+              description: PRICING.WHITE_GLOVE_SETUP.description,
+            },
+            unit_amount: PRICING.WHITE_GLOVE_SETUP.amount,
+          },
+          quantity: 1,
+        }];
         break;
 
       default:

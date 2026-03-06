@@ -126,7 +126,12 @@ export const aiSearchSchema = z.object({
 
 // Stripe checkout validation
 export const stripeCheckoutSchema = z.object({
-  product: z.enum(['featured_week', 'featured_month', 'bump', 'dealer_pro_monthly', 'dealer_pro_yearly']),
+  product: z.enum([
+    'featured_week', 'featured_month', 'bump',
+    'platform_monthly', 'platform_yearly',
+    'voice_addon_monthly', 'voice_addon_yearly',
+    'voice_setup', 'white_glove_setup',
+  ]),
   listingId: z.string().uuid().optional(),
   successUrl: z.string().url().optional(),
   cancelUrl: z.string().url().optional(),
