@@ -17,7 +17,7 @@ function HomePageJsonLd() {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
-    name: 'AxlonAI',
+    name: 'AXLON AI',
     url: 'https://axlon.ai',
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
@@ -32,7 +32,7 @@ function HomePageJsonLd() {
     },
     provider: {
       '@type': 'Organization',
-      name: 'AxlonAI',
+      name: 'AXLON AI',
       url: 'https://axlon.ai',
     },
   };
@@ -70,12 +70,12 @@ export default function HomePage() {
           <Link href="/" className="flex items-center gap-2">
             <Image
               src="/images/axlonai-logo.png"
-              alt="AxlonAI"
+              alt="AXLON AI"
               width={28}
               height={28}
               className="w-7 h-7"
             />
-            <span className="font-semibold text-sm">AxlonAI</span>
+            <span className="font-semibold text-sm">AXLON AI</span>
           </Link>
           <HomeHeader />
         </div>
@@ -246,8 +246,8 @@ export default function HomePage() {
         </section>
 
         {/* SEO: Hidden crawlable content for search engines */}
-        <section className="sr-only" aria-label="About AxlonAI">
-          <h1>AxlonAI - AI-Powered Truck & Equipment Marketplace</h1>
+        <section className="sr-only" aria-label="About AXLON AI">
+          <h1>AXLON AI - AI-Powered Truck & Equipment Marketplace</h1>
           <p>
             Find and buy trucks, trailers, and heavy equipment with AI-powered search.
             Browse lowboy trailers, semi trucks, flatbed trailers, sleeper trucks, dump trucks,
@@ -278,13 +278,13 @@ export default function HomePage() {
           <div className="flex items-center gap-2">
             <Image
               src="/images/axlonai-logo.png"
-              alt="AxlonAI"
+              alt="AXLON AI"
               width={20}
               height={20}
               className="w-5 h-5"
             />
             <p className="text-xs md:text-sm text-muted-foreground">
-              &copy; 2025 AxlonAI. All rights reserved.
+              &copy; 2026 AXLON AI. All rights reserved.
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-4 md:gap-6">

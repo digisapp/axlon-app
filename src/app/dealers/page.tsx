@@ -16,14 +16,14 @@ import {
 
 export const metadata = {
   title: 'Business Directory - Find Trusted Truck & Equipment Businesses',
-  description: 'Browse verified truck and equipment businesses on AxlonAI. Find trusted dealers near you with AI-powered storefronts, inventory, and direct messaging.',
+  description: 'Browse verified truck and equipment businesses on AXLON AI. Find trusted dealers near you with AI-powered storefronts, inventory, and direct messaging.',
   openGraph: {
-    title: 'Dealer Directory | AxlonAI',
+    title: 'Dealer Directory | AXLON AI',
     description: 'Find trusted truck and equipment dealers near you. Verified dealers with direct messaging.',
   },
   twitter: {
     card: 'summary_large_image' as const,
-    title: 'Dealer Directory | AxlonAI',
+    title: 'Dealer Directory | AXLON AI',
     description: 'Find trusted truck and equipment dealers near you.',
   },
   alternates: {

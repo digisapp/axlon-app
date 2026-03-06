@@ -46,8 +46,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   const types = manufacturer.equipment_types.join(', ');
-  const title = `${manufacturer.name} ${types.charAt(0).toUpperCase() + types.slice(1)} | AxlonAI`;
-  const description = manufacturer.short_description || `Browse ${manufacturer.name} equipment on AxlonAI. Find trucks, trailers, and equipment.`;
+  const title = `${manufacturer.name} ${types.charAt(0).toUpperCase() + types.slice(1)} | AXLON AI`;
+  const description = manufacturer.short_description || `Browse ${manufacturer.name} equipment on AXLON AI. Find trucks, trailers, and equipment.`;
 
   return {
     title,
@@ -380,7 +380,7 @@ export default async function ManufacturerPage({ params }: PageProps) {
                   No Listings Available
                 </h3>
                 <p className="text-slate-600 dark:text-zinc-400 mb-4">
-                  There are currently no {manufacturer.name} listings on AxlonAI.
+                  There are currently no {manufacturer.name} listings on AXLON AI.
                 </p>
                 <Link href="/search">
                   <Button variant="outline">Browse All Equipment</Button>

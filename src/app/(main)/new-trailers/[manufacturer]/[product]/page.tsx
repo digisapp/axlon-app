@@ -84,7 +84,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const product = await getProduct(manufacturer, productSlug);
 
   if (!product) {
-    return { title: 'Product Not Found | AxlonAI' };
+    return { title: 'Product Not Found | AXLON AI' };
   }
 
   const specs = [
@@ -94,7 +94,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   ].filter(Boolean).join(' | ');
 
   return {
-    title: `${product.name} by ${product.manufacturer.name} | New Trailers | AxlonAI`,
+    title: `${product.name} by ${product.manufacturer.name} | New Trailers | AXLON AI`,
     description: product.short_description || product.description || `${product.name} - ${specs}. View full specifications and details.`,
     openGraph: {
       title: `${product.name} - ${product.manufacturer.name}`,

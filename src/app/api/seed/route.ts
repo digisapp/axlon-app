@@ -459,7 +459,7 @@ export async function POST() {
       await supabase.from('profiles').insert({
         id: authUser.user.id,
         email: 'demo@axlon.ai',
-        company_name: 'AxlonAI Demo',
+        company_name: 'AXLON AI Demo',
         phone: '555-123-4567',
         location: 'Dallas, TX',
         is_dealer: true,

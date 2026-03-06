@@ -108,13 +108,13 @@ export function Header() {
           <Link href="/" className="flex items-center gap-2">
             <Image
               src="/images/axlonai-logo.png"
-              alt="AxlonAI"
+              alt="AXLON AI"
               width={40}
               height={40}
               className="h-8 w-8"
               priority
             />
-            <span className="font-bold text-lg">AxlonAI</span>
+            <span className="font-bold text-lg">AXLON AI</span>
           </Link>
 
           {/* Desktop Nav */}
@@ -248,12 +248,12 @@ export function Header() {
                   <SheetTitle className="flex items-center gap-2">
                     <Image
                       src="/images/axlonai-logo.png"
-                      alt="AxlonAI"
+                      alt="AXLON AI"
                       width={32}
                       height={32}
                       className="h-8 w-8"
                     />
-                    <span className="font-bold text-lg">AxlonAI</span>
+                    <span className="font-bold text-lg">AXLON AI</span>
                   </SheetTitle>
                 </SheetHeader>
 

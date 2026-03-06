@@ -60,7 +60,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: 'Not Found' };
   }
 
-  const title = `${dealer.company_name} | AxlonAI`;
+  const title = `${dealer.company_name} | AXLON AI`;
   const description = dealer.tagline || `Browse inventory from ${dealer.company_name} in ${dealer.city}, ${dealer.state}`;
 
   return {
@@ -385,7 +385,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                   )}
                   {dealer.email && (
                     <Button size="lg" variant="outline" className="gap-2" asChild>
-                      <a href={`mailto:${dealer.email}?subject=Inquiry from AxlonAI`}>
+                      <a href={`mailto:${dealer.email}?subject=Inquiry from AXLON AI`}>
                         <Mail className="w-4 h-4" />
                         Email Dealer
                       </a>

@@ -49,7 +49,7 @@ export function Footer() {
             <Link href="/" className="inline-block mb-4">
               <Image
                 src="/images/axlonai-logo.png"
-                alt="AxlonAI"
+                alt="AXLON AI"
                 width={100}
                 height={40}
                 className="h-8 w-auto"
@@ -146,7 +146,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground text-center md:text-left">
-            &copy; {currentYear} AxlonAI. All rights reserved.
+            &copy; {currentYear} AXLON AI. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground">
             Made with AI in Miami, FL

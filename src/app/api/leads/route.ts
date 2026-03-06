@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       message,
     } = parseResult.data;
 
-    // Check if routing to AxlonAI (no seller specified)
+    // Check if routing to AXLON AI (no seller specified)
     const isAxlonAILead = !seller_id;
 
     // Get listing info for scoring
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       .from('leads')
       .insert({
         listing_id: listing_id || null,
-        user_id: seller_id || null, // null for AxlonAI leads
+        user_id: seller_id || null, // null for AXLON AI leads
         buyer_name,
         buyer_email,
         buyer_phone: buyer_phone || null,
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     let notificationEmail: string | null = null;
 
     if (isAxlonAILead) {
-      // Send to AxlonAI admin
+      // Send to AXLON AI admin
       notificationEmail = AXLONAI_ADMIN_EMAIL;
     } else if (seller_id) {
       // Get seller info for email notification
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'AxlonAI <leads@axlon.ai>',
+            from: 'AXLON AI <leads@axlon.ai>',
             to: notificationEmail,
             subject: `New Lead: ${escapeHtml(buyer_name)} interested in ${escapeHtml(emailListingTitle)}`,
             html: `
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
                 </p>
 
                 <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                  This lead was generated through AxlonAI. Respond promptly to increase your chances of closing the sale.
+                  This lead was generated through AXLON AI. Respond promptly to increase your chances of closing the sale.
                 </p>
               </div>
             `,

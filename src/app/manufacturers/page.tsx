@@ -21,12 +21,12 @@ export const metadata = {
   title: 'Manufacturer Directory - Truck, Trailer & Equipment Brands',
   description: 'Browse leading truck, trailer, and equipment manufacturers including Trail King, Fontaine, Talbert, XL Specialized, Peterbilt, Freightliner, and more.',
   openGraph: {
-    title: 'Manufacturer Directory | AxlonAI',
+    title: 'Manufacturer Directory | AXLON AI',
     description: 'Research leading truck, trailer, and equipment manufacturers. Compare brands, specs, and product lines.',
   },
   twitter: {
     card: 'summary_large_image' as const,
-    title: 'Manufacturer Directory | AxlonAI',
+    title: 'Manufacturer Directory | AXLON AI',
     description: 'Research leading truck, trailer, and equipment manufacturers.',
   },
   alternates: {

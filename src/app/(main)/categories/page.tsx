@@ -15,14 +15,14 @@ import {
 
 export const metadata: Metadata = {
   title: 'Browse Categories - Trucks, Trailers & Equipment',
-  description: 'Browse all equipment categories including semi trucks, lowboy trailers, flatbed trailers, heavy equipment, and parts. Find what you need on AxlonAI.',
+  description: 'Browse all equipment categories including semi trucks, lowboy trailers, flatbed trailers, heavy equipment, and parts. Find what you need on AXLON AI.',
   openGraph: {
-    title: 'Browse Equipment Categories | AxlonAI',
+    title: 'Browse Equipment Categories | AXLON AI',
     description: 'Browse trucks, trailers, heavy equipment, and parts categories.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Browse Equipment Categories | AxlonAI',
+    title: 'Browse Equipment Categories | AXLON AI',
     description: 'Semi trucks, lowboy trailers, flatbed trailers, heavy equipment, and parts.',
   },
   alternates: {

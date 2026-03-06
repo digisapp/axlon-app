@@ -232,7 +232,7 @@ export default function GetStartedPage() {
             <div className="mb-8">
               <Image
                 src="/images/axlonai-logo.png"
-                alt="AxlonAI"
+                alt="AXLON AI"
                 width={120}
                 height={40}
                 className="mb-6"

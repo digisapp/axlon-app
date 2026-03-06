@@ -1,4 +1,4 @@
-// AxlonAI Service Worker v1.0.1
+// AXLON AI Service Worker v1.0.1
 const CACHE_NAME = 'axlonai-v1.0.1';
 const OFFLINE_URL = '/offline';
 

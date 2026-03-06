@@ -39,13 +39,13 @@ export function Sidebar({ unreadMessages = 0, newLeads = 0 }: SidebarProps) {
           <Link href="/" className="flex items-center gap-2">
             <Image
               src="/images/axlonai-logo.png"
-              alt="AxlonAI"
+              alt="AXLON AI"
               width={32}
               height={32}
               className="w-8 h-8 flex-shrink-0"
             />
             {!collapsed && (
-              <span className="font-bold text-lg">AxlonAI</span>
+              <span className="font-bold text-lg">AXLON AI</span>
             )}
           </Link>
         </div>

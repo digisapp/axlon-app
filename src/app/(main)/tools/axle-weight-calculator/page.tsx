@@ -20,12 +20,12 @@ export const metadata = {
   title: 'Axle Weight Calculator - Truck & Trailer Weight Distribution',
   description: 'Calculate axle weight distribution for your truck and trailer combination. Ensure compliance with federal bridge formula and FHWA weight limits. Avoid overweight fines.',
   openGraph: {
-    title: 'Axle Weight Calculator | AxlonAI',
+    title: 'Axle Weight Calculator | AXLON AI',
     description: 'Calculate truck and trailer axle weight distribution. Check federal weight limit compliance.',
   },
   twitter: {
     card: 'summary' as const,
-    title: 'Axle Weight Calculator | AxlonAI',
+    title: 'Axle Weight Calculator | AXLON AI',
     description: 'Calculate axle weight distribution for truck and trailer combinations.',
   },
   alternates: {

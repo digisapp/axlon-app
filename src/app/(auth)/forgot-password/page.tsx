@@ -52,7 +52,7 @@ export default function ForgotPasswordPage() {
           <Link href="/" className="flex justify-center mb-4">
             <Image
               src="/images/axlonai-logo.png"
-              alt="AxlonAI"
+              alt="AXLON AI"
               width={120}
               height={80}
               className="dark:brightness-110"

@@ -17,7 +17,7 @@ export function HomeSearchSection() {
       )}>
         <Image
           src="/images/axlonai-logo-eyes.png"
-          alt="AxlonAI"
+          alt="AXLON AI"
           width={200}
           height={80}
           priority

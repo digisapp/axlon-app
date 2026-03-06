@@ -77,7 +77,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const conditionText = listing.condition ? `${listing.condition} ` : '';
   const metaDescription = listing.description
     ? listing.description.slice(0, 155) + (listing.description.length > 155 ? '...' : '')
-    : `${conditionText}${metaTitle} - ${priceText}${locationText ? ` in ${locationText}` : ''}. Browse trucks, trailers, and equipment on AxlonAI.`;
+    : `${conditionText}${metaTitle} - ${priceText}${locationText ? ` in ${locationText}` : ''}. Browse trucks, trailers, and equipment on AXLON AI.`;
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
 
@@ -394,7 +394,7 @@ export default async function ListingPage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Mobile Contact CTA - AxlonAI */}
+            {/* Mobile Contact CTA - AXLON AI */}
             <div className="lg:hidden">
               <Card>
                 <CardContent className="p-4 space-y-3">
@@ -402,13 +402,13 @@ export default async function ListingPage({ params }: PageProps) {
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                       <Image
                         src="/images/axlonai-logo.png"
-                        alt="AxlonAI"
+                        alt="AXLON AI"
                         width={24}
                         height={24}
                       />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold truncate">Listed by AxlonAI</p>
+                      <p className="font-semibold truncate">Listed by AXLON AI</p>
                       <p className="text-xs text-muted-foreground">Axlon is here to help 24/7</p>
                     </div>
                   </div>
@@ -560,23 +560,23 @@ export default async function ListingPage({ params }: PageProps) {
 
           {/* Sidebar - Desktop */}
           <div className="hidden lg:block space-y-6">
-            {/* AxlonAI Contact Info */}
+            {/* AXLON AI Contact Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Listed by AxlonAI</CardTitle>
+                <CardTitle>Listed by AXLON AI</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                     <Image
                       src="/images/axlonai-logo.png"
-                      alt="AxlonAI"
+                      alt="AXLON AI"
                       width={32}
                       height={32}
                     />
                   </div>
                   <div>
-                    <p className="font-semibold">AxlonAI</p>
+                    <p className="font-semibold">AXLON AI</p>
                     <p className="text-sm text-muted-foreground">Axlon is here to help 24/7</p>
                   </div>
                 </div>
@@ -604,7 +604,7 @@ export default async function ListingPage({ params }: PageProps) {
               </CardContent>
             </Card>
 
-            {/* Contact Form - Routes to AxlonAI */}
+            {/* Contact Form - Routes to AXLON AI */}
             <ContactSeller
               listingId={id}
               sellerId=""
@@ -695,7 +695,7 @@ export default async function ListingPage({ params }: PageProps) {
             </CardContent>
           </Card>
 
-          {/* Contact Form - Routes to AxlonAI */}
+          {/* Contact Form - Routes to AXLON AI */}
           <ContactSeller
             listingId={id}
             sellerId=""

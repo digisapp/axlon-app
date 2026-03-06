@@ -48,7 +48,7 @@ export default function SearchLayout({ children }: { children: React.ReactNode }
         </ul>
         <h2>Search Features</h2>
         <p>
-          AxlonAI uses artificial intelligence to understand your search queries in natural language.
+          AXLON AI uses artificial intelligence to understand your search queries in natural language.
           Search for trucks, trailers, and heavy equipment by make, model, year, price range,
           condition, and location. Get AI-powered price analysis to find the best deals.
         </p>

@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     // Send branded confirmation email via Resend
     await sendEmail({
       to: email,
-      subject: 'Confirm your AxlonAI account',
+      subject: 'Confirm your AXLON AI account',
       html: confirmEmailTemplate({ companyName, confirmationUrl }),
     });
 

@@ -16,7 +16,7 @@ function OrganizationJsonLd() {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'AxlonAI',
+    name: 'AXLON AI',
     url: 'https://axlon.ai',
     logo: 'https://axlon.ai/images/axlonai-logo.png',
     description: 'AI-powered marketplace for trucks, trailers, and equipment. Search with AI, get smart pricing, and list your equipment instantly.',
@@ -49,7 +49,7 @@ function WebsiteJsonLd() {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'AxlonAI',
+    name: 'AXLON AI',
     url: 'https://axlon.ai',
     potentialAction: {
       '@type': 'SearchAction',
@@ -81,26 +81,26 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "AxlonAI - AI-Powered Truck & Equipment Marketplace",
-    template: "%s | AxlonAI",
+    default: "AXLON AI - AI-Powered Truck & Equipment Marketplace",
+    template: "%s | AXLON AI",
   },
   description: "The future of buying and selling trucks, trailers, and equipment. AI-powered search, smart pricing, and instant listings.",
   keywords: ["trucks", "trailers", "heavy equipment", "marketplace", "semi trucks", "commercial vehicles", "Peterbilt", "Freightliner", "Kenworth", "Volvo", "buy trucks", "sell trucks"],
-  authors: [{ name: "AxlonAI" }],
-  creator: "AxlonAI",
-  publisher: "AxlonAI",
+  authors: [{ name: "AXLON AI" }],
+  creator: "AXLON AI",
+  publisher: "AXLON AI",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://axlon.ai"),
   openGraph: {
-    title: "AxlonAI - AI-Powered Truck & Equipment Marketplace",
+    title: "AXLON AI - AI-Powered Truck & Equipment Marketplace",
     description: "The future of buying and selling trucks, trailers, and equipment. Search with AI, get smart pricing, and list your equipment instantly.",
     type: "website",
-    siteName: "AxlonAI",
+    siteName: "AXLON AI",
     locale: "en_US",
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "AxlonAI - AI-Powered Truck & Equipment Marketplace" }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "AXLON AI - AI-Powered Truck & Equipment Marketplace" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "AxlonAI - AI-Powered Truck & Equipment Marketplace",
+    title: "AXLON AI - AI-Powered Truck & Equipment Marketplace",
     description: "The future of buying and selling trucks, trailers, and equipment.",
     images: ["/opengraph-image"],
   },

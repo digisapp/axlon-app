@@ -28,7 +28,7 @@ async function sendNewChatNotification(
     const conversationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/conversations/${conversationId}`;
     await sendEmail({
       to: dealerEmail,
-      subject: `New chat on your AxlonAI storefront`,
+      subject: `New chat on your AXLON AI storefront`,
       html: newChatConversationEmail({
         dealerName,
         visitorMessage,

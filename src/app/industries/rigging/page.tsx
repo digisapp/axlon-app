@@ -16,8 +16,8 @@ import {
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'AI Tools for Rigging & Heavy Lift Services | AxlonAI',
-  description: 'AxlonAI helps rigging companies, millwrights, and heavy lift service providers manage leads, list equipment, and grow with AI-powered tools.',
+  title: 'AI Tools for Rigging & Heavy Lift Services | AXLON AI',
+  description: 'AXLON AI helps rigging companies, millwrights, and heavy lift service providers manage leads, list equipment, and grow with AI-powered tools.',
   openGraph: {
     title: 'AI Tools for Rigging & Heavy Lift Services',
     description: 'Manage leads, list equipment, and grow your rigging business with AI.',
@@ -114,7 +114,7 @@ export default function RiggingPage() {
       <section className="max-w-6xl mx-auto px-4 py-16 md:py-24">
         <h2 className="text-3xl font-bold mb-4 text-center">Everything your rigging business needs</h2>
         <p className="text-lg text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
-          From lead capture to project tracking, AxlonAI gives rigging and heavy lift companies the AI tools to win more work.
+          From lead capture to project tracking, AXLON AI gives rigging and heavy lift companies the AI tools to win more work.
         </p>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((f) => (
@@ -132,7 +132,7 @@ export default function RiggingPage() {
       {/* Use Cases */}
       <section className="bg-muted/30 border-y">
         <div className="max-w-6xl mx-auto px-4 py-16 md:py-24">
-          <h2 className="text-3xl font-bold mb-4">How rigging companies use AxlonAI</h2>
+          <h2 className="text-3xl font-bold mb-4">How rigging companies use AXLON AI</h2>
           <p className="text-lg text-muted-foreground mb-8">Real scenarios where AI saves you time and wins you business.</p>
           <div className="grid md:grid-cols-2 gap-4">
             {useCases.map((uc, i) => (
@@ -163,7 +163,7 @@ export default function RiggingPage() {
 
       <footer className="border-t py-8">
         <div className="max-w-6xl mx-auto px-4 flex items-center justify-between">
-          <Image src="/images/axlonai-logo.png" alt="AxlonAI" width={80} height={30} />
+          <Image src="/images/axlonai-logo.png" alt="AXLON AI" width={80} height={30} />
           <div className="flex gap-4 text-sm text-muted-foreground">
             <Link href="/industries/crane" className="hover:text-foreground">Crane</Link>
             <Link href="/industries/transport" className="hover:text-foreground">Transport</Link>

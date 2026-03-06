@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Get Started | AxlonAI',
+  title: 'Get Started | AXLON AI',
   alternates: {
     canonical: '/get-started',
   },

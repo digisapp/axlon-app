@@ -8,7 +8,7 @@ import { Heart, MapPin, ImageOff, Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Saved Listings | AxlonAI',
+  title: 'Saved Listings | AXLON AI',
   description: 'View your saved trucks, trailers, and equipment listings.',
 };
 
