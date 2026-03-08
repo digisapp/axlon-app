@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Zap, ArrowRight, RefreshCw, CalendarDays, Calculator, Truck, Store, Construction, Wrench } from 'lucide-react';
+import { Zap, ArrowRight, RefreshCw, CalendarDays, Calculator, Truck, Store, Construction, Wrench, Bot, PhoneCall, BarChart3 } from 'lucide-react';
 import { HomeHeader } from '@/components/home/HomeHeader';
 import { HomeSearchSection } from '@/components/home/HomeSearchSection';
 import { HomeDeals } from '@/components/home/HomeDeals';
@@ -245,6 +245,61 @@ export default function HomePage() {
           </p>
         </section>
 
+        {/* For Dealers Section */}
+        <section className="w-full max-w-5xl mx-auto mb-12 px-4">
+          <div className="rounded-2xl border bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 p-8 md:p-12">
+            <div className="text-center mb-8">
+              <h2 className="text-xl md:text-2xl font-bold mb-2">Are you a dealer?</h2>
+              <p className="text-sm text-muted-foreground max-w-xl mx-auto">
+                Replace your DMS, CRM, and answering service with one AI-powered platform.
+                Dealers save $100,000+ per year.
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-3 gap-4 mb-8">
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-white/60 dark:bg-white/5 border">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Bot className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">AI Sales Assistant</p>
+                  <p className="text-xs text-muted-foreground">Captures leads 24/7, trained on your inventory</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-white/60 dark:bg-white/5 border">
+                <div className="w-9 h-9 rounded-lg bg-cyan-500/10 flex items-center justify-center shrink-0">
+                  <PhoneCall className="w-4 h-4 text-cyan-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">AI Voice Agent</p>
+                  <p className="text-xs text-muted-foreground">Answers phones, qualifies leads, never misses a call</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-white/60 dark:bg-white/5 border">
+                <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                  <BarChart3 className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">CRM + Deal Desk</p>
+                  <p className="text-xs text-muted-foreground">Pipeline, quotes, floor plan tracking — all in one</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Button size="lg" className="rounded-full gap-2" asChild>
+                <Link href="/pricing">
+                  View Pricing
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" className="rounded-full glass-button !bg-white/80 dark:!bg-white/10" asChild>
+                <Link href="/contact?plan=demo">
+                  Book a Demo
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+
         {/* SEO: Hidden crawlable content for search engines */}
         <section className="sr-only" aria-label="About AXLON AI">
           <h1>AXLON AI - AI-Powered Truck & Equipment Marketplace</h1>
@@ -290,6 +345,7 @@ export default function HomePage() {
           <div className="flex flex-wrap justify-center gap-4 md:gap-6">
             <FooterLink href="/trade-in">Trade-In</FooterLink>
             <FooterLink href="/tools/axle-weight-calculator">Weight Calculator</FooterLink>
+            <FooterLink href="/pricing">Pricing</FooterLink>
             <FooterLink href="/get-started">Business Login</FooterLink>
             <FooterLink href="/dealers">Dealers</FooterLink>
             <FooterLink href="/about">About</FooterLink>
