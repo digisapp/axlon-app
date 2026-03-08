@@ -14,7 +14,7 @@ export function FloatingCallButton() {
       href={`tel:${PHONE_NUMBER}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group"
+      className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-primary text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group"
       aria-label="Call AXLON AI"
     >
       {/* Expanded state with number */}

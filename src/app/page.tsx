@@ -58,7 +58,7 @@ export default function HomePage() {
             <Zap className="w-3 h-3 text-primary" />
           </div>
           <p className="text-center text-sm text-foreground/90">
-            AI that <span className="font-semibold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">runs your dealership</span> — from lead to close
+            AI that <span className="font-semibold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">runs your business</span> — from lead to close
           </p>
         </div>
       </div>
@@ -86,49 +86,29 @@ export default function HomePage() {
         {/* Hero: Logo + Search + 2 CTAs */}
         <HomeSearchSection />
 
-        {/* Two CTAs — Book a Demo (primary) + Browse Equipment (secondary) */}
-        <div className="flex flex-col sm:flex-row justify-center gap-3 mb-8 md:mb-10 w-full sm:w-auto px-4">
+        {/* CTAs */}
+        <div className="flex flex-col sm:flex-row justify-center gap-3 mb-8 md:mb-10 px-4">
           <Button
             size="lg"
-            className="gap-2 w-full sm:w-auto rounded-full shadow-lg shadow-primary/20 group"
+            className="gap-2 rounded-full shadow-lg shadow-primary/20 group"
             asChild
           >
-            <Link href="/contact?plan=demo">
-              Book a Demo
+            <Link href="/search">
+              <Search className="w-4 h-4" />
+              Browse Equipment
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </Button>
           <Button
             variant="outline"
             size="lg"
-            className="gap-2 w-full sm:w-auto rounded-full glass-button !bg-white/80 dark:!bg-white/10"
+            className="gap-2 rounded-full glass-button !bg-white/80 dark:!bg-white/10"
             asChild
           >
-            <Link href="/search">
-              <Search className="w-4 h-4" />
-              Browse Equipment
+            <Link href="/new-trailers">
+              New Trailers
             </Link>
           </Button>
-        </div>
-
-        {/* Social Proof Strip */}
-        <div className="flex flex-wrap justify-center gap-6 md:gap-10 mb-10 md:mb-14 px-4">
-          <div className="text-center">
-            <p className="text-2xl md:text-3xl font-bold">5,000+</p>
-            <p className="text-xs text-muted-foreground">Active Listings</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl md:text-3xl font-bold">13</p>
-            <p className="text-xs text-muted-foreground">Manufacturers</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl md:text-3xl font-bold">24/7</p>
-            <p className="text-xs text-muted-foreground">AI Availability</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl md:text-3xl font-bold">$130K+</p>
-            <p className="text-xs text-muted-foreground">Avg. Annual Savings</p>
-          </div>
         </div>
 
         {/* Hot Deals — keeps the marketplace alive & interactive */}
@@ -218,7 +198,7 @@ export default function HomePage() {
             </div>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button size="lg" className="rounded-full gap-2" asChild>
-                <Link href="/pricing">
+                <Link href="/how-it-works#pricing">
                   View Pricing
                   <ArrowRight className="w-4 h-4" />
                 </Link>
@@ -235,9 +215,6 @@ export default function HomePage() {
         {/* Final CTA */}
         <section className="w-full max-w-3xl mx-auto mb-12 px-4 text-center">
           <h2 className="text-xl md:text-2xl font-bold mb-2">Ready to modernize your dealership?</h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            Join dealers who are saving $100,000+ per year with AI.
-          </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button size="lg" className="rounded-full gap-2 shadow-lg shadow-primary/20 group" asChild>
               <Link href="/signup">
@@ -246,7 +223,7 @@ export default function HomePage() {
               </Link>
             </Button>
             <Button size="lg" variant="outline" className="rounded-full glass-button !bg-white/80 dark:!bg-white/10" asChild>
-              <Link href="/pricing">
+              <Link href="/how-it-works#pricing">
                 View Pricing
               </Link>
             </Button>
@@ -272,7 +249,7 @@ export default function HomePage() {
           </ul>
           <h2>For Dealers</h2>
           <ul>
-            <li><Link href="/pricing">AI Platform Pricing</Link></li>
+            <li><Link href="/how-it-works#pricing">AI Platform Pricing</Link></li>
             <li><Link href="/contact?plan=demo">Book a Demo</Link></li>
             <li><Link href="/dashboard/listings/new">List Equipment</Link></li>
           </ul>
@@ -303,7 +280,7 @@ export default function HomePage() {
           </div>
           <div className="flex flex-wrap justify-center gap-4 md:gap-6">
             <FooterLink href="/new-trailers">New Trailers</FooterLink>
-            <FooterLink href="/pricing">Pricing</FooterLink>
+            <FooterLink href="/how-it-works#pricing">Pricing</FooterLink>
             <FooterLink href="/dealers">Dealers</FooterLink>
             <FooterLink href="/about">About</FooterLink>
             <FooterLink href="/privacy">Privacy</FooterLink>

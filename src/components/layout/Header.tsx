@@ -31,8 +31,8 @@ import {
   LogOut,
   Plus,
   LayoutDashboard,
-  Truck,
   DollarSign,
+  CircleHelp,
 } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { QuickSearchTrigger, QuickSearch } from '@/components/search/QuickSearch';
@@ -121,32 +121,18 @@ export function Header() {
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-1">
             <Link
-              href="/new-trailers"
+              href="/how-it-works"
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                pathname === '/new-trailers'
+                pathname === '/how-it-works'
                   ? 'bg-primary/10 text-primary'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               }`}
             >
-              New Trailers
+              How It Works
             </Link>
             <Link
-              href="/manufacturers"
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                pathname?.startsWith('/manufacturers')
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
-            >
-              Manufacturers
-            </Link>
-            <Link
-              href="/pricing"
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                pathname === '/pricing'
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
+              href="/how-it-works#pricing"
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted`}
             >
               Pricing
             </Link>
@@ -272,37 +258,21 @@ export function Header() {
                   {/* Mobile Nav Links */}
                   <nav className="flex flex-col gap-1">
                     <Link
-                      href="/new-trailers"
+                      href="/how-it-works"
                       onClick={() => setIsOpen(false)}
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                        pathname === '/new-trailers'
+                        pathname === '/how-it-works'
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-muted'
                       }`}
                     >
-                      <Truck className="w-5 h-5" />
-                      New Trailers
+                      <CircleHelp className="w-5 h-5" />
+                      How It Works
                     </Link>
                     <Link
-                      href="/manufacturers"
+                      href="/how-it-works#pricing"
                       onClick={() => setIsOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                        pathname?.startsWith('/manufacturers')
-                          ? 'bg-primary/10 text-primary'
-                          : 'hover:bg-muted'
-                      }`}
-                    >
-                      <Package className="w-5 h-5" />
-                      Manufacturers
-                    </Link>
-                    <Link
-                      href="/pricing"
-                      onClick={() => setIsOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                        pathname === '/pricing'
-                          ? 'bg-primary/10 text-primary'
-                          : 'hover:bg-muted'
-                      }`}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-muted"
                     >
                       <DollarSign className="w-5 h-5" />
                       Pricing

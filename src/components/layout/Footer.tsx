@@ -16,7 +16,7 @@ const footerLinks = {
   selling: [
     { href: '/dashboard/listings/new', label: 'List Equipment' },
     { href: '/dashboard', label: 'Seller Dashboard' },
-    { href: '/pricing', label: 'Pricing' },
+    { href: '/how-it-works#pricing', label: 'Pricing' },
   ],
   company: [
     { href: '/about', label: 'About Us' },
