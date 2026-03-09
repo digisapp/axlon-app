@@ -85,7 +85,7 @@ export function HomeHeader() {
           <Link
             key={link.href}
             href={link.href}
-            className="px-3 py-1.5 text-sm font-medium rounded-full text-muted-foreground hover:text-foreground hover:bg-white/20 dark:hover:bg-white/10 transition-colors"
+            className="px-3 py-1.5 text-sm font-semibold rounded-full text-foreground/80 hover:text-foreground hover:bg-white/20 dark:hover:bg-white/10 transition-colors"
           >
             {link.label}
           </Link>
@@ -94,7 +94,7 @@ export function HomeHeader() {
 
       {user ? (
         <>
-          <ThemeToggle />
+          <ThemeToggle size="sm" />
           {/* Desktop: avatar dropdown */}
           <div className="hidden md:block">
             <DropdownMenu>
@@ -204,7 +204,7 @@ export function HomeHeader() {
         </>
       ) : (
         <>
-          <ThemeToggle />
+          <ThemeToggle size="sm" />
           <Link href="/login" className="hidden md:inline-flex">
             <Button variant="ghost" size="sm" className="glass-button rounded-full">
               Sign In

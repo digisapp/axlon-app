@@ -87,22 +87,22 @@ export default function HomePage() {
         <HomeSearchSection />
 
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row justify-center gap-3 mb-6 md:mb-10 w-full sm:w-auto px-4">
+        <div className="flex flex-row justify-center gap-3 mb-6 md:mb-10 w-full sm:w-auto px-4">
           <Button
             size="lg"
-            className="gap-2 rounded-full shadow-lg shadow-primary/20 group w-full sm:w-auto"
+            className="gap-2 rounded-full shadow-lg shadow-primary/20 group flex-1 sm:flex-none"
             asChild
           >
             <Link href="/search">
               <Search className="w-4 h-4" />
-              Browse Equipment
+              View All Listings
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </Button>
           <Button
             variant="outline"
             size="lg"
-            className="gap-2 rounded-full glass-button !bg-white/80 dark:!bg-white/10 w-full sm:w-auto"
+            className="gap-2 rounded-full glass-button !bg-white/80 dark:!bg-white/10 flex-1 sm:flex-none"
             asChild
           >
             <Link href="/new-trailers">

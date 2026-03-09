@@ -190,6 +190,12 @@ function SearchPageContent() {
             onClick={() => handleQuickFilter({ category: 'trailers' })}
           />
           <QuickFilterChip
+            label="New Trailers"
+            icon={<Sparkles className="w-3 h-3" />}
+            isActive={false}
+            onClick={() => router.push('/new-trailers')}
+          />
+          <QuickFilterChip
             label="Equipment"
             isActive={advancedFilters.category === 'heavy-equipment'}
             onClick={() => handleQuickFilter({ category: 'heavy-equipment' })}

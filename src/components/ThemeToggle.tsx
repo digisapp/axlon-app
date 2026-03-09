@@ -4,26 +4,26 @@ import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
-export function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+export function ThemeToggle({ size = 'default' }: { size?: 'default' | 'sm' }) {
+  const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // Avoid hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  const btnClass = size === 'sm'
+    ? 'h-8 w-8 rounded-full glass-button touch-manipulation'
+    : 'h-10 w-10 rounded-full glass-button touch-manipulation';
+
+  const iconClass = size === 'sm' ? 'h-4 w-4 transition-transform' : 'h-5 w-5 transition-transform';
+
   if (!mounted) {
-    // Return a placeholder with same dimensions to avoid layout shift
     return (
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-10 w-10 rounded-full glass-button touch-manipulation"
-        disabled
-      >
-        <span className="h-5 w-5" />
+      <Button variant="ghost" size="icon" className={btnClass} disabled>
+        <span className={iconClass} />
       </Button>
     );
   }
@@ -34,14 +34,14 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="icon"
-      className="h-10 w-10 rounded-full glass-button touch-manipulation"
+      className={btnClass}
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       {isDark ? (
-        <Sun className="h-5 w-5 transition-transform" />
+        <Sun className={iconClass} />
       ) : (
-        <Moon className="h-5 w-5 transition-transform" />
+        <Moon className={iconClass} />
       )}
     </Button>
   );
