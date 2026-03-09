@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 
 export function HowItWorksContent() {
-  const [activeTab, setActiveTab] = useState('buyers');
+  const [activeTab, setActiveTab] = useState('businesses');
 
   // Handle #pricing hash on load
   useEffect(() => {
@@ -55,10 +55,10 @@ export function HowItWorksContent() {
       <section className="py-12 md:py-20 px-4 text-center">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-            How AXLON AI Works
+            AXLON AI Services
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
-            Whether you&apos;re buying equipment or running a business — pick your path below.
+            See how AI can transform your business — and what it costs.
           </p>
         </div>
       </section>
@@ -66,14 +66,10 @@ export function HowItWorksContent() {
       {/* Tabs */}
       <div className="max-w-5xl mx-auto px-4 pb-16">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-10 h-12">
-            <TabsTrigger value="buyers" className="gap-2 text-sm md:text-base">
-              <ShoppingCart className="w-4 h-4 hidden sm:block" />
-              For Buyers
-            </TabsTrigger>
-            <TabsTrigger value="dealers" className="gap-2 text-sm md:text-base">
+          <TabsList className="grid w-full grid-cols-2 mb-10 h-12">
+            <TabsTrigger value="businesses" className="gap-2 text-sm md:text-base">
               <Store className="w-4 h-4 hidden sm:block" />
-              For Dealers
+              For Businesses
             </TabsTrigger>
             <TabsTrigger value="pricing" className="gap-2 text-sm md:text-base">
               <DollarSign className="w-4 h-4 hidden sm:block" />
@@ -81,49 +77,8 @@ export function HowItWorksContent() {
             </TabsTrigger>
           </TabsList>
 
-          {/* === FOR BUYERS === */}
-          <TabsContent value="buyers">
-            <div className="text-center mb-10">
-              <h2 className="text-2xl md:text-3xl font-bold mb-2">Find equipment in seconds</h2>
-              <p className="text-muted-foreground max-w-lg mx-auto">
-                Search with natural language, compare prices, and connect with sellers — all powered by AI.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6 mb-10">
-              <StepCard
-                step={1}
-                icon={<Search className="w-6 h-6" />}
-                title="Search with AI"
-                description="Type what you need in plain English — 'lowboy trailer under $50K in Texas' — and AI finds the best matches instantly."
-              />
-              <StepCard
-                step={2}
-                icon={<Sparkles className="w-6 h-6" />}
-                title="Get Smart Pricing"
-                description="Every listing shows AI-estimated market value so you know if it's a deal. Hot Deals surface the best prices automatically."
-              />
-              <StepCard
-                step={3}
-                icon={<MessageSquare className="w-6 h-6" />}
-                title="Connect & Buy"
-                description="Message sellers directly, get financing estimates, and close deals — all in one place."
-              />
-            </div>
-
-            <div className="text-center">
-              <Button size="lg" className="rounded-full gap-2 group" asChild>
-                <Link href="/search">
-                  <Search className="w-4 h-4" />
-                  Browse Equipment
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </Button>
-            </div>
-          </TabsContent>
-
-          {/* === FOR DEALERS === */}
-          <TabsContent value="dealers">
+          {/* === FOR BUSINESSES === */}
+          <TabsContent value="businesses">
             <div className="text-center mb-10">
               <h2 className="text-2xl md:text-3xl font-bold mb-2">Replace your entire tech stack with AI</h2>
               <p className="text-muted-foreground max-w-lg mx-auto">

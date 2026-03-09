@@ -128,7 +128,7 @@ export function Header() {
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               }`}
             >
-              How It Works
+              Services
             </Link>
             <Link
               href="/how-it-works#pricing"
@@ -267,7 +267,7 @@ export function Header() {
                       }`}
                     >
                       <CircleHelp className="w-5 h-5" />
-                      How It Works
+                      Services
                     </Link>
                     <Link
                       href="/how-it-works#pricing"

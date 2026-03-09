@@ -116,7 +116,7 @@ export default function HomePage() {
 
         {/* Platform Features — the money-makers */}
         <section className="w-full max-w-5xl mx-auto mb-12 md:mb-16 px-4">
-          <h2 className="text-xl md:text-2xl font-bold text-center mb-2">One Platform. Everything AI.</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-center mb-2">One Platform. Powered by AI.</h2>
           <p className="text-sm text-muted-foreground text-center mb-8 max-w-lg mx-auto">
             Replace your DMS, CRM, answering service, and BDC team with AXLON AI.
           </p>
@@ -171,50 +171,10 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ROI Section — one punchy line */}
-        <section className="w-full max-w-3xl mx-auto mb-12 md:mb-16 px-4">
-          <div className="rounded-2xl border bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 p-8 md:p-10 text-center">
-            <h2 className="text-xl md:text-2xl font-bold mb-3">Replace $130K+ in Salaries</h2>
-            <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-              Receptionist, BDC rep, data entry clerk, and legacy DMS — all replaced by one AI platform starting at $399/mo.
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5">
-                <p className="text-sm font-semibold line-through text-muted-foreground">$50K/yr</p>
-                <p className="text-xs text-muted-foreground">Receptionist</p>
-              </div>
-              <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5">
-                <p className="text-sm font-semibold line-through text-muted-foreground">$45K/yr</p>
-                <p className="text-xs text-muted-foreground">BDC Rep</p>
-              </div>
-              <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5">
-                <p className="text-sm font-semibold line-through text-muted-foreground">$35K/yr</p>
-                <p className="text-xs text-muted-foreground">Data Entry</p>
-              </div>
-              <div className="p-3 rounded-lg bg-white/60 dark:bg-white/5">
-                <p className="text-sm font-semibold line-through text-muted-foreground">$5–30K/yr</p>
-                <p className="text-xs text-muted-foreground">Legacy DMS</p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button size="lg" className="rounded-full gap-2" asChild>
-                <Link href="/how-it-works#pricing">
-                  View Pricing
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" className="rounded-full glass-button !bg-white/80 dark:!bg-white/10" asChild>
-                <Link href="/contact?plan=demo">
-                  Book a Demo
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </section>
 
         {/* Final CTA */}
         <section className="w-full max-w-3xl mx-auto mb-12 px-4 text-center">
-          <h2 className="text-xl md:text-2xl font-bold mb-2">Ready to modernize your dealership?</h2>
+          <h2 className="text-xl md:text-2xl font-bold mb-2">Ready to AI your business?</h2>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button size="lg" className="rounded-full gap-2 shadow-lg shadow-primary/20 group" asChild>
               <Link href="/signup">
