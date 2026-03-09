@@ -116,7 +116,7 @@ export default function HomePage() {
 
         {/* Platform Features — the money-makers */}
         <section className="w-full max-w-5xl mx-auto mb-12 md:mb-16 px-4">
-          <h2 className="text-xl md:text-2xl font-bold text-center mb-2">One Platform. Powered by AI.</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-center mb-2">Business Services. Powered by AI.</h2>
           <p className="text-sm text-muted-foreground text-center mb-8 max-w-lg mx-auto">
             Replace your DMS, CRM, answering service, and BDC team with AXLON AI.
           </p>

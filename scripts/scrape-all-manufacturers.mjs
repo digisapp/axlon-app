@@ -48,7 +48,7 @@ const MANUFACTURERS = [
 function runScript(scriptPath) {
   return new Promise((resolve, reject) => {
     const child = execFile('node', [scriptPath], {
-      cwd: __dirname,
+      cwd: resolve(__dirname, '..'),
       env: process.env,
       timeout: 10 * 60 * 1000, // 10 minute timeout per manufacturer
     }, (error, stdout, stderr) => {

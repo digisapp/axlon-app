@@ -27,6 +27,7 @@ import {
   Shield,
   ShoppingCart,
   Store,
+  Globe,
 } from 'lucide-react';
 
 export function HowItWorksContent() {
@@ -123,7 +124,7 @@ export function HowItWorksContent() {
                 features={[
                   'Captures leads 24/7 on your website',
                   'Trained on your inventory & pricing',
-                  'Multi-language support',
+                  'Speaks 30+ languages (Spanish, Portuguese, Russian & more)',
                   'Instant answers to buyer questions',
                 ]}
               />
@@ -132,7 +133,7 @@ export function HowItWorksContent() {
                 title="AI Voice Agent"
                 features={[
                   'Dedicated AI phone number',
-                  'Answers calls like a real person',
+                  'Answers calls in any language',
                   '500 minutes included/month',
                   'Call transcripts & lead capture',
                 ]}
@@ -147,6 +148,21 @@ export function HowItWorksContent() {
                   'Floor plan & inventory analytics',
                 ]}
               />
+            </div>
+
+            {/* Multilingual highlight */}
+            <div className="rounded-2xl border bg-gradient-to-br from-cyan-500/5 via-primary/5 to-cyan-500/5 p-6 md:p-8 mb-10">
+              <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Globe className="w-7 h-7 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg mb-1">AI that speaks your customers&apos; language</h3>
+                  <p className="text-sm text-muted-foreground">
+                    No Spanish-speaking staff? No problem. AXLON AI handles live chat and phone calls in 30+ languages — Spanish, Portuguese, Russian, French, Arabic, and more. Open your business to every customer, regardless of language.
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
