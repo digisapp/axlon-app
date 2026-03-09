@@ -53,21 +53,21 @@ export function HowItWorksContent() {
   return (
     <div className="min-h-screen">
       {/* Hero */}
-      <section className="py-12 md:py-20 px-4 text-center">
+      <section className="py-8 md:py-20 px-4 text-center">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
+          <h1 className="text-2xl md:text-5xl font-bold tracking-tight mb-3 md:mb-4">
             AXLON AI Services
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
+          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-6 md:mb-8">
             See how AI can transform your business — and what it costs.
           </p>
         </div>
       </section>
 
       {/* Tabs */}
-      <div className="max-w-5xl mx-auto px-4 pb-16">
+      <div className="max-w-5xl mx-auto px-4 pb-12 md:pb-16">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-10 h-12">
+          <TabsList className="grid w-full grid-cols-2 mb-6 md:mb-10 h-11 md:h-12">
             <TabsTrigger value="businesses" className="gap-2 text-sm md:text-base">
               <Store className="w-4 h-4 hidden sm:block" />
               For Businesses
@@ -80,15 +80,15 @@ export function HowItWorksContent() {
 
           {/* === FOR BUSINESSES === */}
           <TabsContent value="businesses">
-            <div className="text-center mb-10">
-              <h2 className="text-2xl md:text-3xl font-bold mb-2">Replace your entire tech stack with AI</h2>
-              <p className="text-muted-foreground max-w-lg mx-auto">
+            <div className="text-center mb-8 md:mb-10">
+              <h2 className="text-xl md:text-3xl font-bold mb-2">Replace your entire tech stack with AI</h2>
+              <p className="text-sm md:text-base text-muted-foreground max-w-lg mx-auto">
                 DMS, CRM, answering service, BDC team — AXLON replaces it all for a fraction of the cost.
               </p>
             </div>
 
             {/* Steps */}
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8 md:mb-12">
               <StepCard
                 step={1}
                 icon={<Upload className="w-6 h-6" />}
@@ -116,8 +116,8 @@ export function HowItWorksContent() {
             </div>
 
             {/* Features */}
-            <h3 className="text-xl font-bold text-center mb-6">What&apos;s Included</h3>
-            <div className="grid md:grid-cols-3 gap-6 mb-10">
+            <h3 className="text-lg md:text-xl font-bold text-center mb-4 md:mb-6">What&apos;s Included</h3>
+            <div className="grid md:grid-cols-3 gap-3 md:gap-6 mb-8 md:mb-10">
               <FeatureCard
                 icon={<Bot className="w-6 h-6 text-primary" />}
                 title="AI Sales Assistant"
@@ -151,13 +151,13 @@ export function HowItWorksContent() {
             </div>
 
             {/* Multilingual highlight */}
-            <div className="rounded-2xl border bg-gradient-to-br from-cyan-500/5 via-primary/5 to-cyan-500/5 p-6 md:p-8 mb-10">
-              <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
-                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                  <Globe className="w-7 h-7 text-primary" />
+            <div className="rounded-2xl border bg-gradient-to-br from-cyan-500/5 via-primary/5 to-cyan-500/5 p-5 md:p-8 mb-8 md:mb-10">
+              <div className="flex flex-col md:flex-row items-center gap-3 md:gap-6 text-center md:text-left">
+                <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Globe className="w-6 h-6 md:w-7 md:h-7 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg mb-1">AI that speaks your customers&apos; language</h3>
+                  <h3 className="font-bold text-base md:text-lg mb-1">AI that speaks your customers&apos; language</h3>
                   <p className="text-sm text-muted-foreground">
                     No Spanish-speaking staff? No problem. AXLON AI handles live chat and phone calls in 30+ languages — Spanish, Portuguese, Russian, French, Arabic, and more. Open your business to every customer, regardless of language.
                   </p>
@@ -166,11 +166,11 @@ export function HowItWorksContent() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button size="lg" className="rounded-full gap-2" onClick={() => handleTabChange('pricing')}>
+              <Button size="lg" className="rounded-full gap-2 w-full sm:w-auto" onClick={() => handleTabChange('pricing')}>
                 View Pricing
                 <ArrowRight className="w-4 h-4" />
               </Button>
-              <Button size="lg" variant="outline" className="rounded-full" asChild>
+              <Button size="lg" variant="outline" className="rounded-full w-full sm:w-auto" asChild>
                 <Link href="/contact?plan=demo">
                   Book a Demo
                 </Link>
@@ -180,15 +180,15 @@ export function HowItWorksContent() {
 
           {/* === PRICING === */}
           <TabsContent value="pricing" id="pricing">
-            <div className="text-center mb-10">
-              <h2 className="text-2xl md:text-3xl font-bold mb-2">Simple, transparent pricing</h2>
-              <p className="text-muted-foreground max-w-lg mx-auto">
+            <div className="text-center mb-8 md:mb-10">
+              <h2 className="text-xl md:text-3xl font-bold mb-2">Simple, transparent pricing</h2>
+              <p className="text-sm md:text-base text-muted-foreground max-w-lg mx-auto">
                 No per-user fees. No hidden costs. One platform, everything included.
               </p>
             </div>
 
             {/* Pricing Cards */}
-            <div className="grid md:grid-cols-2 gap-8 mb-12">
+            <div className="grid md:grid-cols-2 gap-6 md:gap-8 mb-10 md:mb-12">
               {/* Platform */}
               <Card className="relative border-primary/50 shadow-lg">
                 <div className="absolute -top-3 left-4">
@@ -204,7 +204,7 @@ export function HowItWorksContent() {
                   </CardDescription>
                   <div className="mt-4">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-bold">$399</span>
+                      <span className="text-3xl md:text-4xl font-bold">$399</span>
                       <span className="text-muted-foreground">/month</span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
@@ -256,7 +256,7 @@ export function HowItWorksContent() {
                   </CardDescription>
                   <div className="mt-4">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-bold">$499</span>
+                      <span className="text-3xl md:text-4xl font-bold">$499</span>
                       <span className="text-muted-foreground">/month</span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
@@ -297,9 +297,9 @@ export function HowItWorksContent() {
             </div>
 
             {/* ROI */}
-            <div className="rounded-2xl bg-muted/30 border p-6 md:p-8 mb-12">
-              <h3 className="text-lg md:text-xl font-bold text-center mb-6">The math is simple</h3>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="rounded-2xl bg-muted/30 border p-4 md:p-8 mb-10 md:mb-12">
+              <h3 className="text-base md:text-xl font-bold text-center mb-4 md:mb-6">The math is simple</h3>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                 <ROICard icon={<Users className="w-5 h-5 text-red-500" />} label="Receptionist" oldCost="$50,000/yr" />
                 <ROICard icon={<DollarSign className="w-5 h-5 text-red-500" />} label="BDC Rep" oldCost="$45,000/yr" />
                 <ROICard icon={<Clock className="w-5 h-5 text-red-500" />} label="Data Entry" oldCost="$35,000/yr" />
@@ -316,8 +316,8 @@ export function HowItWorksContent() {
             </div>
 
             {/* Onboarding */}
-            <h3 className="text-lg md:text-xl font-bold text-center mb-6">Get started your way</h3>
-            <div className="grid md:grid-cols-3 gap-6 mb-12">
+            <h3 className="text-base md:text-xl font-bold text-center mb-4 md:mb-6">Get started your way</h3>
+            <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-10 md:mb-12">
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center justify-between">
@@ -417,19 +417,19 @@ export function HowItWorksContent() {
       </div>
 
       {/* Bottom CTA — always visible */}
-      <section className="py-12 px-4 bg-primary/5 border-t">
+      <section className="py-8 md:py-12 px-4 bg-primary/5 border-t">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-xl md:text-2xl font-bold mb-3">
+          <h2 className="text-lg md:text-2xl font-bold mb-3">
             Ready to get started?
           </h2>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button size="lg" asChild>
+            <Button size="lg" className="w-full sm:w-auto" asChild>
               <Link href="/get-started">
                 <Zap className="w-4 h-4 mr-2" />
                 Get Started Free
               </Link>
             </Button>
-            <Button size="lg" variant="outline" asChild>
+            <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
               <Link href="/contact?plan=demo">
                 Book a Demo
               </Link>
@@ -453,15 +453,15 @@ function StepCard({
   description: string;
 }) {
   return (
-    <div className="relative p-6 rounded-xl border bg-background hover:shadow-lg transition-shadow">
-      <div className="absolute -top-3 -left-2 w-7 h-7 rounded-full bg-primary text-white text-sm font-bold flex items-center justify-center">
+    <div className="relative p-4 md:p-6 rounded-xl border bg-background hover:shadow-lg transition-shadow">
+      <div className="absolute -top-2.5 -left-1.5 md:-top-3 md:-left-2 w-6 h-6 md:w-7 md:h-7 rounded-full bg-primary text-white text-xs md:text-sm font-bold flex items-center justify-center">
         {step}
       </div>
-      <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-4">
+      <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-muted flex items-center justify-center mb-3 md:mb-4">
         {icon}
       </div>
-      <h3 className="font-semibold text-lg mb-2">{title}</h3>
-      <p className="text-sm text-muted-foreground">{description}</p>
+      <h3 className="font-semibold text-base md:text-lg mb-1 md:mb-2">{title}</h3>
+      <p className="text-xs md:text-sm text-muted-foreground">{description}</p>
     </div>
   );
 }
@@ -476,11 +476,11 @@ function FeatureCard({
   features: string[];
 }) {
   return (
-    <div className="p-6 rounded-xl border bg-background hover:shadow-lg transition-shadow">
-      <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-4">
+    <div className="p-4 md:p-6 rounded-xl border bg-background hover:shadow-lg transition-shadow">
+      <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-muted flex items-center justify-center mb-3 md:mb-4">
         {icon}
       </div>
-      <h3 className="font-semibold text-lg mb-3">{title}</h3>
+      <h3 className="font-semibold text-base md:text-lg mb-2 md:mb-3">{title}</h3>
       <ul className="space-y-2">
         {features.map((feature) => (
           <li key={feature} className="flex items-start gap-2 text-sm text-muted-foreground">

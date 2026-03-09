@@ -12,7 +12,7 @@ export function HomeSearchSection() {
     <>
       {/* Logo with glow effect */}
       <div className={cn(
-        "mb-6 md:mb-8 transition-all duration-500",
+        "mb-4 md:mb-8 transition-all duration-500",
         isTyping && "logo-glow scale-105"
       )}>
         <Image
@@ -22,7 +22,7 @@ export function HomeSearchSection() {
           height={80}
           priority
           className={cn(
-            "dark:brightness-110 w-36 md:w-44 transition-all duration-500",
+            "dark:brightness-110 w-28 md:w-44 transition-all duration-500",
             isTyping && "brightness-110"
           )}
         />

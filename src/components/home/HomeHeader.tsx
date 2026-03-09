@@ -95,8 +95,54 @@ export function HomeHeader() {
       {user ? (
         <>
           <ThemeToggle />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          {/* Desktop: avatar dropdown */}
+          <div className="hidden md:block">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={user.avatar_url || undefined} />
+                    <AvatarFallback>
+                      {(user.company_name || user.email)?.[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-2 py-1.5">
+                  <p className="text-sm font-medium">{user.company_name || 'User'}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard" className="flex items-center">
+                    <LayoutDashboard className="w-4 h-4 mr-2" />
+                    Dashboard
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/listings" className="flex items-center">
+                    <Package className="w-4 h-4 mr-2" />
+                    My Listings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/settings" className="flex items-center">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          {/* Mobile: avatar opens sheet */}
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild className="md:hidden">
               <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                 <Avatar className="h-9 w-9">
                   <AvatarImage src={user.avatar_url || undefined} />
@@ -105,38 +151,56 @@ export function HomeHeader() {
                   </AvatarFallback>
                 </Avatar>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <div className="px-2 py-1.5">
-                <p className="text-sm font-medium">{user.company_name || 'User'}</p>
-                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[280px]">
+              <SheetHeader>
+                <SheetTitle>AXLON AI</SheetTitle>
+              </SheetHeader>
+              <div className="mt-6 flex flex-col gap-4">
+                <div className="flex items-center gap-3 pb-4 border-b">
+                  <Avatar>
+                    <AvatarImage src={user.avatar_url || undefined} />
+                    <AvatarFallback>
+                      {(user.company_name || user.email)?.[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{user.company_name || 'User'}</p>
+                    <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                </div>
+                <nav className="flex flex-col gap-1">
+                  {navLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setIsOpen(false)}
+                      className="px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-muted transition-colors"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </nav>
+                <div className="h-px bg-border" />
+                <nav className="flex flex-col gap-1">
+                  <Link href="/dashboard" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-muted transition-colors">
+                    <LayoutDashboard className="w-4 h-4" /> Dashboard
+                  </Link>
+                  <Link href="/dashboard/listings" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-muted transition-colors">
+                    <Package className="w-4 h-4" /> My Listings
+                  </Link>
+                  <Link href="/dashboard/settings" onClick={() => setIsOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-muted transition-colors">
+                    <Settings className="w-4 h-4" /> Settings
+                  </Link>
+                </nav>
+                <div className="h-px bg-border" />
+                <Button variant="outline" className="w-full" onClick={() => { handleSignOut(); setIsOpen(false); }}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </Button>
               </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard" className="flex items-center">
-                  <LayoutDashboard className="w-4 h-4 mr-2" />
-                  Dashboard
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/listings" className="flex items-center">
-                  <Package className="w-4 h-4 mr-2" />
-                  My Listings
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/settings" className="flex items-center">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </SheetContent>
+          </Sheet>
         </>
       ) : (
         <>
@@ -154,7 +218,7 @@ export function HomeHeader() {
         </>
       )}
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu — logged out only */}
       {!user && (
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild className="md:hidden">
