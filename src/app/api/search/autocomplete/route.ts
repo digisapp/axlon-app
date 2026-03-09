@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
-
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 // Popular makes and models for autocomplete
 const POPULAR_MAKES = [
   'Peterbilt', 'Freightliner', 'Kenworth', 'Volvo', 'International',
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
     const { data: modelData } = await supabase
       .from('listings')
       .select('make, model')
-      .or(`make.ilike.%${query}%,model.ilike.%${query}%`)
+      .or(`make.ilike.%${sanitizeSearchFilter(query)}%,model.ilike.%${sanitizeSearchFilter(query)}%`)
       .eq('status', 'active')
       .limit(20);
 

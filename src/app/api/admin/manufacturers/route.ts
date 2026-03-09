@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { checkIsAdmin, logAdminAction } from '@/lib/admin/check-admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
-import { validateBody, ValidationError, manufacturerSchema } from '@/lib/validations/api';
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';import { validateBody, ValidationError, manufacturerSchema } from '@/lib/validations/api';
 
 export async function GET(request: NextRequest) {
   try {
@@ -45,7 +45,8 @@ export async function GET(request: NextRequest) {
 
     // Search
     if (search) {
-      query = query.or(`name.ilike.%${search}%,canonical_name.ilike.%${search}%`);
+      const s = sanitizeSearchFilter(search);
+      query = query.or(`name.ilike.%${s}%,canonical_name.ilike.%${s}%`);
     }
 
     // Filter by equipment type

@@ -5,6 +5,17 @@ import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } f
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, stripeCheckoutSchema } from '@/lib/validations/api';
 
+function isAllowedRedirect(url: string | undefined): url is string {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    const appUrl = new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai');
+    return parsed.hostname === appUrl.hostname;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
 
@@ -229,8 +240,8 @@ export async function POST(request: NextRequest) {
       customer: customerId,
       line_items: lineItems,
       mode,
-      success_url: successUrl || `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?success=true`,
-      cancel_url: cancelUrl || `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?canceled=true`,
+      success_url: isAllowedRedirect(successUrl) ? successUrl : `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?success=true`,
+      cancel_url: isAllowedRedirect(cancelUrl) ? cancelUrl : `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?canceled=true`,
       metadata: {
         user_id: user.id,
         product,

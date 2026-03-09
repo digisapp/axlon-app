@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
-
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -20,7 +20,8 @@ export async function GET(request: Request) {
 
     // Search
     if (q) {
-      query = query.or(`name.ilike.%${q}%,canonical_name.ilike.%${q}%`);
+      const sq = sanitizeSearchFilter(q);
+      query = query.or(`name.ilike.%${sq}%,canonical_name.ilike.%${sq}%`);
     }
 
     // Filter by equipment type

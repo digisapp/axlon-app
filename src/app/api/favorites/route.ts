@@ -78,11 +78,12 @@ export async function POST(request: NextRequest) {
   }
   const { listing_id } = validatedData;
 
-  // Check if listing exists
+  // Check if listing exists and is active
   const { data: listing } = await supabase
     .from('listings')
     .select('id')
     .eq('id', listing_id)
+    .eq('status', 'active')
     .single();
 
   if (!listing) {

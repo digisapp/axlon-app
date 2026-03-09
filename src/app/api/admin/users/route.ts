@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { checkIsAdmin } from '@/lib/admin/check-admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
-
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 export async function GET(request: NextRequest) {
   try {
     // Rate limit admin endpoints (100 requests per minute)
@@ -56,7 +56,8 @@ export async function GET(request: NextRequest) {
 
     // Search filter
     if (search) {
-      query = query.or(`email.ilike.%${search}%,company_name.ilike.%${search}%`);
+      const s = sanitizeSearchFilter(search);
+      query = query.or(`email.ilike.%${s}%,company_name.ilike.%${s}%`);
     }
 
     // Type filter

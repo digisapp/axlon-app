@@ -39,7 +39,7 @@ export function HomeDeals() {
         }
       } catch (error) {
         if ((error as Error).name !== 'AbortError') {
-          console.error('Error fetching deals:', error);
+          // silently handle fetch errors
         }
       } finally {
         setIsLoading(false);

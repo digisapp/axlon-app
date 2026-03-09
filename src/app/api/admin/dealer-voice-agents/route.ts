@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
-import { validateBody, ValidationError, adminVoiceAgentCreateSchema } from '@/lib/validations/api';
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';import { validateBody, ValidationError, adminVoiceAgentCreateSchema } from '@/lib/validations/api';
 
 // GET /api/admin/dealer-voice-agents - List all dealer voice agents
 export async function GET(request: NextRequest) {
@@ -60,7 +60,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      query = query.or(`business_name.ilike.%${search}%,phone_number.ilike.%${search}%`);
+      const s = sanitizeSearchFilter(search);
+      query = query.or(`business_name.ilike.%${s}%,phone_number.ilike.%${s}%`);
     }
 
     // Pagination

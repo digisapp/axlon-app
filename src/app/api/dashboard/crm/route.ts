@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import { validateBody, ValidationError, createCrmContactSchema } from '@/lib/validations/api';
 
 export async function GET(request: NextRequest) {
@@ -44,7 +45,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,company.ilike.%${search}%,phone.ilike.%${search}%`);
+      const s = sanitizeSearchFilter(search);
+      query = query.or(`name.ilike.%${s}%,email.ilike.%${s}%,company.ilike.%${s}%,phone.ilike.%${s}%`);
     }
 
     const { data: contacts, error } = await query;

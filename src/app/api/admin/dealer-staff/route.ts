@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
-
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 // GET /api/admin/dealer-staff - List all dealer staff (admin only)
 export async function GET(request: NextRequest) {
   try {
@@ -69,7 +69,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,phone_number.ilike.%${search}%`);
+      const s = sanitizeSearchFilter(search);
+      query = query.or(`name.ilike.%${s}%,email.ilike.%${s}%,phone_number.ilike.%${s}%`);
     }
 
     // Apply pagination

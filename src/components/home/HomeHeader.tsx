@@ -57,7 +57,7 @@ export function HomeHeader() {
           }
         }
       } catch (error) {
-        console.error('Error fetching user:', error);
+        // silently handle auth fetch errors
       }
       setIsLoading(false);
     };

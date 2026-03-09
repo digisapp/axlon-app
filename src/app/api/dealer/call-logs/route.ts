@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
-
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 // GET /api/dealer/call-logs - Get dealer's call logs
 export async function GET(request: NextRequest) {
   try {
@@ -59,7 +59,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      query = query.or(`caller_phone.ilike.%${search}%,caller_name.ilike.%${search}%`);
+      const s = sanitizeSearchFilter(search);
+      query = query.or(`caller_phone.ilike.%${s}%,caller_name.ilike.%${s}%`);
     }
 
     // Apply pagination

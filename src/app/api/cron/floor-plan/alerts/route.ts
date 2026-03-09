@@ -9,8 +9,8 @@ function verifyRequest(request: NextRequest): boolean {
     return true;
   }
 
-  const vercelCron = request.headers.get('x-vercel-cron');
-  if (vercelCron) {
+  // Only accept in Vercel environment with correct header value
+  if (process.env.VERCEL && request.headers.get('x-vercel-cron') === '1') {
     return true;
   }
 

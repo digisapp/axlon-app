@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
-
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 // POST - Query internal dealer data (for authenticated staff via AI)
 export async function POST(request: NextRequest) {
   try {
@@ -256,7 +256,7 @@ async function queryCustomer(
       listings(id, title, price)
     `)
     .eq('user_id', dealerId)
-    .or(`buyer_name.ilike.%${query}%,buyer_phone.ilike.%${query}%,buyer_email.ilike.%${query}%`)
+    .or(`buyer_name.ilike.%${sanitizeSearchFilter(query || "")}%,buyer_phone.ilike.%${sanitizeSearchFilter(query || "")}%,buyer_email.ilike.%${sanitizeSearchFilter(query || "")}%`)
     .order('created_at', { ascending: false })
     .limit(10);
 
@@ -310,7 +310,7 @@ async function queryPricing(
     .from('listings')
     .select('id, title, price, ai_price_estimate, acquisition_cost, stock_number')
     .eq('user_id', dealerId)
-    .or(`stock_number.eq.${query},id.eq.${query}`)
+    .or(`stock_number.eq.${sanitizeSearchFilter(query || "")},id.eq.${sanitizeSearchFilter(query || "")}`)
     .single();
 
   if (!listing) {
