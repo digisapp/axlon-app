@@ -125,9 +125,67 @@ const audiences = [
   { icon: Store, label: 'Brokers & Traders', desc: 'Buy, sell, and flip equipment' },
 ];
 
+function ForDealersJsonLd() {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: 'AXLON AI for Equipment Dealers',
+    description: 'Replace your DMS, CRM, answering service, and BDC team with one AI platform.',
+    url: 'https://axlon.ai/become-a-dealer',
+    mainEntity: {
+      '@type': 'SoftwareApplication',
+      name: 'AXLON AI',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      offers: [
+        {
+          '@type': 'Offer',
+          name: 'Marketplace',
+          price: '0',
+          priceCurrency: 'USD',
+          description: 'Free marketplace listing and storefront',
+        },
+        {
+          '@type': 'Offer',
+          name: 'AI Platform',
+          price: '399',
+          priceCurrency: 'USD',
+          priceSpecification: {
+            '@type': 'UnitPriceSpecification',
+            price: '399',
+            priceCurrency: 'USD',
+            billingDuration: 'P1M',
+          },
+          description: 'AI sales assistant, CRM, and automation',
+        },
+        {
+          '@type': 'Offer',
+          name: 'Voice Agents',
+          price: '499',
+          priceCurrency: 'USD',
+          priceSpecification: {
+            '@type': 'UnitPriceSpecification',
+            price: '499',
+            priceCurrency: 'USD',
+            billingDuration: 'P1M',
+          },
+          description: '24/7 AI phone answering and lead capture',
+        },
+      ],
+    },
+  };
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
+}
+
 export default function ForDealersPage() {
   return (
     <div className="min-h-screen bg-background">
+      <ForDealersJsonLd />
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:32px_32px]" />

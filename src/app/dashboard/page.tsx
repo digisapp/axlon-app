@@ -43,141 +43,179 @@ export default async function DashboardPage() {
     redirect('/get-started');
   }
 
-  // Get unread messages count
-  const { count: unreadMessages } = await supabase
-    .from('messages')
-    .select('*', { count: 'exact', head: true })
-    .eq('recipient_id', user.id)
-    .eq('is_read', false);
-
-  // Dealer data
-  const { count: total } = await supabase
-    .from('listings')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id);
-  const totalListings = total || 0;
-
-  const { count: active } = await supabase
-    .from('listings')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('status', 'active');
-  const activeListings = active || 0;
-
-  const { data: viewsData } = await supabase
-    .from('listings')
-    .select('views_count')
-    .eq('user_id', user.id);
-  const totalViews = viewsData?.reduce((sum, l) => sum + (l.views_count || 0), 0) || 0;
-
-  const { count: leads } = await supabase
-    .from('leads')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('status', 'new');
-  const newLeads = leads || 0;
-
-  // Calculate trends (last 7 days vs previous 7 days)
+  // Time constants
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
+  const fortyFiveDaysAgo = new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString();
 
-  // Leads in last 7 days
-  const { count: leadsLast7 } = await supabase
-    .from('leads')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .gte('created_at', sevenDaysAgo);
+  // Get user's listing IDs first (needed for views queries)
+  const { data: userListingIds } = await supabase
+    .from('listings')
+    .select('id')
+    .eq('user_id', user.id);
+  const listingIds = userListingIds?.map(l => l.id) || [];
 
-  // Leads in previous 7 days (7-14 days ago)
-  const { count: leadsPrev7 } = await supabase
-    .from('leads')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .gte('created_at', fourteenDaysAgo)
-    .lt('created_at', sevenDaysAgo);
+  // Batch 1: All independent queries in parallel
+  const [
+    { count: unreadMessages },
+    { count: total },
+    { count: active },
+    { data: viewsData },
+    { count: leads },
+    { count: leadsLast7 },
+    { count: leadsPrev7 },
+    { count: viewsLast7 },
+    { count: viewsPrev7 },
+    { data: listings },
+    { data: staleListings },
+    { data: topViewedListings },
+    { count: pipelineNew },
+    { count: pipelineContacted },
+    { count: pipelineQualified },
+    { count: pipelineWon },
+    { count: pipelineLost },
+    { data: recentLeads },
+    { data: recentMessages },
+  ] = await Promise.all([
+    // Unread messages
+    supabase
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('recipient_id', user.id)
+      .eq('is_read', false),
+    // Total listings
+    supabase
+      .from('listings')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id),
+    // Active listings
+    supabase
+      .from('listings')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'active'),
+    // Views data
+    supabase
+      .from('listings')
+      .select('views_count')
+      .eq('user_id', user.id),
+    // New leads count
+    supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'new'),
+    // Leads last 7 days
+    supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', sevenDaysAgo),
+    // Leads previous 7 days
+    supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', fourteenDaysAgo)
+      .lt('created_at', sevenDaysAgo),
+    // Views last 7 days
+    supabase
+      .from('listing_views')
+      .select('*', { count: 'exact', head: true })
+      .in('listing_id', listingIds)
+      .gte('created_at', sevenDaysAgo),
+    // Views previous 7 days
+    supabase
+      .from('listing_views')
+      .select('*', { count: 'exact', head: true })
+      .in('listing_id', listingIds)
+      .gte('created_at', fourteenDaysAgo)
+      .lt('created_at', sevenDaysAgo),
+    // Recent listings
+    supabase
+      .from('listings')
+      .select('id, title, price, status, views_count, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(5),
+    // Stale listings (>45 days)
+    supabase
+      .from('listings')
+      .select('id, title, created_at, price')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .lt('created_at', fortyFiveDaysAgo)
+      .order('created_at', { ascending: true })
+      .limit(1),
+    // Top viewed listing
+    supabase
+      .from('listings')
+      .select('id, title, views_count')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .order('views_count', { ascending: false })
+      .limit(1),
+    // Pipeline: new
+    supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'new'),
+    // Pipeline: contacted
+    supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'contacted'),
+    // Pipeline: qualified
+    supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'qualified'),
+    // Pipeline: won
+    supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'won'),
+    // Pipeline: lost
+    supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'lost'),
+    // Recent leads for activity feed
+    supabase
+      .from('leads')
+      .select('id, buyer_name, source, created_at, listing_id')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(5),
+    // Recent messages for activity feed
+    supabase
+      .from('messages')
+      .select('id, sender_name, content, created_at, listing_id')
+      .eq('recipient_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(3),
+  ]);
 
-  // Calculate lead trend percentage
+  // Compute derived values
+  const totalListings = total || 0;
+  const activeListings = active || 0;
+  const totalViews = viewsData?.reduce((sum, l) => sum + (l.views_count || 0), 0) || 0;
+  const newLeads = leads || 0;
+  const recentListings = listings || [];
+
   const leadsTrend = leadsPrev7 && leadsPrev7 > 0
     ? Math.round(((leadsLast7 || 0) - leadsPrev7) / leadsPrev7 * 100)
     : leadsLast7 && leadsLast7 > 0 ? 100 : 0;
 
-  // Views trend - check listing_views if available
-  const { count: viewsLast7 } = await supabase
-    .from('listing_views')
-    .select('*', { count: 'exact', head: true })
-    .in('listing_id', (await supabase.from('listings').select('id').eq('user_id', user.id)).data?.map(l => l.id) || [])
-    .gte('created_at', sevenDaysAgo);
-
-  const { count: viewsPrev7 } = await supabase
-    .from('listing_views')
-    .select('*', { count: 'exact', head: true })
-    .in('listing_id', (await supabase.from('listings').select('id').eq('user_id', user.id)).data?.map(l => l.id) || [])
-    .gte('created_at', fourteenDaysAgo)
-    .lt('created_at', sevenDaysAgo);
-
   const viewsTrend = viewsPrev7 && viewsPrev7 > 0
     ? Math.round(((viewsLast7 || 0) - viewsPrev7) / viewsPrev7 * 100)
     : viewsLast7 && viewsLast7 > 0 ? 100 : 0;
-
-  const { data: listings } = await supabase
-    .from('listings')
-    .select('id, title, price, status, views_count, created_at')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(5);
-  const recentListings = listings || [];
-
-  // Get stale listings (active > 45 days old)
-  const fortyFiveDaysAgo = new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString();
-  const { data: staleListings } = await supabase
-    .from('listings')
-    .select('id, title, created_at, price')
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .lt('created_at', fortyFiveDaysAgo)
-    .order('created_at', { ascending: true })
-    .limit(1);
-
-  // Get most viewed listing in last 7 days
-  const { data: topViewedListings } = await supabase
-    .from('listings')
-    .select('id, title, views_count')
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .order('views_count', { ascending: false })
-    .limit(1);
-
-  // Leads pipeline counts
-  const { count: pipelineNew } = await supabase
-    .from('leads')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('status', 'new');
-
-  const { count: pipelineContacted } = await supabase
-    .from('leads')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('status', 'contacted');
-
-  const { count: pipelineQualified } = await supabase
-    .from('leads')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('status', 'qualified');
-
-  const { count: pipelineWon } = await supabase
-    .from('leads')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('status', 'won');
-
-  const { count: pipelineLost } = await supabase
-    .from('leads')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('status', 'lost');
 
   const pipeline = {
     new: pipelineNew || 0,
@@ -186,21 +224,6 @@ export default async function DashboardPage() {
     won: pipelineWon || 0,
     lost: pipelineLost || 0,
   };
-
-  // Recent activity feed
-  const { data: recentLeads } = await supabase
-    .from('leads')
-    .select('id, buyer_name, source, created_at, listing_id')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  const { data: recentMessages } = await supabase
-    .from('messages')
-    .select('id, sender_name, content, created_at, listing_id')
-    .eq('recipient_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(3);
 
   // Build activity feed
   const activities: ActivityItem[] = [];
@@ -274,18 +297,18 @@ export default async function DashboardPage() {
 
   // Dealer dashboard
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Welcome Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 md:gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">
+          <h1 className="text-xl md:text-3xl font-bold">
             Welcome back, {profile?.company_name || user.email?.split('@')[0]}
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground text-sm md:text-base mt-1">
             Here&apos;s what&apos;s happening with your dealership today.
           </p>
         </div>
-        <Button asChild>
+        <Button asChild size="sm" className="w-fit">
           <Link href="/dashboard/listings/new">
             <Plus className="w-4 h-4 mr-2" />
             New Listing
@@ -300,7 +323,7 @@ export default async function DashboardPage() {
       />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           title="Active Listings"
           value={activeListings || 0}
@@ -334,13 +357,13 @@ export default async function DashboardPage() {
       {/* Smart Import Card */}
       <Card className="border-dashed border-2 border-primary/20 bg-primary/5">
         <CardContent className="p-4 md:p-6">
-          <div className="flex items-start gap-4 mb-4">
+          <div className="flex items-start gap-3 md:gap-4 mb-4">
             <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
               <Sparkles className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold">Smart Import</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="font-semibold text-sm md:text-base">Smart Import</h3>
+              <p className="text-xs md:text-sm text-muted-foreground">
                 Switching from TruckPaper, Salesforce, or spreadsheets? Drop any file and AI imports your data automatically.
               </p>
             </div>
@@ -350,9 +373,9 @@ export default async function DashboardPage() {
       </Card>
 
       {/* Pipeline + Activity Row */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
         <Card>
-          <CardContent className="p-5">
+          <CardContent className="p-4 md:p-5">
             <LeadsPipeline pipeline={pipeline} />
           </CardContent>
         </Card>
@@ -370,13 +393,13 @@ export default async function DashboardPage() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-4 md:gap-6">
         {/* Recent Listings */}
         <div className="lg:col-span-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <div>
-                <CardTitle className="text-lg">Recent Listings</CardTitle>
+                <CardTitle className="text-base md:text-lg">Recent Listings</CardTitle>
                 <CardDescription>Your latest equipment listings</CardDescription>
               </div>
               <Button variant="ghost" size="sm" asChild>
@@ -388,15 +411,15 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
               {recentListings && recentListings.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2 md:space-y-3">
                   {recentListings.map((listing) => (
                     <div
                       key={listing.id}
-                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                      className="flex items-center justify-between p-2.5 md:p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium truncate">{listing.title}</p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="font-medium truncate text-sm md:text-base">{listing.title}</p>
+                        <p className="text-xs md:text-sm text-muted-foreground">
                           {listing.price
                             ? `$${listing.price.toLocaleString()}`
                             : 'No price set'}
@@ -404,9 +427,9 @@ export default async function DashboardPage() {
                           {listing.views_count || 0} views
                         </p>
                       </div>
-                      <div className="flex items-center gap-2 ml-4">
+                      <div className="flex items-center gap-2 ml-3 md:ml-4">
                         <StatusBadge status={listing.status} />
-                        <Button variant="ghost" size="sm" asChild>
+                        <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
                           <Link href={`/dashboard/listings/${listing.id}/edit`}>
                             Edit
                           </Link>
@@ -434,10 +457,10 @@ export default async function DashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
+              <CardTitle className="text-base md:text-lg">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2">
               <QuickActionButton
@@ -477,14 +500,14 @@ export default async function DashboardPage() {
 
           {/* Upgrade Card */}
           <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20">
-            <CardContent className="p-6">
+            <CardContent className="p-5 md:p-6">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                   <TrendingUp className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Upgrade to AXLON Platform</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <h3 className="font-semibold mb-1 text-sm md:text-base">Upgrade to AXLON Platform</h3>
+                  <p className="text-xs md:text-sm text-muted-foreground mb-4">
                     Get AI sales assistant, CRM, deal desk, and unlimited listings.
                   </p>
                   <Button size="sm" asChild>
@@ -520,8 +543,8 @@ function StatCard({
 }) {
   return (
     <Card className={highlight ? 'border-primary/50 bg-primary/5' : ''}>
-      <CardContent className="p-4 md:p-6">
-        <div className="flex items-center justify-between mb-3">
+      <CardContent className="p-3 md:p-6">
+        <div className="flex items-center justify-between mb-2 md:mb-3">
           <span className="text-muted-foreground">{icon}</span>
           {trend !== undefined && (
             <span
@@ -541,9 +564,9 @@ function StatCard({
             <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
           )}
         </div>
-        <p className="text-2xl md:text-3xl font-bold">{value.toLocaleString()}</p>
-        <p className="text-sm text-muted-foreground">{title}</p>
-        <p className="text-xs text-muted-foreground mt-1">{description}</p>
+        <p className="text-xl md:text-3xl font-bold">{value.toLocaleString()}</p>
+        <p className="text-xs md:text-sm text-muted-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground mt-0.5 md:mt-1">{description}</p>
       </CardContent>
     </Card>
   );
@@ -580,7 +603,7 @@ function QuickActionButton({
   badge?: number;
 }) {
   return (
-    <Button className="w-full justify-start" variant="outline" asChild>
+    <Button className="w-full justify-start text-sm" variant="outline" asChild>
       <Link href={href}>
         {icon}
         <span className="ml-2">{label}</span>
@@ -608,4 +631,3 @@ function getTimeAgo(date: Date): string {
   if (diffDays < 14) return '1w';
   return '2w+';
 }
-
