@@ -200,7 +200,7 @@ export function MapView({ listings, isLoading, onClose }: MapViewProps) {
       </MapContainer>
 
       {/* Legend */}
-      <div className="absolute bottom-3 left-3 z-[1000] bg-white/90 backdrop-blur-sm rounded-lg p-2 text-xs shadow-lg">
+      <div className="absolute bottom-3 left-3 z-[1000] bg-background/90 backdrop-blur-sm rounded-lg p-2 text-xs shadow-lg">
         <p className="font-medium mb-1">
           {mappableListings.length} of {listings.length} listings shown
         </p>

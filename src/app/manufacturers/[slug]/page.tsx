@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ManufacturerListingGrid } from '@/components/listings/ManufacturerListingGrid';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import {
   Factory,
   Globe,
@@ -201,14 +202,15 @@ export default async function ManufacturerPage({ params }: PageProps) {
       }`}>
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:32px_32px]" />
         <div className="relative max-w-7xl mx-auto px-4 py-8 md:py-12">
-          {/* Back Link */}
-          <Link
-            href="/manufacturers"
-            className="inline-flex items-center gap-2 text-sm text-white/70 hover:text-white mb-6 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            All Manufacturers
-          </Link>
+          {/* Breadcrumb */}
+          <div className="mb-6 [&_a]:text-white/70 [&_a:hover]:text-white [&_span.text-foreground]:text-white [&_svg]:text-white/40">
+            <Breadcrumbs
+              items={[
+                { label: 'Manufacturers', href: '/manufacturers' },
+                { label: manufacturer.name },
+              ]}
+            />
+          </div>
 
           <div className="flex flex-col md:flex-row md:items-start gap-6">
             {/* Logo */}

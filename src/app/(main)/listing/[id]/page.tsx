@@ -22,6 +22,7 @@ import {
   ChevronLeft,
   Sparkles,
 } from 'lucide-react';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { FavoriteButton } from '@/components/listings/FavoriteButton';
 import { ContactSeller } from '@/components/listings/ContactSeller';
 import { ShareButton } from '@/components/listings/ShareButton';
@@ -289,7 +290,7 @@ export default async function ListingPage({ params }: PageProps) {
       <TrackViewClient listing={trackingData} />
 
       <div className="max-w-7xl mx-auto px-4 py-4 md:py-6">
-        {/* Back link - Mobile */}
+        {/* Breadcrumb + Actions - Mobile */}
         <div className="flex items-center justify-between mb-4 md:hidden">
           <Link
             href="/search"
@@ -319,15 +320,17 @@ export default async function ListingPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Back link - Desktop */}
+        {/* Breadcrumb + Actions - Desktop */}
         <div className="hidden md:flex items-center justify-between mb-6">
-          <Link
-            href="/search"
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Back to Search
-          </Link>
+          <Breadcrumbs
+            items={[
+              { label: 'Search', href: '/search' },
+              ...(listing.category?.name
+                ? [{ label: listing.category.name, href: `/search?category=${listing.category?.slug || ''}` }]
+                : []),
+              { label: listing.title },
+            ]}
+          />
           <div className="flex items-center gap-2">
             <CompareButton
               listing={{

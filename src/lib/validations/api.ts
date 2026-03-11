@@ -286,6 +286,17 @@ export const aiLeadNotificationSchema = z.object({
   leadId: z.string().uuid(),
 });
 
+// Contact form validation
+export const contactFormSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
+  email: z.string().email('Invalid email address'),
+  phone: z.string().max(20).optional().or(z.literal('')),
+  company: z.string().max(200).optional().or(z.literal('')),
+  subject: z.string().max(100).optional().or(z.literal('')),
+  message: z.string().min(1, 'Message is required').max(5000, 'Message too long'),
+  plan: z.string().max(50).optional().or(z.literal('')),
+});
+
 // Trade-in request validation
 export const tradeInRequestSchema = z.object({
   contact_name: z.string().min(1).max(100),

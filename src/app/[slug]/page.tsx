@@ -25,6 +25,7 @@ import {
   ArrowUpRight,
   CheckCircle2,
 } from 'lucide-react';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { ChatWidget } from '@/components/storefront/ChatWidget';
 import { DealerFilters } from '@/components/storefront/DealerFilters';
 import { MobileContactBar } from '@/components/storefront/MobileContactBar';
@@ -288,6 +289,16 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
       {/* JSON-LD Structured Data */}
       <DealerJsonLd dealer={dealer as DealerForSchema} slug={slug} />
       <DealerBreadcrumbJsonLd dealerName={dealer.company_name} slug={slug} />
+
+      {/* Breadcrumb */}
+      <div className="max-w-7xl mx-auto px-4 pt-4">
+        <Breadcrumbs
+          items={[
+            { label: 'Dealers', href: '/dealers' },
+            { label: dealer.company_name || 'Dealer' },
+          ]}
+        />
+      </div>
 
       {/* Subtle Background Pattern */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">

@@ -159,7 +159,7 @@ export default async function HomePage() {
         {/* Dealer Platform Section */}
         <section className="w-full max-w-5xl mx-auto mb-10 md:mb-16 px-4">
           <h2 className="text-xl md:text-2xl font-bold text-center mb-2">Run Your Dealership with AI</h2>
-          <p className="text-sm text-muted-foreground text-center mb-6 md:mb-8 max-w-xl mx-auto">
+          <p className="text-sm text-muted-foreground dark:text-foreground/60 text-center mb-6 md:mb-8 max-w-xl mx-auto">
             Replace your DMS, CRM, answering service, and BDC team — all in one platform.
           </p>
 
@@ -167,12 +167,12 @@ export default async function HomePage() {
           <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
             {/* AI Platform Card */}
             <Link href="/how-it-works" className="block group">
-              <div className="p-5 md:p-7 rounded-xl border bg-white/80 dark:bg-white/5 hover:shadow-lg transition-shadow h-full">
+              <div className="p-5 md:p-7 rounded-xl border bg-white/80 dark:bg-white/[0.08] hover:shadow-lg transition-shadow h-full">
                 <div className="w-11 h-11 md:w-13 md:h-13 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                   <Bot className="w-6 h-6 text-primary" />
                 </div>
                 <h3 className="font-bold text-lg md:text-xl mb-1">AI Platform</h3>
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-4">
                   Sales assistant, CRM & automation
                 </p>
                 <ul className="space-y-2 mb-5">
@@ -193,12 +193,12 @@ export default async function HomePage() {
 
             {/* Voice Agents Card */}
             <Link href="/voice" className="block group">
-              <div className="p-5 md:p-7 rounded-xl border bg-white/80 dark:bg-white/5 hover:shadow-lg transition-shadow h-full">
+              <div className="p-5 md:p-7 rounded-xl border bg-white/80 dark:bg-white/[0.08] hover:shadow-lg transition-shadow h-full">
                 <div className="w-11 h-11 md:w-13 md:h-13 rounded-xl bg-cyan-500/10 flex items-center justify-center mb-4">
                   <Headphones className="w-6 h-6 text-cyan-600" />
                 </div>
                 <h3 className="font-bold text-lg md:text-xl mb-1">Voice Agents</h3>
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-4">
                   24/7 phone answering & lead capture
                 </p>
                 <ul className="space-y-2 mb-5">
@@ -219,11 +219,11 @@ export default async function HomePage() {
           </div>
 
           {/* Built For Row */}
-          <div className="bg-white/40 dark:bg-white/5 rounded-2xl border p-5">
-            <p className="text-xs font-medium text-muted-foreground text-center mb-3 uppercase tracking-wider">Built for</p>
+          <div className="bg-white/40 dark:bg-white/[0.08] rounded-2xl border p-5">
+            <p className="text-xs font-medium text-muted-foreground dark:text-foreground/50 text-center mb-3 uppercase tracking-wider">Built for</p>
             <div className="flex flex-wrap justify-center gap-4 md:gap-8">
               {builtForItems.map((item) => (
-                <div key={item.label} className="flex items-center gap-2 text-sm text-foreground/80">
+                <div key={item.label} className="flex items-center gap-2 text-sm text-foreground/80 dark:text-foreground/70">
                   <item.icon className="w-4 h-4 text-muted-foreground" />
                   {item.label}
                 </div>
@@ -240,21 +240,21 @@ export default async function HomePage() {
               See AI in Action
             </div>
             <h2 className="text-xl md:text-2xl font-bold mb-2">AI that works while you sleep</h2>
-            <p className="text-sm text-muted-foreground max-w-lg mx-auto">
+            <p className="text-sm text-muted-foreground dark:text-foreground/60 max-w-lg mx-auto">
               From answering calls to qualifying leads — here&apos;s what AXLON does for your dealership.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 md:gap-6">
             {/* AI Conversation Demo */}
-            <div className="rounded-xl border bg-white/80 dark:bg-white/5 p-5 md:p-6">
+            <div className="rounded-xl border bg-white/80 dark:bg-white/[0.08] p-5 md:p-6">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                   <MessageSquare className="w-4 h-4 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold">AI Sales Assistant</p>
-                  <p className="text-xs text-muted-foreground">Handles buyer inquiries 24/7</p>
+                  <p className="text-xs text-muted-foreground dark:text-foreground/50">Handles buyer inquiries 24/7</p>
                 </div>
               </div>
 
@@ -286,19 +286,19 @@ export default async function HomePage() {
               </div>
 
               <div className="mt-4 pt-3 border-t">
-                <p className="text-xs text-muted-foreground text-center">AI qualified this lead and booked the appointment automatically</p>
+                <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center">AI qualified this lead and booked the appointment automatically</p>
               </div>
             </div>
 
             {/* Voice Agent Demo */}
-            <div className="rounded-xl border bg-white/80 dark:bg-white/5 p-5 md:p-6">
+            <div className="rounded-xl border bg-white/80 dark:bg-white/[0.08] p-5 md:p-6">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center">
                   <Phone className="w-4 h-4 text-cyan-600" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold">Voice Agent</p>
-                  <p className="text-xs text-muted-foreground">Answers calls like a real person</p>
+                  <p className="text-xs text-muted-foreground dark:text-foreground/50">Answers calls like a real person</p>
                 </div>
               </div>
 
@@ -306,23 +306,23 @@ export default async function HomePage() {
                 {/* Call transcript style */}
                 <div className="bg-muted/50 rounded-xl p-4 space-y-3 text-sm">
                   <div className="flex items-start gap-2">
-                    <span className="text-xs font-semibold text-cyan-600 shrink-0 mt-0.5">AXLON:</span>
-                    <p className="text-muted-foreground">&quot;Good afternoon, thanks for calling ABC Truck Sales. This is AXLON, how can I help you today?&quot;</p>
+                    <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5">AXLON:</span>
+                    <p className="text-muted-foreground dark:text-foreground/70">&quot;Good afternoon, thanks for calling ABC Truck Sales. This is AXLON, how can I help you today?&quot;</p>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-xs font-semibold text-foreground/70 shrink-0 mt-0.5">Caller:</span>
-                    <p className="text-muted-foreground">&quot;Hi, I&apos;m looking for a flatbed trailer, 48-foot, something under $40k.&quot;</p>
+                    <span className="text-xs font-semibold text-foreground/70 dark:text-foreground/80 shrink-0 mt-0.5">Caller:</span>
+                    <p className="text-muted-foreground dark:text-foreground/70">&quot;Hi, I&apos;m looking for a flatbed trailer, 48-foot, something under $40k.&quot;</p>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="text-xs font-semibold text-cyan-600 shrink-0 mt-0.5">AXLON:</span>
-                    <p className="text-muted-foreground">&quot;Great, we actually have two 48-foot flatbeds in that range. Let me get your name and email so I can send you the details with photos and pricing.&quot;</p>
+                    <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5">AXLON:</span>
+                    <p className="text-muted-foreground dark:text-foreground/70">&quot;Great, we actually have two 48-foot flatbeds in that range. Let me get your name and email so I can send you the details with photos and pricing.&quot;</p>
                   </div>
                 </div>
 
                 {/* Lead summary card */}
                 <div className="bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-900/30 rounded-lg p-3">
                   <p className="text-xs font-semibold text-cyan-700 dark:text-cyan-400 mb-1.5">Lead Captured</p>
-                  <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                  <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground dark:text-foreground/60">
                     <span>Name: John D.</span>
                     <span>Intent: High</span>
                     <span>Looking for: Flatbed 48&apos;</span>
@@ -332,7 +332,7 @@ export default async function HomePage() {
               </div>
 
               <div className="mt-4 pt-3 border-t">
-                <p className="text-xs text-muted-foreground text-center">This call came in at 8:47 PM — after business hours</p>
+                <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center">This call came in at 8:47 PM — after business hours</p>
               </div>
             </div>
           </div>
@@ -356,9 +356,9 @@ export default async function HomePage() {
               { value: '24/7', label: 'AI Availability' },
               { value: '100%', label: 'Free to Browse' },
             ].map((stat) => (
-              <div key={stat.label} className="text-center py-4 rounded-xl bg-white/50 dark:bg-white/5 border">
+              <div key={stat.label} className="text-center py-4 rounded-xl bg-white/50 dark:bg-white/[0.08] border">
                 <p className="text-xl md:text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">{stat.value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+                <p className="text-xs text-muted-foreground dark:text-foreground/50 mt-0.5">{stat.label}</p>
               </div>
             ))}
           </div>
@@ -372,7 +372,7 @@ export default async function HomePage() {
               <Link
                 key={cat.slug}
                 href={`/search?category=${cat.slug}`}
-                className="rounded-full border bg-white/60 dark:bg-white/5 hover:bg-white/90 dark:hover:bg-white/10 px-4 py-2 text-sm transition-colors"
+                className="rounded-full border bg-white/60 dark:bg-white/[0.08] hover:bg-white/90 dark:hover:bg-white/10 px-4 py-2 text-sm transition-colors"
               >
                 {cat.label}
               </Link>
@@ -432,7 +432,7 @@ export default async function HomePage() {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 py-6 md:py-10 px-4 border-t border-white/10 mt-auto">
+      <footer className="relative z-10 py-6 md:py-10 px-4 border-t border-foreground/10 mt-auto">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2">
             <Image
@@ -463,7 +463,7 @@ export default async function HomePage() {
 
 function FeatureCheck({ children }: { children: React.ReactNode }) {
   return (
-    <li className="flex items-start gap-2 text-sm text-muted-foreground">
+    <li className="flex items-start gap-2 text-sm text-muted-foreground dark:text-foreground/60">
       <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
       {children}
     </li>

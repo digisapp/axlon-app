@@ -212,7 +212,7 @@ export const SearchListingCard = memo(function SearchListingCard({
                 image_url: primaryImage?.thumbnail_url || primaryImage?.url || null,
               }}
               variant="icon"
-              className="bg-white/80 hover:bg-white w-7 h-7 md:w-8 md:h-8"
+              className="bg-background/80 hover:bg-background w-7 h-7 md:w-8 md:h-8"
             />
             <FavoriteButton listingId={listing.id} variant="ghost" size="icon" showText={false} />
           </div>
