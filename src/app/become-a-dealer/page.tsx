@@ -114,8 +114,8 @@ const beforeAfter = [
 const stats = [
   { value: '24/7', label: 'AI Availability' },
   { value: '< 2s', label: 'Call Answer Time' },
-  { value: '3x', label: 'More Leads Captured' },
-  { value: '60%', label: 'Less Admin Work' },
+  { value: '0', label: 'Missed Calls' },
+  { value: '$0', label: 'Setup Fee' },
 ];
 
 const audiences = [

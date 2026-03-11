@@ -6,6 +6,7 @@ import { Zap, ArrowRight, Bot, Headphones, Check, Search, Truck, Building2, Wren
 import { HomeHeader } from '@/components/home/HomeHeader';
 import { HomeSearchSection } from '@/components/home/HomeSearchSection';
 import { HomeDeals } from '@/components/home/HomeDeals';
+import { createClient } from '@/lib/supabase/server';
 
 export const metadata: Metadata = {
   alternates: {
@@ -60,7 +61,26 @@ const builtForItems = [
   { icon: Package, label: 'Heavy Haul' },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Fetch real stats for trust signals
+  let listingCount = 0;
+  let dealerCount = 0;
+  try {
+    const supabase = await createClient();
+    const [{ count: listings }, { count: dealers }] = await Promise.all([
+      supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_dealer', true).not('slug', 'is', null),
+    ]);
+    listingCount = listings || 0;
+    dealerCount = dealers || 0;
+  } catch {
+    // Fallback to 0 if DB unavailable
+  }
+
+  const formattedListings = listingCount >= 1000
+    ? `${Math.floor(listingCount / 1000)}k+`
+    : listingCount > 0 ? `${listingCount}+` : '0';
+
   return (
     <div className="min-h-screen flex flex-col gradient-bg relative overflow-hidden">
       <HomePageJsonLd />
@@ -331,9 +351,9 @@ export default function HomePage() {
         <section className="w-full max-w-4xl mx-auto mb-10 md:mb-16 px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {[
-              { value: '5,000+', label: 'Listings' },
+              { value: formattedListings, label: 'Active Listings' },
+              { value: `${dealerCount}+`, label: 'Dealers' },
               { value: '24/7', label: 'AI Availability' },
-              { value: '< 2s', label: 'Response Time' },
               { value: '100%', label: 'Free to Browse' },
             ].map((stat) => (
               <div key={stat.label} className="text-center py-4 rounded-xl bg-white/50 dark:bg-white/5 border">
