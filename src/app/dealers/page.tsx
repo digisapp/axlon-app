@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   MapPin,
@@ -12,11 +13,13 @@ import {
   ArrowRight,
   Shield,
   Building2,
+  Bot,
+  Zap,
 } from 'lucide-react';
 
 export const metadata = {
-  title: 'Business Directory - Find Trusted Truck & Equipment Businesses',
-  description: 'Browse verified truck and equipment businesses on AXLON AI. Find trusted dealers near you with AI-powered storefronts, inventory, and direct messaging.',
+  title: 'Dealer Directory — Find Trusted Equipment Dealers | AXLON AI',
+  description: 'Browse verified truck and equipment dealers on AXLON AI. Find trusted dealers near you with AI-powered storefronts, inventory, and direct messaging.',
   openGraph: {
     title: 'Dealer Directory | AXLON AI',
     description: 'Find trusted truck and equipment dealers near you. Verified dealers with direct messaging.',
@@ -105,16 +108,28 @@ export default async function DealersPage({ searchParams }: PageProps) {
       {/* Hero Header */}
       <div className="relative bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 border-b border-slate-700">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:32px_32px]" />
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/10 rounded-full blur-[200px]" />
         <div className="relative max-w-7xl mx-auto px-4 py-12 md:py-16">
-          <div className="flex items-center gap-4 mb-3">
-            <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-white" />
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+            <div>
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center">
+                  <Building2 className="w-6 h-6 text-white" />
+                </div>
+                <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Dealer Directory</h1>
+              </div>
+              <p className="text-slate-400 text-lg max-w-2xl">
+                Browse verified truck and equipment dealers. Find quality inventory from trusted professionals.
+              </p>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Business Directory</h1>
+            <Button className="rounded-full gap-2 group shrink-0 w-fit" asChild>
+              <Link href="/become-a-dealer">
+                <Bot className="w-4 h-4" />
+                Join as a Dealer
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </Button>
           </div>
-          <p className="text-slate-400 text-lg max-w-2xl">
-            Browse verified truck and equipment dealers. Find quality inventory from trusted professionals.
-          </p>
         </div>
       </div>
 
@@ -257,6 +272,38 @@ export default async function DealersPage({ searchParams }: PageProps) {
             </p>
           </div>
         )}
+
+        {/* Join CTA */}
+        <div className="mt-12 mb-4 rounded-2xl bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 border border-slate-700 p-8 md:p-12 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-primary/15 rounded-full blur-[120px]" />
+          <div className="relative flex flex-col md:flex-row md:items-center gap-6">
+            <div className="flex-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-medium mb-3">
+                <Zap className="w-3 h-3" />
+                AI-Powered Platform
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+                Run your dealership with AI
+              </h2>
+              <p className="text-slate-400 max-w-lg">
+                Join AXLON and get an AI sales assistant, voice agent, CRM, and marketplace storefront — all in one platform.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+              <Button size="lg" className="rounded-full gap-2 group" asChild>
+                <Link href="/become-a-dealer">
+                  Get Started Free
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" className="rounded-full border-slate-600 text-slate-200 hover:bg-slate-800" asChild>
+                <Link href="/contact?plan=demo">
+                  Book a Demo
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

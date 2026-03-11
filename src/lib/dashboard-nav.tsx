@@ -12,6 +12,8 @@ import {
   Handshake,
   Brain,
   Contact,
+  Upload,
+  CreditCard,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -28,13 +30,18 @@ export interface NavSection {
 
 export const dashboardNavSections: NavSection[] = [
   {
-    label: 'Main',
+    label: 'Dashboard',
     items: [
       {
         href: '/dashboard',
         label: 'Overview',
         icon: <LayoutDashboard className="w-5 h-5" />,
       },
+    ],
+  },
+  {
+    label: 'Inventory',
+    items: [
       {
         href: '/dashboard/listings',
         label: 'Listings',
@@ -44,6 +51,11 @@ export const dashboardNavSections: NavSection[] = [
         href: '/dashboard/inventory',
         label: 'Inventory',
         icon: <Warehouse className="w-5 h-5" />,
+      },
+      {
+        href: '/dashboard/bulk',
+        label: 'Bulk Import',
+        icon: <Upload className="w-5 h-5" />,
       },
     ],
   },
@@ -68,7 +80,7 @@ export const dashboardNavSections: NavSection[] = [
     ],
   },
   {
-    label: 'AI',
+    label: 'AI Tools',
     items: [
       {
         href: '/dashboard/ai-assistant',
@@ -83,7 +95,7 @@ export const dashboardNavSections: NavSection[] = [
     ],
   },
   {
-    label: 'Marketing',
+    label: 'Marketplace',
     items: [
       {
         href: '/dashboard/storefront',
@@ -98,7 +110,7 @@ export const dashboardNavSections: NavSection[] = [
     ],
   },
   {
-    label: 'Admin',
+    label: 'Team',
     items: [
       {
         href: '/dashboard/staff',
@@ -110,10 +122,20 @@ export const dashboardNavSections: NavSection[] = [
         label: 'Messages',
         icon: <MessageSquare className="w-5 h-5" />,
       },
+    ],
+  },
+  {
+    label: 'Settings',
+    items: [
       {
         href: '/dashboard/settings',
-        label: 'Settings',
+        label: 'Account',
         icon: <Settings className="w-5 h-5" />,
+      },
+      {
+        href: '/dashboard/billing',
+        label: 'Billing',
+        icon: <CreditCard className="w-5 h-5" />,
       },
     ],
   },

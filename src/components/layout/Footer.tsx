@@ -6,17 +6,17 @@ import { Facebook, Twitter, Instagram, Linkedin, Youtube } from 'lucide-react';
 
 const footerLinks = {
   marketplace: [
-    { href: '/search', label: 'Browse Listings' },
+    { href: '/search', label: 'Browse Equipment' },
     { href: '/new-trailers', label: 'New Trailers' },
     { href: '/categories', label: 'Categories' },
-    { href: '/search?category=heavy-duty-trucks', label: 'Heavy Duty Trucks' },
-    { href: '/search?category=trailers', label: 'Trailers' },
-    { href: '/search?category=heavy-equipment', label: 'Heavy Equipment' },
+    { href: '/dealers', label: 'Dealers' },
+    { href: '/finance', label: 'Financing' },
   ],
-  selling: [
-    { href: '/dashboard/listings/new', label: 'List Equipment' },
-    { href: '/dashboard', label: 'Seller Dashboard' },
+  platform: [
+    { href: '/how-it-works', label: 'AI Platform' },
+    { href: '/voice', label: 'Voice Agents' },
     { href: '/how-it-works#pricing', label: 'Pricing' },
+    { href: '/become-a-dealer', label: 'For Dealers' },
   ],
   company: [
     { href: '/about', label: 'About Us' },
@@ -56,7 +56,7 @@ export function Footer() {
               />
             </Link>
             <p className="text-sm text-muted-foreground mb-4">
-              The AI-powered marketplace for trucks, trailers, and equipment.
+              The AI platform for equipment dealers. Buy, sell, and manage with AI.
             </p>
             <div className="flex gap-3">
               {socialLinks.map((link) => (
@@ -91,11 +91,11 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Selling Links */}
+          {/* Platform Links */}
           <div>
-            <h3 className="font-semibold mb-3">Selling</h3>
+            <h3 className="font-semibold mb-3">Platform</h3>
             <ul className="space-y-2">
-              {footerLinks.selling.map((link) => (
+              {footerLinks.platform.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}

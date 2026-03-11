@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,28 +9,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Check,
   ArrowRight,
-  Search,
-  MessageSquare,
   Handshake,
   Bot,
   PhoneCall,
   BarChart3,
   Upload,
-  Sparkles,
   Star,
-  Building2,
   Zap,
   Users,
   DollarSign,
   Clock,
   Shield,
-  ShoppingCart,
   Store,
   Globe,
+  Headphones,
+  Truck,
+  Building2,
+  Wrench,
+  Package,
 } from 'lucide-react';
 
 export function HowItWorksContent() {
-  const [activeTab, setActiveTab] = useState('businesses');
+  const [activeTab, setActiveTab] = useState('services');
 
   // Handle #pricing hash on load
   useEffect(() => {
@@ -53,24 +52,124 @@ export function HowItWorksContent() {
   return (
     <div className="min-h-screen">
       {/* Hero */}
-      <section className="py-8 md:py-20 px-4 text-center">
+      <section className="py-8 md:py-16 px-4 text-center">
         <div className="max-w-4xl mx-auto">
+          <Badge variant="secondary" className="mb-4">
+            <Zap className="w-3.5 h-3.5 mr-1.5" />
+            AI-Powered Business Tools
+          </Badge>
           <h1 className="text-2xl md:text-5xl font-bold tracking-tight mb-3 md:mb-4">
-            AXLON AI Services
+            AI that runs your business —<br className="hidden sm:block" /> from lead to close
           </h1>
           <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-6 md:mb-8">
-            See how AI can transform your business — and what it costs.
+            Replace your DMS, CRM, answering service, and BDC team with one AI platform. Built for dealers, brokers, and service businesses.
           </p>
         </div>
       </section>
 
-      {/* Tabs */}
+      {/* Two Product Cards — hero-level */}
+      <section className="max-w-5xl mx-auto px-4 mb-10 md:mb-14">
+        <div className="grid md:grid-cols-2 gap-4 md:gap-6">
+          {/* AI Platform Card */}
+          <Link href="#platform-details" className="group block">
+            <Card className="h-full border-primary/30 hover:border-primary/60 hover:shadow-xl transition-all">
+              <CardHeader className="pb-3">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+                  <Bot className="w-6 h-6 text-primary" />
+                </div>
+                <CardTitle className="text-xl flex items-center gap-2">
+                  AI Platform
+                  <Badge className="bg-primary text-xs">Core</Badge>
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  Sales assistant, CRM & automation
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 mb-4">
+                  {[
+                    'AI Sales Assistant — captures leads 24/7',
+                    'CRM + Deal Desk with AI scoring',
+                    'Knowledge Base trained on your inventory',
+                    'Custom branded storefront',
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl font-bold">$399<span className="text-sm font-normal text-muted-foreground">/mo</span></span>
+                  <span className="text-sm text-primary font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
+                    Learn more <ArrowRight className="w-4 h-4" />
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Voice Agents Card */}
+          <Link href="/voice" className="group block">
+            <Card className="h-full border-cyan-500/30 hover:border-cyan-500/60 hover:shadow-xl transition-all">
+              <CardHeader className="pb-3">
+                <div className="w-12 h-12 rounded-xl bg-cyan-600/10 flex items-center justify-center mb-3">
+                  <Headphones className="w-6 h-6 text-cyan-600" />
+                </div>
+                <CardTitle className="text-xl flex items-center gap-2">
+                  Voice Agents
+                  <span className="text-[10px] font-semibold bg-cyan-600 text-white px-1.5 py-0.5 rounded-full leading-none">24/7</span>
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  Phone answering & lead capture
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 mb-4">
+                  {[
+                    'Dedicated AI phone number',
+                    'Natural voice conversations in 30+ languages',
+                    'Automatic lead capture from every call',
+                    'Call recording + AI transcription',
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <Check className="w-4 h-4 text-cyan-600 shrink-0 mt-0.5" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl font-bold">$499<span className="text-sm font-normal text-muted-foreground">/mo</span></span>
+                  <span className="text-sm text-cyan-600 font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
+                    Learn more <ArrowRight className="w-4 h-4" />
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      </section>
+
+      {/* Who This Is For */}
+      <section className="max-w-5xl mx-auto px-4 mb-10 md:mb-14">
+        <div className="rounded-2xl border bg-muted/30 p-5 md:p-8">
+          <h3 className="font-bold text-base md:text-lg text-center mb-4 md:mb-6">Built for</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            <AudienceCard icon={<Truck className="w-5 h-5" />} label="Dealers" />
+            <AudienceCard icon={<Building2 className="w-5 h-5" />} label="Brokers" />
+            <AudienceCard icon={<Wrench className="w-5 h-5" />} label="Service Businesses" />
+            <AudienceCard icon={<Package className="w-5 h-5" />} label="Heavy Haul Companies" />
+          </div>
+        </div>
+      </section>
+
+      {/* Tabs: Details + Pricing */}
       <div className="max-w-5xl mx-auto px-4 pb-12 md:pb-16">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6 md:mb-10 h-11 md:h-12">
-            <TabsTrigger value="businesses" className="gap-2 text-sm md:text-base">
+            <TabsTrigger value="services" className="gap-2 text-sm md:text-base">
               <Store className="w-4 h-4 hidden sm:block" />
-              For Businesses
+              How It Works
             </TabsTrigger>
             <TabsTrigger value="pricing" className="gap-2 text-sm md:text-base">
               <DollarSign className="w-4 h-4 hidden sm:block" />
@@ -78,16 +177,16 @@ export function HowItWorksContent() {
             </TabsTrigger>
           </TabsList>
 
-          {/* === FOR BUSINESSES === */}
-          <TabsContent value="businesses">
-            <div className="text-center mb-8 md:mb-10">
-              <h2 className="text-xl md:text-3xl font-bold mb-2">Replace your entire tech stack with AI</h2>
+          {/* === HOW IT WORKS === */}
+          <TabsContent value="services">
+            {/* Steps */}
+            <div id="platform-details" className="text-center mb-8 md:mb-10">
+              <h2 className="text-xl md:text-3xl font-bold mb-2">Get started in 4 steps</h2>
               <p className="text-sm md:text-base text-muted-foreground max-w-lg mx-auto">
-                DMS, CRM, answering service, BDC team — AXLON replaces it all for a fraction of the cost.
+                From signup to closing deals — here&apos;s how AXLON replaces your entire tech stack.
               </p>
             </div>
 
-            {/* Steps */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8 md:mb-12">
               <StepCard
                 step={1}
@@ -115,7 +214,7 @@ export function HowItWorksContent() {
               />
             </div>
 
-            {/* Features */}
+            {/* What's Included */}
             <h3 className="text-lg md:text-xl font-bold text-center mb-4 md:mb-6">What&apos;s Included</h3>
             <div className="grid md:grid-cols-3 gap-3 md:gap-6 mb-8 md:mb-10">
               <FeatureCard
@@ -124,20 +223,23 @@ export function HowItWorksContent() {
                 features={[
                   'Captures leads 24/7 on your website',
                   'Trained on your inventory & pricing',
-                  'Speaks 30+ languages (Spanish, Portuguese, Russian & more)',
+                  'Speaks 30+ languages',
                   'Instant answers to buyer questions',
                 ]}
               />
-              <FeatureCard
-                icon={<PhoneCall className="w-6 h-6 text-cyan-600" />}
-                title="AI Voice Agent"
-                features={[
-                  'Dedicated AI phone number',
-                  'Answers calls in any language',
-                  '500 minutes included/month',
-                  'Call transcripts & lead capture',
-                ]}
-              />
+              <Link href="/voice" className="block group">
+                <FeatureCard
+                  icon={<Headphones className="w-6 h-6 text-cyan-600" />}
+                  title="Voice Agents"
+                  features={[
+                    'Dedicated AI phone number',
+                    'Answers calls in any language',
+                    '500 minutes included/month',
+                    'Call transcripts & lead capture',
+                  ]}
+                  hasLink
+                />
+              </Link>
               <FeatureCard
                 icon={<BarChart3 className="w-6 h-6 text-emerald-600" />}
                 title="CRM + Deal Desk"
@@ -248,7 +350,7 @@ export function HowItWorksContent() {
                 </div>
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-2 mb-2">
-                    <PhoneCall className="w-5 h-5 text-cyan-600" />
+                    <Headphones className="w-5 h-5 text-cyan-600" />
                     <CardTitle className="text-xl">AXLON Voice</CardTitle>
                   </div>
                   <CardDescription>
@@ -390,7 +492,7 @@ export function HowItWorksContent() {
               </Card>
             </div>
 
-            {/* FAQ — collapsed into fewer items */}
+            {/* FAQ */}
             <div className="max-w-3xl mx-auto">
               <h3 className="text-lg font-bold text-center mb-6">FAQ</h3>
               <div className="space-y-4">
@@ -441,6 +543,17 @@ export function HowItWorksContent() {
   );
 }
 
+function AudienceCard({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="flex flex-col items-center gap-2 p-3 md:p-4 rounded-xl bg-background border text-center">
+      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+        {icon}
+      </div>
+      <p className="text-sm font-medium">{label}</p>
+    </div>
+  );
+}
+
 function StepCard({
   step,
   icon,
@@ -470,17 +583,24 @@ function FeatureCard({
   icon,
   title,
   features,
+  hasLink,
 }: {
   icon: React.ReactNode;
   title: string;
   features: string[];
+  hasLink?: boolean;
 }) {
   return (
-    <div className="p-4 md:p-6 rounded-xl border bg-background hover:shadow-lg transition-shadow">
+    <div className="p-4 md:p-6 rounded-xl border bg-background hover:shadow-lg transition-shadow h-full">
       <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-muted flex items-center justify-center mb-3 md:mb-4">
         {icon}
       </div>
-      <h3 className="font-semibold text-base md:text-lg mb-2 md:mb-3">{title}</h3>
+      <h3 className="font-semibold text-base md:text-lg mb-2 md:mb-3 flex items-center gap-2">
+        {title}
+        {hasLink && (
+          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+        )}
+      </h3>
       <ul className="space-y-2">
         {features.map((feature) => (
           <li key={feature} className="flex items-start gap-2 text-sm text-muted-foreground">

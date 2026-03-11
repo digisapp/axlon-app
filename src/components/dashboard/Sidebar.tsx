@@ -127,12 +127,12 @@ export function Sidebar({ unreadMessages = 0, newLeads = 0 }: SidebarProps) {
         {!collapsed && (
           <div className="p-3 border-t">
             <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-4">
-              <p className="font-medium text-sm mb-1">Upgrade to Pro</p>
+              <p className="font-medium text-sm mb-1">Add Voice Agent</p>
               <p className="text-xs text-muted-foreground mb-3">
-                Get featured listings & advanced analytics
+                AI answers your calls 24/7
               </p>
               <Button size="sm" className="w-full" asChild>
-                <Link href="/dashboard/billing">Upgrade</Link>
+                <Link href="/dashboard/voice-agent">Learn More</Link>
               </Button>
             </div>
           </div>

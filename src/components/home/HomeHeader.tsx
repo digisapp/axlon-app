@@ -30,7 +30,9 @@ interface UserProfile {
 }
 
 const navLinks = [
-  { href: '/how-it-works', label: 'Services' },
+  { href: '/search', label: 'Marketplace' },
+  { href: '/how-it-works', label: 'Platform' },
+  { href: '/how-it-works#pricing', label: 'Pricing' },
 ];
 
 export function HomeHeader() {

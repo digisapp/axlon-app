@@ -32,7 +32,14 @@ import {
   Plus,
   LayoutDashboard,
   DollarSign,
-  CircleHelp,
+  Headphones,
+  ChevronDown,
+  Bot,
+  Search,
+  Truck,
+  Building2,
+  LayoutGrid,
+  Store,
 } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { QuickSearchTrigger, QuickSearch } from '@/components/search/QuickSearch';
@@ -101,6 +108,10 @@ export function Header() {
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   ];
 
+  const isMarketplaceActive = pathname.startsWith('/search') || pathname.startsWith('/new-trailers') || pathname.startsWith('/dealers') || pathname.startsWith('/categories');
+  const isPlatformActive = pathname === '/how-it-works' || pathname === '/voice';
+  const isDealersActive = pathname === '/become-a-dealer';
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-7xl mx-auto px-4">
@@ -120,21 +131,118 @@ export function Header() {
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-1">
+            {/* Marketplace Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    isMarketplaceActive
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                >
+                  Marketplace
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-60">
+                <DropdownMenuItem asChild>
+                  <Link href="/search" className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Search className="w-4 h-4 text-primary" />
+                    </div>
+                    Browse Equipment
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/new-trailers" className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Truck className="w-4 h-4 text-primary" />
+                    </div>
+                    New Trailers
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dealers" className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Building2 className="w-4 h-4 text-primary" />
+                    </div>
+                    Dealers
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/categories" className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <LayoutGrid className="w-4 h-4 text-primary" />
+                    </div>
+                    Categories
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Platform Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    isPlatformActive
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  }`}
+                >
+                  Platform
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-60">
+                <DropdownMenuItem asChild>
+                  <Link href="/how-it-works" className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Bot className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">AI Platform</p>
+                      <p className="text-xs text-muted-foreground">Sales assistant, CRM & automation</p>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/voice" className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-cyan-600/10 flex items-center justify-center shrink-0">
+                      <Headphones className="w-4 h-4 text-cyan-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium flex items-center gap-2">
+                        Voice Agents
+                        <span className="text-[10px] font-semibold bg-cyan-600 text-white px-1.5 py-0.5 rounded-full leading-none">24/7</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">Phone answering & lead capture</p>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/how-it-works#pricing" className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <DollarSign className="w-4 h-4" />
+                    </div>
+                    Pricing
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Dealers Simple Link */}
             <Link
-              href="/how-it-works"
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                pathname === '/how-it-works'
+              href="/become-a-dealer"
+              className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                isDealersActive
                   ? 'bg-primary/10 text-primary'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               }`}
             >
-              Services
-            </Link>
-            <Link
-              href="/how-it-works#pricing"
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted`}
-            >
-              Pricing
+              Dealers
             </Link>
           </nav>
 
@@ -257,6 +365,67 @@ export function Header() {
                 <div className="mt-6 flex flex-col gap-4">
                   {/* Mobile Nav Links */}
                   <nav className="flex flex-col gap-1">
+                    {/* Marketplace Section */}
+                    <p className="px-3 pt-1 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Marketplace
+                    </p>
+                    <Link
+                      href="/search"
+                      onClick={() => setIsOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                        pathname.startsWith('/search')
+                          ? 'bg-primary/10 text-primary'
+                          : 'hover:bg-muted'
+                      }`}
+                    >
+                      <Search className="w-5 h-5" />
+                      Browse Equipment
+                    </Link>
+                    <Link
+                      href="/new-trailers"
+                      onClick={() => setIsOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                        pathname.startsWith('/new-trailers')
+                          ? 'bg-primary/10 text-primary'
+                          : 'hover:bg-muted'
+                      }`}
+                    >
+                      <Truck className="w-5 h-5" />
+                      New Trailers
+                    </Link>
+                    <Link
+                      href="/dealers"
+                      onClick={() => setIsOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                        pathname.startsWith('/dealers')
+                          ? 'bg-primary/10 text-primary'
+                          : 'hover:bg-muted'
+                      }`}
+                    >
+                      <Building2 className="w-5 h-5" />
+                      Dealers
+                    </Link>
+                    <Link
+                      href="/categories"
+                      onClick={() => setIsOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                        pathname.startsWith('/categories')
+                          ? 'bg-primary/10 text-primary'
+                          : 'hover:bg-muted'
+                      }`}
+                    >
+                      <LayoutGrid className="w-5 h-5" />
+                      Categories
+                    </Link>
+                  </nav>
+
+                  <div className="h-px bg-border" />
+
+                  <nav className="flex flex-col gap-1">
+                    {/* Platform Section */}
+                    <p className="px-3 pt-1 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Platform
+                    </p>
                     <Link
                       href="/how-it-works"
                       onClick={() => setIsOpen(false)}
@@ -266,8 +435,23 @@ export function Header() {
                           : 'hover:bg-muted'
                       }`}
                     >
-                      <CircleHelp className="w-5 h-5" />
-                      Services
+                      <Bot className="w-5 h-5" />
+                      AI Platform
+                    </Link>
+                    <Link
+                      href="/voice"
+                      onClick={() => setIsOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                        pathname === '/voice'
+                          ? 'bg-primary/10 text-primary'
+                          : 'hover:bg-muted'
+                      }`}
+                    >
+                      <Headphones className="w-5 h-5" />
+                      <span className="flex items-center gap-2">
+                        Voice Agents
+                        <span className="text-[10px] font-semibold bg-cyan-600 text-white px-1.5 py-0.5 rounded-full leading-none">24/7</span>
+                      </span>
                     </Link>
                     <Link
                       href="/how-it-works#pricing"
@@ -278,6 +462,28 @@ export function Header() {
                       Pricing
                     </Link>
                   </nav>
+
+                  <div className="h-px bg-border" />
+
+                  <nav className="flex flex-col gap-1">
+                    {/* For Dealers Section */}
+                    <p className="px-3 pt-1 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      For Dealers
+                    </p>
+                    <Link
+                      href="/become-a-dealer"
+                      onClick={() => setIsOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                        pathname === '/become-a-dealer'
+                          ? 'bg-primary/10 text-primary'
+                          : 'hover:bg-muted'
+                      }`}
+                    >
+                      <Store className="w-5 h-5" />
+                      Become a Dealer
+                    </Link>
+                  </nav>
+
                   <div className="h-px bg-border" />
 
                   {/* User Info */}

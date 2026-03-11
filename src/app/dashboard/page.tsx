@@ -18,6 +18,9 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { SmartImportDropzone } from '@/components/dashboard/SmartImportDropzone';
+import { CommandCenter } from '@/components/dashboard/CommandCenter';
+import { LeadsPipeline } from '@/components/dashboard/LeadsPipeline';
+import { ActivityFeed, type ActivityItem } from '@/components/dashboard/ActivityFeed';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -125,6 +128,150 @@ export default async function DashboardPage() {
     .limit(5);
   const recentListings = listings || [];
 
+  // Get stale listings (active > 45 days old)
+  const fortyFiveDaysAgo = new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: staleListings } = await supabase
+    .from('listings')
+    .select('id, title, created_at, price')
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .lt('created_at', fortyFiveDaysAgo)
+    .order('created_at', { ascending: true })
+    .limit(1);
+
+  // Get most viewed listing in last 7 days
+  const { data: topViewedListings } = await supabase
+    .from('listings')
+    .select('id, title, views_count')
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .order('views_count', { ascending: false })
+    .limit(1);
+
+  // Leads pipeline counts
+  const { count: pipelineNew } = await supabase
+    .from('leads')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('status', 'new');
+
+  const { count: pipelineContacted } = await supabase
+    .from('leads')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('status', 'contacted');
+
+  const { count: pipelineQualified } = await supabase
+    .from('leads')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('status', 'qualified');
+
+  const { count: pipelineWon } = await supabase
+    .from('leads')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('status', 'won');
+
+  const { count: pipelineLost } = await supabase
+    .from('leads')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('status', 'lost');
+
+  const pipeline = {
+    new: pipelineNew || 0,
+    contacted: pipelineContacted || 0,
+    qualified: pipelineQualified || 0,
+    won: pipelineWon || 0,
+    lost: pipelineLost || 0,
+  };
+
+  // Recent activity feed
+  const { data: recentLeads } = await supabase
+    .from('leads')
+    .select('id, buyer_name, source, created_at, listing_id')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  const { data: recentMessages } = await supabase
+    .from('messages')
+    .select('id, sender_name, content, created_at, listing_id')
+    .eq('recipient_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(3);
+
+  // Build activity feed
+  const activities: ActivityItem[] = [];
+
+  recentLeads?.forEach((lead) => {
+    const ago = getTimeAgo(new Date(lead.created_at));
+    activities.push({
+      id: `lead-${lead.id}`,
+      type: lead.source === 'phone_call' ? 'call' : 'lead',
+      title: `New lead: ${lead.buyer_name}`,
+      description: lead.source === 'phone_call' ? 'Inbound phone call' : 'Submitted inquiry',
+      time: ago,
+      href: '/dashboard/leads',
+    });
+  });
+
+  recentMessages?.forEach((msg) => {
+    const ago = getTimeAgo(new Date(msg.created_at));
+    activities.push({
+      id: `msg-${msg.id}`,
+      type: 'message',
+      title: `Message from ${msg.sender_name || 'Buyer'}`,
+      description: msg.content?.slice(0, 60) || 'New message',
+      time: ago,
+      href: '/dashboard/messages',
+    });
+  });
+
+  // Sort by most recent and take top 8
+  activities.sort((a, b) => {
+    const timeOrder = ['just now', '1m', '2m', '5m', '10m', '30m', '1h', '2h', '3h', '5h', '12h', '1d', '2d', '3d', '5d', '1w', '2w'];
+    return timeOrder.indexOf(a.time) - timeOrder.indexOf(b.time);
+  });
+  const feedActivities = activities.slice(0, 8);
+
+  // Build AI insights
+  const insights: { type: 'inventory' | 'lead' | 'market'; title: string; description: string; action: string; href: string }[] = [];
+
+  if (staleListings && staleListings.length > 0) {
+    const stale = staleListings[0];
+    const daysListed = Math.floor((now.getTime() - new Date(stale.created_at).getTime()) / (1000 * 60 * 60 * 24));
+    insights.push({
+      type: 'inventory',
+      title: 'Inventory Alert',
+      description: `"${stale.title}" has been listed for ${daysListed} days. Consider adjusting the price to increase demand.`,
+      action: 'Edit',
+      href: `/dashboard/listings/${stale.id}/edit`,
+    });
+  }
+
+  if (newLeads && newLeads > 0) {
+    insights.push({
+      type: 'lead',
+      title: 'Lead Opportunity',
+      description: `You have ${newLeads} new lead${newLeads > 1 ? 's' : ''} waiting for a response. Quick follow-ups close 3x more deals.`,
+      action: 'View',
+      href: '/dashboard/leads',
+    });
+  }
+
+  if (topViewedListings && topViewedListings.length > 0 && topViewedListings[0].views_count > 5) {
+    const top = topViewedListings[0];
+    insights.push({
+      type: 'market',
+      title: 'High Demand',
+      description: `"${top.title}" has ${top.views_count} views — your most popular listing. Consider featuring it for more exposure.`,
+      action: 'View',
+      href: `/listing/${top.id}`,
+    });
+  }
+
   // Dealer dashboard
   return (
     <div className="space-y-6">
@@ -135,7 +282,7 @@ export default async function DashboardPage() {
             Welcome back, {profile?.company_name || user.email?.split('@')[0]}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Here&apos;s what&apos;s happening with your listings today.
+            Here&apos;s what&apos;s happening with your dealership today.
           </p>
         </div>
         <Button asChild>
@@ -145,6 +292,12 @@ export default async function DashboardPage() {
           </Link>
         </Button>
       </div>
+
+      {/* AI Command Center */}
+      <CommandCenter
+        insights={insights}
+        companyName={profile?.company_name || undefined}
+      />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -195,6 +348,26 @@ export default async function DashboardPage() {
           <SmartImportDropzone compact />
         </CardContent>
       </Card>
+
+      {/* Pipeline + Activity Row */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <Card>
+          <CardContent className="p-5">
+            <LeadsPipeline pipeline={pipeline} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-muted-foreground" />
+              Recent Activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <ActivityFeed activities={feedActivities} />
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Main Content Grid */}
       <div className="grid lg:grid-cols-3 gap-6">
@@ -419,5 +592,20 @@ function QuickActionButton({
       </Link>
     </Button>
   );
+}
+
+function getTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m`;
+  if (diffHours < 24) return `${diffHours}h`;
+  if (diffDays < 7) return `${diffDays}d`;
+  if (diffDays < 14) return '1w';
+  return '2w+';
 }
 
