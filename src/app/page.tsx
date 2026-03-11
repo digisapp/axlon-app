@@ -181,12 +181,13 @@ export default async function HomePage() {
                   <FeatureCheck>Automated email & SMS follow-ups</FeatureCheck>
                   <FeatureCheck>Lead capture & qualification 24/7</FeatureCheck>
                 </ul>
-                <div className="flex items-baseline gap-1.5 mb-3">
+                <div className="flex items-baseline gap-1.5 mb-1">
                   <span className="text-2xl font-bold text-primary">$399</span>
                   <span className="text-sm text-muted-foreground">/mo</span>
                 </div>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-3">30-day free trial &middot; No credit card</p>
                 <span className="text-sm font-medium text-primary group-hover:underline">
-                  Learn more &rarr;
+                  Start free trial &rarr;
                 </span>
               </div>
             </Link>
@@ -207,10 +208,11 @@ export default async function HomePage() {
                   <FeatureCheck>Dedicated phone number included</FeatureCheck>
                   <FeatureCheck>Call transcripts & lead summaries</FeatureCheck>
                 </ul>
-                <div className="flex items-baseline gap-1.5 mb-3">
+                <div className="flex items-baseline gap-1.5 mb-1">
                   <span className="text-2xl font-bold text-cyan-600">$499</span>
                   <span className="text-sm text-muted-foreground">/mo</span>
                 </div>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-3">Bundle both for $699/mo — save $199</p>
                 <span className="text-sm font-medium text-cyan-600 group-hover:underline">
                   Learn more &rarr;
                 </span>

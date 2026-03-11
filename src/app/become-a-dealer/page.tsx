@@ -213,15 +213,18 @@ export default function ForDealersPage() {
               </span>
             </h1>
 
-            <p className="text-lg md:text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-slate-300 mb-4 max-w-2xl mx-auto">
               One AI platform that manages your inventory, captures leads, answers your phones,
               and closes more deals — while you focus on running your business.
+            </p>
+            <p className="text-sm text-emerald-400 font-medium mb-8">
+              30-day free trial &middot; No credit card required
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button size="lg" className="rounded-full gap-2 shadow-lg shadow-primary/30 group w-full sm:w-auto text-base px-8" asChild>
                 <Link href="/get-started">
-                  Get Started Free
+                  Start 30-Day Free Trial
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
@@ -379,7 +382,7 @@ export default function ForDealersPage() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-3">Get running in 15 minutes</h2>
-            <p className="text-muted-foreground text-lg">No contracts. No setup fees. Cancel anytime.</p>
+            <p className="text-muted-foreground text-lg">30-day free trial. No credit card. No setup fees.</p>
           </div>
 
           <div className="grid sm:grid-cols-3 gap-8">
@@ -487,10 +490,10 @@ export default function ForDealersPage() {
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-3">Simple, transparent pricing</h2>
           <p className="text-muted-foreground text-lg mb-10 max-w-2xl mx-auto">
-            No hidden fees. No long-term contracts. Start free with the marketplace and add AI tools when you&apos;re ready.
+            30-day free trial on all paid plans. No credit card required. Start free with the marketplace and add AI tools when you&apos;re ready.
           </p>
 
-          <div className="grid md:grid-cols-3 gap-6 mb-10">
+          <div className="grid md:grid-cols-3 gap-6 mb-4">
             <div className="border rounded-xl p-6 bg-card">
               <Store className="w-8 h-8 text-amber-500 mx-auto mb-3" />
               <h3 className="font-bold text-lg">Marketplace</h3>
@@ -505,6 +508,7 @@ export default function ForDealersPage() {
               <h3 className="font-bold text-lg">AI Platform</h3>
               <p className="text-3xl font-bold mt-2 text-primary">$399<span className="text-base font-normal text-muted-foreground">/mo</span></p>
               <p className="text-sm text-muted-foreground mt-1">CRM, AI assistant, automation</p>
+              <p className="text-xs text-emerald-600 font-medium mt-2">30-day free trial</p>
             </div>
             <div className="border rounded-xl p-6 bg-card">
               <Headphones className="w-8 h-8 text-cyan-600 mx-auto mb-3" />
@@ -514,9 +518,14 @@ export default function ForDealersPage() {
             </div>
           </div>
 
+          <div className="border-2 border-emerald-500/40 rounded-xl p-4 bg-emerald-50/50 dark:bg-emerald-950/20 mb-10 max-w-md mx-auto">
+            <p className="text-sm font-semibold text-center">AI Suite Bundle: <span className="text-emerald-600">$699/mo</span> <span className="text-muted-foreground line-through text-xs">$898</span></p>
+            <p className="text-xs text-muted-foreground text-center mt-1">Platform + Voice — save $199/mo</p>
+          </div>
+
           <Button size="lg" className="rounded-full gap-2 shadow-lg shadow-primary/20 group text-base px-8" asChild>
-            <Link href="/how-it-works#pricing">
-              See Full Pricing Details
+            <Link href="/get-started">
+              Start 30-Day Free Trial
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           </Button>
@@ -536,7 +545,7 @@ export default function ForDealersPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button size="lg" className="rounded-full gap-2 shadow-lg shadow-primary/20 group w-full sm:w-auto text-base px-8" asChild>
               <Link href="/get-started">
-                Get Started Free
+                Start 30-Day Free Trial
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
@@ -547,7 +556,7 @@ export default function ForDealersPage() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-6">
-            No credit card required &middot; Free marketplace access &middot; Cancel anytime
+            No credit card required &middot; 30-day free trial &middot; Cancel anytime
           </p>
         </div>
       </section>

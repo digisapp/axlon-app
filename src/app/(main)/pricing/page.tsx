@@ -15,6 +15,8 @@ import {
   DollarSign,
   Clock,
   Shield,
+  Gift,
+  Crown,
 } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -31,8 +33,9 @@ export default function PricingPage() {
       {/* Hero */}
       <section className="py-16 md:py-24 px-4 text-center">
         <div className="max-w-4xl mx-auto">
-          <Badge variant="outline" className="mb-4">
-            Simple, transparent pricing
+          <Badge variant="outline" className="mb-4 gap-1.5">
+            <Gift className="w-3.5 h-3.5" />
+            30-day free trial — no credit card required
           </Badge>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
             One platform. Everything you need.
@@ -92,10 +95,13 @@ export default function PricingPage() {
               </ul>
               <Button className="w-full" size="lg" asChild>
                 <Link href="/get-started">
-                  Get Started
+                  Start 30-Day Free Trial
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Link>
               </Button>
+              <p className="text-xs text-center text-muted-foreground">
+                No credit card required
+              </p>
             </CardContent>
           </Card>
 
@@ -150,6 +156,126 @@ export default function PricingPage() {
                   <PhoneCall className="w-4 h-4 ml-2" />
                 </Link>
               </Button>
+              <p className="text-xs text-center text-muted-foreground">
+                Included in AI Suite bundle
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* AI Suite Bundle */}
+        <div className="max-w-5xl mx-auto mt-8">
+          <Card className="relative border-2 border-emerald-500/50 shadow-xl bg-gradient-to-r from-emerald-50/50 to-cyan-50/50 dark:from-emerald-950/20 dark:to-cyan-950/20">
+            <div className="absolute -top-3 left-4">
+              <Badge className="bg-emerald-600">Best Value — Save $199/mo</Badge>
+            </div>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-5 h-5 text-emerald-600" />
+                <CardTitle className="text-xl">AI Suite</CardTitle>
+                <span className="text-sm text-muted-foreground">Platform + Voice</span>
+              </div>
+              <CardDescription>
+                The complete AI operating system — everything in one bundle
+              </CardDescription>
+              <div className="mt-4 flex items-baseline gap-3">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-bold text-emerald-600">$699</span>
+                  <span className="text-muted-foreground">/month</span>
+                </div>
+                <span className="text-sm text-muted-foreground line-through">$898/mo</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                or $6,990/year (save $1,398) &middot; Save $199/mo vs buying separately
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid sm:grid-cols-2 gap-x-8 gap-y-2 mb-6">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Platform Included</p>
+                  <ul className="space-y-2">
+                    {['AI Sales Assistant & CRM', 'Smart Import & automation', 'Analytics & deal scoring', 'Custom branded storefront'].map((f) => (
+                      <li key={f} className="flex items-center gap-2 text-sm">
+                        <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Voice Included</p>
+                  <ul className="space-y-2">
+                    {['24/7 AI phone answering', '500 minutes/mo included', 'Call transcripts & summaries', 'Lead capture from every call'].map((f) => (
+                      <li key={f} className="flex items-center gap-2 text-sm">
+                        <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <Button className="w-full bg-emerald-600 hover:bg-emerald-700" size="lg" asChild>
+                <Link href="/get-started?plan=suite">
+                  Start 30-Day Free Trial — AI Suite
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
+              </Button>
+              <p className="text-xs text-center text-muted-foreground mt-2">
+                No credit card required &middot; Full access to everything
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* Founding Dealer Program */}
+      <section className="px-4 pb-16">
+        <div className="max-w-5xl mx-auto">
+          <Card className="relative overflow-hidden border-amber-500/30 bg-gradient-to-r from-amber-50/50 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/20">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-[60px]" />
+            <CardContent className="p-6 md:p-8">
+              <div className="flex flex-col md:flex-row md:items-center gap-6">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Crown className="w-5 h-5 text-amber-600" />
+                    <Badge className="bg-amber-600">Limited — First 100 Dealers</Badge>
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-bold mb-2">Founding Dealer Program</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Lock in <span className="font-bold text-foreground">$299/mo for the AI Suite forever</span>.
+                    As a founding dealer, your rate never increases — even as we add new features and raise prices.
+                  </p>
+                  <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                    <li className="flex items-center gap-1.5">
+                      <Check className="w-4 h-4 text-amber-500" />
+                      Platform + Voice included
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <Check className="w-4 h-4 text-amber-500" />
+                      Price locked forever
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <Check className="w-4 h-4 text-amber-500" />
+                      Priority support
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <Check className="w-4 h-4 text-amber-500" />
+                      Early access to new features
+                    </li>
+                  </ul>
+                </div>
+                <div className="text-center md:text-right shrink-0">
+                  <p className="text-sm text-muted-foreground line-through">$699/mo</p>
+                  <p className="text-4xl font-bold text-amber-600">$299</p>
+                  <p className="text-sm text-muted-foreground">/mo forever</p>
+                  <Button className="mt-3 bg-amber-600 hover:bg-amber-700" asChild>
+                    <Link href="/get-started?plan=founding">
+                      Claim Your Spot
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -370,8 +496,12 @@ export default function PricingPage() {
               answer="Yes — Smart Import automatically migrates data from TruckPaper, Salesforce, CDK, EverLogic, or any spreadsheet. Just drop your files and AI does the rest. Or choose Guided Setup and we'll handle the migration for you."
             />
             <FAQItem
+              question="How does the 30-day free trial work?"
+              answer="Sign up with just your email — no credit card required. You get full access to the AI Platform for 30 days. If you love it (and you will), pick a plan. If not, no charge."
+            />
+            <FAQItem
               question="Is there a contract?"
-              answer="Annual commitment is required. Annual plans save you money and include waived setup fees. We're confident you'll see ROI within the first month."
+              answer="No long-term contracts required. Monthly plans are available, or save with an annual commitment that also waives setup fees. We're confident you'll see ROI within the first month."
             />
             <FAQItem
               question="How does the annual discount work?"
@@ -380,6 +510,10 @@ export default function PricingPage() {
             <FAQItem
               question="What if I just want to list equipment for free?"
               answer="You can create a free account and list up to 5 pieces of equipment on the marketplace. The Platform subscription unlocks unlimited listings plus all AI features."
+            />
+            <FAQItem
+              question="What is the Founding Dealer Program?"
+              answer="The first 100 dealers to sign up get the full AI Suite (Platform + Voice) locked at $299/mo forever — even as we add features and raise prices. It's our way of rewarding early adopters."
             />
             <FAQItem
               question="How long does setup take?"
@@ -397,14 +531,14 @@ export default function PricingPage() {
             Ready to modernize your dealership?
           </h2>
           <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
-            Join dealers who are saving $100,000+ per year by replacing old tools
-            and manual processes with AI.
+            Start your 30-day free trial today. No credit card required.
+            Join dealers saving $100,000+ per year with AI.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button size="lg" asChild>
               <Link href="/get-started">
                 <Zap className="w-4 h-4 mr-2" />
-                Get Started Free
+                Start Free Trial
               </Link>
             </Button>
             <Button size="lg" variant="outline" asChild>

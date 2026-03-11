@@ -21,6 +21,8 @@ import { SmartImportDropzone } from '@/components/dashboard/SmartImportDropzone'
 import { CommandCenter } from '@/components/dashboard/CommandCenter';
 import { LeadsPipeline } from '@/components/dashboard/LeadsPipeline';
 import { ActivityFeed, type ActivityItem } from '@/components/dashboard/ActivityFeed';
+import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist';
+import { TrialBanner } from '@/components/dashboard/TrialBanner';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -202,6 +204,13 @@ export default async function DashboardPage() {
       .limit(3),
   ]);
 
+  // Trial status
+  const trialStartDate = profile?.created_at ? new Date(profile.created_at) : new Date();
+  const trialEndDate = new Date(trialStartDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const trialDaysRemaining = Math.max(0, Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+  const isOnTrial = !profile?.subscription_status && trialDaysRemaining > 0;
+  const showTrialBanner = isOnTrial && trialDaysRemaining <= 21;
+
   // Compute derived values
   const totalListings = total || 0;
   const activeListings = active || 0;
@@ -298,6 +307,19 @@ export default async function DashboardPage() {
   // Dealer dashboard
   return (
     <div className="space-y-4 md:space-y-6">
+      {/* Trial Conversion Banner */}
+      {showTrialBanner && (
+        <TrialBanner
+          trialDaysRemaining={trialDaysRemaining}
+          trialEndsAt={trialEndDate.toISOString()}
+          stats={{
+            listingsCreated: totalListings,
+            totalViews: totalViews,
+            leadsCapured: newLeads,
+          }}
+        />
+      )}
+
       {/* Welcome Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 md:gap-4">
         <div>
@@ -315,6 +337,14 @@ export default async function DashboardPage() {
           </Link>
         </Button>
       </div>
+
+      {/* Onboarding Checklist */}
+      <OnboardingChecklist
+        hasListings={totalListings > 0}
+        hasImported={totalListings >= 3}
+        hasPhoneNumber={!!profile?.voice_phone_number}
+        hasLeads={(newLeads || 0) > 0 || (pipeline.contacted || 0) > 0 || (pipeline.won || 0) > 0}
+      />
 
       {/* AI Command Center */}
       <CommandCenter

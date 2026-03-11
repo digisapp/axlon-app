@@ -100,9 +100,12 @@ export function HowItWorksContent() {
                   ))}
                 </ul>
                 <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold">$399<span className="text-sm font-normal text-muted-foreground">/mo</span></span>
+                  <div>
+                    <span className="text-2xl font-bold">$399<span className="text-sm font-normal text-muted-foreground">/mo</span></span>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">30-day free trial</p>
+                  </div>
                   <span className="text-sm text-primary font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
-                    Learn more <ArrowRight className="w-4 h-4" />
+                    Start free trial <ArrowRight className="w-4 h-4" />
                   </span>
                 </div>
               </CardContent>
@@ -139,7 +142,10 @@ export function HowItWorksContent() {
                   ))}
                 </ul>
                 <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold">$499<span className="text-sm font-normal text-muted-foreground">/mo</span></span>
+                  <div>
+                    <span className="text-2xl font-bold">$499<span className="text-sm font-normal text-muted-foreground">/mo</span></span>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Bundle both for $699/mo</p>
+                  </div>
                   <span className="text-sm text-cyan-600 font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
                     Learn more <ArrowRight className="w-4 h-4" />
                   </span>
@@ -285,7 +291,7 @@ export function HowItWorksContent() {
             <div className="text-center mb-8 md:mb-10">
               <h2 className="text-xl md:text-3xl font-bold mb-2">Simple, transparent pricing</h2>
               <p className="text-sm md:text-base text-muted-foreground max-w-lg mx-auto">
-                No per-user fees. No hidden costs. One platform, everything included.
+                30-day free trial on all paid plans. No credit card required. No hidden costs.
               </p>
             </div>
 
@@ -336,10 +342,13 @@ export function HowItWorksContent() {
                   </ul>
                   <Button className="w-full" size="lg" asChild>
                     <Link href="/get-started">
-                      Get Started
+                      Start 30-Day Free Trial
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Link>
                   </Button>
+                  <p className="text-xs text-center text-muted-foreground">
+                    No credit card required
+                  </p>
                 </CardContent>
               </Card>
 
