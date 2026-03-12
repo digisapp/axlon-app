@@ -138,12 +138,12 @@ export default function PricingPage() {
                   'AI Voice Agent answers calls 24/7',
                   'Dedicated AI phone number',
                   '500 voice minutes included/month',
-                  'Phone lead capture & qualification',
+                  'Searches inventory & quotes pricing on calls',
+                  'Automatic lead capture & qualification',
                   'Call recordings + AI transcripts',
-                  'Team PIN access for instant company intel',
-                  'Calls, leads, and deals in one system',
-                  'Business hours routing + after-hours AI',
-                  'Call transfer to human when needed',
+                  'Team PIN access — role-based company intel',
+                  'Department routing + after-hours AI',
+                  'Transfer to human when needed',
                 ].map((feature) => (
                   <li key={feature} className="flex items-start gap-2 text-sm">
                     <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
@@ -188,14 +188,14 @@ export default function PricingPage() {
               <ul className="space-y-3">
                 {[
                   'Dedicated AI phone number',
-                  '24/7 inbound call handling',
+                  '24/7 inbound call handling in 30+ languages',
                   '500 minutes included/month',
-                  'Inventory search during calls',
+                  'Searches your inventory during live calls',
                   'Automatic lead capture from every call',
                   'Call recording + AI transcription',
-                  'Staff PIN for internal data access',
-                  'Business hours routing + after-hours',
-                  'Call transfer to human when needed',
+                  'Team PIN access — role-based company intel',
+                  'Department routing (Sales, Service, Parts)',
+                  'Transfer to human when needed',
                 ].map((feature) => (
                   <li key={feature} className="flex items-start gap-2 text-sm">
                     <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
@@ -238,6 +238,7 @@ export default function PricingPage() {
                 ['Phone Lead Capture', false, true, true],
                 ['Call Transcripts', false, true, true],
                 ['Team PIN Access', false, true, true],
+                ['Department Routing', false, true, true],
               ].map(([feature, platform, suite, voice]) => (
                 <tr key={feature as string}>
                   <td className="py-2.5 pr-4 text-muted-foreground">{feature as string}</td>
