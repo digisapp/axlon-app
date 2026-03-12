@@ -42,9 +42,12 @@ export default function PricingPage() {
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
             One platform. Everything you need.
           </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-4">
             Replace your DMS, CRM, answering service, and listing tools with one
             AI-powered platform. No per-user fees. No hidden costs.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Set up in minutes — most dealers start receiving leads within days.
           </p>
         </div>
       </section>
@@ -60,7 +63,7 @@ export default function PricingPage() {
                 <CardTitle className="text-xl">AI Platform</CardTitle>
               </div>
               <CardDescription>
-                The brain behind your dealership.
+                Run your inventory, leads, and deals with AI.
               </CardDescription>
               <div className="mt-4">
                 <div className="flex items-baseline gap-1">
@@ -115,7 +118,7 @@ export default function PricingPage() {
                 <CardTitle className="text-xl">AI Suite</CardTitle>
               </div>
               <CardDescription>
-                Your complete AI operating system.
+                Your dealership powered entirely by AI.
               </CardDescription>
               <div className="mt-4">
                 <div className="flex items-baseline gap-2">
@@ -169,7 +172,7 @@ export default function PricingPage() {
                 <CardTitle className="text-xl">Voice Agent</CardTitle>
               </div>
               <CardDescription>
-                AI phone receptionist for your dealership.
+                Never miss another customer call.
               </CardDescription>
               <div className="mt-4">
                 <div className="flex items-baseline gap-1">
@@ -245,6 +248,9 @@ export default function PricingPage() {
               ))}
             </tbody>
           </table>
+          <p className="text-center text-xs text-muted-foreground mt-6">
+            Cancel anytime &middot; No long-term contracts &middot; 30-day free trial on all plans
+          </p>
         </div>
       </section>
 

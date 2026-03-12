@@ -48,7 +48,7 @@ export function HowItWorksContent() {
                 </div>
                 <CardTitle className="text-lg">AI Platform</CardTitle>
                 <CardDescription className="text-sm">
-                  The brain behind your dealership.
+                  Run your inventory, leads, and deals with AI.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -89,7 +89,7 @@ export function HowItWorksContent() {
                 </div>
                 <CardTitle className="text-lg">AI Suite</CardTitle>
                 <CardDescription className="text-sm">
-                  Your complete AI operating system.
+                  Your dealership powered entirely by AI.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -131,7 +131,7 @@ export function HowItWorksContent() {
                 </div>
                 <CardTitle className="text-lg">Voice Agent</CardTitle>
                 <CardDescription className="text-sm">
-                  AI phone receptionist for your dealership.
+                  Never miss another customer call.
                 </CardDescription>
               </CardHeader>
               <CardContent>

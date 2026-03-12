@@ -138,7 +138,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="font-bold text-lg mb-1">AI Platform</h3>
                 <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-3">
-                  The brain behind your dealership.
+                  Run your inventory, leads, and deals with AI.
                 </p>
                 <ul className="space-y-2 mb-4">
                   <FeatureCheck>AI Sales Assistant captures leads 24/7</FeatureCheck>
@@ -168,7 +168,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="font-bold text-lg mb-1">AI Suite</h3>
                 <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-3">
-                  Your complete AI operating system.
+                  Your dealership powered entirely by AI.
                 </p>
                 <p className="text-xs font-medium mb-2">Everything in Platform, plus:</p>
                 <ul className="space-y-2 mb-4">
@@ -197,7 +197,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="font-bold text-lg mb-1">Voice Agent</h3>
                 <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-3">
-                  AI phone receptionist for your dealership.
+                  Never miss another customer call.
                 </p>
                 <ul className="space-y-2 mb-4">
                   <FeatureCheck>Dedicated AI phone number</FeatureCheck>
