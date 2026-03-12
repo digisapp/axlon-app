@@ -330,32 +330,38 @@ export default function HomePage() {
 
         {/* What AXLON Replaces */}
         <section className="w-full max-w-2xl mx-auto mb-10 md:mb-16 px-4">
-          <h2 className="text-xl md:text-2xl font-bold text-center mb-6">What AXLON Replaces</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-center mb-2">What AXLON Replaces</h2>
+          <p className="text-sm text-muted-foreground dark:text-foreground/60 text-center mb-6 max-w-lg mx-auto">
+            Instead of juggling multiple tools, run your dealership from one AI platform.
+          </p>
           <div className="rounded-xl border bg-white/80 dark:bg-white/[0.08] overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/30">
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Old System</th>
-                  <th className="text-center py-3 px-4 font-medium text-primary">AXLON</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Tools Dealers Use Today</th>
+                  <th className="text-left py-3 px-4 font-medium text-primary">Replaced by AXLON</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {[
-                  'DMS',
-                  'CRM',
-                  'Answering service',
-                  'BDC team',
-                  'Spreadsheet inventory',
-                  'Listing sites',
+                  { old: 'Dealer DMS software', replaced: 'Inventory & deal management' },
+                  { old: 'CRM systems', replaced: 'Built-in CRM + Deal Desk' },
+                  { old: 'Answering services', replaced: 'AI Voice Agent' },
+                  { old: 'BDC teams', replaced: 'AI lead capture & qualification' },
+                  { old: 'Spreadsheet inventory', replaced: 'Real-time inventory manager' },
+                  { old: 'Multiple listing sites', replaced: 'AI marketplace distribution' },
                 ].map((item) => (
-                  <tr key={item}>
-                    <td className="py-2.5 px-4 text-muted-foreground dark:text-foreground/60">{item}</td>
-                    <td className="py-2.5 px-4 text-center text-primary font-medium">&#10003;</td>
+                  <tr key={item.old}>
+                    <td className="py-2.5 px-4 text-muted-foreground dark:text-foreground/60">{item.old}</td>
+                    <td className="py-2.5 px-4 text-primary font-medium">&#10003; {item.replaced}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center mt-3">
+            Replace thousands in monthly tools with one AI platform.
+          </p>
         </section>
 
         {/* Light Pricing Teaser */}
