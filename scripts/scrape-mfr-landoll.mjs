@@ -318,6 +318,8 @@ async function discoverProductLinks(page) {
   const subsectionUrls = [
     'https://landoll.com/landoll-trailers/detachable/',
     'https://landoll.com/landoll-trailers/traveling-axle/',
+    'https://landoll.com/landoll-trailers/ag-trailers/',
+    'https://landoll.com/landoll-trailers/specialty/',
   ];
 
   for (const subUrl of subsectionUrls) {
@@ -353,15 +355,19 @@ async function discoverProductLinks(page) {
   KNOWN_PRODUCT_PAGES.forEach((url) => allLinks.add(url.replace(/\/$/, '') + '/'));
 
   // Filter to just product detail pages (not top-level category pages)
-  const filtered = [...allLinks].filter((url) => {
-    // Skip the main trailers listing page itself
-    if (url === 'https://landoll.com/landoll-trailers/') return false;
-    // Skip category pages that are just containers
-    if (url === 'https://landoll.com/landoll-trailers/detachable/') return false;
-    if (url === 'https://landoll.com/landoll-trailers/traveling-axle/') return false;
+  const categoryPages = new Set([
+    'https://landoll.com/landoll-trailers/',
+    'https://landoll.com/landoll-trailers/detachable/',
+    'https://landoll.com/landoll-trailers/traveling-axle/',
+    'https://landoll.com/landoll-trailers/ag-trailers/',
+    'https://landoll.com/landoll-trailers/specialty/',
+  ]);
 
-    // Must contain a model identifier or be a deeper sub-page
-    const isProductPage = /\/landoll-trailers\/(?:detachable\/)?[^/]+\/$/.test(url);
+  const filtered = [...allLinks].filter((url) => {
+    if (categoryPages.has(url)) return false;
+    // Must be under /landoll-trailers/ with at least one more path segment (the product)
+    // Matches: /landoll-trailers/440b/, /landoll-trailers/traveling-axle/440b/, /landoll-trailers/detachable/850xt/
+    const isProductPage = /\/landoll-trailers\/(?:[^/]+\/)?[^/]+\/$/.test(url);
     return isProductPage;
   });
 
@@ -492,22 +498,69 @@ async function scrapeProductPage(page, url) {
     // --- Images ---
     const images = [];
     const seenUrls = new Set();
+
+    // Check gallery/lightbox links first for full-size images
+    document.querySelectorAll('a[href*=".jpg"], a[href*=".jpeg"], a[href*=".png"], a[href*=".webp"]').forEach((a) => {
+      const href = a.href;
+      if (!href || (!href.includes('landoll.com') && !href.includes('wp-content'))) return;
+      const filename = href.split('/').pop().toLowerCase();
+      if (filename.includes('logo') || filename.includes('icon') || filename.includes('favicon')) return;
+      const normalized = href.split('?')[0].replace(/-\d+x\d+\.(png|jpg|jpeg|webp)$/i, '.$1');
+      if (!seenUrls.has(normalized)) {
+        seenUrls.add(normalized);
+        const img = a.querySelector('img');
+        images.push({ url: normalized, alt: img ? img.alt || '' : '' });
+      }
+    });
+
     document.querySelectorAll('img').forEach((img) => {
-      const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src');
+      let src = img.getAttribute('data-large_image') ||
+        img.getAttribute('data-src') ||
+        img.getAttribute('data-lazy-src') ||
+        img.src;
       if (!src) return;
-      // Skip tiny icons, logos, etc.
-      if (src.includes('logo') || src.includes('icon') || src.includes('favicon')) return;
+      if (src.includes('data:image') || src.includes('placeholder')) return;
+      // Skip non-photo formats
       if (src.includes('.gif') || src.includes('.svg')) return;
       if (src.includes('gravatar') || src.includes('wp-content/plugins')) return;
+      // Skip tracking pixels
+      if (src.includes('bat.bing') || src.includes('google-analytics') || src.includes('facebook.com') || src.includes('doubleclick')) return;
       // Only keep Landoll domain images or CDN images
       if (!src.includes('landoll.com') && !src.includes('wp-content') && !src.includes('uploads')) return;
+      // Skip tiny icons and logos — check filename only, not full path
+      const filename = src.split('/').pop().toLowerCase();
+      if (filename.includes('logo') || filename.includes('icon') || filename.includes('favicon')) return;
+      if (filename.includes('pixel') || filename.includes('spacer') || filename.includes('1x1')) return;
 
-      const width = img.naturalWidth || img.width || 0;
-      if (width > 0 && width < 50) return; // skip tiny images
+      // Try srcset for larger image
+      const srcset = img.getAttribute('srcset');
+      if (srcset) {
+        const parts = srcset.split(',').map((s) => s.trim());
+        let bestSrc = '';
+        let bestWidth = 0;
+        for (const part of parts) {
+          const [u, w] = part.split(/\s+/);
+          const width = parseInt(w) || 0;
+          if (u && !u.includes('data:image') && width > bestWidth) {
+            bestWidth = width;
+            bestSrc = u;
+          }
+        }
+        if (bestSrc) src = bestSrc;
+      }
 
-      const normalizedSrc = src.split('?')[0]; // remove query params for dedup
+      // Strip WordPress thumbnail suffix
+      src = src.replace(/-\d+x\d+\.(png|jpg|jpeg|webp)$/i, '.$1');
+
+      const normalizedSrc = src.split('?')[0];
       if (seenUrls.has(normalizedSrc)) return;
       seenUrls.add(normalizedSrc);
+
+      // Skip known tiny images but don't reject unknown dimensions
+      const width = img.naturalWidth || img.width || 0;
+      const height = img.naturalHeight || img.height || 0;
+      if (width > 0 && width < 50) return;
+      if (height > 0 && height < 50) return;
 
       images.push({
         url: src,

@@ -535,22 +535,31 @@ async function scrapeProductPage(page, url) {
         img.getAttribute('data-src') ||
         img.getAttribute('data-lazy-src');
       if (!src) return;
-      // Skip tiny icons, logos, etc.
-      if (src.includes('logo') || src.includes('icon') || src.includes('favicon')) return;
+      if (src.includes('data:image') || src.includes('placeholder')) return;
+      // Skip non-photo formats
       if (src.includes('.gif') || src.includes('.svg')) return;
       if (src.includes('gravatar') || src.includes('wp-content/plugins')) return;
+      // Skip tracking pixels and analytics
+      if (src.includes('bat.bing') || src.includes('google-analytics') || src.includes('facebook.com') || src.includes('doubleclick') || src.includes('action/0?')) return;
       // Only keep images from relevant domains
       if (
         !src.includes('faymonville') &&
         !src.includes('maxtrailer') &&
         !src.includes('haletrailer') &&
-        !src.includes('wp-content')
+        !src.includes('wp-content') &&
+        !src.includes('wpmedia')
       ) {
         return;
       }
+      // Skip tiny icons and logos — check filename only, not full path
+      const filename = src.split('/').pop().toLowerCase();
+      if (filename.includes('logo') || filename.includes('icon') || filename.includes('favicon')) return;
+      if (filename.includes('pixel') || filename.includes('spacer') || filename.includes('1x1')) return;
 
       const width = img.naturalWidth || img.width || 0;
-      if (width > 0 && width < 50) return; // skip tiny images
+      const height = img.naturalHeight || img.height || 0;
+      if (width > 0 && width < 100) return; // skip tiny images
+      if (height > 0 && height < 100) return;
 
       const normalizedSrc = src.split('?')[0]; // remove query params for dedup
       if (seenUrls.has(normalizedSrc)) return;

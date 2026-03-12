@@ -420,22 +420,70 @@ async function scrapeProductPage(page, url) {
     // --- Images ---
     const images = [];
     const seenUrls = new Set();
+
+    // Also check gallery/lightbox links for full-size images
+    document.querySelectorAll('a[href*=".jpg"], a[href*=".jpeg"], a[href*=".png"], a[href*=".webp"]').forEach((a) => {
+      const href = a.href;
+      if (!href || !href.includes('eagerbeavertrailers.com')) return;
+      if (href.includes('wp-content/themes')) return;
+      const filename = href.split('/').pop().toLowerCase();
+      if (filename.includes('logo') || filename.includes('icon') || filename.includes('favicon')) return;
+      const normalized = href.split('?')[0].replace(/-\d+x\d+\.(png|jpg|jpeg|webp)$/i, '.$1');
+      if (!seenUrls.has(normalized)) {
+        seenUrls.add(normalized);
+        const img = a.querySelector('img');
+        images.push({ url: normalized, alt: img ? img.alt || '' : '' });
+      }
+    });
+
     document.querySelectorAll('img').forEach((img) => {
-      const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src');
+      let src = img.getAttribute('data-large_image') ||
+        img.getAttribute('data-src') ||
+        img.getAttribute('data-lazy-src') ||
+        img.src;
       if (!src) return;
-      // Skip tiny icons, logos, etc.
-      if (src.includes('logo') || src.includes('icon') || src.includes('favicon')) return;
+      if (src.includes('data:image') || src.includes('placeholder')) return;
+      // Skip non-photo formats
       if (src.includes('.gif') || src.includes('.svg')) return;
-      if (src.includes('gravatar') || src.includes('wp-content/plugins')) return;
+      if (src.includes('gravatar') || src.includes('wp-content/plugins') || src.includes('wp-content/themes')) return;
+      // Skip tracking pixels
+      if (src.includes('bat.bing') || src.includes('google-analytics') || src.includes('facebook.com') || src.includes('doubleclick')) return;
       // Only keep Eager Beaver domain images or CDN images
       if (!src.includes('eagerbeavertrailers.com') && !src.includes('wp-content')) return;
+      // Skip tiny icons and logos — check filename only, not full path
+      const filename = src.split('/').pop().toLowerCase();
+      if (filename.includes('logo') || filename.includes('icon') || filename.includes('favicon')) return;
+      if (filename.includes('pixel') || filename.includes('spacer') || filename.includes('1x1')) return;
 
-      const width = img.naturalWidth || img.width || 0;
-      if (width > 0 && width < 50) return; // skip tiny images
+      // Try srcset for larger image
+      const srcset = img.getAttribute('srcset');
+      if (srcset) {
+        const parts = srcset.split(',').map((s) => s.trim());
+        let bestSrc = '';
+        let bestWidth = 0;
+        for (const part of parts) {
+          const [u, w] = part.split(/\s+/);
+          const width = parseInt(w) || 0;
+          if (u && !u.includes('data:image') && width > bestWidth) {
+            bestWidth = width;
+            bestSrc = u;
+          }
+        }
+        if (bestSrc) src = bestSrc;
+      }
 
-      const normalizedSrc = src.split('?')[0]; // remove query params for dedup
+      // Strip WordPress thumbnail suffix to get full-size
+      src = src.replace(/-\d+x\d+\.(png|jpg|jpeg|webp)$/i, '.$1');
+
+      const normalizedSrc = src.split('?')[0];
       if (seenUrls.has(normalizedSrc)) return;
       seenUrls.add(normalizedSrc);
+
+      // Skip if we know dimensions and they're tiny (but don't skip if dimensions unknown)
+      const width = img.naturalWidth || img.width || 0;
+      const height = img.naturalHeight || img.height || 0;
+      if (width > 0 && width < 50) return;
+      if (height > 0 && height < 50) return;
 
       images.push({
         url: src,

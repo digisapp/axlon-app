@@ -492,61 +492,67 @@ async function scrapeProductPage(page, productLink) {
     // Also scan all text for spec-like patterns in the main content
     const allText = document.body ? document.body.innerText : '';
 
-    // Images
+    // Images — use broad selector like Trail King
     const images = [];
-    const imgSelectors = [
-      '.product-image img',
-      '.hero-image img',
-      '.gallery img',
-      '[class*="gallery"] img',
-      '[class*="slider"] img',
-      '[class*="carousel"] img',
-      'main img',
-      '.content img',
-      'article img',
-      'picture source',
-      'img[src*="fontaine"]',
-      'img[src*="trailer"]',
-      'img[data-src]',
-    ];
-
     const seenUrls = new Set();
-    for (const sel of imgSelectors) {
-      const imgs = document.querySelectorAll(sel);
-      for (const img of imgs) {
-        const src =
-          img.getAttribute('src') ||
-          img.getAttribute('data-src') ||
-          img.getAttribute('srcset')?.split(',')[0]?.trim()?.split(' ')[0] ||
-          '';
-        if (!src) continue;
-        let fullUrl = src;
-        try {
-          fullUrl = new URL(src, window.location.origin).href;
-        } catch {
-          continue;
-        }
-        // Filter out tiny icons, svgs, tracking pixels
-        if (
-          fullUrl.includes('.svg') ||
-          fullUrl.includes('icon') ||
-          fullUrl.includes('logo') ||
-          fullUrl.includes('favicon') ||
-          fullUrl.includes('pixel') ||
-          fullUrl.includes('1x1') ||
-          fullUrl.includes('spacer')
-        ) {
-          continue;
-        }
-        if (!seenUrls.has(fullUrl)) {
-          seenUrls.add(fullUrl);
-          images.push({
-            url: fullUrl,
-            alt: img.getAttribute('alt') || '',
-          });
-        }
+
+    // First: extract from <picture> elements (srcset)
+    document.querySelectorAll('picture').forEach((pic) => {
+      const source = pic.querySelector('source');
+      const img = pic.querySelector('img');
+      let src = '';
+      if (source) {
+        const srcset = source.getAttribute('srcset') || '';
+        src = srcset.split(',')[0]?.trim()?.split(' ')[0] || '';
       }
-    }
+      if (!src && img) {
+        src = img.src || img.getAttribute('data-src') || '';
+      }
+      if (!src) return;
+      let fullUrl = src;
+      try { fullUrl = new URL(src, window.location.origin).href; } catch { return; }
+      const filename = fullUrl.split('/').pop().toLowerCase();
+      if (filename.includes('logo') || filename.includes('icon') || filename.includes('favicon')) return;
+      if (filename.includes('watermark') || filename.includes('fslogo') || filename.includes('webclip')) return;
+      if (fullUrl.includes('.svg') || filename.includes('pixel') || filename.includes('1x1') || filename.includes('spacer')) return;
+      if (fullUrl.includes('bat.bing') || fullUrl.includes('google-analytics')) return;
+      if (!seenUrls.has(fullUrl)) {
+        seenUrls.add(fullUrl);
+        images.push({ url: fullUrl, alt: img?.getAttribute('alt') || '' });
+      }
+    });
+
+    // Then: all standard <img> elements
+    document.querySelectorAll('img').forEach((img) => {
+      const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src') || '';
+      if (!src) return;
+      let fullUrl = src;
+      try { fullUrl = new URL(src, window.location.origin).href; } catch { return; }
+      if (fullUrl.includes('data:image') || fullUrl.includes('placeholder')) return;
+      // Skip non-photo formats
+      if (fullUrl.includes('.svg') || fullUrl.includes('.gif')) return;
+      // Skip tracking pixels
+      if (fullUrl.includes('bat.bing') || fullUrl.includes('google-analytics') || fullUrl.includes('facebook.com') || fullUrl.includes('doubleclick')) return;
+      // Only keep Fontaine domain or CDN images (Fontaine uses Webflow CDN)
+      if (!fullUrl.includes('fontaine') && !fullUrl.includes('marmongroup') && !fullUrl.includes('wp-content') && !fullUrl.includes('website-files.com') && !fullUrl.includes('cdn.prod')) return;
+      // Skip logos/icons by filename only
+      const filename = fullUrl.split('/').pop().toLowerCase();
+      if (filename.includes('logo') || filename.includes('icon') || filename.includes('favicon')) return;
+      if (filename.includes('pixel') || filename.includes('spacer') || filename.includes('1x1')) return;
+      if (filename.includes('watermark')) return;
+      if (filename.includes('fslogo') || filename.includes('webclip')) return;
+
+      const width = img.naturalWidth || img.width || 0;
+      const height = img.naturalHeight || img.height || 0;
+      if (width > 0 && width < 100) return;
+      if (height > 0 && height < 100) return;
+
+      const normalizedUrl = fullUrl.split('?')[0];
+      if (!seenUrls.has(normalizedUrl)) {
+        seenUrls.add(normalizedUrl);
+        images.push({ url: fullUrl, alt: img.alt || '' });
+      }
+    });
 
     return {
       name,

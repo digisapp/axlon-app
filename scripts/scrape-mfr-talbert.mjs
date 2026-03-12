@@ -420,58 +420,69 @@ async function scrapeProductPage(page, url) {
       }
     }
 
-    // ---- Images ----
+    // ---- Images ---- (broad selector approach)
     const images = [];
     const seen = new Set();
 
-    // Product gallery images
-    const imgSelectors = [
-      '.product-gallery img',
-      '.woocommerce-product-gallery img',
-      '.product-images img',
-      '.gallery img',
-      '.entry-content img',
-      '.product-content img',
-      'article img',
-      '.wp-block-image img',
-    ];
+    // Scan all images on page
+    document.querySelectorAll('img').forEach((img) => {
+      let src = img.getAttribute('data-large_image') ||
+        img.getAttribute('data-src') ||
+        img.getAttribute('data-lazy-src') ||
+        img.src;
 
-    for (const sel of imgSelectors) {
-      const imgs = document.querySelectorAll(sel);
-      for (const img of imgs) {
-        // Prefer data-src (lazy load) or src
-        let src = img.getAttribute('data-large_image') ||
-          img.getAttribute('data-src') ||
-          img.getAttribute('data-lazy-src') ||
-          img.src;
+      if (!src || src.includes('data:image') || src.includes('placeholder')) return;
+      // Skip non-photo formats
+      if (src.includes('.gif') || src.includes('.svg')) return;
+      if (src.includes('gravatar') || src.includes('wp-content/plugins')) return;
+      // Only keep Talbert domain images
+      if (!src.includes('talbert') && !src.includes('wp-content') && !src.includes('uploads')) return;
+      // Skip logos/icons by filename only
+      const filename = src.split('/').pop().toLowerCase();
+      if (filename.includes('logo') || filename.includes('icon') || filename.includes('favicon')) return;
+      if (filename.includes('pixel') || filename.includes('spacer') || filename.includes('1x1')) return;
+      if (filename.includes('badge') || filename.includes('widget') || filename.includes('banner')) return;
 
-        if (!src || src.includes('data:image') || src.includes('placeholder')) continue;
-        // Skip tiny icons and logos
-        if (img.width && img.width < 50) continue;
-        if (img.height && img.height < 50) continue;
-        // Skip common non-product images
-        if (/logo|icon|badge|banner|widget|gravatar/i.test(src)) continue;
+      const width = img.naturalWidth || img.width || 0;
+      const height = img.naturalHeight || img.height || 0;
+      if (width > 0 && width < 100) return;
+      if (height > 0 && height < 100) return;
 
-        // Get full-size image if srcset is available
-        const srcset = img.getAttribute('srcset');
-        if (srcset) {
-          const parts = srcset.split(',').map((s) => s.trim());
-          const largest = parts[parts.length - 1];
-          const largeSrc = largest.split(/\s+/)[0];
-          if (largeSrc && !largeSrc.includes('data:image')) {
-            src = largeSrc;
+      // Get full-size image if srcset is available
+      const srcset = img.getAttribute('srcset');
+      if (srcset) {
+        // Pick the largest image from srcset
+        const parts = srcset.split(',').map((s) => s.trim());
+        let bestSrc = '';
+        let bestWidth = 0;
+        for (const part of parts) {
+          const [u, w] = part.split(/\s+/);
+          const width = parseInt(w) || 0;
+          if (u && !u.includes('data:image') && width > bestWidth) {
+            bestWidth = width;
+            bestSrc = u;
           }
         }
-
-        if (!seen.has(src)) {
-          seen.add(src);
-          images.push({
-            url: src,
-            alt: img.alt || '',
-          });
+        if (bestSrc) src = bestSrc;
+        else {
+          const largeSrc = parts[parts.length - 1].split(/\s+/)[0];
+          if (largeSrc && !largeSrc.includes('data:image')) src = largeSrc;
         }
       }
-    }
+
+      // Strip WordPress thumbnail suffix to get full-size image
+      // e.g. image-300x141.png -> image.png
+      src = src.replace(/-\d+x\d+\.(png|jpg|jpeg|webp)$/i, '.$1');
+
+      const normalizedSrc = src.split('?')[0];
+      if (!seen.has(normalizedSrc)) {
+        seen.add(normalizedSrc);
+        images.push({
+          url: src,
+          alt: img.alt || '',
+        });
+      }
+    });
 
     // Also check for linked full-size images (lightbox pattern)
     const galleryLinks = document.querySelectorAll(
@@ -479,8 +490,11 @@ async function scrapeProductPage(page, url) {
     );
     for (const link of galleryLinks) {
       const href = link.href;
-      if (href && !seen.has(href) && !/logo|icon|badge/i.test(href)) {
-        seen.add(href);
+      if (!href) continue;
+      const linkFilename = href.split('/').pop().toLowerCase();
+      if (linkFilename.includes('logo') || linkFilename.includes('icon') || linkFilename.includes('badge')) continue;
+      if (!seen.has(href.split('?')[0])) {
+        seen.add(href.split('?')[0]);
         const img = link.querySelector('img');
         images.push({
           url: href,
