@@ -276,8 +276,7 @@ export default function GetStartedPage() {
 
             <div className="mt-8 p-4 bg-primary/5 rounded-lg border border-primary/20">
               <p className="text-sm text-muted-foreground">
-                <strong className="text-foreground">Free to get started.</strong> No monthly fees.
-                Only pay when you make a sale.
+                <strong className="text-foreground">30-day free trial.</strong> No credit card required.
               </p>
             </div>
           </div>

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Zap, ArrowRight, Bot, Headphones, Check, Search, MessageSquare, Phone, Brain } from 'lucide-react';
+import { Zap, ArrowRight, Bot, Headphones, Search, MessageSquare, Phone, Brain, Upload, PhoneCall, Handshake, TrendingUp, UserCheck, Settings } from 'lucide-react';
 import { HomeHeader } from '@/components/home/HomeHeader';
 import { HomeSearchSection } from '@/components/home/HomeSearchSection';
 import { HomeDeals } from '@/components/home/HomeDeals';
@@ -121,16 +121,42 @@ export default function HomePage() {
         {/* Hot Deals */}
         <HomeDeals />
 
-        {/* Dealer Platform Section */}
+        {/* 3 Ways AXLON Helps Dealers */}
+        <section className="w-full max-w-4xl mx-auto mb-10 md:mb-16 px-4">
+          <div className="grid grid-cols-3 gap-4 md:gap-6">
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                <TrendingUp className="w-5 h-5 text-primary" />
+              </div>
+              <h3 className="font-semibold text-sm md:text-base mb-1">Sell more equipment</h3>
+              <p className="text-xs text-muted-foreground dark:text-foreground/60 hidden sm:block">AI captures every lead, day and night</p>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center mx-auto mb-3">
+                <UserCheck className="w-5 h-5 text-cyan-600" />
+              </div>
+              <h3 className="font-semibold text-sm md:text-base mb-1">Never miss a lead</h3>
+              <p className="text-xs text-muted-foreground dark:text-foreground/60 hidden sm:block">AI answers calls and chats 24/7</p>
+            </div>
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-3">
+                <Settings className="w-5 h-5 text-emerald-600" />
+              </div>
+              <h3 className="font-semibold text-sm md:text-base mb-1">Run your dealership with AI</h3>
+              <p className="text-xs text-muted-foreground dark:text-foreground/60 hidden sm:block">Inventory, CRM, deals — one platform</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Product Overview — simplified pillars, no pricing */}
         <section className="w-full max-w-5xl mx-auto mb-10 md:mb-16 px-4">
-          <h2 className="text-xl md:text-2xl font-bold text-center mb-2">Run Your Business with AI</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-center mb-2">One platform. Everything you need.</h2>
           <p className="text-sm text-muted-foreground dark:text-foreground/60 text-center mb-6 md:mb-8 max-w-xl mx-auto">
             Replace your DMS, CRM, answering service, and BDC team — all in one platform.
           </p>
 
-          {/* Three Product Cards */}
-          <div className="grid md:grid-cols-3 gap-4 md:gap-5 mb-6 md:mb-8">
-            {/* AI Platform Card */}
+          <div className="grid md:grid-cols-3 gap-4 md:gap-5 mb-6">
+            {/* AI Platform */}
             <Link href="/how-it-works" className="block group">
               <div className="p-5 md:p-6 rounded-xl border bg-white/80 dark:bg-white/[0.08] hover:shadow-lg transition-shadow h-full">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
@@ -140,56 +166,16 @@ export default function HomePage() {
                 <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-3">
                   Run your inventory, leads, and deals with AI.
                 </p>
-                <ul className="space-y-2 mb-4">
-                  <FeatureCheck>AI Sales Assistant captures leads 24/7</FeatureCheck>
-                  <FeatureCheck>CRM + Deal Desk with AI scoring</FeatureCheck>
-                  <FeatureCheck>Inventory management & analytics</FeatureCheck>
-                  <FeatureCheck>Custom branded storefront</FeatureCheck>
+                <ul className="space-y-2 text-sm text-muted-foreground dark:text-foreground/60">
+                  <li>AI sales assistant captures leads</li>
+                  <li>CRM + deal desk</li>
+                  <li>Inventory management</li>
+                  <li>Dealer storefront</li>
                 </ul>
-                <div className="flex items-baseline gap-1.5 mb-1">
-                  <span className="text-2xl font-bold text-primary">$399</span>
-                  <span className="text-sm text-muted-foreground">/mo</span>
-                </div>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-3">30-day free trial &middot; No credit card</p>
-                <span className="text-sm font-medium text-primary group-hover:underline">
-                  Start free trial &rarr;
-                </span>
               </div>
             </Link>
 
-            {/* AI Suite — Center Hero */}
-            <Link href="/pricing" className="block group">
-              <div className="p-5 md:p-6 rounded-xl border-2 border-emerald-500/50 bg-gradient-to-b from-emerald-50/50 to-white/80 dark:from-emerald-950/20 dark:to-white/[0.08] hover:shadow-xl transition-shadow h-full relative">
-                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
-                  <span className="bg-emerald-600 text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full">Most Popular</span>
-                </div>
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3">
-                  <Zap className="w-5 h-5 text-emerald-600" />
-                </div>
-                <h3 className="font-bold text-lg mb-1">AI Suite</h3>
-                <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-3">
-                  Your dealership powered entirely by AI.
-                </p>
-                <p className="text-xs font-medium mb-2">Everything in Platform, plus:</p>
-                <ul className="space-y-2 mb-4">
-                  <FeatureCheck color="emerald">AI Voice Agent answers calls 24/7</FeatureCheck>
-                  <FeatureCheck color="emerald">Phone lead capture & qualification</FeatureCheck>
-                  <FeatureCheck color="emerald">Call transcripts synced to CRM</FeatureCheck>
-                  <FeatureCheck color="emerald">Team PIN access for company intel</FeatureCheck>
-                </ul>
-                <div className="flex items-baseline gap-1.5 mb-0.5">
-                  <span className="text-2xl font-bold text-emerald-600">$699</span>
-                  <span className="text-sm text-muted-foreground">/mo</span>
-                  <span className="text-xs text-muted-foreground line-through ml-1">$898</span>
-                </div>
-                <p className="text-[11px] text-muted-foreground mb-3">Most dealers choose this plan.</p>
-                <span className="text-sm font-medium text-emerald-600 group-hover:underline">
-                  Start free trial &rarr;
-                </span>
-              </div>
-            </Link>
-
-            {/* Voice Agent Card */}
+            {/* Voice Agent */}
             <Link href="/voice" className="block group">
               <div className="p-5 md:p-6 rounded-xl border bg-white/80 dark:bg-white/[0.08] hover:shadow-lg transition-shadow h-full">
                 <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center mb-3">
@@ -199,27 +185,42 @@ export default function HomePage() {
                 <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-3">
                   Never miss another customer call.
                 </p>
-                <ul className="space-y-2 mb-4">
-                  <FeatureCheck>Dedicated AI phone number</FeatureCheck>
-                  <FeatureCheck>24/7 call answering in 30+ languages</FeatureCheck>
-                  <FeatureCheck>Automatic lead capture from every call</FeatureCheck>
-                  <FeatureCheck>Call recordings + AI transcripts</FeatureCheck>
+                <ul className="space-y-2 text-sm text-muted-foreground dark:text-foreground/60">
+                  <li>AI answers calls 24/7</li>
+                  <li>Lead capture & qualification</li>
+                  <li>Call transcripts synced to CRM</li>
                 </ul>
-                <div className="flex items-baseline gap-1.5 mb-1">
-                  <span className="text-2xl font-bold text-cyan-600">$499</span>
-                  <span className="text-sm text-muted-foreground">/mo</span>
+              </div>
+            </Link>
+
+            {/* AI Suite */}
+            <Link href="/pricing" className="block group">
+              <div className="p-5 md:p-6 rounded-xl border-2 border-emerald-500/50 bg-gradient-to-b from-emerald-50/50 to-white/80 dark:from-emerald-950/20 dark:to-white/[0.08] hover:shadow-xl transition-shadow h-full">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3">
+                  <Zap className="w-5 h-5 text-emerald-600" />
                 </div>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-3">Included in AI Suite bundle</p>
-                <span className="text-sm font-medium text-cyan-600 group-hover:underline">
-                  Learn more &rarr;
-                </span>
+                <h3 className="font-bold text-lg mb-1">AI Suite</h3>
+                <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-3">
+                  Your dealership powered entirely by AI.
+                </p>
+                <p className="text-sm text-muted-foreground dark:text-foreground/60">
+                  Platform + Voice working together.
+                </p>
               </div>
             </Link>
           </div>
 
+          <div className="text-center">
+            <Button variant="outline" size="sm" className="rounded-full gap-2 group" asChild>
+              <Link href="/pricing">
+                View Pricing
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </Button>
+          </div>
         </section>
 
-        {/* AI Demo Section */}
+        {/* See AI in Action */}
         <section className="w-full max-w-5xl mx-auto mb-10 md:mb-16 px-4">
           <div className="text-center mb-6 md:mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-3">
@@ -227,9 +228,6 @@ export default function HomePage() {
               See AI in Action
             </div>
             <h2 className="text-xl md:text-2xl font-bold mb-2">AI that works while you sleep</h2>
-            <p className="text-sm text-muted-foreground dark:text-foreground/60 max-w-lg mx-auto">
-              From answering calls to qualifying leads — here&apos;s what AXLON does for your dealership.
-            </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 md:gap-6">
@@ -246,34 +244,30 @@ export default function HomePage() {
               </div>
 
               <div className="space-y-3">
-                {/* Buyer message */}
                 <div className="flex justify-end">
                   <div className="bg-primary/10 rounded-2xl rounded-tr-md px-4 py-2.5 max-w-[85%]">
                     <p className="text-sm">Do you have any lowboy trailers under $100k?</p>
                   </div>
                 </div>
-                {/* AI response */}
                 <div className="flex justify-start">
                   <div className="bg-muted rounded-2xl rounded-tl-md px-4 py-2.5 max-w-[85%]">
-                    <p className="text-sm">Yes! We have 3 lowboy trailers under $100k right now. Our best deal is a <strong>2023 Trail King TK110HDG</strong> — 55-ton, 26&apos; well, hydraulic detachable. Listed at $92,500. Want me to send specs and photos?</p>
+                    <p className="text-sm">Yes! We have 3 right now. Best deal: <strong>2023 Trail King TK110HDG</strong> — 55-ton, hydraulic detachable, $92,500. Want specs and photos?</p>
                   </div>
                 </div>
-                {/* Buyer */}
                 <div className="flex justify-end">
                   <div className="bg-primary/10 rounded-2xl rounded-tr-md px-4 py-2.5 max-w-[85%]">
                     <p className="text-sm">Yes, and can I schedule a viewing?</p>
                   </div>
                 </div>
-                {/* AI */}
                 <div className="flex justify-start">
                   <div className="bg-muted rounded-2xl rounded-tl-md px-4 py-2.5 max-w-[85%]">
-                    <p className="text-sm">Absolutely! I have availability tomorrow at 10am or 2pm. Which works better? I&apos;ll send you the details and a link with all the specs.</p>
+                    <p className="text-sm">I have tomorrow at 10am or 2pm. Which works? I&apos;ll send you all the details.</p>
                   </div>
                 </div>
               </div>
 
               <div className="mt-4 pt-3 border-t">
-                <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center">AI qualified this lead and booked the appointment automatically</p>
+                <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center">Lead qualified and appointment booked — automatically</p>
               </div>
             </div>
 
@@ -290,23 +284,21 @@ export default function HomePage() {
               </div>
 
               <div className="space-y-3">
-                {/* Call transcript style */}
                 <div className="bg-muted/50 rounded-xl p-4 space-y-3 text-sm">
                   <div className="flex items-start gap-2">
                     <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5">AXLON:</span>
-                    <p className="text-muted-foreground dark:text-foreground/70">&quot;Good afternoon, thanks for calling ABC Truck Sales. This is AXLON, how can I help you today?&quot;</p>
+                    <p className="text-muted-foreground dark:text-foreground/70">&quot;Thanks for calling ABC Truck Sales. How can I help you?&quot;</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-xs font-semibold text-foreground/70 dark:text-foreground/80 shrink-0 mt-0.5">Caller:</span>
-                    <p className="text-muted-foreground dark:text-foreground/70">&quot;Hi, I&apos;m looking for a flatbed trailer, 48-foot, something under $55k.&quot;</p>
+                    <p className="text-muted-foreground dark:text-foreground/70">&quot;I&apos;m looking for a 48-foot flatbed under $55k.&quot;</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5">AXLON:</span>
-                    <p className="text-muted-foreground dark:text-foreground/70">&quot;Great, we actually have two 48-foot flatbeds in that range. Let me get your name and email so I can send you the details with photos and pricing.&quot;</p>
+                    <p className="text-muted-foreground dark:text-foreground/70">&quot;We have two in that range. Let me get your info so I can send details with photos and pricing.&quot;</p>
                   </div>
                 </div>
 
-                {/* Lead summary card */}
                 <div className="bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-900/30 rounded-lg p-3">
                   <p className="text-xs font-semibold text-cyan-700 dark:text-cyan-400 mb-1.5">Lead Captured</p>
                   <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground dark:text-foreground/60">
@@ -319,16 +311,64 @@ export default function HomePage() {
               </div>
 
               <div className="mt-4 pt-3 border-t">
-                <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center">This call came in at 8:47 PM — after business hours</p>
+                <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center">This call came in at 8:47 PM — after hours</p>
               </div>
             </div>
           </div>
+        </section>
 
-          <div className="text-center mt-6">
-            <Button variant="outline" size="sm" className="rounded-full gap-2 group" asChild>
-              <Link href="/become-a-dealer">
-                See how it works for your dealership
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+        {/* How It Works — 4 steps */}
+        <section className="w-full max-w-4xl mx-auto mb-10 md:mb-16 px-4">
+          <h2 className="text-xl md:text-2xl font-bold text-center mb-6 md:mb-8">How It Works</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <StepItem icon={<Upload className="w-5 h-5" />} step={1} title="Import your inventory" />
+            <StepItem icon={<Bot className="w-5 h-5" />} step={2} title="AXLON generates listings & captures leads" />
+            <StepItem icon={<PhoneCall className="w-5 h-5" />} step={3} title="AI answers calls and qualifies buyers" />
+            <StepItem icon={<Handshake className="w-5 h-5" />} step={4} title="Your team closes deals faster" />
+          </div>
+        </section>
+
+        {/* What AXLON Replaces */}
+        <section className="w-full max-w-2xl mx-auto mb-10 md:mb-16 px-4">
+          <h2 className="text-xl md:text-2xl font-bold text-center mb-6">What AXLON Replaces</h2>
+          <div className="rounded-xl border bg-white/80 dark:bg-white/[0.08] overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/30">
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Old System</th>
+                  <th className="text-center py-3 px-4 font-medium text-primary">AXLON</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {[
+                  'DMS',
+                  'CRM',
+                  'Answering service',
+                  'BDC team',
+                  'Spreadsheet inventory',
+                  'Listing sites',
+                ].map((item) => (
+                  <tr key={item}>
+                    <td className="py-2.5 px-4 text-muted-foreground dark:text-foreground/60">{item}</td>
+                    <td className="py-2.5 px-4 text-center text-primary font-medium">&#10003;</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* Light Pricing Teaser */}
+        <section className="w-full max-w-2xl mx-auto mb-10 md:mb-16 px-4 text-center">
+          <div className="rounded-xl border bg-white/80 dark:bg-white/[0.08] p-6 md:p-8">
+            <p className="text-lg md:text-xl font-bold mb-1">Plans start at $399/month</p>
+            <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-4">
+              30-day free trial &middot; No credit card required
+            </p>
+            <Button className="rounded-full gap-2 group" asChild>
+              <Link href="/pricing">
+                See Pricing
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
           </div>
@@ -339,8 +379,8 @@ export default function HomePage() {
           <h2 className="text-xl md:text-2xl font-bold mb-3">Start selling equipment with AI</h2>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
             <Button size="lg" className="rounded-full gap-2 shadow-lg shadow-primary/20 group w-full sm:w-auto" asChild>
-              <Link href="/signup">
-                Get Started Free
+              <Link href="/get-started">
+                Start Free Trial
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
@@ -415,12 +455,15 @@ export default function HomePage() {
   );
 }
 
-function FeatureCheck({ children, color }: { children: React.ReactNode; color?: 'emerald' }) {
+function StepItem({ icon, step, title }: { icon: React.ReactNode; step: number; title: string }) {
   return (
-    <li className="flex items-start gap-2 text-sm text-muted-foreground dark:text-foreground/60">
-      <Check className={`w-4 h-4 shrink-0 mt-0.5 ${color === 'emerald' ? 'text-emerald-500' : 'text-primary'}`} />
-      {children}
-    </li>
+    <div className="text-center">
+      <div className="relative w-12 h-12 rounded-xl bg-white/80 dark:bg-white/[0.08] border flex items-center justify-center mx-auto mb-3">
+        {icon}
+        <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">{step}</span>
+      </div>
+      <p className="text-sm font-medium">{title}</p>
+    </div>
   );
 }
 

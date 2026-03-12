@@ -58,6 +58,7 @@ export default async function NewTrailersPage() {
       images:manufacturer_product_images(id, url, alt_text, is_primary, sort_order)
     `)
     .eq('is_active', true)
+    .order('sort_order', { referencedTable: 'manufacturer_product_images', ascending: true })
     .order('sort_order', { ascending: true })
     .order('name', { ascending: true });
 

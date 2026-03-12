@@ -16,7 +16,6 @@ import {
   Clock,
   Shield,
   Gift,
-  Crown,
   Bot,
   Headphones,
 } from 'lucide-react';
@@ -255,59 +254,6 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Founding Dealer Program */}
-      <section className="px-4 pb-16">
-        <div className="max-w-5xl mx-auto">
-          <Card className="relative overflow-hidden border-amber-500/30 bg-gradient-to-r from-amber-50/50 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/20">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-[60px]" />
-            <CardContent className="p-6 md:p-8">
-              <div className="flex flex-col md:flex-row md:items-center gap-6">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Crown className="w-5 h-5 text-amber-600" />
-                    <Badge className="bg-amber-600">Limited — First 100 Dealers</Badge>
-                  </div>
-                  <h3 className="text-xl md:text-2xl font-bold mb-2">Founding Dealer Program</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Lock in <span className="font-bold text-foreground">$299/mo for the AI Suite forever</span>.
-                    As a founding dealer, your rate never increases — even as we add new features and raise prices.
-                  </p>
-                  <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
-                    <li className="flex items-center gap-1.5">
-                      <Check className="w-4 h-4 text-amber-500" />
-                      Platform + Voice included
-                    </li>
-                    <li className="flex items-center gap-1.5">
-                      <Check className="w-4 h-4 text-amber-500" />
-                      Price locked forever
-                    </li>
-                    <li className="flex items-center gap-1.5">
-                      <Check className="w-4 h-4 text-amber-500" />
-                      Priority support
-                    </li>
-                    <li className="flex items-center gap-1.5">
-                      <Check className="w-4 h-4 text-amber-500" />
-                      Early access to new features
-                    </li>
-                  </ul>
-                </div>
-                <div className="text-center md:text-right shrink-0">
-                  <p className="text-sm text-muted-foreground line-through">$699/mo</p>
-                  <p className="text-4xl font-bold text-amber-600">$299</p>
-                  <p className="text-sm text-muted-foreground">/mo forever</p>
-                  <Button className="mt-3 bg-amber-600 hover:bg-amber-700" asChild>
-                    <Link href="/get-started?plan=founding">
-                      Claim Your Spot
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
       {/* ROI Section */}
       <section className="py-16 px-4 bg-muted/30 border-y">
         <div className="max-w-5xl mx-auto">
@@ -537,10 +483,6 @@ export default function PricingPage() {
             <FAQItem
               question="What if I just want to list equipment for free?"
               answer="You can create a free account and list up to 5 pieces of equipment on the marketplace. The Platform subscription unlocks unlimited listings plus all AI features."
-            />
-            <FAQItem
-              question="What is the Founding Dealer Program?"
-              answer="The first 100 dealers to sign up get the full AI Suite (Platform + Voice) locked at $299/mo forever — even as we add features and raise prices. It's our way of rewarding early adopters."
             />
             <FAQItem
               question="How long does setup take?"
