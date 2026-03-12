@@ -23,7 +23,7 @@ export default async function DashboardLayout({
   // Get user profile
   const { data: profile } = await supabase
     .from('profiles')
-    .select('company_name, avatar_url, is_dealer')
+    .select('company_name, avatar_url, is_dealer, created_at, subscription_status')
     .eq('id', user.id)
     .single();
 
@@ -49,6 +49,13 @@ export default async function DashboardLayout({
     .eq('user_id', user.id)
     .eq('status', 'new');
 
+  // Trial countdown
+  const trialStart = profile?.created_at ? new Date(profile.created_at) : new Date();
+  const trialEnd = new Date(trialStart.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const trialDaysRemaining = !profile?.subscription_status
+    ? Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null;
+
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Desktop Sidebar */}
@@ -67,6 +74,7 @@ export default async function DashboardLayout({
           profile={profile}
           unreadMessages={unreadMessages || 0}
           newLeads={newLeads || 0}
+          trialDaysRemaining={trialDaysRemaining}
         />
 
         {/* Page Content */}

@@ -21,6 +21,7 @@ import {
   CreditCard,
   HelpCircle,
   Search,
+  Clock,
 } from 'lucide-react';
 
 interface DashboardHeaderProps {
@@ -34,6 +35,7 @@ interface DashboardHeaderProps {
   } | null;
   unreadMessages?: number;
   newLeads?: number;
+  trialDaysRemaining?: number | null;
 }
 
 export function DashboardHeader({
@@ -41,6 +43,7 @@ export function DashboardHeader({
   profile,
   unreadMessages = 0,
   newLeads = 0,
+  trialDaysRemaining,
 }: DashboardHeaderProps) {
   const displayName = profile?.company_name || user.email?.split('@')[0] || 'User';
   const initials = displayName.slice(0, 2).toUpperCase();
@@ -66,6 +69,21 @@ export function DashboardHeader({
               <span className="hidden md:inline">New Listing</span>
             </Link>
           </Button>
+
+          {/* Trial Countdown */}
+          {trialDaysRemaining != null && trialDaysRemaining > 0 && (
+            <Link
+              href="/dashboard/billing"
+              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                trialDaysRemaining <= 7
+                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-950/60'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              <Clock className="w-3 h-3" />
+              Trial: {trialDaysRemaining}d remaining
+            </Link>
+          )}
 
           {/* Notifications */}
           <DropdownMenu>

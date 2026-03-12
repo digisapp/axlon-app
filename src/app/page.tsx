@@ -2,11 +2,10 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Zap, ArrowRight, Bot, Headphones, Check, Search, Truck, Building2, Wrench, Package, MessageSquare, Phone, Brain } from 'lucide-react';
+import { Zap, ArrowRight, Bot, Headphones, Check, Search, MessageSquare, Phone, Brain } from 'lucide-react';
 import { HomeHeader } from '@/components/home/HomeHeader';
 import { HomeSearchSection } from '@/components/home/HomeSearchSection';
 import { HomeDeals } from '@/components/home/HomeDeals';
-import { createClient } from '@/lib/supabase/server';
 
 export const metadata: Metadata = {
   alternates: {
@@ -45,42 +44,7 @@ function HomePageJsonLd() {
   );
 }
 
-const categories = [
-  { label: 'Semi Trucks', slug: 'semi-trucks' },
-  { label: 'Lowboy Trailers', slug: 'lowboy-trailers' },
-  { label: 'Flatbed Trailers', slug: 'flatbed-trailers' },
-  { label: 'Dump Trucks', slug: 'dump-trucks' },
-  { label: 'Heavy Equipment', slug: 'heavy-equipment' },
-  { label: 'Sleeper Trucks', slug: 'sleeper-trucks' },
-];
-
-const builtForItems = [
-  { icon: Truck, label: 'Dealers' },
-  { icon: Building2, label: 'Brokers' },
-  { icon: Wrench, label: 'Service Businesses' },
-  { icon: Package, label: 'Heavy Haul' },
-];
-
-export default async function HomePage() {
-  // Fetch real stats for trust signals
-  let listingCount = 0;
-  let dealerCount = 0;
-  try {
-    const supabase = await createClient();
-    const [{ count: listings }, { count: dealers }] = await Promise.all([
-      supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_dealer', true).not('slug', 'is', null),
-    ]);
-    listingCount = listings || 0;
-    dealerCount = dealers || 0;
-  } catch {
-    // Fallback to 0 if DB unavailable
-  }
-
-  const formattedListings = listingCount >= 1000
-    ? `${Math.floor(listingCount / 1000)}k+`
-    : listingCount > 0 ? `${listingCount}+` : '0';
-
+export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col gradient-bg relative overflow-hidden">
       <HomePageJsonLd />
@@ -147,8 +111,9 @@ export default async function HomePage() {
             className="gap-2 rounded-full glass-button !bg-white/80 dark:!bg-white/10 flex-1 sm:flex-none"
             asChild
           >
-            <Link href="/how-it-works">
-              For Dealers
+            <Link href="/get-started">
+              <Zap className="w-4 h-4" />
+              Try AXLON Free
             </Link>
           </Button>
         </div>
@@ -158,28 +123,28 @@ export default async function HomePage() {
 
         {/* Dealer Platform Section */}
         <section className="w-full max-w-5xl mx-auto mb-10 md:mb-16 px-4">
-          <h2 className="text-xl md:text-2xl font-bold text-center mb-2">Run Your Dealership with AI</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-center mb-2">Run Your Business with AI</h2>
           <p className="text-sm text-muted-foreground dark:text-foreground/60 text-center mb-6 md:mb-8 max-w-xl mx-auto">
             Replace your DMS, CRM, answering service, and BDC team — all in one platform.
           </p>
 
-          {/* Two Product Cards */}
-          <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
+          {/* Three Product Cards */}
+          <div className="grid md:grid-cols-3 gap-4 md:gap-5 mb-6 md:mb-8">
             {/* AI Platform Card */}
             <Link href="/how-it-works" className="block group">
-              <div className="p-5 md:p-7 rounded-xl border bg-white/80 dark:bg-white/[0.08] hover:shadow-lg transition-shadow h-full">
-                <div className="w-11 h-11 md:w-13 md:h-13 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                  <Bot className="w-6 h-6 text-primary" />
+              <div className="p-5 md:p-6 rounded-xl border bg-white/80 dark:bg-white/[0.08] hover:shadow-lg transition-shadow h-full">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+                  <Bot className="w-5 h-5 text-primary" />
                 </div>
-                <h3 className="font-bold text-lg md:text-xl mb-1">AI Platform</h3>
-                <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-4">
-                  Sales assistant, CRM & automation
+                <h3 className="font-bold text-lg mb-1">AI Platform</h3>
+                <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-3">
+                  The brain behind your dealership.
                 </p>
-                <ul className="space-y-2 mb-5">
-                  <FeatureCheck>AI sales assistant trained on your inventory</FeatureCheck>
-                  <FeatureCheck>Built-in CRM with deal scoring</FeatureCheck>
-                  <FeatureCheck>Automated email & SMS follow-ups</FeatureCheck>
-                  <FeatureCheck>Lead capture & qualification 24/7</FeatureCheck>
+                <ul className="space-y-2 mb-4">
+                  <FeatureCheck>AI Sales Assistant captures leads 24/7</FeatureCheck>
+                  <FeatureCheck>CRM + Deal Desk with AI scoring</FeatureCheck>
+                  <FeatureCheck>Inventory management & analytics</FeatureCheck>
+                  <FeatureCheck>Custom branded storefront</FeatureCheck>
                 </ul>
                 <div className="flex items-baseline gap-1.5 mb-1">
                   <span className="text-2xl font-bold text-primary">$399</span>
@@ -192,27 +157,59 @@ export default async function HomePage() {
               </div>
             </Link>
 
-            {/* Voice Agents Card */}
-            <Link href="/voice" className="block group">
-              <div className="p-5 md:p-7 rounded-xl border bg-white/80 dark:bg-white/[0.08] hover:shadow-lg transition-shadow h-full">
-                <div className="w-11 h-11 md:w-13 md:h-13 rounded-xl bg-cyan-500/10 flex items-center justify-center mb-4">
-                  <Headphones className="w-6 h-6 text-cyan-600" />
+            {/* AI Suite — Center Hero */}
+            <Link href="/pricing" className="block group">
+              <div className="p-5 md:p-6 rounded-xl border-2 border-emerald-500/50 bg-gradient-to-b from-emerald-50/50 to-white/80 dark:from-emerald-950/20 dark:to-white/[0.08] hover:shadow-xl transition-shadow h-full relative">
+                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
+                  <span className="bg-emerald-600 text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full">Most Popular</span>
                 </div>
-                <h3 className="font-bold text-lg md:text-xl mb-1">Voice Agents</h3>
-                <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-4">
-                  24/7 phone answering & lead capture
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3">
+                  <Zap className="w-5 h-5 text-emerald-600" />
+                </div>
+                <h3 className="font-bold text-lg mb-1">AI Suite</h3>
+                <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-3">
+                  Your complete AI operating system.
                 </p>
-                <ul className="space-y-2 mb-5">
-                  <FeatureCheck>Answers calls like a real person</FeatureCheck>
-                  <FeatureCheck>Qualifies callers & books appointments</FeatureCheck>
-                  <FeatureCheck>Dedicated phone number included</FeatureCheck>
-                  <FeatureCheck>Call transcripts & lead summaries</FeatureCheck>
+                <p className="text-xs font-medium mb-2">Everything in Platform, plus:</p>
+                <ul className="space-y-2 mb-4">
+                  <FeatureCheck color="emerald">AI Voice Agent answers calls 24/7</FeatureCheck>
+                  <FeatureCheck color="emerald">Phone lead capture & qualification</FeatureCheck>
+                  <FeatureCheck color="emerald">Call transcripts synced to CRM</FeatureCheck>
+                  <FeatureCheck color="emerald">Team PIN access for company intel</FeatureCheck>
+                </ul>
+                <div className="flex items-baseline gap-1.5 mb-0.5">
+                  <span className="text-2xl font-bold text-emerald-600">$699</span>
+                  <span className="text-sm text-muted-foreground">/mo</span>
+                  <span className="text-xs text-muted-foreground line-through ml-1">$898</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mb-3">Most dealers choose this plan.</p>
+                <span className="text-sm font-medium text-emerald-600 group-hover:underline">
+                  Start free trial &rarr;
+                </span>
+              </div>
+            </Link>
+
+            {/* Voice Agent Card */}
+            <Link href="/voice" className="block group">
+              <div className="p-5 md:p-6 rounded-xl border bg-white/80 dark:bg-white/[0.08] hover:shadow-lg transition-shadow h-full">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center mb-3">
+                  <Headphones className="w-5 h-5 text-cyan-600" />
+                </div>
+                <h3 className="font-bold text-lg mb-1">Voice Agent</h3>
+                <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-3">
+                  AI phone receptionist for your dealership.
+                </p>
+                <ul className="space-y-2 mb-4">
+                  <FeatureCheck>Dedicated AI phone number</FeatureCheck>
+                  <FeatureCheck>24/7 call answering in 30+ languages</FeatureCheck>
+                  <FeatureCheck>Automatic lead capture from every call</FeatureCheck>
+                  <FeatureCheck>Call recordings + AI transcripts</FeatureCheck>
                 </ul>
                 <div className="flex items-baseline gap-1.5 mb-1">
                   <span className="text-2xl font-bold text-cyan-600">$499</span>
                   <span className="text-sm text-muted-foreground">/mo</span>
                 </div>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-3">Bundle both for $699/mo — save $199</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-3">Included in AI Suite bundle</p>
                 <span className="text-sm font-medium text-cyan-600 group-hover:underline">
                   Learn more &rarr;
                 </span>
@@ -220,18 +217,6 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          {/* Built For Row */}
-          <div className="bg-white/40 dark:bg-white/[0.08] rounded-2xl border p-5">
-            <p className="text-xs font-medium text-muted-foreground dark:text-foreground/50 text-center mb-3 uppercase tracking-wider">Built for</p>
-            <div className="flex flex-wrap justify-center gap-4 md:gap-8">
-              {builtForItems.map((item) => (
-                <div key={item.label} className="flex items-center gap-2 text-sm text-foreground/80 dark:text-foreground/70">
-                  <item.icon className="w-4 h-4 text-muted-foreground" />
-                  {item.label}
-                </div>
-              ))}
-            </div>
-          </div>
         </section>
 
         {/* AI Demo Section */}
@@ -264,13 +249,13 @@ export default async function HomePage() {
                 {/* Buyer message */}
                 <div className="flex justify-end">
                   <div className="bg-primary/10 rounded-2xl rounded-tr-md px-4 py-2.5 max-w-[85%]">
-                    <p className="text-sm">Do you have any lowboy trailers under $60k?</p>
+                    <p className="text-sm">Do you have any lowboy trailers under $100k?</p>
                   </div>
                 </div>
                 {/* AI response */}
                 <div className="flex justify-start">
                   <div className="bg-muted rounded-2xl rounded-tl-md px-4 py-2.5 max-w-[85%]">
-                    <p className="text-sm">Yes! We have 3 lowboy trailers under $60k right now. Our best deal is a <strong>2023 Trail King TK110HDG</strong> — 55-ton, 26&apos; well, hydraulic detachable. Listed at $54,900. Want me to send specs and photos?</p>
+                    <p className="text-sm">Yes! We have 3 lowboy trailers under $100k right now. Our best deal is a <strong>2023 Trail King TK110HDG</strong> — 55-ton, 26&apos; well, hydraulic detachable. Listed at $92,500. Want me to send specs and photos?</p>
                   </div>
                 </div>
                 {/* Buyer */}
@@ -313,7 +298,7 @@ export default async function HomePage() {
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-xs font-semibold text-foreground/70 dark:text-foreground/80 shrink-0 mt-0.5">Caller:</span>
-                    <p className="text-muted-foreground dark:text-foreground/70">&quot;Hi, I&apos;m looking for a flatbed trailer, 48-foot, something under $40k.&quot;</p>
+                    <p className="text-muted-foreground dark:text-foreground/70">&quot;Hi, I&apos;m looking for a flatbed trailer, 48-foot, something under $55k.&quot;</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5">AXLON:</span>
@@ -328,7 +313,7 @@ export default async function HomePage() {
                     <span>Name: John D.</span>
                     <span>Intent: High</span>
                     <span>Looking for: Flatbed 48&apos;</span>
-                    <span>Budget: &lt;$40k</span>
+                    <span>Budget: &lt;$55k</span>
                   </div>
                 </div>
               </div>
@@ -346,39 +331,6 @@ export default async function HomePage() {
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
-          </div>
-        </section>
-
-        {/* Trust Signals */}
-        <section className="w-full max-w-4xl mx-auto mb-10 md:mb-16 px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            {[
-              { value: formattedListings, label: 'Active Listings' },
-              { value: `${dealerCount}+`, label: 'Dealers' },
-              { value: '24/7', label: 'AI Availability' },
-              { value: '100%', label: 'Free to Browse' },
-            ].map((stat) => (
-              <div key={stat.label} className="text-center py-4 rounded-xl bg-white/50 dark:bg-white/[0.08] border">
-                <p className="text-xl md:text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">{stat.value}</p>
-                <p className="text-xs text-muted-foreground dark:text-foreground/50 mt-0.5">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Popular Categories */}
-        <section className="w-full max-w-4xl mx-auto mb-10 md:mb-16 px-4">
-          <h2 className="text-lg md:text-xl font-bold text-center mb-4 md:mb-6">Popular Categories</h2>
-          <div className="flex flex-wrap justify-center gap-2 md:gap-3">
-            {categories.map((cat) => (
-              <Link
-                key={cat.slug}
-                href={`/search?category=${cat.slug}`}
-                className="rounded-full border bg-white/60 dark:bg-white/[0.08] hover:bg-white/90 dark:hover:bg-white/10 px-4 py-2 text-sm transition-colors"
-              >
-                {cat.label}
-              </Link>
-            ))}
           </div>
         </section>
 
@@ -419,7 +371,7 @@ export default async function HomePage() {
           </ul>
           <h2>For Dealers</h2>
           <ul>
-            <li><Link href="/how-it-works#pricing">AI Platform Pricing</Link></li>
+            <li><Link href="/pricing">AI Platform Pricing</Link></li>
             <li><Link href="/contact?plan=demo">Book a Demo</Link></li>
             <li><Link href="/dashboard/listings/new">List Equipment</Link></li>
           </ul>
@@ -450,7 +402,7 @@ export default async function HomePage() {
           </div>
           <div className="grid grid-cols-4 sm:flex gap-3 sm:gap-6 text-center sm:text-left">
             <FooterLink href="/new-trailers">New Trailers</FooterLink>
-            <FooterLink href="/how-it-works#pricing">Pricing</FooterLink>
+            <FooterLink href="/pricing">Pricing</FooterLink>
             <FooterLink href="/dealers">Dealers</FooterLink>
             <FooterLink href="/about">About</FooterLink>
             <FooterLink href="/privacy">Privacy</FooterLink>
@@ -463,10 +415,10 @@ export default async function HomePage() {
   );
 }
 
-function FeatureCheck({ children }: { children: React.ReactNode }) {
+function FeatureCheck({ children, color }: { children: React.ReactNode; color?: 'emerald' }) {
   return (
     <li className="flex items-start gap-2 text-sm text-muted-foreground dark:text-foreground/60">
-      <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+      <Check className={`w-4 h-4 shrink-0 mt-0.5 ${color === 'emerald' ? 'text-emerald-500' : 'text-primary'}`} />
       {children}
     </li>
   );

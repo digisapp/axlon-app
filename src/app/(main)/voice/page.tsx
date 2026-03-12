@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { VoiceContent } from '@/components/voice/VoiceContent';
 
 export const metadata: Metadata = {
-  title: 'Voice Agents — 24/7 Phone AI | AXLON AI',
+  title: 'Voice Agent — Your Company\'s Voice & Brain | AXLON AI',
   description:
-    'Conversational AI agent solutions — voice AI agents delivering real-time customer support, 24/7 automated call handling, and natural voice interactions.',
+    'AI Voice Agent that knows your entire business — inventory, pricing, CRM, relationships. Answers calls in 30+ languages, captures leads, and gives your team instant intel with a PIN.',
 };
 
 export default function VoicePage() {

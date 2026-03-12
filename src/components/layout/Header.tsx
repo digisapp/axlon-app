@@ -214,16 +214,16 @@ export function Header() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium flex items-center gap-2">
-                        Voice Agents
+                        Voice Agent
                         <span className="text-[10px] font-semibold bg-cyan-600 text-white px-1.5 py-0.5 rounded-full leading-none">24/7</span>
                       </p>
-                      <p className="text-xs text-muted-foreground">Phone answering & lead capture</p>
+                      <p className="text-xs text-muted-foreground">Your company&apos;s voice and brain</p>
                     </div>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/how-it-works#pricing" className="flex items-center gap-3">
+                  <Link href="/pricing" className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
                       <DollarSign className="w-4 h-4" />
                     </div>
@@ -449,12 +449,12 @@ export function Header() {
                     >
                       <Headphones className="w-5 h-5" />
                       <span className="flex items-center gap-2">
-                        Voice Agents
+                        Voice Agent
                         <span className="text-[10px] font-semibold bg-cyan-600 text-white px-1.5 py-0.5 rounded-full leading-none">24/7</span>
                       </span>
                     </Link>
                     <Link
-                      href="/how-it-works#pricing"
+                      href="/pricing"
                       onClick={() => setIsOpen(false)}
                       className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-muted"
                     >

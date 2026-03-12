@@ -50,15 +50,15 @@ const pillars = [
   },
   {
     icon: Headphones,
-    title: 'Voice Agents',
+    title: 'Voice Agent',
     price: '$499',
     color: 'cyan',
     features: [
-      'Answers calls like a real person',
-      'Qualifies callers & books appointments',
-      'Dedicated phone number included',
-      'Call transcripts & lead summaries',
-      'After-hours coverage — never miss a call',
+      'Knows your inventory, pricing & CRM inside out',
+      'Answers customers in 30+ languages',
+      'Team PIN access for instant company intel',
+      'Captures leads, qualifies & books appointments',
+      'You control what it knows and who can access it',
     ],
     href: '/voice',
   },
@@ -160,7 +160,7 @@ function ForDealersJsonLd() {
         },
         {
           '@type': 'Offer',
-          name: 'Voice Agents',
+          name: 'Voice Agent',
           price: '499',
           priceCurrency: 'USD',
           priceSpecification: {
@@ -169,7 +169,7 @@ function ForDealersJsonLd() {
             priceCurrency: 'USD',
             billingDuration: 'P1M',
           },
-          description: '24/7 AI phone answering and lead capture',
+          description: 'AI voice and brain for your entire company — answers calls, knows your business inside out',
         },
       ],
     },
@@ -512,9 +512,9 @@ export default function ForDealersPage() {
             </div>
             <div className="border rounded-xl p-6 bg-card">
               <Headphones className="w-8 h-8 text-cyan-600 mx-auto mb-3" />
-              <h3 className="font-bold text-lg">Voice Agents</h3>
+              <h3 className="font-bold text-lg">Voice Agent</h3>
               <p className="text-3xl font-bold mt-2 text-cyan-600">$499<span className="text-base font-normal text-muted-foreground">/mo</span></p>
-              <p className="text-sm text-muted-foreground mt-1">24/7 phone AI + lead capture</p>
+              <p className="text-sm text-muted-foreground mt-1">Your company&apos;s voice and brain</p>
             </div>
           </div>
 
@@ -569,7 +569,7 @@ export default function ForDealersPage() {
             <p className="text-xs text-muted-foreground">&copy; 2026 AXLON AI. All rights reserved.</p>
           </div>
           <div className="flex gap-6">
-            <Link href="/how-it-works#pricing" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+            <Link href="/pricing" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
             <Link href="/contact" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Contact</Link>
             <Link href="/privacy" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>
             <Link href="/terms" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Terms</Link>

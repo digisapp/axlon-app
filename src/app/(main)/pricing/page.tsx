@@ -17,6 +17,8 @@ import {
   Shield,
   Gift,
   Crown,
+  Bot,
+  Headphones,
 } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -47,21 +49,18 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Pricing Cards */}
+      {/* Pricing Cards — 3 Column */}
       <section className="px-4 pb-16">
-        <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-8">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-6 items-start">
           {/* Platform */}
-          <Card className="relative border-primary/50 shadow-lg">
-            <div className="absolute -top-3 left-4">
-              <Badge className="bg-primary">Most Popular</Badge>
-            </div>
+          <Card className="relative border-primary/30">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2 mb-2">
-                <Star className="w-5 h-5 text-primary" />
-                <CardTitle className="text-xl">AXLON Platform</CardTitle>
+                <Bot className="w-5 h-5 text-primary" />
+                <CardTitle className="text-xl">AI Platform</CardTitle>
               </div>
               <CardDescription>
-                Everything you need to run your dealership with AI
+                The brain behind your dealership.
               </CardDescription>
               <div className="mt-4">
                 <div className="flex items-baseline gap-1">
@@ -105,18 +104,72 @@ export default function PricingPage() {
             </CardContent>
           </Card>
 
-          {/* Voice Add-on */}
-          <Card className="relative border-cyan-500/30">
-            <div className="absolute -top-3 left-4">
-              <Badge className="bg-cyan-600">Add-on</Badge>
+          {/* AI Suite — Center Hero */}
+          <Card className="relative border-2 border-emerald-500/50 shadow-xl bg-gradient-to-b from-emerald-50/50 to-transparent dark:from-emerald-950/20">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <Badge className="bg-emerald-600">Most Popular</Badge>
             </div>
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2 mb-2">
-                <PhoneCall className="w-5 h-5 text-cyan-600" />
-                <CardTitle className="text-xl">AXLON Voice</CardTitle>
+                <Sparkles className="w-5 h-5 text-emerald-600" />
+                <CardTitle className="text-xl">AI Suite</CardTitle>
               </div>
               <CardDescription>
-                AI answers your phones 24/7 — never miss a lead again
+                Your complete AI operating system.
+              </CardDescription>
+              <div className="mt-4">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold text-emerald-600">$699</span>
+                  <span className="text-muted-foreground">/month</span>
+                  <span className="text-sm text-muted-foreground line-through">$898</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  or $6,990/year (save $1,398)
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-xs font-medium">Everything in AI Platform, plus:</p>
+              <ul className="space-y-3">
+                {[
+                  'AI Voice Agent answers calls 24/7',
+                  'Dedicated AI phone number',
+                  '500 voice minutes included/month',
+                  'Phone lead capture & qualification',
+                  'Call recordings + AI transcripts',
+                  'Team PIN access for instant company intel',
+                  'Calls, leads, and deals in one system',
+                  'Business hours routing + after-hours AI',
+                  'Call transfer to human when needed',
+                ].map((feature) => (
+                  <li key={feature} className="flex items-start gap-2 text-sm">
+                    <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-muted-foreground">Most dealers choose this plan.</p>
+              <Button className="w-full bg-emerald-600 hover:bg-emerald-700" size="lg" asChild>
+                <Link href="/get-started?plan=suite">
+                  Start 30-Day Free Trial
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
+              </Button>
+              <p className="text-xs text-center text-muted-foreground">
+                No credit card required
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Voice Agent */}
+          <Card className="relative border-cyan-500/30">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2 mb-2">
+                <Headphones className="w-5 h-5 text-cyan-600" />
+                <CardTitle className="text-xl">Voice Agent</CardTitle>
+              </div>
+              <CardDescription>
+                AI phone receptionist for your dealership.
               </CardDescription>
               <div className="mt-4">
                 <div className="flex items-baseline gap-1">
@@ -136,9 +189,9 @@ export default function PricingPage() {
                   '500 minutes included/month',
                   'Inventory search during calls',
                   'Automatic lead capture from every call',
-                  'Call recording + AI transcription + summaries',
-                  'Staff PIN authentication for internal data',
-                  'Business hours routing + after-hours handling',
+                  'Call recording + AI transcription',
+                  'Staff PIN for internal data access',
+                  'Business hours routing + after-hours',
                   'Call transfer to human when needed',
                 ].map((feature) => (
                   <li key={feature} className="flex items-start gap-2 text-sm">
@@ -148,7 +201,7 @@ export default function PricingPage() {
                 ))}
               </ul>
               <p className="text-xs text-muted-foreground border rounded-lg p-3 bg-muted/50">
-                Overage: $0.25/min beyond 500 included minutes
+                $0.25/min beyond 500 included minutes
               </p>
               <Button className="w-full bg-cyan-600 hover:bg-cyan-700" size="lg" asChild>
                 <Link href="/contact?plan=voice">
@@ -156,75 +209,42 @@ export default function PricingPage() {
                   <PhoneCall className="w-4 h-4 ml-2" />
                 </Link>
               </Button>
-              <p className="text-xs text-center text-muted-foreground">
-                Included in AI Suite bundle
-              </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* AI Suite Bundle */}
-        <div className="max-w-5xl mx-auto mt-8">
-          <Card className="relative border-2 border-emerald-500/50 shadow-xl bg-gradient-to-r from-emerald-50/50 to-cyan-50/50 dark:from-emerald-950/20 dark:to-cyan-950/20">
-            <div className="absolute -top-3 left-4">
-              <Badge className="bg-emerald-600">Best Value — Save $199/mo</Badge>
-            </div>
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-5 h-5 text-emerald-600" />
-                <CardTitle className="text-xl">AI Suite</CardTitle>
-                <span className="text-sm text-muted-foreground">Platform + Voice</span>
-              </div>
-              <CardDescription>
-                The complete AI operating system — everything in one bundle
-              </CardDescription>
-              <div className="mt-4 flex items-baseline gap-3">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-emerald-600">$699</span>
-                  <span className="text-muted-foreground">/month</span>
-                </div>
-                <span className="text-sm text-muted-foreground line-through">$898/mo</span>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                or $6,990/year (save $1,398) &middot; Save $199/mo vs buying separately
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="grid sm:grid-cols-2 gap-x-8 gap-y-2 mb-6">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Platform Included</p>
-                  <ul className="space-y-2">
-                    {['AI Sales Assistant & CRM', 'Smart Import & automation', 'Analytics & deal scoring', 'Custom branded storefront'].map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Voice Included</p>
-                  <ul className="space-y-2">
-                    {['24/7 AI phone answering', '500 minutes/mo included', 'Call transcripts & summaries', 'Lead capture from every call'].map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-              <Button className="w-full bg-emerald-600 hover:bg-emerald-700" size="lg" asChild>
-                <Link href="/get-started?plan=suite">
-                  Start 30-Day Free Trial — AI Suite
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
-              </Button>
-              <p className="text-xs text-center text-muted-foreground mt-2">
-                No credit card required &middot; Full access to everything
-              </p>
-            </CardContent>
-          </Card>
+        {/* Comparison Table */}
+        <div className="max-w-4xl mx-auto mt-12 overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left py-3 pr-4 font-medium text-muted-foreground">Feature</th>
+                <th className="text-center py-3 px-4 font-medium">Platform</th>
+                <th className="text-center py-3 px-4 font-bold text-emerald-600">AI Suite</th>
+                <th className="text-center py-3 px-4 font-medium">Voice</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {[
+                ['CRM + Deal Desk', true, true, false],
+                ['AI Sales Assistant', true, true, false],
+                ['Inventory Management', true, true, false],
+                ['Branded Storefront', true, true, false],
+                ['Smart Import', true, true, false],
+                ['AI Voice Agent', false, true, true],
+                ['Phone Lead Capture', false, true, true],
+                ['Call Transcripts', false, true, true],
+                ['Team PIN Access', false, true, true],
+              ].map(([feature, platform, suite, voice]) => (
+                <tr key={feature as string}>
+                  <td className="py-2.5 pr-4 text-muted-foreground">{feature as string}</td>
+                  <td className="py-2.5 px-4 text-center">{platform ? <Check className="w-4 h-4 text-green-500 mx-auto" /> : <span className="text-muted-foreground">—</span>}</td>
+                  <td className="py-2.5 px-4 text-center bg-emerald-50/30 dark:bg-emerald-950/10">{suite ? <Check className="w-4 h-4 text-emerald-500 mx-auto" /> : <span className="text-muted-foreground">—</span>}</td>
+                  <td className="py-2.5 px-4 text-center">{voice ? <Check className="w-4 h-4 text-green-500 mx-auto" /> : <span className="text-muted-foreground">—</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 

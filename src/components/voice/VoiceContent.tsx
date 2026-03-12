@@ -247,7 +247,7 @@ export function VoiceContent() {
                   </Link>
                 </Button>
                 <Button variant="outline" className="flex-1" size="lg" asChild>
-                  <Link href="/how-it-works#pricing">
+                  <Link href="/pricing">
                     See Full Pricing
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>

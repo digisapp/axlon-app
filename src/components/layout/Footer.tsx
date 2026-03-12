@@ -14,8 +14,8 @@ const footerLinks = {
   ],
   platform: [
     { href: '/how-it-works', label: 'AI Platform' },
-    { href: '/voice', label: 'Voice Agents' },
-    { href: '/how-it-works#pricing', label: 'Pricing' },
+    { href: '/voice', label: 'Voice Agent' },
+    { href: '/pricing', label: 'Pricing' },
     { href: '/become-a-dealer', label: 'For Dealers' },
   ],
   company: [
