@@ -101,6 +101,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description: specs || product.short_description || undefined,
       images: product.images?.[0]?.url ? [{ url: product.images[0].url }] : undefined,
     },
+    alternates: {
+      canonical: `/new-trailers/${manufacturer}/${productSlug}`,
+    },
   };
 }
 
@@ -139,8 +142,42 @@ export default async function ProductDetailPage({ params }: PageProps) {
       ? `${product.tonnage_max} Ton`
       : null;
 
+  // JSON-LD structured data for SEO
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: `${product.manufacturer.name} ${product.name}`,
+    description: product.short_description || product.description || `${product.name} by ${product.manufacturer.name}`,
+    image: sortedImages.map((img: any) => img.url),
+    brand: {
+      '@type': 'Brand',
+      name: product.manufacturer.name,
+    },
+    category: 'Heavy Haul Trailers',
+    ...(product.source_url && { url: product.source_url }),
+    additionalProperty: [
+      ...(tonnageLabel ? [{ '@type': 'PropertyValue', name: 'Capacity', value: tonnageLabel }] : []),
+      ...(product.deck_height_inches ? [{ '@type': 'PropertyValue', name: 'Deck Height', value: `${product.deck_height_inches}"` }] : []),
+      ...(product.axle_count ? [{ '@type': 'PropertyValue', name: 'Axles', value: `${product.axle_count}` }] : []),
+      ...(gooseneckLabel ? [{ '@type': 'PropertyValue', name: 'Gooseneck Type', value: gooseneckLabel }] : []),
+      ...(product.deck_length_feet ? [{ '@type': 'PropertyValue', name: 'Deck Length', value: `${product.deck_length_feet} ft` }] : []),
+    ],
+  };
+
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'New Trailers', item: 'https://axlon.ai/new-trailers' },
+      { '@type': 'ListItem', position: 2, name: product.manufacturer.name, item: `https://axlon.ai/manufacturers/${product.manufacturer.slug}` },
+      { '@type': 'ListItem', position: 3, name: product.name },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       {/* Breadcrumbs */}
       <div className="border-b bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 py-3">

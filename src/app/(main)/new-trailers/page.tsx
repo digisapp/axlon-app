@@ -80,8 +80,31 @@ export default async function NewTrailersPage() {
 
   const totalProducts = products?.length || 0;
 
+  // JSON-LD structured data
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'New Heavy Haul Trailers by Manufacturer',
+    description: 'Browse new lowboy trailers, heavy haul trailers, and specialized hauling equipment from top manufacturers.',
+    numberOfItems: totalProducts,
+    itemListElement: groupedByManufacturer.flatMap((mfr, mfrIndex) =>
+      mfr.products.slice(0, 5).map((p, pIndex) => ({
+        '@type': 'ListItem',
+        position: mfrIndex * 5 + pIndex + 1,
+        item: {
+          '@type': 'Product',
+          name: `${mfr.name} ${p.name}`,
+          url: `https://axlon.ai/new-trailers/${mfr.slug}/${p.slug}`,
+          brand: { '@type': 'Brand', name: mfr.name },
+          image: p.images?.find((i: any) => i.is_primary)?.url || p.images?.[0]?.url || undefined,
+        },
+      }))
+    ),
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* Hero */}
       <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
         <div className="max-w-7xl mx-auto px-4 py-12 md:py-16">
