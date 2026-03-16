@@ -327,8 +327,8 @@ export default function GetStartedPage() {
                     )}
 
                     <div className="space-y-2">
-                      <Label htmlFor="company_name" className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4" />
+                      <Label htmlFor="company_name" className="flex items-center gap-2 text-base">
+                        <Building2 className="w-5 h-5" />
                         Company Name <span className="text-destructive">*</span>
                       </Label>
                       <Input
@@ -336,13 +336,14 @@ export default function GetStartedPage() {
                         placeholder="Your Company Name"
                         value={formData.company_name}
                         onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                        className="h-12 text-base"
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="phone" className="flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
+                      <Label htmlFor="phone" className="flex items-center gap-2 text-base">
+                        <Phone className="w-5 h-5" />
                         Phone Number
                       </Label>
                       <Input
@@ -351,6 +352,7 @@ export default function GetStartedPage() {
                         placeholder="(555) 123-4567"
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="h-12 text-base"
                       />
                       <p className="text-xs text-muted-foreground">
                         Displayed on your listings for buyer inquiries
@@ -358,8 +360,8 @@ export default function GetStartedPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="location" className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
+                      <Label htmlFor="location" className="flex items-center gap-2 text-base">
+                        <MapPin className="w-5 h-5" />
                         Location
                       </Label>
                       <Input
@@ -367,13 +369,14 @@ export default function GetStartedPage() {
                         placeholder="City, State"
                         value={formData.location}
                         onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                        className="h-12 text-base"
                       />
                       <p className="text-xs text-muted-foreground">
                         Helps buyers find equipment near them
                       </p>
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    <Button type="submit" className="w-full h-12 text-base" disabled={isSubmitting}>
                       {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                       Get Started
                     </Button>
