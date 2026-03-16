@@ -24,16 +24,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_dealer')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile?.is_dealer) {
-    return NextResponse.json({ error: 'Dealer access required' }, { status: 403 });
-  }
-
   // Verify KB is active
   const { data: settings } = await supabase
     .from('dealer_ai_settings')

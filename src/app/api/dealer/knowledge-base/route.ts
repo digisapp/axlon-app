@@ -15,17 +15,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Verify dealer
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_dealer')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile?.is_dealer) {
-    return NextResponse.json({ error: 'Dealer access required' }, { status: 403 });
-  }
-
   // Get KB settings
   const { data: settings } = await supabase
     .from('dealer_ai_settings')
@@ -82,13 +71,9 @@ export async function POST(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('is_dealer, company_name')
+    .select('company_name')
     .eq('id', user.id)
     .single();
-
-  if (!profile?.is_dealer) {
-    return NextResponse.json({ error: 'Dealer access required' }, { status: 403 });
-  }
 
   const body = await request.json();
   let validated;

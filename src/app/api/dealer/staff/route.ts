@@ -28,17 +28,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify user is a dealer
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_dealer')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.is_dealer) {
-      return NextResponse.json({ error: 'Dealer access required' }, { status: 403 });
-    }
-
     // Get all staff for this dealer
     const { data: staff, error } = await supabase
       .from('dealer_staff')
@@ -79,17 +68,6 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Verify user is a dealer
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_dealer')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.is_dealer) {
-      return NextResponse.json({ error: 'Dealer access required' }, { status: 403 });
     }
 
     const body = await request.json();
