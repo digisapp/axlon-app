@@ -70,6 +70,7 @@ export default async function DashboardLayout({
         <Sidebar
           unreadMessages={unreadMessages || 0}
           newLeads={newLeads || 0}
+          subscriptionTier={profile?.subscription_tier || 'free'}
         />
       </div>
 

@@ -18,9 +18,10 @@ import { dashboardNavSections, getNavSectionsWithBadges } from '@/lib/dashboard-
 interface SidebarProps {
   unreadMessages?: number;
   newLeads?: number;
+  subscriptionTier?: string;
 }
 
-export function Sidebar({ unreadMessages = 0, newLeads = 0 }: SidebarProps) {
+export function Sidebar({ unreadMessages = 0, newLeads = 0, subscriptionTier = 'free' }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
 
@@ -126,15 +127,27 @@ export function Sidebar({ unreadMessages = 0, newLeads = 0 }: SidebarProps) {
         {/* Bottom Banner */}
         {!collapsed && (
           <div className="p-3 border-t">
-            <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-4">
-              <p className="font-medium text-sm mb-1">Add Voice Agent</p>
-              <p className="text-xs text-muted-foreground mb-3">
-                AI answers your calls 24/7
-              </p>
-              <Button size="sm" className="w-full" asChild>
-                <Link href="/dashboard/voice-agent">Learn More</Link>
-              </Button>
-            </div>
+            {subscriptionTier === 'free' ? (
+              <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-4">
+                <p className="font-medium text-sm mb-1">Upgrade to Pro</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  AI assistant, CRM, voice agent & more
+                </p>
+                <Button size="sm" className="w-full" asChild>
+                  <Link href="/dashboard/billing">Upgrade</Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-4">
+                <p className="font-medium text-sm mb-1">Add Voice Agent</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  AI answers your calls 24/7
+                </p>
+                <Button size="sm" className="w-full" asChild>
+                  <Link href="/dashboard/voice-agent">Learn More</Link>
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
