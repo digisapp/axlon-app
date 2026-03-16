@@ -72,7 +72,7 @@ export const adminNavSections: AdminNavSection[] = [
     ],
   },
   {
-    label: 'Dealers',
+    label: 'Businesses',
     items: [
       {
         href: '/admin/directory',
@@ -111,7 +111,7 @@ export const adminNavSections: AdminNavSection[] = [
       },
       {
         href: '/admin/voice-agents',
-        label: 'Dealer Agents',
+        label: 'Business Agents',
         icon: <Mic className="w-5 h-5" />,
       },
       {

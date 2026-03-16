@@ -41,11 +41,11 @@ export async function GET(request: NextRequest) {
         phone,
         city,
         state,
-        is_dealer,
-        dealer_status,
-        dealer_applied_at,
-        dealer_reviewed_at,
-        dealer_rejection_reason,
+        is_business,
+        business_status,
+        business_applied_at,
+        business_reviewed_at,
+        business_rejection_reason,
         business_license,
         tax_id,
         created_at,
@@ -54,14 +54,14 @@ export async function GET(request: NextRequest) {
 
     // Filter by status
     if (status === 'all') {
-      query = query.neq('dealer_status', 'none');
+      query = query.neq('business_status', 'none');
     } else {
-      query = query.eq('dealer_status', status);
+      query = query.eq('business_status', status);
     }
 
     // Pagination
     query = query
-      .order('dealer_applied_at', { ascending: false, nullsFirst: false })
+      .order('business_applied_at', { ascending: false, nullsFirst: false })
       .range(offset, offset + limit - 1);
 
     const { data: dealers, count, error } = await query;
@@ -75,17 +75,17 @@ export async function GET(request: NextRequest) {
     const { count: pendingCount } = await supabase
       .from('profiles')
       .select('*', { count: 'exact', head: true })
-      .eq('dealer_status', 'pending');
+      .eq('business_status', 'pending');
 
     const { count: approvedCount } = await supabase
       .from('profiles')
       .select('*', { count: 'exact', head: true })
-      .eq('dealer_status', 'approved');
+      .eq('business_status', 'approved');
 
     const { count: rejectedCount } = await supabase
       .from('profiles')
       .select('*', { count: 'exact', head: true })
-      .eq('dealer_status', 'rejected');
+      .eq('business_status', 'rejected');
 
     return NextResponse.json({
       data: dealers,

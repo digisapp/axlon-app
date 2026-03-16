@@ -110,7 +110,7 @@ export function Header() {
 
   const isMarketplaceActive = pathname.startsWith('/search') || pathname.startsWith('/new-trailers') || pathname.startsWith('/dealers') || pathname.startsWith('/categories');
   const isPlatformActive = pathname === '/how-it-works' || pathname === '/voice';
-  const isDealersActive = pathname === '/become-a-dealer';
+  const isForBusinessActive = pathname === '/get-started';
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -167,7 +167,7 @@ export function Header() {
                     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                       <Building2 className="w-4 h-4 text-primary" />
                     </div>
-                    Dealers
+                    Directory
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -233,16 +233,16 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Dealers Simple Link */}
+            {/* For Business Link */}
             <Link
-              href="/become-a-dealer"
+              href="/get-started"
               className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                isDealersActive
+                isForBusinessActive
                   ? 'bg-primary/10 text-primary'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               }`}
             >
-              Dealers
+              For Business
             </Link>
           </nav>
 
@@ -403,7 +403,7 @@ export function Header() {
                       }`}
                     >
                       <Building2 className="w-5 h-5" />
-                      Dealers
+                      Directory
                     </Link>
                     <Link
                       href="/categories"
@@ -466,21 +466,21 @@ export function Header() {
                   <div className="h-px bg-border" />
 
                   <nav className="flex flex-col gap-1">
-                    {/* For Dealers Section */}
+                    {/* For Business Section */}
                     <p className="px-3 pt-1 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      For Dealers
+                      For Business
                     </p>
                     <Link
-                      href="/become-a-dealer"
+                      href="/get-started"
                       onClick={() => setIsOpen(false)}
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                        pathname === '/become-a-dealer'
+                        pathname === '/get-started'
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-muted'
                       }`}
                     >
                       <Store className="w-5 h-5" />
-                      Become a Dealer
+                      Get Started
                     </Link>
                   </nav>
 

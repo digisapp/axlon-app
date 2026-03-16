@@ -84,7 +84,7 @@ export default function GetStartedPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isAlreadyDealer, setIsAlreadyDealer] = useState(false);
+  const [isAlreadyBusiness, setIsAlreadyBusiness] = useState(false);
 
   const [formData, setFormData] = useState({
     company_name: '',
@@ -102,11 +102,11 @@ export default function GetStartedPage() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('is_dealer, is_admin, company_name, phone, location')
+          .select('is_business, is_admin, company_name, phone, location')
           .eq('id', user.id)
           .single();
 
-        if (profile?.is_dealer || profile?.is_admin) {
+        if (profile?.is_business || profile?.is_admin) {
           router.push('/dashboard');
           return;
         } else if (profile) {
@@ -151,7 +151,7 @@ export default function GetStartedPage() {
           company_name: formData.company_name.trim(),
           phone: formData.phone.trim() || null,
           location: formData.location.trim() || null,
-          is_dealer: true,
+          is_business: true,
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);
@@ -179,7 +179,7 @@ export default function GetStartedPage() {
     );
   }
 
-  if (isAlreadyDealer) {
+  if (isAlreadyBusiness) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/30">
         <Card className="w-full max-w-md text-center">

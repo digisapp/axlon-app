@@ -42,8 +42,8 @@ import { logger } from '@/lib/logger';
 interface AnalyticsData {
   overview: {
     total_users: number;
-    total_dealers: number;
-    pending_dealers: number;
+    total_businesses: number;
+    pending_businesses: number;
     total_listings: number;
     active_listings: number;
     total_leads: number;
@@ -61,7 +61,7 @@ interface AnalyticsData {
     listings: { date: string; count: number }[];
     leads: { date: string; count: number }[];
   };
-  top_dealers: {
+  top_businesses: {
     id: string;
     company_name: string | null;
     email: string;
@@ -165,12 +165,12 @@ export default function AdminAnalyticsPage() {
                       <Building2 className="w-5 h-5 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">{data.overview.total_dealers}</p>
+                      <p className="text-2xl font-bold">{data.overview.total_businesses}</p>
                       <div className="flex items-center gap-1">
-                        <p className="text-sm text-muted-foreground">Dealers</p>
-                        {data.overview.pending_dealers > 0 && (
+                        <p className="text-sm text-muted-foreground">Businesses</p>
+                        {data.overview.pending_businesses > 0 && (
                           <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-300">
-                            {data.overview.pending_dealers} pending
+                            {data.overview.pending_businesses} pending
                           </Badge>
                         )}
                       </div>
@@ -442,23 +442,23 @@ export default function AdminAnalyticsPage() {
               </Card>
             </div>
 
-            {/* Top Dealers */}
+            {/* Top Businesses */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Building2 className="w-5 h-5 text-green-500" />
-                  Top Dealers by Listings
+                  Top Businesses by Listings
                 </CardTitle>
                 <Link href="/admin/dealers">
                   <Button variant="outline" size="sm">
-                    View All Dealers
+                    View All Businesses
                   </Button>
                 </Link>
               </CardHeader>
               <CardContent>
-                {data.top_dealers.length > 0 ? (
+                {data.top_businesses.length > 0 ? (
                   <div className="space-y-4">
-                    {data.top_dealers.map((dealer, index) => (
+                    {data.top_businesses.map((dealer, index) => (
                       <div
                         key={dealer.id}
                         className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
@@ -490,7 +490,7 @@ export default function AdminAnalyticsPage() {
                 ) : (
                   <div className="text-center py-8">
                     <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No dealers with active listings</p>
+                    <p className="text-muted-foreground">No businesses with active listings</p>
                   </div>
                 )}
               </CardContent>

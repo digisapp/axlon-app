@@ -24,8 +24,8 @@ export default async function AdminDashboardPage() {
     { count: totalListings },
     { count: activeListings },
     { count: totalCalls },
-    { count: totalDealers },
-    { count: pendingDealers },
+    { count: totalBusinesses },
+    { count: pendingBusinesses },
     { count: newLeads },
     { count: pendingTradeIns },
     { data: viewsData },
@@ -38,12 +38,12 @@ export default async function AdminDashboardPage() {
     supabase.from('listings').select('*', { count: 'exact', head: true }),
     supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'active'),
     supabase.from('call_logs').select('*', { count: 'exact', head: true }),
-    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_dealer', true),
-    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('dealer_status', 'pending'),
+    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_business', true),
+    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('business_status', 'pending'),
     supabase.from('leads').select('*', { count: 'exact', head: true }).eq('status', 'new'),
     supabase.from('trade_in_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.from('listings').select('views_count'),
-    supabase.from('profiles').select('id, email, company_name, is_dealer, created_at').order('created_at', { ascending: false }).limit(5),
+    supabase.from('profiles').select('id, email, company_name, is_business, created_at').order('created_at', { ascending: false }).limit(5),
     supabase.from('listings').select('id, title, status, created_at, user_id').order('created_at', { ascending: false }).limit(5),
     supabase.from('leads').select('*', { count: 'exact', head: true }).gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
     supabase.from('call_logs').select('*', { count: 'exact', head: true }).gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
@@ -64,7 +64,7 @@ export default async function AdminDashboardPage() {
 
   // Action items that need attention
   const actionItems = [
-    { label: 'Pending Dealers', count: pendingDealers || 0, href: '/admin/dealers', color: 'yellow', icon: <Building2 className="w-5 h-5" /> },
+    { label: 'Pending Businesses', count: pendingBusinesses || 0, href: '/admin/dealers', color: 'yellow', icon: <Building2 className="w-5 h-5" /> },
     { label: 'New Leads', count: newLeads || 0, href: '/admin/leads', color: 'green', icon: <PhoneCall className="w-5 h-5" /> },
     { label: 'Pending Trade-Ins', count: pendingTradeIns || 0, href: '/admin/trade-ins', color: 'amber', icon: <ArrowUpRight className="w-5 h-5" /> },
   ].filter((item) => item.count > 0);
@@ -123,9 +123,9 @@ export default async function AdminDashboardPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Building2 className="w-4 h-4 text-blue-500" />
-                <span className="text-sm text-muted-foreground">Dealers</span>
+                <span className="text-sm text-muted-foreground">Businesss</span>
               </div>
-              <p className="text-2xl font-bold">{totalDealers || 0}</p>
+              <p className="text-2xl font-bold">{totalBusinesses || 0}</p>
             </CardContent>
           </Card>
           <Card>
@@ -157,14 +157,14 @@ export default async function AdminDashboardPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-1">
                 <Building2 className="w-4 h-4 text-green-500" />
-                {(pendingDealers || 0) > 0 && (
+                {(pendingBusinesses || 0) > 0 && (
                   <Badge variant="outline" className="text-[10px] text-yellow-600 border-yellow-300">
-                    {pendingDealers} pending
+                    {pendingBusinesses} pending
                   </Badge>
                 )}
               </div>
-              <p className="text-2xl font-bold">{totalDealers || 0}</p>
-              <p className="text-xs text-muted-foreground">Dealers</p>
+              <p className="text-2xl font-bold">{totalBusinesses || 0}</p>
+              <p className="text-xs text-muted-foreground">Businesss</p>
             </CardContent>
           </Card>
           <Card>
@@ -225,9 +225,9 @@ export default async function AdminDashboardPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {u.is_dealer && (
+                      {u.is_business && (
                         <span className="px-2 py-0.5 text-[10px] bg-primary/10 text-primary rounded-full">
-                          Dealer
+                          Business
                         </span>
                       )}
                       <span className="text-[10px] text-muted-foreground">

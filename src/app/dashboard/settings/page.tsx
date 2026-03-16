@@ -68,7 +68,7 @@ export default function SettingsPage() {
     company_name: '',
     phone: '',
     location: '',
-    is_dealer: false,
+    is_business: false,
     avatar_url: '',
   });
 
@@ -102,7 +102,7 @@ export default function SettingsPage() {
           company_name: profile.company_name || '',
           phone: profile.phone || '',
           location: profile.location || '',
-          is_dealer: profile.is_dealer || false,
+          is_business: profile.is_business || false,
           avatar_url: profile.avatar_url || '',
         });
 
@@ -169,7 +169,7 @@ export default function SettingsPage() {
           company_name: formData.company_name || null,
           phone: formData.phone || null,
           location: formData.location || null,
-          is_dealer: formData.is_dealer,
+          is_business: formData.is_business,
           avatar_url: avatarUrl || null,
           notification_settings: notifications,
           updated_at: new Date().toISOString(),
@@ -388,12 +388,12 @@ export default function SettingsPage() {
               <div>
                 <p className="font-medium">Business Account</p>
                 <p className="text-sm text-muted-foreground">
-                  {formData.is_dealer
+                  {formData.is_business
                     ? 'Your account is verified for business features'
                     : 'Upgrade to a business account for additional features'}
                 </p>
               </div>
-              {formData.is_dealer ? (
+              {formData.is_business ? (
                 <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">
                   Verified
                 </span>

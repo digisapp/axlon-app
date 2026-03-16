@@ -20,14 +20,14 @@ export default async function OnboardingPage() {
       id,
       email,
       company_name,
-      is_dealer,
+      is_business,
       created_at,
       city,
       state,
       phone
     `, { count: 'exact' })
     .like('email', '%@dealers.axlon.ai')
-    .eq('is_dealer', false)
+    .eq('is_business', false)
     .order('created_at', { ascending: false })
     .limit(100);
 
@@ -50,7 +50,7 @@ export default async function OnboardingPage() {
     .from('profiles')
     .select('id', { count: 'exact', head: true })
     .like('email', '%@dealers.axlon.ai')
-    .eq('is_dealer', false)
+    .eq('is_business', false)
     .in('id',
       (await supabase.from('listings').select('user_id')).data?.map(l => l.user_id) || []
     );
@@ -58,8 +58,8 @@ export default async function OnboardingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Dealer Onboarding</h1>
-        <p className="text-sm text-muted-foreground">Scraped dealers awaiting activation</p>
+        <h1 className="text-2xl font-bold">Business Onboarding</h1>
+        <p className="text-sm text-muted-foreground">Scraped businesses awaiting activation</p>
       </div>
 
       {/* Stats */}
@@ -90,7 +90,7 @@ export default async function OnboardingPage() {
               <Building2 className="w-5 h-5 text-green-500" />
             </div>
             <p className="text-3xl font-bold">17</p>
-            <p className="text-sm text-muted-foreground">Active Dealers</p>
+            <p className="text-sm text-muted-foreground">Active Businesses</p>
           </CardContent>
         </Card>
       </div>
@@ -100,7 +100,7 @@ export default async function OnboardingPage() {
         <CardContent className="p-4">
           <p className="text-sm text-orange-800">
             <strong>What is this?</strong> These are placeholder profiles created when scraping listings from TruckPaper and other sources.
-            Each profile represents a potential dealer that could be converted to an active account.
+            Each profile represents a potential business that could be converted to an active account.
             They have auto-generated emails like <code className="bg-orange-100 px-1 rounded">dealer@dealers.axlon.ai</code>.
           </p>
         </CardContent>

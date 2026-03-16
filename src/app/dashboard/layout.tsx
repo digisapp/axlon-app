@@ -23,7 +23,7 @@ export default async function DashboardLayout({
   // Get user profile
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('company_name, avatar_url, is_dealer, is_admin, created_at, subscription_tier')
+    .select('company_name, avatar_url, is_business, is_admin, created_at, subscription_tier')
     .eq('id', user.id)
     .single();
 
@@ -34,7 +34,7 @@ export default async function DashboardLayout({
     await supabase.from('profiles').upsert({
       id: user.id,
       email: user.email,
-      is_dealer: false,
+      is_business: false,
       is_admin: false,
     }, { onConflict: 'id' });
   }

@@ -18,16 +18,16 @@ import {
 } from 'lucide-react';
 
 export const metadata = {
-  title: 'Dealer Directory — Find Trusted Equipment Dealers | AXLON AI',
-  description: 'Browse verified truck and equipment dealers on AXLON AI. Find trusted dealers near you with AI-powered storefronts, inventory, and direct messaging.',
+  title: 'Business Directory — Find Trusted Equipment Businesses | AXLON AI',
+  description: 'Browse verified truck and equipment businesses on AXLON AI. Find trusted businesses near you with AI-powered storefronts, inventory, and direct messaging.',
   openGraph: {
-    title: 'Dealer Directory | AXLON AI',
-    description: 'Find trusted truck and equipment dealers near you. Verified dealers with direct messaging.',
+    title: 'Business Directory | AXLON AI',
+    description: 'Find trusted truck and equipment businesses near you. Verified businesses with direct messaging.',
   },
   twitter: {
     card: 'summary_large_image' as const,
-    title: 'Dealer Directory | AXLON AI',
-    description: 'Find trusted truck and equipment dealers near you.',
+    title: 'Business Directory | AXLON AI',
+    description: 'Find trusted truck and equipment businesses near you.',
   },
   alternates: {
     canonical: '/dealers',
@@ -56,7 +56,7 @@ export default async function DealersPage({ searchParams }: PageProps) {
       phone,
       storefront_views
     `)
-    .eq('is_dealer', true)
+    .eq('is_business', true)
     .not('slug', 'is', null)
     .order('storefront_views', { ascending: false });
 
@@ -90,7 +90,7 @@ export default async function DealersPage({ searchParams }: PageProps) {
   const { data: statesData } = await supabase
     .from('profiles')
     .select('state')
-    .eq('is_dealer', true)
+    .eq('is_business', true)
     .not('slug', 'is', null)
     .not('state', 'is', null);
 
@@ -116,16 +116,16 @@ export default async function DealersPage({ searchParams }: PageProps) {
                 <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-amber-500 flex items-center justify-center">
                   <Building2 className="w-5 h-5 md:w-6 md:h-6 text-white" />
                 </div>
-                <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight">Dealer Directory</h1>
+                <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight">Business Directory</h1>
               </div>
               <p className="text-slate-400 text-base md:text-lg max-w-2xl">
-                Browse verified truck and equipment dealers. Find quality inventory from trusted professionals.
+                Browse verified truck and equipment businesses. Find quality inventory from trusted professionals.
               </p>
             </div>
             <Button className="rounded-full gap-2 group shrink-0 w-fit" asChild>
-              <Link href="/become-a-dealer">
+              <Link href="/get-started">
                 <Bot className="w-4 h-4" />
-                Join as a Dealer
+                Join as a Business
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>

@@ -34,14 +34,14 @@ export default async function AdminLayout({
 
   // Fetch badge counts in parallel
   const [
-    { count: pendingDealers },
+    { count: pendingBusinesses },
     { count: newLeads },
     { count: pendingTradeIns },
   ] = await Promise.all([
     supabase
       .from('profiles')
       .select('*', { count: 'exact', head: true })
-      .eq('dealer_status', 'pending'),
+      .eq('business_status', 'pending'),
     supabase
       .from('leads')
       .select('*', { count: 'exact', head: true })
@@ -53,7 +53,7 @@ export default async function AdminLayout({
   ]);
 
   const badges: Record<string, number> = {};
-  if (pendingDealers) badges['/admin/dealers'] = pendingDealers;
+  if (pendingBusinesses) badges['/admin/dealers'] = pendingBusinesses;
   if (newLeads) badges['/admin/leads'] = newLeads;
   if (pendingTradeIns) badges['/admin/trade-ins'] = pendingTradeIns;
 
@@ -72,7 +72,7 @@ export default async function AdminLayout({
           user={{ email: user.email || '', id: user.id }}
           sections={sections}
           badges={{
-            pendingDealers: pendingDealers || 0,
+            pendingBusinesses: pendingBusinesses || 0,
             newLeads: newLeads || 0,
             pendingTradeIns: pendingTradeIns || 0,
           }}

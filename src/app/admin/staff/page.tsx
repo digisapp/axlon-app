@@ -220,8 +220,8 @@ export default function AdminStaffPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Dealer Staff Management</h1>
-        <p className="text-sm text-muted-foreground">Manage voice PIN authentication for dealer staff</p>
+        <h1 className="text-2xl font-bold">Business Staff Management</h1>
+        <p className="text-sm text-muted-foreground">Manage voice PIN authentication for business staff</p>
       </div>
 
         {/* Stats */}
@@ -326,7 +326,7 @@ export default function AdminStaffPage() {
                 <p className="text-sm">
                   {searchQuery || statusFilter !== 'all'
                     ? 'Try adjusting your filters'
-                    : 'Dealers can add staff from their dashboard'}
+                    : 'Businesses can add staff from their dashboard'}
                 </p>
               </div>
             ) : (
@@ -334,7 +334,7 @@ export default function AdminStaffPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Staff Member</TableHead>
-                    <TableHead>Dealer</TableHead>
+                    <TableHead>Business</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Access</TableHead>
@@ -640,7 +640,7 @@ export default function AdminStaffPage() {
                   <p className="font-medium">{selectedStaff.phone_number || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Dealer</p>
+                  <p className="text-sm text-muted-foreground">Business</p>
                   <p className="font-medium">{selectedStaff.dealer?.company_name || '-'}</p>
                 </div>
                 <div>

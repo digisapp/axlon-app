@@ -462,7 +462,7 @@ export async function POST() {
         company_name: 'AXLON AI Demo',
         phone: '555-123-4567',
         location: 'Dallas, TX',
-        is_dealer: true,
+        is_business: true,
       });
 
       userId = authUser.user.id;

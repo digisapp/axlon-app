@@ -27,7 +27,7 @@ interface AdminHeaderProps {
   };
   sections: AdminNavSection[];
   badges: {
-    pendingDealers: number;
+    pendingBusinesses: number;
     newLeads: number;
     pendingTradeIns: number;
   };
@@ -36,7 +36,7 @@ interface AdminHeaderProps {
 export function AdminHeader({ user, sections, badges }: AdminHeaderProps) {
   const displayName = user.email?.split('@')[0] || 'Admin';
   const initials = displayName.slice(0, 2).toUpperCase();
-  const totalNotifications = badges.pendingDealers + badges.newLeads + badges.pendingTradeIns;
+  const totalNotifications = badges.pendingBusinesses + badges.newLeads + badges.pendingTradeIns;
 
   return (
     <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30">
@@ -66,12 +66,12 @@ export function AdminHeader({ user, sections, badges }: AdminHeaderProps) {
             <DropdownMenuContent align="end" className="w-72">
               <DropdownMenuLabel>Action Items</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {badges.pendingDealers > 0 && (
+              {badges.pendingBusinesses > 0 && (
                 <DropdownMenuItem asChild>
                   <Link href="/admin/dealers" className="cursor-pointer">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-yellow-500 rounded-full" />
-                      <span>{badges.pendingDealers} dealer{badges.pendingDealers !== 1 ? 's' : ''} awaiting verification</span>
+                      <span>{badges.pendingBusinesses} business{badges.pendingBusinesses !== 1 ? 'es' : ''} awaiting verification</span>
                     </div>
                   </Link>
                 </DropdownMenuItem>
@@ -124,7 +124,7 @@ export function AdminHeader({ user, sections, badges }: AdminHeaderProps) {
               <DropdownMenuItem asChild>
                 <Link href="/dashboard" className="cursor-pointer">
                   <LayoutDashboard className="w-4 h-4 mr-2" />
-                  Dealer Dashboard
+                  Business Dashboard
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

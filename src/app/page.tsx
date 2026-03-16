@@ -170,7 +170,7 @@ export default function HomePage() {
                   <li>AI sales assistant captures leads</li>
                   <li>CRM + deal desk</li>
                   <li>Inventory management</li>
-                  <li>Dealer storefront</li>
+                  <li>Business storefront</li>
                 </ul>
               </div>
             </Link>
@@ -344,7 +344,7 @@ export default function HomePage() {
               </thead>
               <tbody className="divide-y">
                 {[
-                  { old: 'Dealer DMS software', replaced: 'Inventory & deal management' },
+                  { old: 'Business DMS software', replaced: 'Inventory & deal management' },
                   { old: 'CRM systems', replaced: 'Built-in CRM + Deal Desk' },
                   { old: 'Answering services', replaced: 'AI Voice Agent' },
                   { old: 'BDC teams', replaced: 'AI lead capture & qualification' },
@@ -449,7 +449,7 @@ export default function HomePage() {
           <div className="grid grid-cols-4 sm:flex gap-3 sm:gap-6 text-center sm:text-left">
             <FooterLink href="/new-trailers">New Trailers</FooterLink>
             <FooterLink href="/pricing">Pricing</FooterLink>
-            <FooterLink href="/dealers">Dealers</FooterLink>
+            <FooterLink href="/dealers">Directory</FooterLink>
             <FooterLink href="/about">About</FooterLink>
             <FooterLink href="/privacy">Privacy</FooterLink>
             <FooterLink href="/terms">Terms</FooterLink>

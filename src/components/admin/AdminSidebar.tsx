@@ -125,11 +125,11 @@ export function AdminSidebar({ sections }: AdminSidebarProps) {
           ))}
         </nav>
 
-        {/* Back to Dealer Dashboard */}
+        {/* Back to Business Dashboard */}
         {!collapsed && (
           <div className="p-3 border-t">
             <Button variant="outline" size="sm" className="w-full" asChild>
-              <Link href="/dashboard">Dealer Dashboard</Link>
+              <Link href="/dashboard">Business Dashboard</Link>
             </Button>
           </div>
         )}

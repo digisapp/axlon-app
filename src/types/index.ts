@@ -7,7 +7,7 @@ export interface User {
   phone?: string;
   location?: string;
   avatar_url?: string;
-  is_dealer: boolean;
+  is_business: boolean;
   stripe_customer_id?: string;
   created_at: string;
   updated_at: string;

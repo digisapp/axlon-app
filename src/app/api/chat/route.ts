@@ -71,16 +71,16 @@ export async function POST(request: NextRequest) {
     // Verify dealer exists and is a valid dealer account
     const { data: dealer } = await supabase
       .from('profiles')
-      .select('company_name, phone, email, city, state, chat_settings, notification_settings, is_dealer')
+      .select('company_name, phone, email, city, state, chat_settings, notification_settings, is_business')
       .eq('id', dealerId)
       .single();
 
     if (!dealer) {
-      return NextResponse.json({ error: 'Dealer not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 
-    if (!dealer.is_dealer) {
-      return NextResponse.json({ error: 'Invalid dealer account' }, { status: 403 });
+    if (!dealer.is_business) {
+      return NextResponse.json({ error: 'Invalid business account' }, { status: 403 });
     }
 
     // Check notification preferences

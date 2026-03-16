@@ -68,11 +68,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Check if user is dealer/admin
     const { data: profile } = await supabase
       .from('profiles')
-      .select('is_dealer, is_admin')
+      .select('is_business, is_admin')
       .eq('id', user.id)
       .single();
 
-    if (!profile?.is_dealer && !profile?.is_admin) {
+    if (!profile?.is_business && !profile?.is_admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

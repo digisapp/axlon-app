@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
     // Check if user is a dealer
     const { data: profile } = await supabase
       .from('profiles')
-      .select('is_dealer, is_admin')
+      .select('is_business, is_admin')
       .eq('id', user.id)
       .single();
 
@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     // If dealer, show assigned requests; otherwise show own requests
-    if (profile?.is_dealer || profile?.is_admin) {
+    if (profile?.is_business || profile?.is_admin) {
       if (status) {
         query = query.eq('status', status);
       }

@@ -244,7 +244,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const { data: dealers } = await supabase
       .from('profiles')
       .select('slug, updated_at')
-      .eq('is_dealer', true)
+      .eq('is_business', true)
       .not('slug', 'is', null)
       .order('company_name', { ascending: true });
 

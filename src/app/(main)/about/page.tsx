@@ -13,13 +13,13 @@ import {
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'About AXLON AI — The AI Platform for Equipment Dealers',
+  title: 'About AXLON AI — The AI Platform for Equipment Businesses',
   description:
-    'AXLON AI is building the operating system for equipment dealers. AI sales assistants, voice agents, CRM, and marketplace — all in one platform.',
+    'AXLON AI is building the operating system for equipment businesses. AI sales assistants, voice agents, CRM, and marketplace — all in one platform.',
   alternates: { canonical: '/about' },
   openGraph: {
     title: 'About AXLON AI',
-    description: 'The AI operating system for equipment dealers.',
+    description: 'The AI operating system for equipment businesses.',
   },
 };
 
@@ -28,21 +28,21 @@ const values = [
     icon: Bot,
     title: 'AI-First',
     description:
-      'We build AI that actually works for dealerships — not generic chatbots, but purpose-built tools that understand equipment, financing, and dealer workflows.',
+      'We build AI that actually works for businesses — not generic chatbots, but purpose-built tools that understand equipment, financing, and business workflows.',
     color: 'text-primary bg-primary/10',
   },
   {
     icon: Shield,
-    title: 'Dealer Trust',
+    title: 'Business Trust',
     description:
-      'Every feature we build starts with dealer feedback. We earn trust by delivering results, not promises.',
+      'Every feature we build starts with business feedback. We earn trust by delivering results, not promises.',
     color: 'text-amber-500 bg-amber-500/10',
   },
   {
     icon: Zap,
     title: 'Speed to Value',
     description:
-      'Dealers are busy. Our platform is designed to deliver value from day one — no consultants, no 6-month implementations.',
+      'Businesses are busy. Our platform is designed to deliver value from day one — no consultants, no 6-month implementations.',
     color: 'text-cyan-500 bg-cyan-500/10',
   },
   {
@@ -72,7 +72,7 @@ const milestones = [
   },
   {
     label: 'Mission',
-    value: 'Empower Dealers',
+    value: 'Empower Businesses',
     description: 'Level the playing field with AI',
   },
 ];
@@ -95,7 +95,7 @@ export default function AboutPage() {
               </h1>
             </div>
             <p className="text-slate-400 text-base md:text-lg max-w-xl">
-              We&apos;re building the AI operating system for equipment dealers — so they can sell
+              We&apos;re building the AI operating system for equipment businesses — so they can sell
               more, work less, and compete with anyone.
             </p>
           </div>
@@ -124,15 +124,15 @@ export default function AboutPage() {
           <h2 className="text-2xl md:text-3xl font-bold mb-4">Our Story</h2>
           <div className="space-y-4 text-muted-foreground leading-relaxed">
             <p>
-              Equipment dealerships are the backbone of construction, transportation, and
-              infrastructure. Yet most dealers still run on spreadsheets, missed calls, and
+              Equipment businesses are the backbone of construction, transportation, and
+              infrastructure. Yet most still run on spreadsheets, missed calls, and
               word-of-mouth.
             </p>
             <p>
               We started AXLON because we saw an opportunity to bring modern AI tools to an
               industry that&apos;s been underserved by technology. Not another generic CRM with
-              a chatbot bolted on — but a purpose-built platform that understands how dealers
-              actually work.
+              a chatbot bolted on — but a purpose-built platform that understands how equipment
+              businesses actually work.
             </p>
             <p>
               Our AI sales assistant knows the difference between a lowboy and a step deck. Our
@@ -175,9 +175,9 @@ export default function AboutPage() {
               <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-amber-500/10 flex items-center justify-center">
                 <Truck className="w-6 h-6 text-amber-500" />
               </div>
-              <h3 className="font-semibold mb-1">Equipment Dealers</h3>
+              <h3 className="font-semibold mb-1">Equipment Businesses</h3>
               <p className="text-sm text-muted-foreground">
-                Trailer, truck, and heavy equipment dealerships of all sizes.
+                Trailer, truck, and heavy equipment businesses of all sizes.
               </p>
             </div>
             <div className="bg-card border rounded-xl p-5 md:p-6 text-center">
@@ -210,12 +210,12 @@ export default function AboutPage() {
                 Ready to see AXLON in action?
               </h2>
               <p className="text-slate-400 max-w-lg text-sm md:text-base">
-                Book a demo and see how AI can transform your dealership.
+                Book a demo and see how AI can transform your business.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 shrink-0">
               <Button size="lg" className="rounded-full gap-2 group" asChild>
-                <Link href="/become-a-dealer">
+                <Link href="/get-started">
                   Get Started Free
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>

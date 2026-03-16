@@ -19,7 +19,7 @@ export async function GET(
       *,
       category:categories(id, name, slug),
       images:listing_images(id, url, thumbnail_url, is_primary, sort_order),
-      user:profiles(id, company_name, phone, email, avatar_url, is_dealer)
+      user:profiles(id, company_name, phone, email, avatar_url, is_business)
     `)
     .eq('id', id)
     .single();

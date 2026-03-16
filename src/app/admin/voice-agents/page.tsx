@@ -200,8 +200,8 @@ export default function AdminVoiceAgentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Dealer Voice Agents</h1>
-        <p className="text-sm text-muted-foreground">Manage AI phone agents for dealers</p>
+        <h1 className="text-2xl font-bold">Business Voice Agents</h1>
+        <p className="text-sm text-muted-foreground">Manage AI phone agents for businesses</p>
       </div>
 
       {/* Stats Cards */}

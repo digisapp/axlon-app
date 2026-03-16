@@ -54,7 +54,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     .from('profiles')
     .select('company_name, tagline, city, state')
     .eq('slug', slug)
-    .eq('is_dealer', true)
+    .eq('is_business', true)
     .single();
 
   if (!dealer) {
@@ -146,7 +146,7 @@ function DealerBreadcrumbJsonLd({ dealerName, slug }: { dealerName: string; slug
       {
         '@type': 'ListItem',
         position: 2,
-        name: 'Dealers',
+        name: 'Directory',
         item: `${baseUrl}/dealers`,
       },
       {
@@ -176,7 +176,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
     .from('profiles')
     .select('*')
     .eq('slug', slug)
-    .eq('is_dealer', true)
+    .eq('is_business', true)
     .single();
 
   if (!dealer) {
@@ -294,8 +294,8 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
       <div className="max-w-7xl mx-auto px-4 pt-4">
         <Breadcrumbs
           items={[
-            { label: 'Dealers', href: '/dealers' },
-            { label: dealer.company_name || 'Dealer' },
+            { label: 'Directory', href: '/dealers' },
+            { label: dealer.company_name || 'Business' },
           ]}
         />
       </div>

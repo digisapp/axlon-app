@@ -135,7 +135,7 @@ export default function AdminMarketReportsPage() {
             </div>
             <div>
               <p className="text-2xl font-bold">{uniqueDealers}</p>
-              <p className="text-sm text-muted-foreground">Dealers with Reports</p>
+              <p className="text-sm text-muted-foreground">Businesses with Reports</p>
             </div>
           </CardContent>
         </Card>

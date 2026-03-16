@@ -55,8 +55,8 @@ interface User {
   phone: string | null;
   city: string | null;
   state: string | null;
-  is_dealer: boolean;
-  dealer_status: string;
+  is_business: boolean;
+  business_status: string;
   is_admin: boolean;
   is_suspended: boolean;
   suspended_at: string | null;
@@ -73,7 +73,7 @@ export default function AdminUsersPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [stats, setStats] = useState({ total_users: 0, total_dealers: 0, suspended_users: 0 });
+  const [stats, setStats] = useState({ total_users: 0, total_businesses: 0, suspended_users: 0 });
 
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [actionType, setActionType] = useState<'suspend' | 'unsuspend' | 'make_admin' | 'remove_admin' | null>(null);
@@ -98,7 +98,7 @@ export default function AdminUsersPage() {
         const data = await response.json();
         setUsers(data.data || []);
         setTotalPages(data.total_pages || 1);
-        setStats(data.stats || { total_users: 0, total_dealers: 0, suspended_users: 0 });
+        setStats(data.stats || { total_users: 0, total_businesses: 0, suspended_users: 0 });
       }
     } catch (error) {
       logger.error('Error fetching users', { error });
@@ -200,8 +200,8 @@ export default function AdminUsersPage() {
                 <Building2 className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.total_dealers}</p>
-                <p className="text-sm text-muted-foreground">Dealers</p>
+                <p className="text-2xl font-bold">{stats.total_businesses}</p>
+                <p className="text-sm text-muted-foreground">Businesss</p>
               </div>
             </CardContent>
           </Card>
@@ -241,7 +241,7 @@ export default function AdminUsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Users</SelectItem>
-                  <SelectItem value="dealers">Dealers</SelectItem>
+                  <SelectItem value="dealers">Businesss</SelectItem>
                   <SelectItem value="individuals">Individuals</SelectItem>
                 </SelectContent>
               </Select>
@@ -296,8 +296,8 @@ export default function AdminUsersPage() {
                               Admin
                             </Badge>
                           )}
-                          {user.is_dealer && (
-                            <Badge variant="secondary">Dealer</Badge>
+                          {user.is_business && (
+                            <Badge variant="secondary">Business</Badge>
                           )}
                           {user.is_suspended && (
                             <Badge variant="destructive">Suspended</Badge>

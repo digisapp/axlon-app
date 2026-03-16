@@ -113,7 +113,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 // JSON-LD Product Schema for rich search results
 interface ListingUser {
-  is_dealer?: boolean;
+  is_business?: boolean;
   company_name?: string;
 }
 
@@ -157,7 +157,7 @@ function ProductJsonLd({ listing, url }: { listing: ListingForSchema; url: strin
       priceCurrency: 'USD',
       availability: 'https://schema.org/InStock',
       seller: listing.user ? {
-        '@type': listing.user.is_dealer ? 'Organization' : 'Person',
+        '@type': listing.user.is_business ? 'Organization' : 'Person',
         name: listing.user.company_name || 'Private Seller',
       } : undefined,
     },
@@ -225,7 +225,7 @@ export default async function ListingPage({ params }: PageProps) {
       *,
       category:categories!left(id, name, slug),
       images:listing_images!left(id, url, thumbnail_url, is_primary, sort_order, ai_analysis),
-      user:profiles!listings_user_id_fkey(id, company_name, phone, email, avatar_url, is_dealer, created_at)
+      user:profiles!listings_user_id_fkey(id, company_name, phone, email, avatar_url, is_business, created_at)
     `)
     .eq('id', id)
     .single();

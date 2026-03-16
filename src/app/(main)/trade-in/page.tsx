@@ -49,7 +49,7 @@ export default function TradeInPage() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">Trade-In Your Equipment</h1>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Get a competitive offer for your truck, trailer, or equipment. Our network of dealers
+            Get a competitive offer for your truck, trailer, or equipment. Our network of businesses
             will review your request and provide a valuation within 24-48 hours.
           </p>
         </div>
@@ -67,7 +67,7 @@ export default function TradeInPage() {
           </div>
           <div className="p-6 bg-background rounded-xl border">
             <div className="text-3xl font-bold text-primary mb-1">500+</div>
-            <p className="text-sm text-muted-foreground">Dealer network</p>
+            <p className="text-sm text-muted-foreground">Business network</p>
           </div>
         </div>
       </div>

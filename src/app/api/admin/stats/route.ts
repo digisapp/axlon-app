@@ -37,8 +37,8 @@ export async function GET(request: NextRequest) {
     // Batch all independent count queries in parallel
     const [
       { count: totalUsers },
-      { count: totalDealers },
-      { count: pendingDealers },
+      { count: totalBusinesses },
+      { count: pendingBusinesses },
       { count: totalListings },
       { count: activeListings },
       { count: totalLeads },
@@ -52,8 +52,8 @@ export async function GET(request: NextRequest) {
       { data: dailyLeads },
     ] = await Promise.all([
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_dealer', true),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('dealer_status', 'pending'),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_business', true),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('business_status', 'pending'),
       supabase.from('listings').select('*', { count: 'exact', head: true }),
       supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'active'),
       supabase.from('leads').select('*', { count: 'exact', head: true }),
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     const leadsByDay = groupByDay(dailyLeads || [], 'created_at', daysAgo);
 
     // Get top dealers by listings
-    const { data: topDealers } = await supabase
+    const { data: topBusinesses } = await supabase
       .from('profiles')
       .select(`
         id,
@@ -83,12 +83,12 @@ export async function GET(request: NextRequest) {
         email,
         avatar_url
       `)
-      .eq('is_dealer', true)
+      .eq('is_business', true)
       .limit(10);
 
     // Get listing counts for top dealers
-    const topDealersWithStats = await Promise.all(
-      (topDealers || []).map(async (dealer) => {
+    const topBusinessesWithStats = await Promise.all(
+      (topBusinesses || []).map(async (dealer) => {
         const { count } = await supabase
           .from('listings')
           .select('*', { count: 'exact', head: true })
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Sort by listing count
-    topDealersWithStats.sort((a, b) => b.listing_count - a.listing_count);
+    topBusinessesWithStats.sort((a, b) => b.listing_count - a.listing_count);
 
     // Get listing breakdown by category
     const { data: categoryBreakdown } = await supabase
@@ -132,8 +132,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       overview: {
         total_users: totalUsers || 0,
-        total_dealers: totalDealers || 0,
-        pending_dealers: pendingDealers || 0,
+        total_businesses: totalBusinesses || 0,
+        pending_businesses: pendingBusinesses || 0,
         total_listings: totalListings || 0,
         active_listings: activeListings || 0,
         total_leads: totalLeads || 0,
@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
         listings: listingsByDay,
         leads: leadsByDay,
       },
-      top_dealers: topDealersWithStats.slice(0, 5),
+      top_businesses: topBusinessesWithStats.slice(0, 5),
       category_breakdown: categoryStats,
     });
   } catch (error) {

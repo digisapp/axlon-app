@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
         phone,
         city,
         state,
-        is_dealer,
-        dealer_status,
+        is_business,
+        business_status,
         is_admin,
         is_suspended,
         suspended_at,
@@ -62,9 +62,9 @@ export async function GET(request: NextRequest) {
 
     // Type filter
     if (type === 'dealers') {
-      query = query.eq('is_dealer', true);
+      query = query.eq('is_business', true);
     } else if (type === 'individuals') {
-      query = query.eq('is_dealer', false);
+      query = query.eq('is_business', false);
     }
 
     // Status filter
@@ -113,10 +113,10 @@ export async function GET(request: NextRequest) {
       .from('profiles')
       .select('*', { count: 'exact', head: true });
 
-    const { count: totalDealers } = await supabase
+    const { count: totalBusinesses } = await supabase
       .from('profiles')
       .select('*', { count: 'exact', head: true })
-      .eq('is_dealer', true);
+      .eq('is_business', true);
 
     const { count: suspendedUsers } = await supabase
       .from('profiles')
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
       total_pages: Math.ceil((count || 0) / limit),
       stats: {
         total_users: totalUsers || 0,
-        total_dealers: totalDealers || 0,
+        total_businesses: totalBusinesses || 0,
         suspended_users: suspendedUsers || 0,
       },
     });

@@ -46,7 +46,7 @@ export async function PATCH(
     // Get current dealer info
     const { data: dealer, error: fetchError } = await supabase
       .from('profiles')
-      .select('id, email, company_name, dealer_status')
+      .select('id, email, company_name, business_status')
       .eq('id', id)
       .single();
 
@@ -56,14 +56,14 @@ export async function PATCH(
 
     // Update dealer status
     const updateData: Record<string, unknown> = {
-      dealer_status: action === 'approve' ? 'approved' : 'rejected',
-      dealer_reviewed_at: new Date().toISOString(),
-      dealer_reviewed_by: userId,
-      is_dealer: action === 'approve',
+      business_status: action === 'approve' ? 'approved' : 'rejected',
+      business_reviewed_at: new Date().toISOString(),
+      business_reviewed_by: userId,
+      is_business: action === 'approve',
     };
 
     if (action === 'reject' && rejection_reason) {
-      updateData.dealer_rejection_reason = rejection_reason;
+      updateData.business_rejection_reason = rejection_reason;
     }
 
     const { error: updateError } = await supabase
@@ -135,11 +135,11 @@ export async function GET(
         zip_code,
         website,
         about,
-        is_dealer,
-        dealer_status,
-        dealer_applied_at,
-        dealer_reviewed_at,
-        dealer_rejection_reason,
+        is_business,
+        business_status,
+        business_applied_at,
+        business_reviewed_at,
+        business_rejection_reason,
         business_license,
         tax_id,
         avatar_url,

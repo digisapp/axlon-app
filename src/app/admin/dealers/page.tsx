@@ -45,11 +45,11 @@ interface Dealer {
   phone: string | null;
   city: string | null;
   state: string | null;
-  is_dealer: boolean;
-  dealer_status: string;
-  dealer_applied_at: string | null;
-  dealer_reviewed_at: string | null;
-  dealer_rejection_reason: string | null;
+  is_business: boolean;
+  business_status: string;
+  business_applied_at: string | null;
+  business_reviewed_at: string | null;
+  business_rejection_reason: string | null;
   business_license: string | null;
   tax_id: string | null;
   created_at: string;
@@ -114,8 +114,8 @@ export default function AdminDealersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Dealer Verification</h1>
-        <p className="text-sm text-muted-foreground">Review and approve dealer applications</p>
+        <h1 className="text-2xl font-bold">Business Verification</h1>
+        <p className="text-sm text-muted-foreground">Review and approve business applications</p>
       </div>
 
       {/* Stats Cards */}
@@ -177,7 +177,7 @@ export default function AdminDealersPage() {
           <CardHeader>
             <CardTitle>
               {statusFilter === 'pending' && 'Pending Applications'}
-              {statusFilter === 'approved' && 'Approved Dealers'}
+              {statusFilter === 'approved' && 'Approved Businesses'}
               {statusFilter === 'rejected' && 'Rejected Applications'}
             </CardTitle>
           </CardHeader>
@@ -227,9 +227,9 @@ export default function AdminDealersPage() {
                             </span>
                           )}
                         </div>
-                        {dealer.dealer_applied_at && (
+                        {dealer.business_applied_at && (
                           <p className="text-xs text-muted-foreground mt-1">
-                            Applied: {new Date(dealer.dealer_applied_at).toLocaleDateString()}
+                            Applied: {new Date(dealer.business_applied_at).toLocaleDateString()}
                           </p>
                         )}
                       </div>
@@ -272,9 +272,9 @@ export default function AdminDealersPage() {
                         </>
                       )}
 
-                      {statusFilter === 'rejected' && dealer.dealer_rejection_reason && (
+                      {statusFilter === 'rejected' && dealer.business_rejection_reason && (
                         <Badge variant="destructive" className="max-w-[200px] truncate">
-                          {dealer.dealer_rejection_reason}
+                          {dealer.business_rejection_reason}
                         </Badge>
                       )}
 
@@ -303,11 +303,11 @@ export default function AdminDealersPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {actionType === 'approve' ? 'Approve Dealer' : 'Reject Application'}
+              {actionType === 'approve' ? 'Approve Business' : 'Reject Application'}
             </DialogTitle>
             <DialogDescription>
               {actionType === 'approve'
-                ? `Are you sure you want to approve ${selectedDealer?.company_name || selectedDealer?.email} as a dealer?`
+                ? `Are you sure you want to approve ${selectedDealer?.company_name || selectedDealer?.email} as a business?`
                 : `Please provide a reason for rejecting ${selectedDealer?.company_name || selectedDealer?.email}'s application.`}
             </DialogDescription>
           </DialogHeader>

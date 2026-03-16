@@ -9,7 +9,7 @@ const footerLinks = {
     { href: '/search', label: 'Browse Equipment' },
     { href: '/new-trailers', label: 'New Trailers' },
     { href: '/categories', label: 'Categories' },
-    { href: '/dealers', label: 'Dealers' },
+    { href: '/dealers', label: 'Directory' },
     { href: '/finance', label: 'Financing' },
   ],
   platform: [

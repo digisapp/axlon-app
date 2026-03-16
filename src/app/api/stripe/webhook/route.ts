@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
           await supabase
             .from('profiles')
             .update({
-              is_dealer: true,
+              is_business: true,
             })
             .eq('id', user_id);
         }
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
         if (profile) {
           await supabase
             .from('profiles')
-            .update({ is_dealer: false })
+            .update({ is_business: false })
             .eq('id', profile.id);
         }
 

@@ -14,7 +14,7 @@ const popularLinks = [
   { href: '/search', label: 'Browse All Equipment', icon: Search },
   { href: '/new-trailers', label: 'New Trailers', icon: Truck },
   { href: '/categories', label: 'Categories', icon: Package },
-  { href: '/dealers', label: 'Dealer Directory', icon: Building2 },
+  { href: '/dealers', label: 'Business Directory', icon: Building2 },
 ];
 
 export default function NotFound() {
