@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Store,
   Phone,
+  PhoneIncoming,
   UserCog,
   Handshake,
   Brain,
@@ -16,6 +17,9 @@ import {
   CreditCard,
   TrendingUp,
   Sparkles,
+  Heart,
+  BotMessageSquare,
+  DollarSign,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -39,6 +43,11 @@ export const dashboardNavSections: NavSection[] = [
         label: 'Overview',
         icon: <LayoutDashboard className="w-5 h-5" />,
       },
+      {
+        href: '/dashboard/analytics',
+        label: 'Analytics',
+        icon: <BarChart3 className="w-5 h-5" />,
+      },
     ],
   },
   {
@@ -58,6 +67,11 @@ export const dashboardNavSections: NavSection[] = [
         href: '/dashboard/bulk',
         label: 'Bulk Import',
         icon: <Upload className="w-5 h-5" />,
+      },
+      {
+        href: '/dashboard/floor-plan',
+        label: 'Floor Plan',
+        icon: <DollarSign className="w-5 h-5" />,
       },
     ],
   },
@@ -79,6 +93,11 @@ export const dashboardNavSections: NavSection[] = [
         label: 'Deal Desk',
         icon: <Handshake className="w-5 h-5" />,
       },
+      {
+        href: '/dashboard/messages',
+        label: 'Messages',
+        icon: <MessageSquare className="w-5 h-5" />,
+      },
     ],
   },
   {
@@ -93,6 +112,16 @@ export const dashboardNavSections: NavSection[] = [
         href: '/dashboard/voice-agent',
         label: 'Voice Agent',
         icon: <Phone className="w-5 h-5" />,
+      },
+      {
+        href: '/dashboard/calls',
+        label: 'Call Log',
+        icon: <PhoneIncoming className="w-5 h-5" />,
+      },
+      {
+        href: '/dashboard/conversations',
+        label: 'AI Chats',
+        icon: <BotMessageSquare className="w-5 h-5" />,
       },
       {
         href: '/dashboard/ai-leads',
@@ -115,9 +144,9 @@ export const dashboardNavSections: NavSection[] = [
         icon: <Store className="w-5 h-5" />,
       },
       {
-        href: '/dashboard/analytics',
-        label: 'Analytics',
-        icon: <BarChart3 className="w-5 h-5" />,
+        href: '/dashboard/saved',
+        label: 'Saved',
+        icon: <Heart className="w-5 h-5" />,
       },
     ],
   },
@@ -128,11 +157,6 @@ export const dashboardNavSections: NavSection[] = [
         href: '/dashboard/staff',
         label: 'Staff Access',
         icon: <UserCog className="w-5 h-5" />,
-      },
-      {
-        href: '/dashboard/messages',
-        label: 'Messages',
-        icon: <MessageSquare className="w-5 h-5" />,
       },
     ],
   },

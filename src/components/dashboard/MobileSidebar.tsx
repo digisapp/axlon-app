@@ -48,7 +48,7 @@ export function MobileSidebar({
               height={32}
               className="w-8 h-8"
             />
-            <SheetTitle className="font-bold text-lg">AXLON AI</SheetTitle>
+            <SheetTitle className="font-bold text-lg font-[family-name:var(--font-gunship)] tracking-wider">AXLON <span className="text-primary">AI</span></SheetTitle>
           </div>
         </SheetHeader>
 
