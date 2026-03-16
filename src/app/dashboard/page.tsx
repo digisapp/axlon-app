@@ -8,13 +8,9 @@ import {
   Package,
   Eye,
   MessageSquare,
-  TrendingUp,
   Users,
   ArrowUpRight,
   ArrowDownRight,
-  BarChart3,
-  Warehouse,
-  Upload,
   Sparkles,
 } from 'lucide-react';
 import { SmartImportDropzone } from '@/components/dashboard/SmartImportDropzone';
@@ -401,136 +397,65 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid lg:grid-cols-3 gap-4 md:gap-6">
-        {/* Recent Listings */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div>
-                <CardTitle className="text-base md:text-lg">Recent Listings</CardTitle>
-                <CardDescription>Your latest equipment listings</CardDescription>
-              </div>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/dashboard/listings">
-                  View All
-                  <ArrowUpRight className="w-4 h-4 ml-1" />
+      {/* Recent Listings */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <div>
+            <CardTitle className="text-base md:text-lg">Recent Listings</CardTitle>
+            <CardDescription>Your latest equipment listings</CardDescription>
+          </div>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/dashboard/listings">
+              View All
+              <ArrowUpRight className="w-4 h-4 ml-1" />
+            </Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {recentListings && recentListings.length > 0 ? (
+            <div className="space-y-2 md:space-y-3">
+              {recentListings.map((listing) => (
+                <div
+                  key={listing.id}
+                  className="flex items-center justify-between p-2.5 md:p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate text-sm md:text-base">{listing.title}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">
+                      {listing.price
+                        ? `$${listing.price.toLocaleString()}`
+                        : 'No price set'}
+                      {' · '}
+                      {listing.views_count || 0} views
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 ml-3 md:ml-4">
+                    <StatusBadge status={listing.status} />
+                    <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
+                      <Link href={`/dashboard/listings/${listing.id}/edit`}>
+                        Edit
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground mb-4">
+                No listings yet. Create your first listing!
+              </p>
+              <Button asChild>
+                <Link href="/dashboard/listings/new">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Listing
                 </Link>
               </Button>
-            </CardHeader>
-            <CardContent>
-              {recentListings && recentListings.length > 0 ? (
-                <div className="space-y-2 md:space-y-3">
-                  {recentListings.map((listing) => (
-                    <div
-                      key={listing.id}
-                      className="flex items-center justify-between p-2.5 md:p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium truncate text-sm md:text-base">{listing.title}</p>
-                        <p className="text-xs md:text-sm text-muted-foreground">
-                          {listing.price
-                            ? `$${listing.price.toLocaleString()}`
-                            : 'No price set'}
-                          {' · '}
-                          {listing.views_count || 0} views
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 ml-3 md:ml-4">
-                        <StatusBadge status={listing.status} />
-                        <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
-                          <Link href={`/dashboard/listings/${listing.id}/edit`}>
-                            Edit
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground mb-4">
-                    No listings yet. Create your first listing!
-                  </p>
-                  <Button asChild>
-                    <Link href="/dashboard/listings/new">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Listing
-                    </Link>
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="space-y-4 md:space-y-6">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base md:text-lg">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-2">
-              <QuickActionButton
-                href="/dashboard/listings/new"
-                icon={<Plus className="w-4 h-4" />}
-                label="Create New Listing"
-              />
-              <QuickActionButton
-                href="/dashboard/leads"
-                icon={<Users className="w-4 h-4" />}
-                label="View Leads"
-                badge={newLeads || undefined}
-              />
-              <QuickActionButton
-                href="/dashboard/messages"
-                icon={<MessageSquare className="w-4 h-4" />}
-                label="View Messages"
-                badge={unreadMessages || undefined}
-              />
-              <QuickActionButton
-                href="/dashboard/analytics"
-                icon={<BarChart3 className="w-4 h-4" />}
-                label="View Analytics"
-              />
-              <QuickActionButton
-                href="/dashboard/inventory"
-                icon={<Warehouse className="w-4 h-4" />}
-                label="Manage Inventory"
-              />
-              <QuickActionButton
-                href="/dashboard/bulk"
-                icon={<Upload className="w-4 h-4" />}
-                label="Bulk Import"
-              />
-            </CardContent>
-          </Card>
-
-          {/* Upgrade Card */}
-          <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20">
-            <CardContent className="p-5 md:p-6">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-1 text-sm md:text-base">Upgrade to AXLON Platform</h3>
-                  <p className="text-xs md:text-sm text-muted-foreground mb-4">
-                    Get AI sales assistant, CRM, deal desk, and unlimited listings.
-                  </p>
-                  <Button size="sm" asChild>
-                    <Link href="/dashboard/billing">
-                      Upgrade Now
-                      <ArrowUpRight className="w-4 h-4 ml-1" />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
