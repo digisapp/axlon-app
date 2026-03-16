@@ -126,7 +126,7 @@ export function Header() {
               className="h-8 w-8"
               priority
             />
-            <span className="font-bold text-lg">AXLON AI</span>
+            <span className="font-bold text-lg font-[family-name:var(--font-gunship)] tracking-wide">AXLON <span className="text-primary">AI</span></span>
           </Link>
 
           {/* Desktop Nav */}
@@ -358,7 +358,7 @@ export function Header() {
                       height={32}
                       className="h-8 w-8"
                     />
-                    <span className="font-bold text-lg">AXLON AI</span>
+                    <span className="font-bold text-lg font-[family-name:var(--font-gunship)] tracking-wide">AXLON <span className="text-primary">AI</span></span>
                   </SheetTitle>
                 </SheetHeader>
 

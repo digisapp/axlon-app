@@ -145,7 +145,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground text-center md:text-left">
-            &copy; {currentYear} AXLON AI. All rights reserved.
+            &copy; {currentYear} <span className="font-[family-name:var(--font-gunship)]">AXLON AI</span>. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground">
             Made with AI in Miami, FL

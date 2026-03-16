@@ -80,7 +80,7 @@ export default function HomePage() {
               height={28}
               className="w-7 h-7"
             />
-            <span className="font-semibold text-sm">AXLON AI</span>
+            <span className="font-semibold text-sm font-[family-name:var(--font-gunship)] tracking-wide">AXLON <span className="text-primary">AI</span></span>
           </Link>
           <HomeHeader />
         </div>
@@ -443,7 +443,7 @@ export default function HomePage() {
               className="w-5 h-5"
             />
             <p className="text-xs md:text-sm text-muted-foreground">
-              &copy; 2026 AXLON AI. All rights reserved.
+              &copy; 2026 <span className="font-[family-name:var(--font-gunship)]">AXLON AI</span>. All rights reserved.
             </p>
           </div>
           <div className="grid grid-cols-4 sm:flex gap-3 sm:gap-6 text-center sm:text-left">

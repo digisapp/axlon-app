@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { NotificationProvider } from "@/components/notifications/NotificationProvider";
@@ -7,7 +8,7 @@ import { CompareProvider } from "@/context/CompareContext";
 import { CompareBar } from "@/components/listings/CompareBar";
 import { FloatingCallButton } from "@/components/FloatingCallButton";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
-import { PWAProvider } from "@/components/PWAInstallPrompt";
+import { PWACleanup } from "@/components/PWAInstallPrompt";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import "./globals.css";
 
@@ -79,6 +80,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const gunship = localFont({
+  src: [
+    { path: "../../public/fonts/gunship.ttf", weight: "400", style: "normal" },
+    { path: "../../public/fonts/gunshipbold.ttf", weight: "700", style: "normal" },
+  ],
+  variable: "--font-gunship",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: {
     default: "AXLON AI - AI-Powered Truck & Equipment Marketplace",
@@ -123,7 +133,6 @@ export const metadata: Metadata = {
     ],
     apple: "/apple-touch-icon.png",
   },
-  manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
@@ -148,7 +157,7 @@ export default function RootLayout({
         <WebsiteJsonLd />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} ${gunship.variable} antialiased min-h-screen`}
       >
         <ThemeProvider
           attribute="class"
@@ -159,15 +168,14 @@ export default function RootLayout({
           <QueryProvider>
             <NotificationProvider>
               <CompareProvider>
-                <PWAProvider>
                   {children}
                   <CompareBar />
                   <FloatingCallButton />
                   <KeyboardShortcuts />
+                  <PWACleanup />
                   <div aria-live="polite" aria-atomic="true">
                     <Toaster position="top-right" richColors closeButton />
                   </div>
-                </PWAProvider>
               </CompareProvider>
             </NotificationProvider>
           </QueryProvider>
