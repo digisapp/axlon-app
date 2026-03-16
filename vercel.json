@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/flush-views",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/lead-followups",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/market-reports",
+      "schedule": "0 8 * * 0"
     }
   ]
 }

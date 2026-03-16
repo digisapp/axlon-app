@@ -30,10 +30,13 @@ import {
   CalendarDays,
   Crown,
   Zap,
+  Bot,
+  PenLine,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { VINDecoder } from '@/components/listings/VINDecoder';
 import { VideoUpload } from '@/components/listings/VideoUpload';
+import { ListingWizard } from '@/components/agents/ListingWizard';
 import { canCreateListing, getPlanLimits, getRemainingListings } from '@/lib/plans';
 import type { Category, AIPriceEstimate } from '@/types';
 import { logger } from '@/lib/logger';
@@ -51,6 +54,8 @@ export default function NewListingPage() {
   const [listingLimitReached, setListingLimitReached] = useState(false);
   const [currentListingCount, setCurrentListingCount] = useState(0);
   const [subscriptionTier, setSubscriptionTier] = useState<string>('free');
+
+  const [createMode, setCreateMode] = useState<'manual' | 'ai'>('manual');
 
   const [formData, setFormData] = useState({
     title: '',
@@ -223,6 +228,29 @@ export default function NewListingPage() {
     }
   };
 
+  const handleAIDraftComplete = (draft: {
+    title: string;
+    description: string;
+    make: string;
+    model: string;
+    condition: string;
+    specs: Record<string, string>;
+    suggested_price: number;
+    tags: string[];
+  }) => {
+    setFormData(prev => ({
+      ...prev,
+      title: draft.title || prev.title,
+      description: draft.description || prev.description,
+      make: draft.make || prev.make,
+      model: draft.model || prev.model,
+      condition: draft.condition || prev.condition,
+      price: draft.suggested_price ? draft.suggested_price.toString() : prev.price,
+      specs: { ...prev.specs, ...draft.specs },
+    }));
+    setCreateMode('manual'); // Switch back to manual to let dealer review/edit
+  };
+
   const handleSubmit = async (e: React.FormEvent, status: 'draft' | 'active') => {
     e.preventDefault();
     setIsLoading(true);
@@ -382,6 +410,38 @@ export default function NewListingPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
+        {/* Create Mode Toggle */}
+        <div className="flex gap-2 mb-6">
+          <Button
+            type="button"
+            variant={createMode === 'manual' ? 'default' : 'outline'}
+            onClick={() => setCreateMode('manual')}
+            size="sm"
+          >
+            <PenLine className="w-4 h-4 mr-2" />
+            Manual Entry
+          </Button>
+          <Button
+            type="button"
+            variant={createMode === 'ai' ? 'default' : 'outline'}
+            onClick={() => setCreateMode('ai')}
+            size="sm"
+          >
+            <Bot className="w-4 h-4 mr-2" />
+            AI Smart Create
+          </Button>
+        </div>
+
+        {/* AI Listing Wizard */}
+        {createMode === 'ai' && (
+          <ListingWizard
+            onComplete={handleAIDraftComplete}
+            onCancel={() => setCreateMode('manual')}
+          />
+        )}
+
+        {/* Manual Form */}
+        {createMode === 'manual' && (
         <form onSubmit={(e) => handleSubmit(e, 'active')}>
           <div className="space-y-6">
             {/* Basic Info */}
@@ -902,6 +962,7 @@ export default function NewListingPage() {
             </div>
           </div>
         </form>
+        )}
       </main>
     </div>
   );

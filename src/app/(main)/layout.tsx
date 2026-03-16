@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { TrailerFinderChat } from '@/components/agents/TrailerFinderChat';
 
 export default function MainLayout({
   children,
@@ -13,6 +14,7 @@ export default function MainLayout({
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />
+      <TrailerFinderChat variant="floating" />
     </div>
   );
 }

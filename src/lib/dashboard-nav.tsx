@@ -14,6 +14,8 @@ import {
   Contact,
   Upload,
   CreditCard,
+  TrendingUp,
+  Sparkles,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -91,6 +93,16 @@ export const dashboardNavSections: NavSection[] = [
         href: '/dashboard/voice-agent',
         label: 'Voice Agent',
         icon: <Phone className="w-5 h-5" />,
+      },
+      {
+        href: '/dashboard/ai-leads',
+        label: 'AI Leads',
+        icon: <Sparkles className="w-5 h-5" />,
+      },
+      {
+        href: '/dashboard/market-intel',
+        label: 'Market Intel',
+        icon: <TrendingUp className="w-5 h-5" />,
       },
     ],
   },
