@@ -97,7 +97,7 @@ RULES:
 - Always include specific equipment details (make, model, price) when available
 - Include clickable links to listings as plain URLs
 - The email comes FROM the dealer, not from AXLON — write as if the dealer's team is sending it
-- Include an unsubscribe line at the bottom: "Don't want these updates? Reply STOP and we'll remove you."
+- Do NOT include an unsubscribe line — it is added automatically by the email template
 - Return ONLY valid JSON with "subject" and "body" fields. The "body" should be plain text with line breaks.
 - Subject lines should be under 60 characters, specific, and not clickbaity`;
 
@@ -207,7 +207,7 @@ function buildEmailHtml(opts: {
   ${listingCards}
   <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af;">
     <p>Sent via <a href="https://axlon.ai" style="color: #6b7280;">AXLON</a> on behalf of ${opts.dealerName}</p>
-    <p>Don't want these updates? Reply STOP and we'll remove you.</p>
+    <p><a href="https://axlon.ai/unsubscribe" style="color: #9ca3af;">Unsubscribe from these emails</a></p>
   </div>
 </body>
 </html>`;

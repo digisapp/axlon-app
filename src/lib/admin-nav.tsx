@@ -14,6 +14,8 @@ import {
   Megaphone,
   Factory,
   Bot,
+  TrendingUp,
+  Database,
 } from 'lucide-react';
 
 export interface AdminNavItem {
@@ -73,6 +75,11 @@ export const adminNavSections: AdminNavSection[] = [
     label: 'Dealers',
     items: [
       {
+        href: '/admin/directory',
+        label: 'Business Directory',
+        icon: <Database className="w-5 h-5" />,
+      },
+      {
         href: '/admin/dealers',
         label: 'Verification',
         icon: <Building2 className="w-5 h-5" />,
@@ -106,6 +113,11 @@ export const adminNavSections: AdminNavSection[] = [
         href: '/admin/voice-agents',
         label: 'Dealer Agents',
         icon: <Mic className="w-5 h-5" />,
+      },
+      {
+        href: '/admin/market-reports',
+        label: 'Market Reports',
+        icon: <TrendingUp className="w-5 h-5" />,
       },
     ],
   },
