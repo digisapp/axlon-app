@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -26,6 +27,22 @@ import {
 import { Manufacturer } from '@/types';
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
+
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  // Use direct client (no cookies) since this runs at build time outside a request
+  const supabase = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+  const { data } = await supabase
+    .from('manufacturers')
+    .select('slug')
+    .eq('is_active', true);
+
+  return (data || []).map((m) => ({ slug: m.slug }));
+}
 
 interface PageProps {
   params: Promise<{ slug: string }>;

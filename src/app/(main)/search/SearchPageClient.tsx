@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, Suspense, useCallback } from 'react';
+import { useState, useMemo, Suspense, useCallback, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -120,6 +120,45 @@ function SearchPageContent() {
   }, []);
 
   const activeFilterCount = Object.keys(advancedFilters).length;
+
+  // JSON-LD ItemList schema for search results SEO
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
+  const jsonLdItemList = useMemo(() => {
+    if (!listings || listings.length === 0) return null;
+    const itemsForSchema = listings.slice(0, 10);
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: query
+        ? `Equipment Search Results for "${query}"`
+        : 'Equipment Search Results',
+      numberOfItems: totalCount,
+      itemListElement: itemsForSchema.map((listing, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: listing.title || 'Listing',
+        url: `${baseUrl}/listing/${listing.id}`,
+      })),
+    };
+  }, [listings, totalCount, query, baseUrl]);
+
+  // Inject JSON-LD into head via useEffect to avoid hydration issues
+  useEffect(() => {
+    if (!jsonLdItemList) return;
+    const scriptId = 'search-results-jsonld';
+    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
+    if (!script) {
+      script = document.createElement('script');
+      script.id = scriptId;
+      script.type = 'application/ld+json';
+      document.head.appendChild(script);
+    }
+    script.textContent = JSON.stringify(jsonLdItemList);
+    return () => {
+      const el = document.getElementById(scriptId);
+      if (el) el.remove();
+    };
+  }, [jsonLdItemList]);
 
   return (
     <div className="min-h-screen bg-background">

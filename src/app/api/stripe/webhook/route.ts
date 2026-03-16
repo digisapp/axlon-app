@@ -93,6 +93,35 @@ export async function POST(request: NextRequest) {
           break;
         }
 
+        // Verify user exists before processing any actions
+        if (user_id) {
+          const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', user_id)
+            .single();
+
+          if (!userProfile) {
+            logger.error('Webhook user_id does not match any profile', { user_id, product });
+            break;
+          }
+        }
+
+        // Verify listing exists and belongs to user before modifying it
+        if (listing_id && user_id) {
+          const { data: listing } = await supabase
+            .from('listings')
+            .select('id')
+            .eq('id', listing_id)
+            .eq('user_id', user_id)
+            .single();
+
+          if (!listing) {
+            logger.error('Webhook listing_id not found or does not belong to user', { listing_id, user_id, product });
+            break;
+          }
+        }
+
         if (product?.startsWith('featured') && listing_id && user_id) {
           // Feature the listing
           const days = product === 'featured_week' ? 7 : 30;
@@ -122,7 +151,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (product?.startsWith('dealer_pro') && user_id) {
-          // Update user to dealer status
+          // Update user to business status
           await supabase
             .from('profiles')
             .update({

@@ -89,7 +89,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/become-a-dealer`,
+      url: `${baseUrl}/for-business`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.7,

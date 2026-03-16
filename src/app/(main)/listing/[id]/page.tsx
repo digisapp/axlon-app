@@ -124,6 +124,7 @@ interface ListingForSchema {
   make?: string;
   model?: string;
   condition?: string;
+  status?: string;
   price?: number;
   vin?: string;
   mileage?: number;
@@ -132,14 +133,27 @@ interface ListingForSchema {
   category?: { name?: string; slug?: string } | null;
 }
 
+function getConditionUrl(condition?: string): string {
+  switch (condition) {
+    case 'new': return 'https://schema.org/NewCondition';
+    case 'used': return 'https://schema.org/UsedCondition';
+    case 'certified': return 'https://schema.org/UsedCondition';
+    case 'salvage': return 'https://schema.org/DamagedCondition';
+    default: return 'https://schema.org/UsedCondition';
+  }
+}
+
 function ProductJsonLd({ listing, url }: { listing: ListingForSchema; url: string }) {
   const primaryImage = listing.images?.find(img => img.is_primary) || listing.images?.[0];
+  const description = listing.description
+    ? listing.description.slice(0, 500)
+    : `${[listing.year, listing.make, listing.model].filter(Boolean).join(' ')}`;
 
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: listing.title,
-    description: listing.description || `${listing.year} ${listing.make} ${listing.model}`,
+    description,
     image: primaryImage?.url,
     url: url,
     brand: listing.make ? {
@@ -147,15 +161,19 @@ function ProductJsonLd({ listing, url }: { listing: ListingForSchema; url: strin
       name: listing.make,
     } : undefined,
     model: listing.model,
+    ...(listing.vin && { sku: listing.vin }),
     productionDate: listing.year?.toString(),
-    itemCondition: listing.condition === 'new'
-      ? 'https://schema.org/NewCondition'
-      : 'https://schema.org/UsedCondition',
+    itemCondition: getConditionUrl(listing.condition),
     offers: {
       '@type': 'Offer',
       price: listing.price || undefined,
       priceCurrency: 'USD',
-      availability: 'https://schema.org/InStock',
+      availability: listing.status === 'sold'
+        ? 'https://schema.org/SoldOut'
+        : listing.status === 'pending'
+          ? 'https://schema.org/LimitedAvailability'
+          : 'https://schema.org/InStock',
+      url: url,
       seller: listing.user ? {
         '@type': listing.user.is_business ? 'Organization' : 'Person',
         name: listing.user.company_name || 'Private Seller',
