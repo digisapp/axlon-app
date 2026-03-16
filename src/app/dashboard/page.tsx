@@ -203,7 +203,7 @@ export default async function DashboardPage() {
   const trialStartDate = profile?.created_at ? new Date(profile.created_at) : new Date();
   const trialEndDate = new Date(trialStartDate.getTime() + 30 * 24 * 60 * 60 * 1000);
   const trialDaysRemaining = Math.max(0, Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-  const isOnTrial = !profile?.subscription_status && trialDaysRemaining > 0;
+  const isOnTrial = (!profile?.subscription_tier || profile.subscription_tier === 'free') && trialDaysRemaining > 0;
   const showTrialBanner = isOnTrial && trialDaysRemaining <= 21;
 
   // Compute derived values

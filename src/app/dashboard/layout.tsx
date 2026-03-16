@@ -21,14 +21,22 @@ export default async function DashboardLayout({
   }
 
   // Get user profile
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('company_name, avatar_url, is_dealer, is_admin, created_at, subscription_status')
+    .select('company_name, avatar_url, is_dealer, is_admin, created_at, subscription_tier')
     .eq('id', user.id)
     .single();
 
+  // If profile query fails or no profile, create a basic one instead of redirecting
   if (!profile) {
-    redirect('/get-started');
+    console.error('Dashboard: profile not found or query failed', profileError?.message);
+    // Auto-create profile for authenticated users who don't have one
+    await supabase.from('profiles').upsert({
+      id: user.id,
+      email: user.email,
+      is_dealer: false,
+      is_admin: false,
+    }, { onConflict: 'id' });
   }
 
   // Get unread messages count
@@ -51,7 +59,7 @@ export default async function DashboardLayout({
   // Trial countdown
   const trialStart = profile?.created_at ? new Date(profile.created_at) : new Date();
   const trialEnd = new Date(trialStart.getTime() + 30 * 24 * 60 * 60 * 1000);
-  const trialDaysRemaining = !profile?.subscription_status
+  const trialDaysRemaining = !profile?.subscription_tier || profile.subscription_tier === 'free'
     ? Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : null;
 
