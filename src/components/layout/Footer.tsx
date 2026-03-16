@@ -55,7 +55,7 @@ export function Footer() {
               />
             </Link>
             <p className="text-sm text-muted-foreground mb-4">
-              The AI platform for equipment dealers. Buy, sell, and manage with AI.
+              The AI platform for equipment businesses. Buy, sell, and manage with AI.
             </p>
             <div className="flex gap-3">
               {socialLinks.map((link) => (

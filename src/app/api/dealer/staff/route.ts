@@ -5,8 +5,9 @@ import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, createStaffSchema } from '@/lib/validations/api';
 import crypto from 'crypto';
 
-function hashPin(pin: string): string {
-  return crypto.createHash('sha256').update(pin).digest('hex');
+function hashPin(pin: string, salt: string): string {
+  const data = `${salt}:${pin}`;
+  return crypto.createHash('sha256').update(data).digest('hex');
 }
 
 // GET - List dealer staff
@@ -37,11 +38,11 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
-    // Mask PINs for security (show only last 2 digits)
+    // Mask PINs for security - never expose PIN or hash
     const maskedStaff = staff?.map(s => ({
       ...s,
-      voice_pin: '**' + s.voice_pin.slice(-2),
-      voice_pin_full: undefined, // Never send full PIN
+      voice_pin: s.voice_pin ? '**' + s.voice_pin.slice(-2) : '****',
+      pin_hash: undefined,
     }));
 
     return NextResponse.json({ data: maskedStaff });
@@ -85,25 +86,7 @@ export async function POST(request: NextRequest) {
       throw err;
     }
 
-    // Hash the PIN before storage and comparison
-    const hashedPin = hashPin(validatedData.voice_pin);
-
-    // Check if PIN already exists for this dealer
-    const { data: existing } = await supabase
-      .from('dealer_staff')
-      .select('id')
-      .eq('dealer_id', user.id)
-      .eq('voice_pin', hashedPin)
-      .single();
-
-    if (existing) {
-      return NextResponse.json(
-        { error: 'This PIN is already in use. Please choose a different PIN.' },
-        { status: 400 }
-      );
-    }
-
-    // Create staff member
+    // Create staff member first (we need the ID to salt the PIN hash)
     const { data: staff, error } = await supabase
       .from('dealer_staff')
       .insert({
@@ -112,7 +95,7 @@ export async function POST(request: NextRequest) {
         role: validatedData.role || 'sales',
         phone_number: validatedData.phone_number || null,
         email: validatedData.email || null,
-        voice_pin: hashedPin,
+        voice_pin: null,
         access_level: validatedData.access_level || 'standard',
         can_view_costs: validatedData.can_view_costs || false,
         can_view_margins: validatedData.can_view_margins || false,
@@ -124,10 +107,20 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
+    // Hash PIN with staff ID as salt (matches verify route)
+    const hashedPin = hashPin(validatedData.voice_pin, staff.id);
+
+    // Store the salted hash in pin_hash column
+    await supabase
+      .from('dealer_staff')
+      .update({ pin_hash: hashedPin })
+      .eq('id', staff.id);
+
     return NextResponse.json({
       data: {
         ...staff,
-        voice_pin: '**' + staff.voice_pin.slice(-2),
+        voice_pin: undefined,
+        pin_hash: undefined,
       },
       message: 'Staff member added successfully',
     });

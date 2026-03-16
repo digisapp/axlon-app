@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
@@ -60,9 +61,12 @@ export default async function DealersPage({ searchParams }: PageProps) {
     .not('slug', 'is', null)
     .order('storefront_views', { ascending: false });
 
-  // Apply search filter
+  // Apply search filter (sanitize to prevent filter injection)
   if (q) {
-    query = query.or(`company_name.ilike.%${q}%,city.ilike.%${q}%,tagline.ilike.%${q}%`);
+    const sanitized = sanitizeSearchFilter(q);
+    if (sanitized) {
+      query = query.or(`company_name.ilike.%${sanitized}%,city.ilike.%${sanitized}%,tagline.ilike.%${sanitized}%`);
+    }
   }
 
   // Apply state filter

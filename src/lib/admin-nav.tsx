@@ -9,7 +9,6 @@ import {
   UserPlus,
   Mic,
   Key,
-  DollarSign,
   ArrowUpRight,
   Megaphone,
   Factory,
@@ -133,16 +132,6 @@ export const adminNavSections: AdminNavSection[] = [
         href: '/admin/manufacturers',
         label: 'Manufacturers',
         icon: <Factory className="w-5 h-5" />,
-      },
-    ],
-  },
-  {
-    label: 'Settings',
-    items: [
-      {
-        href: '/admin/settings',
-        label: 'Billing',
-        icon: <DollarSign className="w-5 h-5" />,
       },
     ],
   },

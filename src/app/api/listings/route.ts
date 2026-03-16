@@ -10,6 +10,7 @@ import {
 } from '@/lib/cache';
 import { createListingSchema, validateBody, ValidationError } from '@/lib/validations/api';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import { logger } from '@/lib/logger';
 import { syncListingToCollection } from '@/lib/ai/listing-sync';
 
@@ -141,16 +142,15 @@ export async function GET(request: NextRequest) {
   if (minYear) query = query.gte('year', parseInt(minYear));
   if (maxYear) query = query.lte('year', parseInt(maxYear));
   if (make) {
-    // Support multiple makes (comma-separated)
-    const makes = make.split(',').map(m => m.trim()).filter(Boolean);
+    // Support multiple makes (comma-separated) — sanitize to prevent filter injection
+    const makes = make.split(',').map(m => sanitizeSearchFilter(m.trim())).filter(Boolean);
     if (makes.length === 1) {
       query = query.ilike('make', `%${makes[0]}%`);
     } else if (makes.length > 1) {
-      // Use OR filter for multiple makes
       query = query.or(makes.map(m => `make.ilike.%${m}%`).join(','));
     }
   }
-  if (model) query = query.ilike('model', `%${model}%`);
+  if (model) query = query.ilike('model', `%${sanitizeSearchFilter(model)}%`);
   if (condition) {
     // Support multiple conditions (comma-separated)
     const conditions = condition.split(',').map(c => c.trim()).filter(Boolean);
@@ -169,7 +169,7 @@ export async function GET(request: NextRequest) {
       query = query.in('state', states);
     }
   }
-  if (city) query = query.ilike('city', `%${city}%`);
+  if (city) query = query.ilike('city', `%${sanitizeSearchFilter(city)}%`);
   if (maxMileage) query = query.lte('mileage', parseInt(maxMileage));
   if (featured === 'true') query = query.eq('is_featured', true);
   if (listingType) {

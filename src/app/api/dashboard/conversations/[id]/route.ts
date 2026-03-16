@@ -93,6 +93,15 @@ export async function PATCH(
     const body = await request.json();
     const { status } = body;
 
+    // Validate status value
+    const allowedStatuses = ['active', 'closed', 'archived'];
+    if (!status || !allowedStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: `Invalid status. Must be one of: ${allowedStatuses.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
     // Verify ownership and update
     const { data: conversation, error } = await supabase
       .from('chat_conversations')

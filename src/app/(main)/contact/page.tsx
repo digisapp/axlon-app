@@ -110,10 +110,10 @@ export default async function ContactPage({ searchParams }: PageProps) {
                 <div>
                   <p className="text-sm font-medium">Phone</p>
                   <a
-                    href="tel:+13055551234"
+                    href="tel:+14694213536"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    (305) 555-1234
+                    (469) 421-3536
                   </a>
                 </div>
               </div>

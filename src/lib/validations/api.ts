@@ -21,7 +21,7 @@ export const createListingSchema = z.object({
   vin: z.string().max(17).optional().nullable(),
   mileage: z.number().int().min(0).max(10000000).optional().nullable(),
   hours: z.number().int().min(0).max(1000000).optional().nullable(),
-  condition: z.enum(['new', 'excellent', 'good', 'fair', 'salvage']).optional().nullable(),
+  condition: z.enum(['new', 'used', 'certified', 'salvage']).optional().nullable(),
   category_id: uuidSchema.optional().nullable(),
   location: z.string().max(200).optional().nullable(),
   latitude: z.number().min(-90).max(90).optional().nullable(),

@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
     const { data: makeData } = await supabase
       .from('listings')
       .select('make')
-      .ilike('make', `%${query}%`)
+      .ilike('make', `%${sanitizeSearchFilter(query)}%`)
       .eq('status', 'active')
       .limit(20);
 

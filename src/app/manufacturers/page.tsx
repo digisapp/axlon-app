@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
@@ -58,9 +59,12 @@ export default async function ManufacturersPage({ searchParams }: PageProps) {
     .order('listing_count', { ascending: false })
     .order('name', { ascending: true });
 
-  // Apply search filter
+  // Apply search filter (sanitized)
   if (q) {
-    query = query.or(`name.ilike.%${q}%,canonical_name.ilike.%${q}%`);
+    const sanitized = sanitizeSearchFilter(q);
+    if (sanitized) {
+      query = query.or(`name.ilike.%${sanitized}%,canonical_name.ilike.%${sanitized}%`);
+    }
   }
 
   // Apply equipment type filter

@@ -3,9 +3,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
+import { verifyInternalRequest } from '@/lib/security/internal-auth';
+
 // POST - Query internal dealer data (for authenticated staff via AI)
+// This endpoint requires internal API secret authentication (called by voice agent service)
 export async function POST(request: NextRequest) {
   try {
+    // Require internal API secret - this endpoint is only called by trusted services
+    if (!verifyInternalRequest(request)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const identifier = getClientIdentifier(request);
     const rateLimitResult = await checkRateLimit(identifier, {
       ...RATE_LIMITS.standard,

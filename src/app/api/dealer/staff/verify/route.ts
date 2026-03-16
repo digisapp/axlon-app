@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { verifyPinSchema, validateBody, ValidationError } from '@/lib/validations/api';
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 
@@ -104,9 +105,9 @@ export async function POST(request: NextRequest) {
       .eq('dealer_id', dealer_id)
       .eq('is_active', true);
 
-    // If name provided, filter by name (case-insensitive)
+    // If name provided, filter by name (case-insensitive, sanitized)
     if (name) {
-      query = query.ilike('name', `%${name}%`);
+      query = query.ilike('name', `%${sanitizeSearchFilter(name)}%`);
     }
 
     // Check for lockout

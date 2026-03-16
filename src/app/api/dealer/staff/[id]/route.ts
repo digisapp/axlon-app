@@ -3,6 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, updateStaffSchema } from '@/lib/validations/api';
+import crypto from 'crypto';
+
+function hashPin(pin: string, salt: string): string {
+  const data = `${salt}:${pin}`;
+  return crypto.createHash('sha256').update(data).digest('hex');
+}
 
 // GET - Get single staff member
 export async function GET(
@@ -41,7 +47,8 @@ export async function GET(
     return NextResponse.json({
       data: {
         ...staff,
-        voice_pin: '**' + staff.voice_pin.slice(-2),
+        voice_pin: staff.voice_pin ? '**' + staff.voice_pin.slice(-2) : '****',
+        pin_hash: undefined,
       },
     });
   } catch (error) {
@@ -100,35 +107,22 @@ export async function PATCH(
       throw err;
     }
 
-    // If updating PIN, validate uniqueness
-    if (validatedData.voice_pin) {
-      // Check if PIN already exists for another staff member
-      const { data: pinExists } = await supabase
-        .from('dealer_staff')
-        .select('id')
-        .eq('dealer_id', user.id)
-        .eq('voice_pin', validatedData.voice_pin!)
-        .neq('id', id)
-        .single();
-
-      if (pinExists) {
-        return NextResponse.json(
-          { error: 'This PIN is already in use by another staff member' },
-          { status: 400 }
-        );
-      }
-    }
-
     // Build update object from validated data
     const updateData: Record<string, unknown> = {};
     for (const [field, value] of Object.entries(validatedData)) {
-      if (value !== undefined) {
+      if (value !== undefined && field !== 'voice_pin') {
         updateData[field] = value;
       }
     }
     // Also allow is_active from body (not in updateStaffSchema)
     if (body.is_active !== undefined) {
       updateData.is_active = body.is_active;
+    }
+
+    // If updating PIN, hash with staff ID as salt (matches verify route)
+    if (validatedData.voice_pin) {
+      updateData.pin_hash = hashPin(validatedData.voice_pin, id);
+      updateData.voice_pin = null; // Clear any legacy plaintext PIN
     }
 
     const { data: staff, error } = await supabase
@@ -143,7 +137,8 @@ export async function PATCH(
     return NextResponse.json({
       data: {
         ...staff,
-        voice_pin: '**' + staff.voice_pin.slice(-2),
+        voice_pin: staff.voice_pin ? '**' + staff.voice_pin.slice(-2) : '****',
+        pin_hash: undefined,
       },
       message: 'Staff member updated successfully',
     });
