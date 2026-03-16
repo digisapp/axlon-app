@@ -316,21 +316,13 @@ export default async function DashboardPage() {
       )}
 
       {/* Welcome Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 md:gap-4">
-        <div>
-          <h1 className="text-xl md:text-3xl font-bold">
-            Welcome back, {profile?.company_name || user.email?.split('@')[0]}
-          </h1>
-          <p className="text-muted-foreground text-sm md:text-base mt-1">
-            Here&apos;s what&apos;s happening with your business today.
-          </p>
-        </div>
-        <Button asChild size="sm" className="w-fit">
-          <Link href="/dashboard/listings/new">
-            <Plus className="w-4 h-4 mr-2" />
-            New Listing
-          </Link>
-        </Button>
+      <div>
+        <h1 className="text-xl md:text-3xl font-bold">
+          Welcome back, {profile?.company_name || user.email?.split('@')[0]}
+        </h1>
+        <p className="text-muted-foreground text-sm md:text-base mt-1">
+          Here&apos;s what&apos;s happening with your business today.
+        </p>
       </div>
 
       {/* Onboarding Checklist */}
