@@ -58,13 +58,13 @@ export default function HomePage() {
             <Zap className="w-3 h-3 text-primary" />
           </div>
           <p className="text-center text-sm text-foreground/90">
-            The <span className="font-semibold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">AI platform</span> for equipment businesses
+            <span className="font-semibold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">AI marketplace</span> for trucks, trailers &amp; equipment
           </p>
           <Link
-            href="/how-it-works"
+            href="/for-business"
             className="text-xs font-medium text-primary hover:underline ml-1"
           >
-            For Business
+            + AI Tools for Business
           </Link>
         </div>
       </div>
