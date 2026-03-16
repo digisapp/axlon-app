@@ -80,7 +80,7 @@ export default function HomePage() {
               height={28}
               className="w-7 h-7"
             />
-            <span className="font-bold text-xl font-[family-name:var(--font-gunship)] tracking-wide">AXLON <span className="text-primary">AI</span></span>
+            <span className="font-bold text-2xl font-[family-name:var(--font-gunship)] tracking-wider">AXLON <span className="text-primary">AI</span></span>
           </Link>
           <HomeHeader />
         </div>

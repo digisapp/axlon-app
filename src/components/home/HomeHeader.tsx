@@ -156,7 +156,7 @@ export function HomeHeader() {
             </SheetTrigger>
             <SheetContent side="right" className="w-[280px]">
               <SheetHeader>
-                <SheetTitle className="font-[family-name:var(--font-gunship)] tracking-wide">AXLON <span className="text-primary">AI</span></SheetTitle>
+                <SheetTitle className="text-xl font-[family-name:var(--font-gunship)] tracking-wider">AXLON <span className="text-primary">AI</span></SheetTitle>
               </SheetHeader>
               <div className="mt-6 flex flex-col gap-4">
                 <div className="flex items-center gap-3 pb-4 border-b">
@@ -230,7 +230,7 @@ export function HomeHeader() {
           </SheetTrigger>
           <SheetContent side="right" className="w-[280px]">
             <SheetHeader>
-              <SheetTitle className="font-[family-name:var(--font-gunship)] tracking-wide">AXLON <span className="text-primary">AI</span></SheetTitle>
+              <SheetTitle className="text-xl font-[family-name:var(--font-gunship)] tracking-wider">AXLON <span className="text-primary">AI</span></SheetTitle>
             </SheetHeader>
             <div className="mt-6 flex flex-col gap-4">
               <nav className="flex flex-col gap-1">
