@@ -78,7 +78,6 @@ export default function VoiceAgentPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [agent, setAgent] = useState<DealerVoiceAgent | null>(null);
-  const [isDealer, setIsDealer] = useState(false);
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [callStats, setCallStats] = useState<CallStats | null>(null);
   const [isLoadingCalls, setIsLoadingCalls] = useState(false);
@@ -163,16 +162,9 @@ export default function VoiceAgentPage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('is_dealer, company_name')
+        .select('company_name')
         .eq('id', user.id)
         .single();
-
-      setIsDealer(profile?.is_dealer || false);
-
-      if (!profile?.is_dealer) {
-        setIsLoading(false);
-        return;
-      }
 
       // Fetch voice agent settings
       const response = await fetch('/api/dealer/voice-agent');
@@ -247,39 +239,6 @@ export default function VoiceAgentPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (!isDealer) {
-    return (
-      <div className="min-h-screen bg-muted/30">
-        <header className="bg-background border-b">
-          <div className="max-w-2xl mx-auto px-4 py-4">
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard" className="text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="w-4 h-4" />
-              </Link>
-              <h1 className="text-xl font-bold">AI Voice Agent</h1>
-            </div>
-          </div>
-        </header>
-
-        <main className="max-w-2xl mx-auto px-4 py-8">
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Phone className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-xl font-bold mb-2">Business Account Required</h2>
-              <p className="text-muted-foreground mb-6">
-                The AI Voice Agent is available exclusively for verified businesses.
-                Upgrade your account to get your own AI receptionist.
-              </p>
-              <Button asChild>
-                <Link href="/get-started">Get Started</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </main>
       </div>
     );
   }

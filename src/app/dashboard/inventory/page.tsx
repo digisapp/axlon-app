@@ -27,17 +27,6 @@ export default async function InventoryPage() {
     redirect('/login?redirect=/dashboard/inventory');
   }
 
-  // Check if user is a dealer
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_dealer')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile?.is_dealer) {
-    redirect('/get-started');
-  }
-
   // Get all listings with inventory data
   const { data: listings } = await supabase
     .from('listings')

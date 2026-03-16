@@ -24,17 +24,6 @@ export default async function LeadsPage() {
     redirect('/login?redirect=/dashboard/leads');
   }
 
-  // Check if user is a dealer
-  const { data: dealerProfile } = await supabase
-    .from('profiles')
-    .select('is_dealer')
-    .eq('id', user.id)
-    .single();
-
-  if (!dealerProfile?.is_dealer) {
-    redirect('/get-started');
-  }
-
   // Get all leads for this user
   const { data: leads } = await supabase
     .from('leads')

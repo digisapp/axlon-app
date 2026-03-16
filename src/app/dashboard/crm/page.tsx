@@ -189,17 +189,6 @@ export default function CRMPage() {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_dealer')
-        .eq('id', user.id)
-        .single();
-
-      if (!profile?.is_dealer) {
-        router.push('/get-started');
-        return;
-      }
-
       await fetchCrmData();
       setIsLoading(false);
     };

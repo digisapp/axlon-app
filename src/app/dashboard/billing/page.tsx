@@ -74,16 +74,11 @@ export default async function BillingPage() {
     redirect('/login?redirect=/dashboard/billing');
   }
 
-  // Check if user is a dealer
   const { data: profile } = await supabase
     .from('profiles')
-    .select('is_dealer, subscription_tier, company_name')
+    .select('subscription_tier, company_name')
     .eq('id', user.id)
     .single();
-
-  if (!profile?.is_dealer) {
-    redirect('/get-started');
-  }
 
   const currentTier = (profile?.subscription_tier || 'free') as keyof typeof PLAN_LIMITS;
   const limits = PLAN_LIMITS[currentTier];

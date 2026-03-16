@@ -96,7 +96,6 @@ export default function CallsPage() {
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [isDealer, setIsDealer] = useState(false);
   const [expandedCall, setExpandedCall] = useState<string | null>(null);
   const [playingRecording, setPlayingRecording] = useState<string | null>(null);
 
@@ -106,19 +105,6 @@ export default function CallsPage() {
       router.push('/login?redirect=/dashboard/calls');
       return;
     }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_dealer')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.is_dealer) {
-      router.push('/dashboard');
-      return;
-    }
-
-    setIsDealer(true);
   };
 
   const fetchCalls = async () => {
@@ -160,11 +146,9 @@ export default function CallsPage() {
   }, []);
 
   useEffect(() => {
-    if (isDealer) {
-      fetchCalls();
-    }
+    fetchCalls();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDealer, pagination.page, statusFilter]);
+  }, [pagination.page, statusFilter]);
 
   const handleSearch = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
@@ -212,14 +196,6 @@ export default function CallsPage() {
         return <Badge variant="outline">{status}</Badge>;
     }
   };
-
-  if (!isDealer) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-muted/30">

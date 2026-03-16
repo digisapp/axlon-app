@@ -37,7 +37,6 @@ export default function StorefrontSettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [isDealer, setIsDealer] = useState(false);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
 
@@ -87,13 +86,6 @@ export default function StorefrontSettingsPage() {
         .single();
 
       if (profile) {
-        // Redirect non-dealers to get-started page
-        if (!profile.is_dealer) {
-          router.push('/get-started');
-          return;
-        }
-        setIsDealer(profile.is_dealer || false);
-
         const socialLinks = profile.social_links || {};
         const chatSettings = profile.chat_settings || {};
         const businessHours = profile.business_hours || formData.business_hours;
@@ -229,41 +221,6 @@ export default function StorefrontSettingsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (!isDealer) {
-    return (
-      <div className="min-h-screen bg-muted/30">
-        <header className="bg-background border-b">
-          <div className="max-w-4xl mx-auto px-4 py-4">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </Link>
-              <h1 className="text-xl font-bold">Storefront Settings</h1>
-            </div>
-          </div>
-        </header>
-
-        <main className="max-w-4xl mx-auto px-4 py-12">
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Store className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-2xl font-bold mb-2">Business Account Required</h2>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                Storefronts are available for business accounts. Upgrade to access your own branded page with AI chat assistant.
-              </p>
-              <Link href="/dashboard/settings">
-                <Button>Upgrade to Business</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </main>
       </div>
     );
   }

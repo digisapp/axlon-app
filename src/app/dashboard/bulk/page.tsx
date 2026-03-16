@@ -26,17 +26,6 @@ export default async function BulkPage() {
     redirect('/login?redirect=/dashboard/bulk');
   }
 
-  // Check if user is a dealer
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_dealer')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile?.is_dealer) {
-    redirect('/get-started');
-  }
-
   // Get user's listings count for export
   const { count: listingsCount } = await supabase
     .from('listings')

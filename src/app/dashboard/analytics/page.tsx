@@ -21,17 +21,6 @@ export default async function AnalyticsPage() {
     redirect('/login?redirect=/dashboard/analytics');
   }
 
-  // Check if user is a dealer
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_dealer')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile?.is_dealer) {
-    redirect('/get-started');
-  }
-
   // Get listings with view counts
   const { data: listings } = await supabase
     .from('listings')

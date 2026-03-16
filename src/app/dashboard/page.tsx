@@ -40,11 +40,6 @@ export default async function DashboardPage() {
     .eq('id', user.id)
     .single();
 
-  // All dashboard users should be dealers
-  if (!profile?.is_dealer) {
-    redirect('/get-started');
-  }
-
   // Time constants
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();

@@ -94,17 +94,12 @@ export default function NewListingPage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('is_dealer, subscription_tier')
+        .select('subscription_tier')
         .eq('id', user.id)
         .single();
 
-      if (!profile?.is_dealer) {
-        router.push('/get-started');
-        return;
-      }
-
       // Check listing limits
-      const tier = profile.subscription_tier || 'free';
+      const tier = profile?.subscription_tier || 'free';
       setSubscriptionTier(tier);
 
       const { count } = await supabase

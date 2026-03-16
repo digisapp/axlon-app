@@ -23,12 +23,11 @@ export default async function DashboardLayout({
   // Get user profile
   const { data: profile } = await supabase
     .from('profiles')
-    .select('company_name, avatar_url, is_dealer, created_at, subscription_status')
+    .select('company_name, avatar_url, is_dealer, is_admin, created_at, subscription_status')
     .eq('id', user.id)
     .single();
 
-  // All dashboard users should be dealers - redirect if not
-  if (!profile?.is_dealer) {
+  if (!profile) {
     redirect('/get-started');
   }
 

@@ -56,17 +56,6 @@ export default function ConversationsPage() {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_dealer')
-        .eq('id', user.id)
-        .single();
-
-      if (!profile?.is_dealer) {
-        router.push('/get-started');
-        return;
-      }
-
       // Fetch conversations
       const response = await fetch(`/api/dashboard/conversations?status=${filter}`);
       if (response.ok) {

@@ -187,7 +187,6 @@ export default function AIAssistantPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [isDealer, setIsDealer] = useState(false);
   const [subscriptionTier, setSubscriptionTier] = useState<string>('free');
   const [dealerName, setDealerName] = useState<string>('');
   const [settings, setSettings] = useState<AISettings>(defaultSettings);
@@ -235,12 +234,6 @@ export default function AIAssistantPage() {
         .single();
 
       if (profile) {
-        // Redirect non-dealers
-        if (!profile.is_dealer) {
-          router.push('/get-started');
-          return;
-        }
-        setIsDealer(profile.is_dealer || false);
         setSubscriptionTier(profile.subscription_tier || 'free');
         setDealerName(profile.company_name || '');
       }
@@ -507,11 +500,11 @@ export default function AIAssistantPage() {
 
   // Fetch KB data when page loads
   useEffect(() => {
-    if (isDealer && !isLoading) {
+    if (!isLoading) {
       fetchKBStatus();
       fetchKBDocuments();
     }
-  }, [isDealer, isLoading]);
+  }, [isLoading]);
 
   const isPro = subscriptionTier === 'pro' || subscriptionTier === 'enterprise';
 
@@ -519,41 +512,6 @@ export default function AIAssistantPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (!isDealer) {
-    return (
-      <div className="min-h-screen bg-muted/30">
-        <header className="bg-background border-b">
-          <div className="max-w-4xl mx-auto px-4 py-4">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </Link>
-              <h1 className="text-xl font-bold">AI Sales Assistant</h1>
-            </div>
-          </div>
-        </header>
-
-        <main className="max-w-4xl mx-auto px-4 py-12">
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Bot className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-2xl font-bold mb-2">Dealer Account Required</h2>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                AI Sales Assistant is available for business accounts. Upgrade to get your own AI that knows your inventory and sells for you 24/7.
-              </p>
-              <Link href="/dashboard/settings">
-                <Button>Upgrade to Dealer</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </main>
       </div>
     );
   }

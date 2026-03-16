@@ -90,29 +90,6 @@ export default function AILeadsPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const checkDealerStatus = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/login?redirect=/dashboard/ai-leads');
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_dealer')
-        .eq('id', user.id)
-        .single();
-
-      if (!profile?.is_dealer) {
-        router.push('/get-started');
-        return;
-      }
-    };
-
-    checkDealerStatus();
-  }, [supabase, router]);
-
-  useEffect(() => {
     fetchLeads();
   }, [activeTab]);
 

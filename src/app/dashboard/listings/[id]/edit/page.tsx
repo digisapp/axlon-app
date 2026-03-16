@@ -124,29 +124,6 @@ export default function EditListingPage({ params }: PageProps) {
   }, [searchParams]);
 
   useEffect(() => {
-    const checkDealerStatus = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/login?redirect=/dashboard/listings/' + id + '/edit');
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_dealer')
-        .eq('id', user.id)
-        .single();
-
-      if (!profile?.is_dealer) {
-        router.push('/get-started');
-        return;
-      }
-    };
-
-    checkDealerStatus();
-  }, [supabase, router, id]);
-
-  useEffect(() => {
     const fetchData = async () => {
       // Fetch categories
       const { data: categoriesData } = await supabase

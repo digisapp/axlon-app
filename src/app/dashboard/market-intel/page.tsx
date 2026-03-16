@@ -17,13 +17,9 @@ export default async function MarketIntelPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('is_dealer, company_name')
+    .select('company_name')
     .eq('id', user.id)
     .single();
-
-  if (!profile?.is_dealer) {
-    redirect('/get-started');
-  }
 
   // Get latest market reports
   const { data: reports } = await supabase
@@ -77,7 +73,7 @@ export default async function MarketIntelPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Market Intelligence</h1>
-        <p className="text-muted-foreground">AI-powered market analysis for {profile.company_name || 'your dealership'}</p>
+        <p className="text-muted-foreground">AI-powered market analysis for {profile?.company_name || 'your dealership'}</p>
       </div>
 
       {/* Quick Stats */}
