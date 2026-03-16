@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Zap, ArrowRight, Bot, Headphones, Search, MessageSquare, Phone, Brain, Upload, PhoneCall, Handshake, TrendingUp, UserCheck, Settings } from 'lucide-react';
+import { Zap, ArrowRight, Bot, Headphones, Search, MessageSquare, Phone, Brain, Upload, PhoneCall, Handshake, TrendingUp, UserCheck, Settings, Check, X } from 'lucide-react';
 import { HomeHeader } from '@/components/home/HomeHeader';
 import { HomeSearchSection } from '@/components/home/HomeSearchSection';
 import { HomeDeals } from '@/components/home/HomeDeals';
@@ -117,6 +117,23 @@ export default function HomePage() {
             </Link>
           </Button>
         </div>
+
+        {/* Trusted Brands */}
+        <section className="w-full max-w-4xl mx-auto mb-8 md:mb-12 px-4">
+          <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center mb-4 uppercase tracking-widest font-medium">
+            Trusted brands on AXLON
+          </p>
+          <div className="flex items-center justify-center gap-6 md:gap-10 flex-wrap opacity-60 dark:opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
+            <Image src="/images/brands/peterbilt.svg" alt="Peterbilt" width={90} height={36} className="h-7 md:h-8 w-auto dark:invert" />
+            <Image src="/images/brands/freightliner.svg" alt="Freightliner" width={120} height={36} className="h-7 md:h-8 w-auto dark:invert" />
+            <Image src="/images/brands/kenworth.png" alt="Kenworth" width={120} height={30} className="h-6 md:h-7 w-auto dark:invert" />
+            <Image src="/images/brands/caterpillar.svg" alt="Caterpillar" width={100} height={36} className="h-7 md:h-8 w-auto dark:invert" />
+            <Image src="/images/brands/trail-king.png" alt="Trail King" width={120} height={20} className="h-4 md:h-5 w-auto dark:invert" />
+            <Image src="/images/brands/mack.svg" alt="Mack Trucks" width={100} height={30} className="h-6 md:h-7 w-auto dark:invert" />
+            <Image src="/images/brands/john-deere.svg" alt="John Deere" width={120} height={30} className="h-6 md:h-7 w-auto dark:invert" />
+            <Image src="/images/brands/volvo.svg" alt="Volvo Trucks" width={100} height={30} className="h-6 md:h-7 w-auto dark:invert" />
+          </div>
+        </section>
 
         {/* Hot Deals */}
         <HomeDeals />
@@ -328,39 +345,64 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* What AXLON Replaces */}
-        <section className="w-full max-w-2xl mx-auto mb-10 md:mb-16 px-4">
-          <h2 className="text-xl md:text-2xl font-bold text-center mb-2">What AXLON Replaces</h2>
+        {/* What Makes AXLON Different */}
+        <section className="w-full max-w-3xl mx-auto mb-10 md:mb-16 px-4">
+          <h2 className="text-xl md:text-2xl font-bold text-center mb-2">What Makes AXLON Different</h2>
           <p className="text-sm text-muted-foreground dark:text-foreground/60 text-center mb-6 max-w-lg mx-auto">
-            Instead of juggling multiple tools, run your business from one AI platform.
+            One AI platform replaces the tools you&apos;re juggling today.
           </p>
           <div className="rounded-xl border bg-white/80 dark:bg-white/[0.08] overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/30">
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Tools Businesses Use Today</th>
-                  <th className="text-left py-3 px-4 font-medium text-primary">Replaced by AXLON</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Feature</th>
+                  <th className="text-center py-3 px-4 font-bold text-primary">AXLON AI</th>
+                  <th className="text-center py-3 px-4 font-medium text-muted-foreground">TruckPaper</th>
+                  <th className="text-center py-3 px-4 font-medium text-muted-foreground">Salesforce</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {[
-                  { old: 'Business DMS software', replaced: 'Inventory & deal management' },
-                  { old: 'CRM systems', replaced: 'Built-in CRM + Deal Desk' },
-                  { old: 'Answering services', replaced: 'AI Voice Agent' },
-                  { old: 'BDC teams', replaced: 'AI lead capture & qualification' },
-                  { old: 'Spreadsheet inventory', replaced: 'Real-time inventory manager' },
-                  { old: 'Multiple listing sites', replaced: 'AI marketplace distribution' },
-                ].map((item) => (
-                  <tr key={item.old}>
-                    <td className="py-2.5 px-4 text-muted-foreground dark:text-foreground/60">{item.old}</td>
-                    <td className="py-2.5 px-4 text-primary font-medium">&#10003; {item.replaced}</td>
+                {([
+                  { feature: 'AI voice agent (answers calls 24/7)', axlon: true, tp: false, sf: false },
+                  { feature: 'AI chat assistant for buyers', axlon: true, tp: false, sf: false },
+                  { feature: 'Built-in CRM & deal desk', axlon: true, tp: false, sf: true },
+                  { feature: 'Inventory management', axlon: true, tp: false, sf: false },
+                  { feature: 'Equipment marketplace', axlon: true, tp: true, sf: false },
+                  { feature: 'AI lead capture & qualification', axlon: true, tp: false, sf: 'add-on' },
+                  { feature: 'Financing & trade-in tools', axlon: true, tp: false, sf: false },
+                  { feature: 'Built for equipment businesses', axlon: true, tp: true, sf: false },
+                  { feature: 'No per-seat pricing', axlon: true, tp: true, sf: false },
+                ] as { feature: string; axlon: boolean | string; tp: boolean | string; sf: boolean | string }[]).map((row) => (
+                  <tr key={row.feature}>
+                    <td className="py-2.5 px-4 text-foreground/80 dark:text-foreground/70">{row.feature}</td>
+                    <td className="py-2.5 px-4 text-center">
+                      <Check className="w-4.5 h-4.5 text-primary mx-auto" />
+                    </td>
+                    <td className="py-2.5 px-4 text-center">
+                      {row.tp === true ? (
+                        <Check className="w-4 h-4 text-muted-foreground/50 mx-auto" />
+                      ) : row.tp === 'add-on' ? (
+                        <span className="text-xs text-muted-foreground">Add-on</span>
+                      ) : (
+                        <X className="w-4 h-4 text-muted-foreground/30 mx-auto" />
+                      )}
+                    </td>
+                    <td className="py-2.5 px-4 text-center">
+                      {row.sf === true ? (
+                        <Check className="w-4 h-4 text-muted-foreground/50 mx-auto" />
+                      ) : row.sf === 'add-on' ? (
+                        <span className="text-xs text-muted-foreground">Add-on</span>
+                      ) : (
+                        <X className="w-4 h-4 text-muted-foreground/30 mx-auto" />
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center mt-3">
-            Replace thousands in monthly tools with one AI platform.
+            Replace thousands in monthly tools with one AI platform starting at $399/mo.
           </p>
         </section>
 
