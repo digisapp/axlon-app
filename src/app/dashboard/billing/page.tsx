@@ -281,7 +281,7 @@ export default async function BillingPage() {
                     <Badge variant="outline" className="ml-2">Current</Badge>
                   )}
                 </div>
-                <CardDescription>Everything you need to run your dealership with AI</CardDescription>
+                <CardDescription>Everything you need to run your business with AI</CardDescription>
                 <div className="mt-4">
                   <span className="text-3xl font-bold">$399</span>
                   <span className="text-muted-foreground">/month</span>
@@ -540,7 +540,7 @@ export default async function BillingPage() {
                 <Building2 className="w-5 h-5 text-muted-foreground" />
                 <CardTitle>Enterprise</CardTitle>
               </div>
-              <CardDescription>For multi-location dealer groups</CardDescription>
+              <CardDescription>For multi-location businesses</CardDescription>
               <div className="mt-4">
                 <span className="text-3xl font-bold">Custom</span>
               </div>

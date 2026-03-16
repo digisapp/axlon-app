@@ -45,7 +45,7 @@ export function Sidebar({ unreadMessages = 0, newLeads = 0 }: SidebarProps) {
               className="w-8 h-8 flex-shrink-0"
             />
             {!collapsed && (
-              <span className="font-bold text-lg">AXLON AI</span>
+              <span className="font-bold text-lg font-[family-name:var(--font-gunship)] tracking-wider">AXLON <span className="text-primary">AI</span></span>
             )}
           </Link>
         </div>

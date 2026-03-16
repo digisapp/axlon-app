@@ -299,7 +299,7 @@ export default async function DashboardPage() {
     });
   }
 
-  // Dealer dashboard
+  // Business dashboard
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Trial Conversion Banner */}
@@ -322,7 +322,7 @@ export default async function DashboardPage() {
             Welcome back, {profile?.company_name || user.email?.split('@')[0]}
           </h1>
           <p className="text-muted-foreground text-sm md:text-base mt-1">
-            Here&apos;s what&apos;s happening with your dealership today.
+            Here&apos;s what&apos;s happening with your business today.
           </p>
         </div>
         <Button asChild size="sm" className="w-fit">

@@ -94,7 +94,7 @@ export function TrialBanner({
             </Button>
             {isUrgent && (
               <p className="text-[10px] text-center text-muted-foreground">
-                Founding Dealer: $299/mo forever
+                Founding Member: $299/mo forever
               </p>
             )}
           </div>

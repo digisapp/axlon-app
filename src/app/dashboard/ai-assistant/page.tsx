@@ -795,7 +795,7 @@ export default function AIAssistantPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>About Your Dealership</CardTitle>
+                <CardTitle>About Your Business</CardTitle>
                 <CardDescription>
                   Information the AI will use to tell customers about your business
                 </CardDescription>
@@ -805,7 +805,7 @@ export default function AIAssistantPage() {
                   <Label htmlFor="about">Company Description</Label>
                   <Textarea
                     id="about"
-                    placeholder="Tell the AI about your dealership history, mission, what makes you different..."
+                    placeholder="Tell the AI about your company history, mission, what makes you different..."
                     value={settings.about_dealer}
                     onChange={(e) => setSettings({ ...settings, about_dealer: e.target.value })}
                     rows={4}
@@ -815,7 +815,7 @@ export default function AIAssistantPage() {
                 <div>
                   <Label>Value Propositions</Label>
                   <p className="text-xs text-muted-foreground mb-2">
-                    What makes your dealership special? The AI will highlight these.
+                    What makes your business special? The AI will highlight these.
                   </p>
                   <div className="flex flex-wrap gap-2 mb-2">
                     {settings.value_propositions.map((prop, index) => (
@@ -877,7 +877,7 @@ export default function AIAssistantPage() {
               <CardHeader>
                 <CardTitle>Equipment Specialties</CardTitle>
                 <CardDescription>
-                  What types of equipment does your dealership specialize in?
+                  What types of equipment does your business specialize in?
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1177,7 +1177,7 @@ export default function AIAssistantPage() {
                   <div>
                     <p className="font-medium">Show on Storefront</p>
                     <p className="text-sm text-muted-foreground">
-                      Display chat widget on your dealer storefront page
+                      Display chat widget on your storefront page
                     </p>
                   </div>
                   <Switch
