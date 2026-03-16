@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Zap, ArrowRight, Bot, Headphones, Search, MessageSquare, Phone, Brain, Upload, PhoneCall, Handshake, TrendingUp, UserCheck, Settings, Check, X } from 'lucide-react';
+import { Zap, ArrowRight, Search, MessageSquare, Phone, Brain, TrendingUp, UserCheck, Settings, Check, X } from 'lucide-react';
 import { HomeHeader } from '@/components/home/HomeHeader';
 import { HomeSearchSection } from '@/components/home/HomeSearchSection';
 import { HomeDeals } from '@/components/home/HomeDeals';
@@ -118,6 +118,9 @@ export default function HomePage() {
           </Button>
         </div>
 
+        {/* Hot Deals */}
+        <HomeDeals />
+
         {/* Trusted Brands */}
         <section className="w-full max-w-4xl mx-auto mb-8 md:mb-12 px-4">
           <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center mb-4 uppercase tracking-widest font-medium">
@@ -135,10 +138,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Hot Deals */}
-        <HomeDeals />
-
-        {/* 3 Ways AXLON Helps Dealers */}
+        {/* 3 Ways AXLON Helps */}
         <section className="w-full max-w-4xl mx-auto mb-10 md:mb-16 px-4">
           <div className="grid grid-cols-3 gap-4 md:gap-6">
             <div className="text-center">
@@ -162,78 +162,6 @@ export default function HomePage() {
               <h3 className="font-semibold text-sm md:text-base mb-1">Run your business with AI</h3>
               <p className="text-xs text-muted-foreground dark:text-foreground/60 hidden sm:block">Inventory, CRM, deals — one platform</p>
             </div>
-          </div>
-        </section>
-
-        {/* Product Overview — simplified pillars, no pricing */}
-        <section className="w-full max-w-5xl mx-auto mb-10 md:mb-16 px-4">
-          <h2 className="text-xl md:text-2xl font-bold text-center mb-2">One platform. Everything you need.</h2>
-          <p className="text-sm text-muted-foreground dark:text-foreground/60 text-center mb-6 md:mb-8 max-w-xl mx-auto">
-            Replace your DMS, CRM, answering service, and BDC team — all in one platform.
-          </p>
-
-          <div className="grid md:grid-cols-3 gap-4 md:gap-5 mb-6">
-            {/* AI Platform */}
-            <Link href="/how-it-works" className="block group">
-              <div className="p-5 md:p-6 rounded-xl border bg-white/80 dark:bg-white/[0.08] hover:shadow-lg transition-shadow h-full">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
-                  <Bot className="w-5 h-5 text-primary" />
-                </div>
-                <h3 className="font-bold text-lg mb-1">AI Platform</h3>
-                <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-3">
-                  Run your inventory, leads, and deals with AI.
-                </p>
-                <ul className="space-y-2 text-sm text-muted-foreground dark:text-foreground/60">
-                  <li>AI sales assistant captures leads</li>
-                  <li>CRM + deal desk</li>
-                  <li>Inventory management</li>
-                  <li>Business storefront</li>
-                </ul>
-              </div>
-            </Link>
-
-            {/* Voice Agent */}
-            <Link href="/voice" className="block group">
-              <div className="p-5 md:p-6 rounded-xl border bg-white/80 dark:bg-white/[0.08] hover:shadow-lg transition-shadow h-full">
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center mb-3">
-                  <Headphones className="w-5 h-5 text-cyan-600" />
-                </div>
-                <h3 className="font-bold text-lg mb-1">Voice Agent</h3>
-                <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-3">
-                  Never miss another customer call.
-                </p>
-                <ul className="space-y-2 text-sm text-muted-foreground dark:text-foreground/60">
-                  <li>AI answers calls 24/7</li>
-                  <li>Lead capture & qualification</li>
-                  <li>Call transcripts synced to CRM</li>
-                </ul>
-              </div>
-            </Link>
-
-            {/* AI Suite */}
-            <Link href="/pricing" className="block group">
-              <div className="p-5 md:p-6 rounded-xl border-2 border-emerald-500/50 bg-gradient-to-b from-emerald-50/50 to-white/80 dark:from-emerald-950/20 dark:to-white/[0.08] hover:shadow-xl transition-shadow h-full">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3">
-                  <Zap className="w-5 h-5 text-emerald-600" />
-                </div>
-                <h3 className="font-bold text-lg mb-1">AI Suite</h3>
-                <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-3">
-                  Your business powered entirely by AI.
-                </p>
-                <p className="text-sm text-muted-foreground dark:text-foreground/60">
-                  Platform + Voice working together.
-                </p>
-              </div>
-            </Link>
-          </div>
-
-          <div className="text-center">
-            <Button variant="outline" size="sm" className="rounded-full gap-2 group" asChild>
-              <Link href="/pricing">
-                View Pricing
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </Button>
           </div>
         </section>
 
@@ -334,17 +262,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* How It Works — 4 steps */}
-        <section className="w-full max-w-4xl mx-auto mb-10 md:mb-16 px-4">
-          <h2 className="text-xl md:text-2xl font-bold text-center mb-6 md:mb-8">How It Works</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-            <StepItem icon={<Upload className="w-5 h-5" />} step={1} title="Import your inventory" />
-            <StepItem icon={<Bot className="w-5 h-5" />} step={2} title="AXLON generates listings & captures leads" />
-            <StepItem icon={<PhoneCall className="w-5 h-5" />} step={3} title="AI answers calls and qualifies buyers" />
-            <StepItem icon={<Handshake className="w-5 h-5" />} step={4} title="Your team closes deals faster" />
-          </div>
-        </section>
-
         {/* What Makes AXLON Different */}
         <section className="w-full max-w-3xl mx-auto mb-10 md:mb-16 px-4">
           <h2 className="text-xl md:text-2xl font-bold text-center mb-2">What Makes AXLON Different</h2>
@@ -406,25 +323,12 @@ export default function HomePage() {
           </p>
         </section>
 
-        {/* Light Pricing Teaser */}
-        <section className="w-full max-w-2xl mx-auto mb-10 md:mb-16 px-4 text-center">
-          <div className="rounded-xl border bg-white/80 dark:bg-white/[0.08] p-6 md:p-8">
-            <p className="text-lg md:text-xl font-bold mb-1">Plans start at $399/month</p>
-            <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-4">
-              30-day free trial &middot; No credit card required
-            </p>
-            <Button className="rounded-full gap-2 group" asChild>
-              <Link href="/pricing">
-                See Pricing
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </Button>
-          </div>
-        </section>
-
-        {/* Final CTA */}
+        {/* Final CTA — pricing + action */}
         <section className="w-full max-w-3xl mx-auto mb-10 md:mb-12 px-4 text-center">
-          <h2 className="text-xl md:text-2xl font-bold mb-3">Start selling equipment with AI</h2>
+          <h2 className="text-xl md:text-2xl font-bold mb-2">Start selling equipment with AI</h2>
+          <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-5">
+            Plans start at $399/month &middot; 30-day free trial &middot; No credit card required
+          </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
             <Button size="lg" className="rounded-full gap-2 shadow-lg shadow-primary/20 group w-full sm:w-auto" asChild>
               <Link href="/get-started">
@@ -499,18 +403,6 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
-    </div>
-  );
-}
-
-function StepItem({ icon, step, title }: { icon: React.ReactNode; step: number; title: string }) {
-  return (
-    <div className="text-center">
-      <div className="relative w-12 h-12 rounded-xl bg-white/80 dark:bg-white/[0.08] border flex items-center justify-center mx-auto mb-3">
-        {icon}
-        <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">{step}</span>
-      </div>
-      <p className="text-sm font-medium">{title}</p>
     </div>
   );
 }
