@@ -70,6 +70,7 @@ interface AISettings {
   is_enabled: boolean;
   show_on_listings: boolean;
   show_on_storefront: boolean;
+  market_reports_enabled: boolean;
   total_conversations: number;
   total_messages: number;
   total_leads_generated: number;
@@ -96,6 +97,7 @@ const defaultSettings: AISettings = {
   is_enabled: false,
   show_on_listings: true,
   show_on_storefront: true,
+  market_reports_enabled: false,
   total_conversations: 0,
   total_messages: 0,
   total_leads_generated: 0,
@@ -272,6 +274,7 @@ export default function AIAssistantPage() {
           is_enabled: aiSettings.is_enabled || false,
           show_on_listings: aiSettings.show_on_listings !== false,
           show_on_storefront: aiSettings.show_on_storefront !== false,
+          market_reports_enabled: aiSettings.market_reports_enabled || false,
           total_conversations: aiSettings.total_conversations || 0,
           total_messages: aiSettings.total_messages || 0,
           total_leads_generated: aiSettings.total_leads_generated || 0,
@@ -316,6 +319,7 @@ export default function AIAssistantPage() {
           is_enabled: settings.is_enabled,
           show_on_listings: settings.show_on_listings,
           show_on_storefront: settings.show_on_storefront,
+          market_reports_enabled: settings.market_reports_enabled,
           updated_at: new Date().toISOString(),
         }, {
           onConflict: 'dealer_id',
@@ -1221,6 +1225,19 @@ export default function AIAssistantPage() {
                   <Switch
                     checked={settings.show_on_storefront}
                     onCheckedChange={(checked) => setSettings({ ...settings, show_on_storefront: checked })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                  <div>
+                    <p className="font-medium">Weekly Market Reports</p>
+                    <p className="text-sm text-muted-foreground">
+                      Receive AI-generated market intelligence reports every Sunday
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.market_reports_enabled}
+                    onCheckedChange={(checked) => setSettings({ ...settings, market_reports_enabled: checked })}
                   />
                 </div>
               </CardContent>

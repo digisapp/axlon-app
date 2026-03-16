@@ -31,12 +31,12 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Get all dealers with active AI settings (they've opted into AI features)
-    // In the future, add a specific market_reports_enabled flag
+    // Only send to dealers who explicitly opted into market reports
     const { data: dealers, error: dealersError } = await supabase
       .from('dealer_ai_settings')
       .select('dealer_id')
-      .eq('is_enabled', true);
+      .eq('is_enabled', true)
+      .eq('market_reports_enabled', true);
 
     if (dealersError) {
       logger.error('Error fetching dealers for market reports', { error: dealersError });
