@@ -9,7 +9,6 @@ import {
   Store,
   Phone,
   PhoneIncoming,
-  UserCog,
   Handshake,
   Brain,
   Contact,
@@ -147,16 +146,6 @@ export const dashboardNavSections: NavSection[] = [
         href: '/dashboard/saved',
         label: 'Saved',
         icon: <Heart className="w-5 h-5" />,
-      },
-    ],
-  },
-  {
-    label: 'Team',
-    items: [
-      {
-        href: '/dashboard/staff',
-        label: 'Staff Access',
-        icon: <UserCog className="w-5 h-5" />,
       },
     ],
   },

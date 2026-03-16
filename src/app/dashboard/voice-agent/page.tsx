@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import {
   ArrowLeft,
   Loader2,
@@ -38,9 +47,20 @@ import {
   Play,
   UserPlus,
   TrendingUp,
+  Users,
+  Plus,
+  Mail,
+  Key,
+  Trash2,
+  Edit,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { DealerVoiceAgent } from '@/types';
+import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
+
+// ─── Voice Agent Types ──────────────────────────────────────────────
 
 interface CallLog {
   id: string;
@@ -61,6 +81,28 @@ interface CallStats {
   avgDuration: number;
 }
 
+// ─── Staff Types ────────────────────────────────────────────────────
+
+interface StaffMember {
+  id: string;
+  name: string;
+  role: string;
+  phone_number: string | null;
+  email: string | null;
+  voice_pin: string;
+  access_level: string;
+  can_view_costs: boolean;
+  can_view_margins: boolean;
+  can_view_all_leads: boolean;
+  can_modify_inventory: boolean;
+  is_active: boolean;
+  last_access_at: string | null;
+  access_count: number;
+  created_at: string;
+}
+
+// ─── Constants ──────────────────────────────────────────────────────
+
 const VOICE_OPTIONS = [
   { value: 'Sal', label: 'Sal', description: 'Warm, professional male voice' },
   { value: 'Ash', label: 'Ash', description: 'Friendly female voice' },
@@ -70,10 +112,17 @@ const VOICE_OPTIONS = [
   { value: 'Verse', label: 'Verse', description: 'Energetic male voice' },
 ];
 
+type TabKey = 'agent' | 'staff';
+
 export default function VoiceAgentPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
+  const initialTab = (searchParams.get('tab') === 'staff' ? 'staff' : 'agent') as TabKey;
+  const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
+
+  // ─── Voice Agent State ──────────────────────────────────────────
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -96,6 +145,29 @@ export default function VoiceAgentPage() {
     transfer_phone_number: '',
   });
 
+  // ─── Staff State ────────────────────────────────────────────────
+  const [staffList, setStaffList] = useState<StaffMember[]>([]);
+  const [staffLoading, setStaffLoading] = useState(true);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
+  const [showPin, setShowPin] = useState<string | null>(null);
+  const [staffSaving, setStaffSaving] = useState(false);
+
+  const [staffFormData, setStaffFormData] = useState({
+    name: '',
+    role: 'sales',
+    phone_number: '',
+    email: '',
+    voice_pin: '',
+    access_level: 'standard',
+    can_view_costs: false,
+    can_view_margins: false,
+    can_view_all_leads: true,
+    can_modify_inventory: false,
+  });
+
+  // ─── Voice Agent Effects & Handlers ─────────────────────────────
+
   useEffect(() => {
     fetchVoiceAgent();
   }, []);
@@ -105,6 +177,12 @@ export default function VoiceAgentPage() {
       fetchCallLogs();
     }
   }, [agent]);
+
+  useEffect(() => {
+    if (activeTab === 'staff' && staffLoading) {
+      fetchStaff();
+    }
+  }, [activeTab]);
 
   const fetchCallLogs = async () => {
     setIsLoadingCalls(true);
@@ -142,18 +220,12 @@ export default function VoiceAgentPage() {
     return Math.round((agent.minutes_used / agent.minutes_included) * 100);
   };
 
-  const isNearingLimit = () => {
-    return getUsagePercentage() >= 80;
-  };
-
-  const isOverLimit = () => {
-    return getUsagePercentage() >= 100;
-  };
+  const isNearingLimit = () => getUsagePercentage() >= 80;
+  const isOverLimit = () => getUsagePercentage() >= 100;
 
   const fetchVoiceAgent = async () => {
     setIsLoading(true);
     try {
-      // Check if user is a dealer
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push('/login?redirect=/dashboard/voice-agent');
@@ -166,7 +238,6 @@ export default function VoiceAgentPage() {
         .eq('id', user.id)
         .single();
 
-      // Fetch voice agent settings
       const response = await fetch('/api/dealer/voice-agent');
       if (response.ok) {
         const data = await response.json();
@@ -235,6 +306,130 @@ export default function VoiceAgentPage() {
     setIsSaving(false);
   };
 
+  // ─── Staff Handlers ─────────────────────────────────────────────
+
+  async function fetchStaff() {
+    try {
+      const res = await fetch('/api/dealer/staff');
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      setStaffList(data.data || []);
+    } catch (error) {
+      logger.error('Error fetching staff', { error });
+      toast.error('Failed to load staff members');
+    } finally {
+      setStaffLoading(false);
+    }
+  }
+
+  function resetStaffForm() {
+    setStaffFormData({
+      name: '',
+      role: 'sales',
+      phone_number: '',
+      email: '',
+      voice_pin: '',
+      access_level: 'standard',
+      can_view_costs: false,
+      can_view_margins: false,
+      can_view_all_leads: true,
+      can_modify_inventory: false,
+    });
+  }
+
+  function generatePin() {
+    const pin = Math.floor(1000 + Math.random() * 9000).toString();
+    setStaffFormData({ ...staffFormData, voice_pin: pin });
+  }
+
+  async function handleStaffSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setStaffSaving(true);
+
+    try {
+      const url = editingStaff
+        ? `/api/dealer/staff/${editingStaff.id}`
+        : '/api/dealer/staff';
+      const method = editingStaff ? 'PATCH' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(staffFormData),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to save');
+      }
+
+      toast.success(editingStaff ? 'Staff member updated' : 'Staff member added');
+      setIsAddDialogOpen(false);
+      setEditingStaff(null);
+      resetStaffForm();
+      fetchStaff();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save staff member');
+    } finally {
+      setStaffSaving(false);
+    }
+  }
+
+  async function handleStaffDelete(staffId: string) {
+    if (!confirm('Are you sure you want to remove this staff member?')) return;
+
+    try {
+      const res = await fetch(`/api/dealer/staff/${staffId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
+      toast.success('Staff member removed');
+      fetchStaff();
+    } catch {
+      toast.error('Failed to remove staff member');
+    }
+  }
+
+  async function toggleStaffActive(staffMember: StaffMember) {
+    try {
+      const res = await fetch(`/api/dealer/staff/${staffMember.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: !staffMember.is_active }),
+      });
+      if (!res.ok) throw new Error('Failed to update');
+      fetchStaff();
+    } catch {
+      toast.error('Failed to update staff member');
+    }
+  }
+
+  function openEditDialog(staffMember: StaffMember) {
+    setEditingStaff(staffMember);
+    setStaffFormData({
+      name: staffMember.name,
+      role: staffMember.role,
+      phone_number: staffMember.phone_number || '',
+      email: staffMember.email || '',
+      voice_pin: '',
+      access_level: staffMember.access_level,
+      can_view_costs: staffMember.can_view_costs,
+      can_view_margins: staffMember.can_view_margins,
+      can_view_all_leads: staffMember.can_view_all_leads,
+      can_modify_inventory: staffMember.can_modify_inventory,
+    });
+    setIsAddDialogOpen(true);
+  }
+
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case 'manager': return 'bg-purple-100 text-purple-700';
+      case 'admin': return 'bg-red-100 text-red-700';
+      case 'service': return 'bg-blue-100 text-blue-700';
+      default: return 'bg-green-100 text-green-700';
+    }
+  };
+
+  // ─── Loading ────────────────────────────────────────────────────
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -242,6 +437,8 @@ export default function VoiceAgentPage() {
       </div>
     );
   }
+
+  // ─── Render ─────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -272,6 +469,41 @@ export default function VoiceAgentPage() {
               </Badge>
             )}
           </div>
+
+          {/* Tabs */}
+          {agent && (
+            <div className="flex gap-1 mt-4 -mb-4 border-b-0">
+              <button
+                onClick={() => setActiveTab('agent')}
+                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'agent'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Agent
+                </span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('staff');
+                  if (staffLoading) fetchStaff();
+                }}
+                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'staff'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Staff Access
+                </span>
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
@@ -379,8 +611,8 @@ export default function VoiceAgentPage() {
               </p>
             </CardContent>
           </Card>
-        ) : (
-          /* Agent Configuration */
+        ) : activeTab === 'agent' ? (
+          /* ─── Agent Tab ──────────────────────────────────────────── */
           <>
             {/* Usage Alert */}
             {isNearingLimit() && (
@@ -794,6 +1026,317 @@ export default function VoiceAgentPage() {
                   </div>
                 </CardContent>
               </Card>
+            )}
+          </>
+        ) : (
+          /* ─── Staff Access Tab ────────────────────────────────────── */
+          <>
+            {/* Staff Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Staff Voice Access
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Manage voice PIN access for your team to query AI internally
+                </p>
+              </div>
+              <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+                setIsAddDialogOpen(open);
+                if (!open) {
+                  setEditingStaff(null);
+                  resetStaffForm();
+                }
+              }}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Staff Member
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingStaff ? 'Edit Staff Member' : 'Add Staff Member'}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {editingStaff
+                        ? 'Update staff member details and permissions'
+                        : 'Add a team member who can access internal data via voice PIN'}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleStaffSubmit} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="staff_name">Name *</Label>
+                        <Input
+                          id="staff_name"
+                          value={staffFormData.name}
+                          onChange={(e) => setStaffFormData({ ...staffFormData, name: e.target.value })}
+                          placeholder="John Smith"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="staff_role">Role</Label>
+                        <Select
+                          value={staffFormData.role}
+                          onValueChange={(value) => setStaffFormData({ ...staffFormData, role: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="sales">Sales</SelectItem>
+                            <SelectItem value="manager">Manager</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="service">Service</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="staff_voice_pin">Voice PIN *</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="staff_voice_pin"
+                          value={staffFormData.voice_pin}
+                          onChange={(e) => setStaffFormData({ ...staffFormData, voice_pin: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+                          placeholder={editingStaff ? 'Leave blank to keep current' : '4-6 digit PIN'}
+                          maxLength={6}
+                          required={!editingStaff}
+                        />
+                        <Button type="button" variant="outline" onClick={generatePin}>
+                          Generate
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Staff will say this PIN to authenticate when calling
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="staff_phone">Phone (optional)</Label>
+                        <Input
+                          id="staff_phone"
+                          value={staffFormData.phone_number}
+                          onChange={(e) => setStaffFormData({ ...staffFormData, phone_number: e.target.value })}
+                          placeholder="(555) 123-4567"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="staff_email">Email (optional)</Label>
+                        <Input
+                          id="staff_email"
+                          type="email"
+                          value={staffFormData.email}
+                          onChange={(e) => setStaffFormData({ ...staffFormData, email: e.target.value })}
+                          placeholder="john@company.com"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 pt-2 border-t">
+                      <Label className="text-sm font-medium">Permissions</Label>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="staff_costs" className="text-sm font-normal">View acquisition costs</Label>
+                          <Switch
+                            id="staff_costs"
+                            checked={staffFormData.can_view_costs}
+                            onCheckedChange={(checked) => setStaffFormData({ ...staffFormData, can_view_costs: checked })}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="staff_margins" className="text-sm font-normal">View profit margins</Label>
+                          <Switch
+                            id="staff_margins"
+                            checked={staffFormData.can_view_margins}
+                            onCheckedChange={(checked) => setStaffFormData({ ...staffFormData, can_view_margins: checked })}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="staff_leads" className="text-sm font-normal">View all leads</Label>
+                          <Switch
+                            id="staff_leads"
+                            checked={staffFormData.can_view_all_leads}
+                            onCheckedChange={(checked) => setStaffFormData({ ...staffFormData, can_view_all_leads: checked })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <DialogFooter>
+                      <Button type="submit" disabled={staffSaving}>
+                        {staffSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        {editingStaff ? 'Update' : 'Add Staff Member'}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* How it works */}
+            <Card className="bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800">
+              <CardContent className="pt-4">
+                <div className="flex gap-3">
+                  <Phone className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">
+                      How Voice PIN Access Works
+                    </p>
+                    <ol className="list-decimal list-inside space-y-1 text-blue-700 dark:text-blue-300">
+                      <li>Staff calls your AI phone number</li>
+                      <li>Says &quot;Internal access&quot; to trigger authentication</li>
+                      <li>AI asks: &quot;Please say your name and access code&quot;</li>
+                      <li>Staff says: &quot;John, 4521&quot;</li>
+                      <li>AI verifies and unlocks internal database access</li>
+                    </ol>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Staff List */}
+            {staffLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : staffList.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No staff members yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Add team members to give them voice access to internal data
+                  </p>
+                  <Button onClick={() => setIsAddDialogOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add First Staff Member
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4">
+                {staffList.map((member) => (
+                  <Card key={member.id} className={!member.is_active ? 'opacity-60' : ''}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="font-semibold text-primary">
+                              {member.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold">{member.name}</h3>
+                              <Badge className={getRoleBadgeColor(member.role)}>
+                                {member.role}
+                              </Badge>
+                              {!member.is_active && (
+                                <Badge variant="outline" className="text-muted-foreground">
+                                  Inactive
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                              <span className="flex items-center gap-1">
+                                <Key className="w-3 h-3" />
+                                PIN: {showPin === member.id ? member.voice_pin : '••••'}
+                                <button
+                                  onClick={() => setShowPin(showPin === member.id ? null : member.id)}
+                                  className="hover:text-foreground"
+                                >
+                                  {showPin === member.id ? (
+                                    <EyeOff className="w-3 h-3" />
+                                  ) : (
+                                    <Eye className="w-3 h-3" />
+                                  )}
+                                </button>
+                              </span>
+                              {member.phone_number && (
+                                <span className="flex items-center gap-1">
+                                  <Phone className="w-3 h-3" />
+                                  {member.phone_number}
+                                </span>
+                              )}
+                              {member.email && (
+                                <span className="flex items-center gap-1">
+                                  <Mail className="w-3 h-3" />
+                                  {member.email}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                          <div className="text-right text-sm">
+                            <div className="flex items-center gap-1 text-muted-foreground">
+                              <Clock className="w-3 h-3" />
+                              {member.last_access_at
+                                ? `Last access: ${new Date(member.last_access_at).toLocaleDateString()}`
+                                : 'Never accessed'}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {member.access_count} total accesses
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={member.is_active}
+                              onCheckedChange={() => toggleStaffActive(member)}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openEditDialog(member)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => handleStaffDelete(member.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Permissions */}
+                      <div className="flex gap-2 mt-3 pt-3 border-t">
+                        {member.can_view_costs && (
+                          <Badge variant="secondary" className="text-xs">
+                            <Shield className="w-3 h-3 mr-1" />
+                            View Costs
+                          </Badge>
+                        )}
+                        {member.can_view_margins && (
+                          <Badge variant="secondary" className="text-xs">
+                            <Shield className="w-3 h-3 mr-1" />
+                            View Margins
+                          </Badge>
+                        )}
+                        {member.can_view_all_leads && (
+                          <Badge variant="secondary" className="text-xs">
+                            <Shield className="w-3 h-3 mr-1" />
+                            All Leads
+                          </Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             )}
           </>
         )}
