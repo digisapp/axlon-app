@@ -109,10 +109,10 @@ export async function POST(request: NextRequest) {
       .eq('dealer_id', user.id);
 
     try {
-      const collectionName = `${profile.company_name || 'Dealer'} - ${user.id.slice(0, 8)}`;
+      const collectionName = `${profile?.company_name || 'Business'} - ${user.id.slice(0, 8)}`;
       const { collection_id } = await createCollection(
         collectionName,
-        `Knowledge base for dealer ${profile.company_name || user.id}`
+        `Knowledge base for ${profile?.company_name || user.id}`
       );
 
       await supabase

@@ -16,7 +16,7 @@ import {
 export const metadata: Metadata = {
   title: 'Contact Us — AXLON AI',
   description:
-    'Get in touch with the AXLON AI team. Book a demo, ask about pricing, or get support for your equipment dealership.',
+    'Get in touch with the AXLON AI team. Book a demo, ask about pricing, or get support for your equipment business.',
   alternates: { canonical: '/contact' },
   openGraph: {
     title: 'Contact Us | AXLON AI',
@@ -144,7 +144,7 @@ export default async function ContactPage({ searchParams }: PageProps) {
               <h3 className="font-semibold text-lg">Quick links</h3>
 
               <Link
-                href="/become-a-dealer"
+                href="/get-started"
                 className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors group"
               >
                 <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
@@ -152,7 +152,7 @@ export default async function ContactPage({ searchParams }: PageProps) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium group-hover:text-primary transition-colors">
-                    Become a Dealer
+                    Get Started
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Set up your AI-powered storefront

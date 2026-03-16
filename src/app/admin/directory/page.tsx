@@ -108,7 +108,7 @@ const TAB_CONFIG: Record<DirectoryTab, {
   directory: {
     label: 'Industry Directory',
     icon: Database,
-    subtitle: 'Dealers, manufacturers & industry contacts for outreach',
+    subtitle: 'Businesses, manufacturers & industry contacts for outreach',
     sources: null,
     excludeSources: DIRECTORY_EXCLUDE,
   },

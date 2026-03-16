@@ -31,7 +31,7 @@ export default function TermsPage() {
 
           <h2>2. Listings & Content</h2>
           <p>
-            Dealers and sellers are responsible for the accuracy of their listings. You
+            Businesses and sellers are responsible for the accuracy of their listings. You
             represent that you have the right to sell any equipment you list and that listing
             information (including pricing, specifications, and photos) is accurate.
           </p>
@@ -68,7 +68,7 @@ export default function TermsPage() {
             </li>
           </ul>
 
-          <h2>4. Dealer Subscriptions</h2>
+          <h2>4. Business Subscriptions</h2>
           <p>
             Certain features require a paid subscription. Subscription fees are billed in
             advance on a monthly or annual basis. You can cancel your subscription at any time,

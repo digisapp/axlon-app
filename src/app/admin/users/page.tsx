@@ -241,7 +241,7 @@ export default function AdminUsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Users</SelectItem>
-                  <SelectItem value="dealers">Businesss</SelectItem>
+                  <SelectItem value="dealers">Businesses</SelectItem>
                   <SelectItem value="individuals">Individuals</SelectItem>
                 </SelectContent>
               </Select>

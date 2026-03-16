@@ -668,7 +668,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { icon: Shield, label: 'Verified Dealer', desc: 'Trusted & vetted' },
+              { icon: Shield, label: 'Verified Business', desc: 'Trusted & vetted' },
               { icon: Award, label: 'Quality Inventory', desc: 'Inspected vehicles' },
               { icon: Clock, label: 'Fast Response', desc: 'Quick replies' },
               { icon: Sparkles, label: 'AI Powered', desc: '24/7 assistance' },

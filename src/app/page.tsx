@@ -58,13 +58,13 @@ export default function HomePage() {
             <Zap className="w-3 h-3 text-primary" />
           </div>
           <p className="text-center text-sm text-foreground/90">
-            The <span className="font-semibold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">AI platform</span> for equipment dealers
+            The <span className="font-semibold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">AI platform</span> for equipment businesses
           </p>
           <Link
             href="/how-it-works"
             className="text-xs font-medium text-primary hover:underline ml-1"
           >
-            For Dealers
+            For Business
           </Link>
         </div>
       </div>
@@ -142,7 +142,7 @@ export default function HomePage() {
               <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-3">
                 <Settings className="w-5 h-5 text-emerald-600" />
               </div>
-              <h3 className="font-semibold text-sm md:text-base mb-1">Run your dealership with AI</h3>
+              <h3 className="font-semibold text-sm md:text-base mb-1">Run your business with AI</h3>
               <p className="text-xs text-muted-foreground dark:text-foreground/60 hidden sm:block">Inventory, CRM, deals — one platform</p>
             </div>
           </div>
@@ -201,7 +201,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="font-bold text-lg mb-1">AI Suite</h3>
                 <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-3">
-                  Your dealership powered entirely by AI.
+                  Your business powered entirely by AI.
                 </p>
                 <p className="text-sm text-muted-foreground dark:text-foreground/60">
                   Platform + Voice working together.
@@ -332,13 +332,13 @@ export default function HomePage() {
         <section className="w-full max-w-2xl mx-auto mb-10 md:mb-16 px-4">
           <h2 className="text-xl md:text-2xl font-bold text-center mb-2">What AXLON Replaces</h2>
           <p className="text-sm text-muted-foreground dark:text-foreground/60 text-center mb-6 max-w-lg mx-auto">
-            Instead of juggling multiple tools, run your dealership from one AI platform.
+            Instead of juggling multiple tools, run your business from one AI platform.
           </p>
           <div className="rounded-xl border bg-white/80 dark:bg-white/[0.08] overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/30">
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Tools Dealers Use Today</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Tools Businesses Use Today</th>
                   <th className="text-left py-3 px-4 font-medium text-primary">Replaced by AXLON</th>
                 </tr>
               </thead>
@@ -400,11 +400,11 @@ export default function HomePage() {
 
         {/* SEO: Hidden crawlable content */}
         <section className="sr-only" aria-label="About AXLON AI">
-          <h1>AXLON AI — AI Platform for Equipment Dealers</h1>
+          <h1>AXLON AI — AI Platform for Equipment Businesses</h1>
           <p>
             Find and buy trucks, trailers, and heavy equipment with AI-powered search.
             Browse lowboy trailers, semi trucks, flatbed trailers, sleeper trucks, dump trucks,
-            and more from dealers and private sellers across the United States.
+            and more from businesses and private sellers across the United States.
           </p>
           <h2>Popular Categories</h2>
           <ul>
@@ -415,7 +415,7 @@ export default function HomePage() {
             <li><Link href="/search?category=heavy-equipment">Heavy Equipment</Link></li>
             <li><Link href="/categories">All Categories</Link></li>
           </ul>
-          <h2>For Dealers</h2>
+          <h2>For Business</h2>
           <ul>
             <li><Link href="/pricing">AI Platform Pricing</Link></li>
             <li><Link href="/contact?plan=demo">Book a Demo</Link></li>

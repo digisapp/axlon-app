@@ -138,11 +138,11 @@ export async function POST(request: NextRequest) {
               <ul style="color: #555; line-height: 1.8;">
                 <li><a href="https://axlon.ai/search" style="color: #0066cc;">Browse equipment</a></li>
                 <li><a href="https://axlon.ai/how-it-works" style="color: #0066cc;">See how AXLON works</a></li>
-                <li><a href="https://axlon.ai/become-a-dealer" style="color: #0066cc;">Learn about our dealer platform</a></li>
+                <li><a href="https://axlon.ai/get-started" style="color: #0066cc;">Learn about our business platform</a></li>
               </ul>
             </div>
             <div style="padding: 20px; background: #f9f9f9; text-align: center; color: #888; font-size: 12px;">
-              <p>AXLON AI &mdash; The AI platform for equipment dealers</p>
+              <p>AXLON AI &mdash; The AI platform for equipment businesses</p>
               <p style="margin-top: 5px;"><a href="https://axlon.ai/privacy" style="color: #888;">Privacy Policy</a> &middot; <a href="https://axlon.ai/terms" style="color: #888;">Terms of Service</a></p>
             </div>
           </div>

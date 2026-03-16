@@ -230,7 +230,7 @@ export async function GET(request: NextRequest) {
           await sendEmail({
             to: dealer.email,
             subject: `New Lead: ${lead.visitor_name || 'Anonymous'} — ${lead.equipment_interest || 'Equipment inquiry'}`,
-            html: buildDealerAlertHtml(dealer.company_name || 'Your dealership', lead, followup.conversation_summary),
+            html: buildDealerAlertHtml(dealer.company_name || 'Your company', lead, followup.conversation_summary),
           });
         }
       } catch (error) {

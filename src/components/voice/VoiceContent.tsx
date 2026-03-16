@@ -201,18 +201,18 @@ export function VoiceContent() {
         </div>
       </section>
 
-      {/* For Large Dealerships */}
+      {/* For Large Businesses */}
       <section className="py-10 md:py-16 px-4 bg-muted/30 border-y">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-xl md:text-3xl font-bold text-center mb-3">Built to Scale</h2>
           <p className="text-sm md:text-base text-muted-foreground text-center max-w-xl mx-auto mb-8 md:mb-12">
-            One number works for most dealers. Multi-location? We scale with you.
+            One number works for most businesses. Multi-location? We scale with you.
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             <ScaleCard
               icon={<Phone className="w-5 h-5 text-cyan-600" />}
               title="Single Location"
-              description="One number, one agent. PIN access for your whole team. Most dealers start here."
+              description="One number, one agent. PIN access for your whole team. Most businesses start here."
               tag="Included"
             />
             <ScaleCard

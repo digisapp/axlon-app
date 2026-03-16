@@ -22,7 +22,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'Pricing | AXLON AI',
-  description: 'Simple, transparent pricing for the AI-powered dealer platform. AXLON Platform $399/mo, Voice AI $499/mo add-on. No hidden fees.',
+  description: 'Simple, transparent pricing for the AI-powered business platform. AXLON Platform $399/mo, Voice AI $499/mo add-on. No hidden fees.',
   alternates: {
     canonical: '/pricing',
   },
@@ -46,7 +46,7 @@ export default function PricingPage() {
             AI-powered platform. No per-user fees. No hidden costs.
           </p>
           <p className="text-sm text-muted-foreground">
-            Set up in minutes — most dealers start receiving leads within days.
+            Set up in minutes — most businesses start receiving leads within days.
           </p>
         </div>
       </section>
@@ -117,7 +117,7 @@ export default function PricingPage() {
                 <CardTitle className="text-xl">AI Suite</CardTitle>
               </div>
               <CardDescription>
-                Your dealership powered entirely by AI.
+                Your business powered entirely by AI.
               </CardDescription>
               <div className="mt-4">
                 <div className="flex items-baseline gap-2">
@@ -150,7 +150,7 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <p className="text-xs text-muted-foreground">Most dealers choose this plan.</p>
+              <p className="text-xs text-muted-foreground">Most businesses choose this plan.</p>
               <Button className="w-full bg-emerald-600 hover:bg-emerald-700" size="lg" asChild>
                 <Link href="/get-started?plan=suite">
                   Start 30-Day Free Trial
@@ -434,7 +434,7 @@ export default function PricingPage() {
         <div className="max-w-3xl mx-auto text-center">
           <Building2 className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl md:text-3xl font-bold mb-2">
-            Multi-location dealer group?
+            Multi-location business group?
           </h2>
           <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
             Get custom pricing with volume discounts, dedicated account management,
@@ -462,7 +462,7 @@ export default function PricingPage() {
             />
             <FAQItem
               question="What happens if I go over 500 voice minutes?"
-              answer="Overage is billed at $0.25 per minute. You'll see your usage in the dashboard and get alerts as you approach the limit. Most dealers use 200-400 minutes/month."
+              answer="Overage is billed at $0.25 per minute. You'll see your usage in the dashboard and get alerts as you approach the limit. Most businesses use 200-400 minutes/month."
             />
             <FAQItem
               question="Can I switch from my current DMS?"
@@ -497,11 +497,11 @@ export default function PricingPage() {
         <div className="max-w-3xl mx-auto text-center">
           <Sparkles className="w-8 h-8 text-primary mx-auto mb-4" />
           <h2 className="text-2xl md:text-3xl font-bold mb-3">
-            Ready to modernize your dealership?
+            Ready to modernize your business?
           </h2>
           <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
             Start your 30-day free trial today. No credit card required.
-            Join dealers saving $100,000+ per year with AI.
+            Join businesses saving $100,000+ per year with AI.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button size="lg" asChild>

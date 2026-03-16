@@ -178,7 +178,7 @@ export default async function DealersPage({ searchParams }: PageProps) {
 
         {/* Results Count */}
         <p className="text-muted-foreground mb-6">
-          <span className="text-foreground font-semibold">{dealers?.length || 0}</span> dealers found
+          <span className="text-foreground font-semibold">{dealers?.length || 0}</span> businesses found
           {q && ` matching "${q}"`}
           {state && ` in ${state}`}
         </p>
@@ -197,7 +197,7 @@ export default async function DealersPage({ searchParams }: PageProps) {
                         {dealer.avatar_url ? (
                           <Image
                             src={dealer.avatar_url}
-                            alt={dealer.company_name || 'Dealer'}
+                            alt={dealer.company_name || 'Business'}
                             width={56}
                             height={56}
                             className="object-contain"
@@ -213,7 +213,7 @@ export default async function DealersPage({ searchParams }: PageProps) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold text-foreground truncate group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                            {dealer.company_name || 'Dealer'}
+                            {dealer.company_name || 'Business'}
                           </h3>
                           <Shield className="w-4 h-4 text-amber-500 flex-shrink-0" />
                         </div>
@@ -266,9 +266,9 @@ export default async function DealersPage({ searchParams }: PageProps) {
             <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-muted flex items-center justify-center">
               <Store className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h2 className="text-xl font-bold mb-2">No dealers found</h2>
+            <h2 className="text-xl font-bold mb-2">No businesses found</h2>
             <p className="text-muted-foreground">
-              {q ? `No results for "${q}"` : 'No dealers have set up storefronts yet'}
+              {q ? `No results for "${q}"` : 'No businesses have set up storefronts yet'}
             </p>
           </div>
         )}
@@ -283,7 +283,7 @@ export default async function DealersPage({ searchParams }: PageProps) {
                 AI-Powered Platform
               </div>
               <h2 className="text-xl md:text-3xl font-bold text-white mb-2">
-                Run your dealership with AI
+                Run your business with AI
               </h2>
               <p className="text-slate-400 max-w-lg text-sm md:text-base">
                 Join AXLON and get an AI sales assistant, voice agent, CRM, and marketplace storefront — all in one platform.
@@ -291,7 +291,7 @@ export default async function DealersPage({ searchParams }: PageProps) {
             </div>
             <div className="flex flex-col sm:flex-row gap-3 shrink-0">
               <Button size="lg" className="rounded-full gap-2 group" asChild>
-                <Link href="/become-a-dealer">
+                <Link href="/get-started">
                   Get Started Free
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>

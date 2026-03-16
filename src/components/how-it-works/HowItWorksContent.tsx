@@ -31,7 +31,7 @@ export function HowItWorksContent() {
             AI that runs your business —<br className="hidden sm:block" /> from lead to close
           </h1>
           <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-6 md:mb-8">
-            Replace your DMS, CRM, answering service, and BDC team with one AI platform. Built for dealers, brokers, and service businesses.
+            Replace your DMS, CRM, answering service, and BDC team with one AI platform. Built for equipment dealers, brokers, and service businesses.
           </p>
         </div>
       </section>
@@ -62,7 +62,7 @@ export function HowItWorksContent() {
                     'CRM + Deal Desk with AI scoring',
                     'Inventory management & analytics',
                     'Knowledge Base trained on your listings',
-                    'Custom branded dealer storefront',
+                    'Custom branded business storefront',
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
                       <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
@@ -89,7 +89,7 @@ export function HowItWorksContent() {
                 </div>
                 <CardTitle className="text-lg">AI Suite</CardTitle>
                 <CardDescription className="text-sm">
-                  Your dealership powered entirely by AI.
+                  Your business powered entirely by AI.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -114,7 +114,7 @@ export function HowItWorksContent() {
                     </li>
                   ))}
                 </ul>
-                <p className="text-[11px] text-muted-foreground mb-3">Most dealers choose this plan.</p>
+                <p className="text-[11px] text-muted-foreground mb-3">Most businesses choose this plan.</p>
                 <span className="text-sm text-emerald-600 font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
                   Start 30-day free trial <ArrowRight className="w-4 h-4" />
                 </span>
@@ -182,7 +182,7 @@ export function HowItWorksContent() {
             step={2}
             icon={<Bot className="w-6 h-6" />}
             title="Train Your AI"
-            description="AI learns your inventory, pricing, and business rules. Your Knowledge Base makes it an expert on YOUR dealership."
+            description="AI learns your inventory, pricing, and business rules. Your Knowledge Base makes it an expert on YOUR business."
           />
           <StepCard
             step={3}

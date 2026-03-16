@@ -25,9 +25,9 @@ import {
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'For Dealers — The AI Operating System | AXLON AI',
+  title: 'For Business — The AI Operating System | AXLON AI',
   description:
-    'Replace your DMS, CRM, answering service, and BDC team with one AI platform. AXLON AI is the operating system built for equipment dealers.',
+    'Replace your DMS, CRM, answering service, and BDC team with one AI platform. AXLON AI is the operating system built for equipment businesses.',
   alternates: {
     canonical: '/become-a-dealer',
   },
@@ -119,8 +119,8 @@ const stats = [
 ];
 
 const audiences = [
-  { icon: Truck, label: 'Heavy Haul Dealers', desc: 'Lowboys, flatbeds, step decks' },
-  { icon: Building2, label: 'Truck Dealerships', desc: 'Semi trucks, day cabs, sleepers' },
+  { icon: Truck, label: 'Heavy Haul', desc: 'Lowboys, flatbeds, step decks' },
+  { icon: Building2, label: 'Truck & Transport', desc: 'Semi trucks, day cabs, sleepers' },
   { icon: Wrench, label: 'Equipment Companies', desc: 'Cranes, excavators, loaders' },
   { icon: Store, label: 'Brokers & Traders', desc: 'Buy, sell, and flip equipment' },
 ];
@@ -129,7 +129,7 @@ function ForDealersJsonLd() {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'AXLON AI for Equipment Dealers',
+    name: 'AXLON AI for Equipment Businesses',
     description: 'Replace your DMS, CRM, answering service, and BDC team with one AI platform.',
     url: 'https://axlon.ai/become-a-dealer',
     mainEntity: {
@@ -203,7 +203,7 @@ export default function ForDealersPage() {
           <div className="text-center max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/20 text-primary text-sm font-medium mb-6">
               <Zap className="w-3.5 h-3.5" />
-              The AI Operating System for Equipment Dealers
+              The AI Operating System for Equipment Businesses
             </div>
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
@@ -429,7 +429,7 @@ export default function ForDealersPage() {
             </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-3">Your AI-powered dashboard</h2>
             <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-              Ask questions, get insights, and manage your entire dealership from one screen.
+              Ask questions, get insights, and manage your entire business from one screen.
             </p>
           </div>
 
@@ -536,10 +536,10 @@ export default function ForDealersPage() {
       <section className="py-16 md:py-24 px-4 bg-muted/30">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Ready to run your dealership with AI?
+            Ready to run your business with AI?
           </h2>
           <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto">
-            Join dealers who are selling more equipment with less effort.
+            Join businesses who are selling more equipment with less effort.
             Get started in under 15 minutes.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
