@@ -102,12 +102,13 @@ export default function GetStartedPage() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('is_dealer, company_name, phone, location')
+          .select('is_dealer, is_admin, company_name, phone, location')
           .eq('id', user.id)
           .single();
 
-        if (profile?.is_dealer) {
-          setIsAlreadyDealer(true);
+        if (profile?.is_dealer || profile?.is_admin) {
+          router.push('/dashboard');
+          return;
         } else if (profile) {
           setFormData({
             company_name: profile.company_name || '',
