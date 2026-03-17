@@ -77,6 +77,7 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '*.lumbermenonline.com' },
       { protocol: 'https', hostname: '*.renostrailer.com' },
       { protocol: 'https', hostname: '*.semitrailers.net' },
+      { protocol: 'https', hostname: 'semitrailers.net' },
       { protocol: 'https', hostname: 'royaltrailersales.com' },
       { protocol: 'https', hostname: 'midcosales.com' },
       { protocol: 'https', hostname: 'jhtt.com' },
