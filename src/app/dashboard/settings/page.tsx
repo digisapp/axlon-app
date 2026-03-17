@@ -52,7 +52,6 @@ export default function SettingsPage() {
 
   // Password change state
   const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
@@ -212,7 +211,7 @@ export default function SettingsPage() {
       if (error) {
         setPasswordError(error.message);
       } else {
-        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setPasswordData({ newPassword: '', confirmPassword: '' });
         showSuccessToast('Password updated successfully!');
       }
     } catch (error) {
