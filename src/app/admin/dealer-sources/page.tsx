@@ -163,8 +163,8 @@ export default function DealerSourcesPage() {
         <Card>
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground">Schedule</p>
-            <p className="text-2xl font-bold">15d</p>
-            <p className="text-xs text-muted-foreground">Auto every 15 days</p>
+            <p className="text-2xl font-bold">60d</p>
+            <p className="text-xs text-muted-foreground">Auto every 60 days</p>
           </CardContent>
         </Card>
       </div>
@@ -252,7 +252,7 @@ export default function DealerSourcesPage() {
         <CardContent className="p-4 text-sm text-muted-foreground">
           <p className="font-medium text-foreground mb-1">How it works</p>
           <ul className="space-y-1 list-disc list-inside">
-            <li>The scraper runs automatically every 15 days via GitHub Actions</li>
+            <li>The scraper runs automatically every 60 days via GitHub Actions</li>
             <li>Click &quot;Scrape All Dealers&quot; or individual &quot;Scrape&quot; buttons to run on demand</li>
             <li>AI normalizes titles, extracts make/model/year, and categorizes each listing</li>
             <li>Images are downloaded to AXLON storage — no broken external links</li>

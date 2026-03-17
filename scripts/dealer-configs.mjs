@@ -162,6 +162,37 @@ export const DEALER_CONFIGS = [
     state: 'MO',
   },
 
+  // ─── Western Truck & Trailer (Webflow: .filter-course-item) ──────
+  {
+    name: 'Western Truck & Trailer',
+    slug: 'western-truck',
+    website: 'https://www.westerntruck.com',
+    inventoryUrl: 'https://www.westerntruck.com/inventory',
+    scrapeMethod: 'css',
+    scrapeConfig: {
+      listingSelector: '.filter-course-item',
+      titleSelector: '.heading-14, .recently-heading',
+      priceSelector: '.price',
+      imageSelector: '.course-item-video-wrapper img, .image-16, .recently-image',
+      linkSelector: 'a[href*="inventory"], .link-block-2, .recently-link',
+      maxPages: 5, // pagination via ?b09ec52b_page=N
+    },
+    city: 'Phoenix',
+    state: 'AZ',
+  },
+
+  // ─── J & B Pavelka (JS-rendered, auto-detect) ───────────────────
+  {
+    name: 'J & B Pavelka',
+    slug: 'jb-pavelka',
+    website: 'https://www.jbpavelkainc.com',
+    inventoryUrl: 'https://www.jbpavelkainc.com/Inventory/?/listings/for-sale/trailers/28?accountcrmid=361605&settingscrmid=361605&dlr=1',
+    scrapeMethod: 'auto',
+    scrapeConfig: { maxPages: 5 },
+    city: 'Robstown',
+    state: 'TX',
+  },
+
 ];
 
 export function getDealerBySlug(slug) {
