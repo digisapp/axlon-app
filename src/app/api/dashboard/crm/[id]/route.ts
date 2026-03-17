@@ -62,7 +62,7 @@ export async function PATCH(
 
     if (error) {
       logger.error('Error updating CRM contact', { error });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
     }
 
     if (!data) {
@@ -113,7 +113,7 @@ export async function DELETE(
 
     if (error) {
       logger.error('Error deleting CRM contact', { error });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });

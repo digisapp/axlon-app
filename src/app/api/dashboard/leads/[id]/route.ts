@@ -54,7 +54,7 @@ export async function PATCH(
 
     if (error) {
       logger.error('Error updating lead', { error });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
     }
 
     if (!data) {
@@ -95,7 +95,7 @@ export async function DELETE(
 
     if (error) {
       logger.error('Error deleting lead', { error });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });

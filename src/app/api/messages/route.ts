@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     .order('created_at', { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
   }
 
   // Group messages into conversations by listing + other party
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
   }
 
   return NextResponse.json({ data: message });

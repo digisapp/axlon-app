@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       logger.error('Error fetching listings', { error });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
     }
 
     if (!listings || listings.length === 0) {

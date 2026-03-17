@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       logger.error('Error fetching CRM activities', { error });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
     }
 
     return NextResponse.json(data);
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       logger.error('Error creating CRM activity', { error });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
     }
 
     // Update last_contact_at on the contact

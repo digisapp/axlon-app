@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       logger.error('Error creating listing', { error });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
     }
 
     return NextResponse.json(listing, { status: 201 });

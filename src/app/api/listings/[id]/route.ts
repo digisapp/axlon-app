@@ -25,7 +25,8 @@ export async function GET(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 404 });
+    logger.error('Listing fetch error', { id, error: error.message });
+    return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
   }
 
   return NextResponse.json({ data: listing });
@@ -108,7 +109,8 @@ export async function PUT(
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    logger.error('Listing update error', { id, error: error.message });
+    return NextResponse.json({ error: 'Failed to update listing' }, { status: 500 });
   }
 
   // Re-estimate price if price changed or no estimate exists
@@ -217,7 +219,8 @@ export async function DELETE(
     .eq('id', id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    logger.error('Listing delete error', { id, error: error.message });
+    return NextResponse.json({ error: 'Failed to delete listing' }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

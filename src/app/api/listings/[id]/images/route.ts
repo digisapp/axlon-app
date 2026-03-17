@@ -17,7 +17,7 @@ export async function GET(
     .order('sort_order');
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
   }
 
   return NextResponse.json({ data: images });
@@ -88,7 +88,7 @@ export async function POST(
     .select();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
   }
 
   return NextResponse.json({ data: insertedImages });
@@ -213,7 +213,7 @@ export async function DELETE(
     .eq('listing_id', id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

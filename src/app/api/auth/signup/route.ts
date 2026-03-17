@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
     if (error) {
       return NextResponse.json(
-        { error: error.message },
+        { error: 'Unable to create account. Please try again or use a different email.' },
         { status: 400 }
       );
     }

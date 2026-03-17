@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     .order('created_at', { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
   }
 
   // Filter out any listings that no longer exist
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
   }
 
   return NextResponse.json({ data: { success: true } });
@@ -149,7 +149,7 @@ export async function DELETE(request: NextRequest) {
     .eq('listing_id', listingId);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
   }
 
   return NextResponse.json({ data: { success: true } });

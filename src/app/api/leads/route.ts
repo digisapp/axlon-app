@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       logger.error('Error creating lead', { error });
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
     }
 
     // Use listing title from earlier fetch, or fallback

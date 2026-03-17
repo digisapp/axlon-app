@@ -276,10 +276,10 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
               src={selectedImage.url}
               alt={title || `Image ${selectedIndex + 1}`}
               fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 66vw, 800px"
               className="object-cover cursor-pointer transition-transform"
               onClick={() => setIsLightboxOpen(true)}
               priority={selectedIndex === 0}
-              unoptimized
               draggable={false}
               onError={() => setErroredImages(prev => new Set(prev).add(selectedImage.id))}
             />
@@ -548,9 +548,9 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
                   alt={title || `Image ${selectedIndex + 1}`}
                   width={1200}
                   height={800}
+                  sizes="100vw"
                   className="max-h-[calc(100vh-160px)] w-auto object-contain pointer-events-none"
                   draggable={false}
-                  unoptimized
                   onError={() => setErroredImages(prev => new Set(prev).add(selectedImage.id))}
                 />
               )}
