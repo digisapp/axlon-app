@@ -5,7 +5,6 @@
  *
  * scrapeMethod:
  *   'css'  — use CSS selectors to extract listings from HTML pages
- *   'api'  — call a JSON API endpoint directly
  *   'auto' — try auto-detection (fallback)
  *
  * For CSS-based scrapers, provide selectors in scrapeConfig:
@@ -14,12 +13,11 @@
  *   - priceSelector: within a listing, selector for the price
  *   - imageSelector: within a listing, selector for primary image (src or data-src)
  *   - linkSelector: within a listing, selector for the detail page link
- *   - stockSelector: within a listing, selector for stock number
  *   - maxPages: max number of pages to scrape
  */
 
 export const DEALER_CONFIGS = [
-  // ─── Pinnacle Trailers (known working source) ──────────────────────
+  // ─── Pinnacle Trailers (verified working) ──────────────────────────
   {
     name: 'Pinnacle Trailers',
     slug: 'pinnacle-trailers',
@@ -32,33 +30,13 @@ export const DEALER_CONFIGS = [
       priceSelector: '.trailer-price',
       imageSelector: 'img.featured_img',
       linkSelector: 'a.trailer-title-label-link',
-      stockSelector: '.trailer-label',
       maxPages: 10,
     },
     city: 'Charleston',
     state: 'SC',
   },
 
-  // ─── Hale Trailer Brake & Wheel ────────────────────────────────────
-  {
-    name: 'Hale Trailer Brake & Wheel',
-    slug: 'hale-trailer',
-    website: 'https://www.haletrailer.com',
-    inventoryUrl: 'https://www.haletrailer.com/inventory/',
-    scrapeMethod: 'css',
-    scrapeConfig: {
-      listingSelector: '.inventory-item, .listing-item, [class*="inventory"]',
-      titleSelector: 'h2, h3, .title, [class*="title"]',
-      priceSelector: '.price, [class*="price"]',
-      imageSelector: 'img',
-      linkSelector: 'a[href*="inventory"]',
-      maxPages: 10,
-    },
-    city: 'Voorhees',
-    state: 'NJ',
-  },
-
-  // ─── TEC Equipment ─────────────────────────────────────────────────
+  // ─── TEC Equipment (verified working) ──────────────────────────────
   {
     name: 'TEC Equipment',
     slug: 'tec-equipment',
@@ -66,7 +44,7 @@ export const DEALER_CONFIGS = [
     inventoryUrl: 'https://www.tecequipment.com/inventory/trailers/',
     scrapeMethod: 'css',
     scrapeConfig: {
-      listingSelector: '.vehicle-card, .inventory-card, [class*="vehicle"], [class*="inventory-item"]',
+      listingSelector: '.inventory-card',
       titleSelector: 'h2, h3, .title, [class*="title"]',
       priceSelector: '.price, [class*="price"]',
       imageSelector: 'img',
@@ -77,19 +55,7 @@ export const DEALER_CONFIGS = [
     state: 'OR',
   },
 
-  // ─── Midco Sales ───────────────────────────────────────────────────
-  {
-    name: 'Midco Sales',
-    slug: 'midco-sales',
-    website: 'https://midcosales.com',
-    inventoryUrl: 'https://midcosales.com/inventory/',
-    scrapeMethod: 'auto',
-    scrapeConfig: { maxPages: 5 },
-    city: 'Oklahoma City',
-    state: 'OK',
-  },
-
-  // ─── Royal Trailer Sales ───────────────────────────────────────────
+  // ─── Royal Trailer Sales (verified working via auto-detect) ────────
   {
     name: 'Royal Trailer Sales',
     slug: 'royal-trailer-sales',
@@ -101,87 +67,101 @@ export const DEALER_CONFIGS = [
     state: 'TX',
   },
 
-  // ─── JHTT (JH Trailer & Truck) ────────────────────────────────────
+  // ─── Hale Trailer Brake & Wheel (fixed URL: /trailer/) ────────────
+  {
+    name: 'Hale Trailer Brake & Wheel',
+    slug: 'hale-trailer',
+    website: 'https://haletrailer.com',
+    inventoryUrl: 'https://haletrailer.com/trailer/',
+    scrapeMethod: 'css',
+    scrapeConfig: {
+      listingSelector: '.trailer',
+      titleSelector: '.repeater-title a strong, .repeater-title a',
+      priceSelector: '.price, [class*="price"]',
+      imageSelector: 'img',
+      linkSelector: '.repeater-title a',
+      maxPages: 10,
+    },
+    city: 'Voorhees',
+    state: 'NJ',
+  },
+
+  // ─── JH Trailer & Truck (fixed URL: www.jhtt.com) ─────────────────
   {
     name: 'JH Trailer & Truck',
     slug: 'jhtt',
-    website: 'https://jhtt.com',
-    inventoryUrl: 'https://jhtt.com/trailers-for-sale/',
-    scrapeMethod: 'auto',
-    scrapeConfig: { maxPages: 5 },
-    city: 'Houston',
-    state: 'TX',
+    website: 'https://www.jhtt.com',
+    inventoryUrl: 'https://www.jhtt.com/inventory/',
+    scrapeMethod: 'css',
+    scrapeConfig: {
+      listingSelector: '.listing',
+      titleSelector: '.listing-title, a.listing-title',
+      priceSelector: '.price, [class*="price"]',
+      imageSelector: 'img',
+      linkSelector: 'a.listing-title',
+      maxPages: 5,
+    },
+    city: 'Davenport',
+    state: 'IA',
   },
 
-  // ─── Renos Trailer Sales ───────────────────────────────────────────
+  // ─── Midco Sales (car dealer theme: .car-item) ────────────────────
+  {
+    name: 'Midco Sales',
+    slug: 'midco-sales',
+    website: 'https://midcosales.com',
+    inventoryUrl: 'https://midcosales.com/inventory/',
+    scrapeMethod: 'css',
+    scrapeConfig: {
+      listingSelector: '.car-item',
+      titleSelector: '.car-content a',
+      priceSelector: '.car-price, .price',
+      imageSelector: '.car-image img',
+      linkSelector: '.car-image a, .car-content a',
+      maxPages: 5,
+    },
+    city: 'Phoenix',
+    state: 'AZ',
+  },
+
+  // ─── Renos Trailer Sales (Algolia search: .ais-InfiniteHits-item) ─
   {
     name: 'Renos Trailer Sales',
     slug: 'renos-trailer',
     website: 'https://www.renostrailer.com',
-    inventoryUrl: 'https://www.renostrailer.com/inventory/',
-    scrapeMethod: 'auto',
-    scrapeConfig: { maxPages: 5 },
-    city: 'Reno',
-    state: 'NV',
+    inventoryUrl: 'https://www.renostrailer.com/all-inventory/',
+    scrapeMethod: 'css',
+    scrapeConfig: {
+      listingSelector: '.ais-InfiniteHits-item',
+      titleSelector: '.contentRightCol h4, .contentRightCol a, .item a[href*="product"]',
+      priceSelector: '[class*="price"]',
+      imageSelector: '.pictures-wrapper img',
+      linkSelector: 'a[href*="product"]',
+      maxPages: 1, // Algolia infinite scroll, 1 page loads 30+
+    },
+    city: 'Belle Vernon',
+    state: 'PA',
   },
 
-  // ─── Semi Trailers .net ────────────────────────────────────────────
-  {
-    name: 'SemiTrailers.net',
-    slug: 'semitrailers-net',
-    website: 'https://semitrailers.net',
-    inventoryUrl: 'https://semitrailers.net/inventory/',
-    scrapeMethod: 'auto',
-    scrapeConfig: { maxPages: 5 },
-  },
-
-  // ─── Nelson Truck & Equipment ──────────────────────────────────────
-  {
-    name: 'Nelson Truck & Equipment',
-    slug: 'nelson-truck',
-    website: 'https://www.nelsontruck.com',
-    inventoryUrl: 'https://www.nelsontruck.com/trailers',
-    scrapeMethod: 'auto',
-    scrapeConfig: { maxPages: 10 },
-    city: 'Salt Lake City',
-    state: 'UT',
-  },
-
-  // ─── Arrow Truck Sales ─────────────────────────────────────────────
+  // ─── Arrow Truck Sales (Next.js grid cards) ───────────────────────
   {
     name: 'Arrow Truck Sales',
     slug: 'arrow-truck-sales',
     website: 'https://www.arrowtruck.com',
-    inventoryUrl: 'https://www.arrowtruck.com/inventory/trailers/',
-    scrapeMethod: 'auto',
-    scrapeConfig: { maxPages: 10 },
+    inventoryUrl: 'https://www.arrowtruck.com/search-inventory/united-states',
+    scrapeMethod: 'css',
+    scrapeConfig: {
+      listingSelector: '.grid.items-stretch > .h-full',
+      titleSelector: 'h3',
+      priceSelector: 'h3', // Price is embedded in h3 text like "2023 Freightliner Cascadia$69,999"
+      imageSelector: 'img',
+      linkSelector: 'a[href*="inventory"], a[href*="truck"]',
+      maxPages: 1,
+    },
     city: 'Kansas City',
     state: 'MO',
   },
 
-  // ─── Utility Trailer Sales of Utah ─────────────────────────────────
-  {
-    name: 'Utility Trailer Sales of Utah',
-    slug: 'utility-trailer-utah',
-    website: 'https://www.utahtrailer.com',
-    inventoryUrl: 'https://www.utahtrailer.com/inventory/',
-    scrapeMethod: 'auto',
-    scrapeConfig: { maxPages: 5 },
-    city: 'West Valley City',
-    state: 'UT',
-  },
-
-  // ─── Trailer World ─────────────────────────────────────────────────
-  {
-    name: 'Trailer World',
-    slug: 'trailer-world',
-    website: 'https://www.trailerworld.com',
-    inventoryUrl: 'https://www.trailerworld.com/inventory/',
-    scrapeMethod: 'auto',
-    scrapeConfig: { maxPages: 10 },
-    city: 'Bowling Green',
-    state: 'KY',
-  },
 ];
 
 export function getDealerBySlug(slug) {
