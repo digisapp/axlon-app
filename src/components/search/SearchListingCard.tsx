@@ -51,14 +51,14 @@ export const SearchListingCard = memo(function SearchListingCard({
     return (
       <ListingCardWrapper listingId={listing.id} listingTitle={listing.title}>
         <Card className="flex flex-col sm:flex-row overflow-hidden hover:shadow-lg transition-shadow">
-          <div className="relative w-full sm:w-48 md:w-64 h-48 sm:h-40 md:h-48 flex-shrink-0">
+          <div className="relative w-full sm:w-48 md:w-64 h-40 sm:h-40 md:h-48 flex-shrink-0">
             {primaryImage && !hasError ? (
               <Image
                 src={primaryImage.thumbnail_url || primaryImage.url}
                 alt={listing.title}
                 fill
+                sizes="(max-width: 640px) 100vw, 256px"
                 className="object-cover"
-                unoptimized
                 onError={handleError}
               />
             ) : (
@@ -170,8 +170,8 @@ export const SearchListingCard = memo(function SearchListingCard({
               src={primaryImage.thumbnail_url || primaryImage.url}
               alt={listing.title}
               fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover"
-              unoptimized
               onError={handleError}
             />
           ) : (

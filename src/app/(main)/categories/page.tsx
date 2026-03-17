@@ -110,7 +110,7 @@ export default async function CategoriesPage() {
 
               {/* Subcategories Grid */}
               {parent.children.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4 ml-0 md:ml-16">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 ml-0 md:ml-16">
                   {parent.children.map((child: { id: string; name: string; slug: string }) => (
                     <Link key={child.id} href={`/search?category=${child.slug}`}>
                       <Card className="hover:border-primary hover:shadow-md transition-all cursor-pointer h-full">

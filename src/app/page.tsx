@@ -139,7 +139,7 @@ export default function HomePage() {
         </section>
 
         {/* 3 Ways AXLON Helps */}
-        <section className="w-full max-w-4xl mx-auto mb-10 md:mb-16 px-4">
+        <section className="w-full max-w-4xl mx-auto mb-6 md:mb-16 px-4">
           <div className="grid grid-cols-3 gap-4 md:gap-6">
             <div className="text-center">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
@@ -166,7 +166,7 @@ export default function HomePage() {
         </section>
 
         {/* See AI in Action */}
-        <section className="w-full max-w-5xl mx-auto mb-10 md:mb-16 px-4">
+        <section className="w-full max-w-5xl mx-auto mb-6 md:mb-16 px-4">
           <div className="text-center mb-6 md:mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-3">
               <Brain className="w-3 h-3" />
@@ -263,13 +263,13 @@ export default function HomePage() {
         </section>
 
         {/* What Makes AXLON Different */}
-        <section className="w-full max-w-3xl mx-auto mb-10 md:mb-16 px-4">
+        <section className="w-full max-w-3xl mx-auto mb-6 md:mb-16 px-4">
           <h2 className="text-xl md:text-2xl font-bold text-center mb-2">What Makes AXLON Different</h2>
           <p className="text-sm text-muted-foreground dark:text-foreground/60 text-center mb-6 max-w-lg mx-auto">
             One AI platform replaces the tools you&apos;re juggling today.
           </p>
-          <div className="rounded-xl border bg-white/80 dark:bg-white/[0.08] overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="rounded-xl border bg-white/80 dark:bg-white/[0.08] overflow-x-auto">
+            <table className="w-full text-sm min-w-[480px]">
               <thead>
                 <tr className="border-b bg-muted/30">
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Feature</th>
@@ -392,7 +392,7 @@ export default function HomePage() {
               &copy; 2026 <span className="font-[family-name:var(--font-gunship)]">AXLON AI</span>. All rights reserved.
             </p>
           </div>
-          <div className="grid grid-cols-4 sm:flex gap-3 sm:gap-6 text-center sm:text-left">
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:flex gap-3 sm:gap-6 text-center sm:text-left">
             <FooterLink href="/new-trailers">New Trailers</FooterLink>
             <FooterLink href="/pricing">Pricing</FooterLink>
             <FooterLink href="/dealers">Directory</FooterLink>

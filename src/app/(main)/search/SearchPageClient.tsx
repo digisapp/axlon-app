@@ -183,7 +183,7 @@ function SearchPageContent() {
         )}
 
         {/* Quick Filter Chips */}
-        <div className="flex flex-wrap gap-2 mb-4 md:mb-6 overflow-x-auto pb-1">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-4 md:mb-6 overflow-x-auto pb-2 sm:pb-1">
           <QuickFilterChip
             label="Under $50K"
             icon={<DollarSign className="w-3 h-3" />}
@@ -251,7 +251,7 @@ function SearchPageContent() {
         </div>
 
         {/* Results Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 md:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-4 md:mb-6">
           <div>
             <h1 className="text-xl md:text-2xl font-bold line-clamp-1">
               {query ? `Results for "${query}"` : category ? `${category.replace(/-/g, ' ')}` : 'All Listings'}
@@ -282,7 +282,7 @@ function SearchPageContent() {
                   )}
                 </Button>
               </SheetTrigger>
-              <SheetContent side="bottom" className="h-[85vh] rounded-t-xl overflow-y-auto">
+              <SheetContent side="bottom" className="h-[70vh] sm:h-[80vh] rounded-t-xl overflow-y-auto">
                 <SheetHeader>
                   <SheetTitle>Filters</SheetTitle>
                 </SheetHeader>
