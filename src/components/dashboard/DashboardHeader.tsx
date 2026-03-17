@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MobileSidebar } from './MobileSidebar';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   Plus,
   Bell,
@@ -85,6 +86,8 @@ export function DashboardHeader({
               Trial: {trialDaysRemaining}d remaining
             </Link>
           )}
+
+          <ThemeToggle size="sm" />
 
           {/* Notifications */}
           <DropdownMenu>

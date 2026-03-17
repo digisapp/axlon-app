@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { AdminMobileSidebar } from './AdminMobileSidebar';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   Bell,
   LogOut,
@@ -52,6 +53,8 @@ export function AdminHeader({ user, sections, badges }: AdminHeaderProps) {
 
         {/* Right Side */}
         <div className="flex items-center gap-2 ml-auto">
+          <ThemeToggle size="sm" />
+
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
