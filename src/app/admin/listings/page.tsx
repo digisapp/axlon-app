@@ -35,7 +35,7 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
     .from('listings')
     .select(`
       id, title, price, status, views_count, created_at, user_id,
-      images:listing_images(url, is_primary)
+      images:listing_images(url, thumbnail_url, is_primary)
     `)
     .order('created_at', { ascending: false })
     .range(offset, offset + PAGE_SIZE - 1);
@@ -70,9 +70,11 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
     return acc;
   }, {} as Record<string, { id: string; company_name: string; email: string }>);
 
-  const getPrimaryImage = (images: Array<{ url: string; is_primary: boolean }>) => {
-    const primary = images?.find((img) => img.is_primary);
-    return primary?.url || images?.[0]?.url || null;
+  const getPrimaryImage = (images: Array<{ url: string; thumbnail_url?: string | null; is_primary: boolean }>) => {
+    const primary = images?.find((img) => img.is_primary) || images?.[0];
+    if (!primary) return null;
+    if (primary.thumbnail_url && primary.thumbnail_url.length > 0) return primary.thumbnail_url;
+    return primary.url || null;
   };
 
   const getStatusBadge = (status: string) => {

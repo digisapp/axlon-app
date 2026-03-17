@@ -19,6 +19,7 @@ import { FavoriteButton } from '@/components/listings/FavoriteButton';
 import { ListingCardWrapper } from '@/components/listings/ListingCardWrapper';
 import { AIPreviewIndicator } from '@/components/listings/VideoPlayer';
 import { getDealInfo } from '@/lib/deal-info';
+import { getImageSrc } from '@/lib/utils';
 import { useImageFallback } from '@/hooks/useImageFallback';
 import type { Listing } from '@/types';
 
@@ -38,6 +39,7 @@ export const SearchListingCard = memo(function SearchListingCard({
   isTranslated,
 }: SearchListingCardProps) {
   const primaryImage = listing.images?.find((img) => img.is_primary) || listing.images?.[0];
+  const primaryImageSrc = getImageSrc(primaryImage);
   const { hasError, handleError } = useImageFallback();
   const dealInfo = getDealInfo(listing);
   const displayTitle = translatedTitle || listing.title;
@@ -52,9 +54,9 @@ export const SearchListingCard = memo(function SearchListingCard({
       <ListingCardWrapper listingId={listing.id} listingTitle={listing.title}>
         <Card className="flex flex-col sm:flex-row overflow-hidden hover:shadow-lg transition-shadow">
           <div className="relative w-full sm:w-48 md:w-64 h-40 sm:h-40 md:h-48 flex-shrink-0">
-            {primaryImage && !hasError ? (
+            {primaryImageSrc && !hasError ? (
               <Image
-                src={primaryImage.thumbnail_url || primaryImage.url}
+                src={primaryImageSrc!}
                 alt={listing.title}
                 fill
                 sizes="(max-width: 640px) 100vw, 256px"
@@ -121,7 +123,7 @@ export const SearchListingCard = memo(function SearchListingCard({
                     mileage: listing.mileage ?? null,
                     hours: listing.hours ?? null,
                     condition: listing.condition ?? null,
-                    image_url: primaryImage?.thumbnail_url || primaryImage?.url || null,
+                    image_url: primaryImageSrc,
                   }}
                   variant="icon"
                 />
@@ -165,9 +167,9 @@ export const SearchListingCard = memo(function SearchListingCard({
     <ListingCardWrapper listingId={listing.id} listingTitle={listing.title}>
       <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full">
         <div className="relative aspect-[4/3]">
-          {primaryImage && !hasError ? (
+          {primaryImageSrc && !hasError ? (
             <Image
-              src={primaryImage.thumbnail_url || primaryImage.url}
+              src={primaryImageSrc!}
               alt={listing.title}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
@@ -209,7 +211,7 @@ export const SearchListingCard = memo(function SearchListingCard({
                 mileage: listing.mileage ?? null,
                 hours: listing.hours ?? null,
                 condition: listing.condition ?? null,
-                image_url: primaryImage?.thumbnail_url || primaryImage?.url || null,
+                image_url: primaryImageSrc,
               }}
               variant="icon"
               className="bg-background/80 hover:bg-background w-7 h-7 md:w-8 md:h-8"

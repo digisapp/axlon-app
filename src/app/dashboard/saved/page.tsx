@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Heart, MapPin, ImageOff, Sparkles } from 'lucide-react';
+import { getImageSrc } from '@/lib/utils';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -98,13 +99,13 @@ export default async function SavedListingsPage() {
               <Link key={listing.id} href={`/listing/${listing.id}`}>
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full">
                   <div className="relative aspect-[4/3]">
-                    {primaryImage ? (
+                    {getImageSrc(primaryImage) ? (
                       <Image
-                        src={primaryImage.thumbnail_url || primaryImage.url}
+                        src={getImageSrc(primaryImage)!}
                         alt={listing.title}
                         fill
                         className="object-cover"
-                        unoptimized
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                       />
                     ) : (
                       <div className="w-full h-full bg-muted flex flex-col items-center justify-center gap-1">

@@ -30,6 +30,7 @@ import { ImageGallery } from '@/components/listings/ImageGallery';
 import { TrackViewClient } from '@/components/listings/TrackViewClient';
 import { RecentlyViewed } from '@/components/listings/RecentlyViewed';
 import { CompareButton } from '@/components/listings/CompareButton';
+import { getImageSrc } from '@/lib/utils';
 import { FinancingCalculator } from '@/components/listings/FinancingCalculator';
 import { VideoPlayer } from '@/components/listings/VideoPlayer';
 import { TranslatableTitle, TranslatableDescription } from '@/components/listings/TranslatableContent';
@@ -329,7 +330,7 @@ export default async function ListingPage({ params }: PageProps) {
                 mileage: listing.mileage,
                 hours: listing.hours,
                 condition: listing.condition,
-                image_url: sortedImages[0]?.thumbnail_url || sortedImages[0]?.url,
+                image_url: getImageSrc(sortedImages[0]) || undefined,
               }}
               variant="icon"
             />
@@ -361,7 +362,7 @@ export default async function ListingPage({ params }: PageProps) {
                 mileage: listing.mileage,
                 hours: listing.hours,
                 condition: listing.condition,
-                image_url: sortedImages[0]?.thumbnail_url || sortedImages[0]?.url,
+                image_url: getImageSrc(sortedImages[0]) || undefined,
               }}
               variant="icon"
             />

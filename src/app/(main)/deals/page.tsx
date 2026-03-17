@@ -27,6 +27,7 @@ import { CompareButton } from '@/components/listings/CompareButton';
 import { FavoriteButton } from '@/components/listings/FavoriteButton';
 import { ListingCardWrapper } from '@/components/listings/ListingCardWrapper';
 import { useImageFallback } from '@/hooks/useImageFallback';
+import { getImageSrc } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 
 interface DealListing {
@@ -263,6 +264,7 @@ function FilterChip({
 
 function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'list' }) {
   const primaryImage = deal.images?.find((img) => img.is_primary) || deal.images?.[0];
+  const primaryImageSrc = getImageSrc(primaryImage);
   const { hasError, handleError } = useImageFallback();
   const isHotDeal = deal.discount_percent >= 15;
 
@@ -271,13 +273,13 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
       <ListingCardWrapper listingId={deal.id} listingTitle={deal.title}>
         <Card className="flex flex-col sm:flex-row overflow-hidden hover:shadow-lg transition-shadow">
           <div className="relative w-full sm:w-48 md:w-64 h-48 sm:h-40 md:h-48 flex-shrink-0">
-            {primaryImage && !hasError ? (
+            {primaryImageSrc && !hasError ? (
               <Image
-                src={primaryImage.thumbnail_url || primaryImage.url}
+                src={primaryImageSrc!}
                 alt={deal.title}
                 fill
+                sizes="(max-width: 640px) 100vw, 256px"
                 className="object-cover"
-                unoptimized
                 onError={handleError}
               />
             ) : (
@@ -323,7 +325,7 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
                     mileage: deal.mileage ?? null,
                     hours: null,
                     condition: deal.condition ?? null,
-                    image_url: primaryImage?.thumbnail_url || primaryImage?.url || null,
+                    image_url: primaryImageSrc,
                   }}
                   variant="icon"
                 />
@@ -361,13 +363,13 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
     <ListingCardWrapper listingId={deal.id} listingTitle={deal.title}>
       <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full">
         <div className="relative aspect-[4/3]">
-          {primaryImage && !hasError ? (
+          {primaryImageSrc && !hasError ? (
             <Image
-              src={primaryImage.thumbnail_url || primaryImage.url}
+              src={primaryImageSrc!}
               alt={deal.title}
               fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover"
-              unoptimized
               onError={handleError}
             />
           ) : (
@@ -395,7 +397,7 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
                 mileage: deal.mileage ?? null,
                 hours: null,
                 condition: deal.condition ?? null,
-                image_url: primaryImage?.thumbnail_url || primaryImage?.url || null,
+                image_url: primaryImageSrc,
               }}
               variant="icon"
               className="bg-white/80 hover:bg-white w-7 h-7 md:w-8 md:h-8"

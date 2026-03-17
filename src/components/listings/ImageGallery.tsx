@@ -16,7 +16,7 @@ import {
   RotateCcw,
   ImageOff,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, getImageSrc } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 
 // Pan position type
@@ -354,11 +354,11 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
                   </div>
                 ) : (
                   <Image
-                    src={image.thumbnail_url || image.url}
+                    src={getImageSrc(image) || image.url}
                     alt={`Thumbnail ${index + 1}`}
                     fill
+                    sizes="80px"
                     className="object-cover"
-                    unoptimized
                     onError={() => setErroredImages(prev => new Set(prev).add(image.id))}
                   />
                 )}
@@ -599,11 +599,11 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
                     </div>
                   ) : (
                     <Image
-                      src={image.thumbnail_url || image.url}
+                      src={getImageSrc(image) || image.url}
                       alt={`Thumbnail ${index + 1}`}
                       fill
+                      sizes="64px"
                       className="object-cover"
-                      unoptimized
                       onError={() => setErroredImages(prev => new Set(prev).add(image.id))}
                     />
                   )}

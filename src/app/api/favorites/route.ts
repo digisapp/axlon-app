@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       listing:listings(
         id, title, price, price_type, condition, year, make, model,
         city, state, status, views_count, created_at,
-        images:listing_images(id, url, is_primary)
+        images:listing_images(id, url, thumbnail_url, is_primary)
       )
     `)
     .eq('user_id', user.id)

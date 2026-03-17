@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MapPin, Loader2, X } from 'lucide-react';
 import { useImageFallback } from '@/hooks/useImageFallback';
+import { getImageSrc } from '@/lib/utils';
 import type { Listing } from '@/types';
 
 // Import Leaflet CSS
@@ -68,6 +69,7 @@ function MapMarkerPopup({ listing }: { listing: Listing }) {
   const { hasError, handleError } = useImageFallback();
   const primaryImage =
     listing.images?.find((img) => img.is_primary) || listing.images?.[0];
+  const primaryImageSrc = getImageSrc(primaryImage);
 
   return (
     <Marker
@@ -77,14 +79,13 @@ function MapMarkerPopup({ listing }: { listing: Listing }) {
       <Popup maxWidth={300} minWidth={200}>
         <div className="p-0">
           <Link href={`/listing/${listing.id}`} className="block">
-            {primaryImage && !hasError && (
+            {primaryImageSrc && !hasError && (
               <div className="relative w-full h-24 -mt-3 -mx-3 mb-2">
                 <Image
-                  src={primaryImage.thumbnail_url || primaryImage.url}
+                  src={primaryImageSrc}
                   alt={listing.title}
                   fill
                   className="object-cover rounded-t"
-                  unoptimized
                   onError={handleError}
                 />
                 {listing.is_featured && (

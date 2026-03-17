@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Truck } from 'lucide-react';
 import { ListingCardWrapper } from './ListingCardWrapper';
 import { useImageFallback } from '@/hooks/useImageFallback';
+import { getImageSrc } from '@/lib/utils';
 
 interface ManufacturerListing {
   id: string;
@@ -27,6 +28,7 @@ interface ManufacturerListingGridProps {
 
 function ManufacturerCard({ listing }: { listing: ManufacturerListing }) {
   const primaryImage = listing.images?.find((img) => img.is_primary) || listing.images?.[0];
+  const primaryImageSrc = getImageSrc(primaryImage);
   const { hasError, handleError } = useImageFallback();
 
   return (
@@ -34,13 +36,12 @@ function ManufacturerCard({ listing }: { listing: ManufacturerListing }) {
       <Card className="h-full overflow-hidden hover:shadow-lg transition-all duration-300 hover:border-slate-300 dark:hover:border-zinc-500 cursor-pointer dark:bg-zinc-900 dark:border-zinc-700">
         {/* Image */}
         <div className="aspect-[4/3] relative bg-slate-100 dark:bg-zinc-800">
-          {primaryImage && !hasError ? (
+          {primaryImageSrc && !hasError ? (
             <Image
-              src={primaryImage.thumbnail_url || primaryImage.url}
+              src={primaryImageSrc}
               alt={listing.title}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"
-              unoptimized
               onError={handleError}
             />
           ) : (

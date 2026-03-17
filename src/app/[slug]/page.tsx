@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
+import { getImageSrc } from '@/lib/utils';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -605,9 +606,9 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                   <div className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg hover:border-slate-300 transition-all duration-300 h-full">
                     {/* Image */}
                     <div className="relative aspect-[4/3] bg-slate-100">
-                      {primaryImage ? (
+                      {getImageSrc(primaryImage) ? (
                         <Image
-                          src={primaryImage.thumbnail_url || primaryImage.url}
+                          src={getImageSrc(primaryImage)!}
                           alt={listing.title}
                           fill
                           className="object-cover group-hover:scale-105 transition-transform duration-500"

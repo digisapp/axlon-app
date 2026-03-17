@@ -96,8 +96,8 @@ function RecentCard({ listing }: { listing: RecentListing }) {
               src={listing.imageUrl}
               alt={listing.title}
               fill
+              sizes="(max-width: 640px) 33vw, 20vw"
               className="object-cover"
-              unoptimized
               onError={handleError}
             />
           ) : (
@@ -228,8 +228,8 @@ function RecentCompactCard({ listing }: { listing: RecentListing }) {
             src={listing.imageUrl}
             alt={listing.title}
             fill
+            sizes="48px"
             className="object-cover"
-            unoptimized
             onError={handleError}
           />
         ) : (

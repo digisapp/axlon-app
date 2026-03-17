@@ -24,7 +24,7 @@ export default async function ListingsPage() {
     .from('listings')
     .select(`
       id, title, price, status, views_count, created_at, updated_at,
-      images:listing_images(id, url, is_primary)
+      images:listing_images(id, url, thumbnail_url, is_primary)
     `)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
@@ -44,9 +44,11 @@ export default async function ListingsPage() {
     }
   };
 
-  const getPrimaryImage = (images: Array<{ id: string; url: string; is_primary: boolean }>) => {
-    const primary = images?.find((img) => img.is_primary);
-    return primary?.url || images?.[0]?.url || null;
+  const getPrimaryImage = (images: Array<{ id: string; url: string; thumbnail_url?: string | null; is_primary: boolean }>) => {
+    const primary = images?.find((img) => img.is_primary) || images?.[0];
+    if (!primary) return null;
+    if (primary.thumbnail_url && primary.thumbnail_url.length > 0) return primary.thumbnail_url;
+    return primary.url || null;
   };
 
   return (

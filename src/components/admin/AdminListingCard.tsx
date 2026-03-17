@@ -36,8 +36,8 @@ export function AdminListingCard({ listing, imageUrl, sellerName, statusBadge }:
                 src={imageUrl}
                 alt={listing.title}
                 fill
+                sizes="96px"
                 className="object-cover"
-                unoptimized
                 onError={handleError}
               />
             ) : (

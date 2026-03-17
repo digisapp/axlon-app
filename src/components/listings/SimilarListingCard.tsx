@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { useImageFallback } from '@/hooks/useImageFallback';
+import { getImageSrc } from '@/lib/utils';
 
 interface SimilarListingCardProps {
   item: {
@@ -13,25 +14,26 @@ interface SimilarListingCardProps {
     year: number | null;
     make: string | null;
     model: string | null;
-    images: { url: string; is_primary?: boolean }[] | null;
+    images: { url: string; thumbnail_url?: string | null; is_primary?: boolean }[] | null;
   };
 }
 
 export function SimilarListingCard({ item }: SimilarListingCardProps) {
   const { hasError, handleError } = useImageFallback();
   const itemImage = item.images?.find((img) => img.is_primary) || item.images?.[0];
+  const itemImageSrc = getImageSrc(itemImage);
 
   return (
     <Link href={`/listing/${item.id}`}>
       <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full">
         <div className="relative aspect-[4/3] bg-muted">
-          {itemImage && !hasError ? (
+          {itemImageSrc && !hasError ? (
             <Image
-              src={itemImage.url}
+              src={itemImageSrc}
               alt={item.title}
               fill
+              sizes="(max-width: 640px) 50vw, 25vw"
               className="object-cover"
-              unoptimized
               onError={handleError}
             />
           ) : (

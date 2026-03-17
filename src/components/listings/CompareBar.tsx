@@ -29,7 +29,7 @@ function CompareBarItem({ listing, onRemove }: CompareBarItemProps) {
             width={40}
             height={40}
             className="object-cover w-full h-full"
-            unoptimized
+            sizes="40px"
             onError={handleError}
           />
         </div>

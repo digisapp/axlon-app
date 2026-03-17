@@ -33,8 +33,8 @@ export function DashboardListingCard({ listing, imageUrl, statusBadgeClass }: Da
               src={imageUrl}
               alt={listing.title}
               fill
+              sizes="(max-width: 768px) 100vw, 192px"
               className="object-cover"
-              unoptimized
               onError={handleError}
             />
           ) : (
