@@ -4,6 +4,8 @@ import { verifyInternalRequest } from '@/lib/security/internal-auth';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, aiLeadUpdateSchema, aiLeadNotificationSchema } from '@/lib/validations/api';
+import { sendEmail } from '@/lib/email/resend';
+import { newLeadEmail } from '@/lib/email/templates';
 
 // Get dealer's AI leads
 export async function GET(request: NextRequest) {
@@ -231,7 +233,7 @@ export async function POST(request: NextRequest) {
 
     const { data: dealer } = await supabase
       .from('profiles')
-      .select('email')
+      .select('email, company_name')
       .eq('id', dealerId)
       .single();
 
@@ -241,17 +243,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, skipped: true });
     }
 
-    // TODO: Integrate with email service (SendGrid, Resend, etc.)
-    // For now, just log the notification
-    logger.info('New AI Lead Notification', {
-      to: notificationEmail,
-      lead: {
-        name: lead.visitor_name,
-        email: lead.visitor_email,
-        phone: lead.visitor_phone,
-        interest: lead.equipment_interest,
-      },
-    });
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
+
+    // Send email notification via Resend
+    try {
+      const html = newLeadEmail({
+        dealerName: dealer?.company_name || 'Team',
+        buyerName: lead.visitor_name || 'Website Visitor',
+        buyerEmail: lead.visitor_email || '',
+        buyerPhone: lead.visitor_phone || undefined,
+        listingTitle: lead.equipment_interest || undefined,
+        message: lead.visitor_message || undefined,
+        leadsUrl: `${baseUrl}/dashboard/ai-leads`,
+      });
+
+      await sendEmail({
+        to: notificationEmail,
+        subject: `New Lead: ${lead.visitor_name || 'Website Visitor'}${lead.equipment_interest ? ` — ${lead.equipment_interest}` : ''}`,
+        html,
+      });
+
+      logger.info('AI Lead notification sent', { to: notificationEmail, leadId });
+    } catch (emailError) {
+      // Don't fail the request if email fails — lead is already saved
+      logger.error('AI Lead email notification failed', { error: emailError, to: notificationEmail });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

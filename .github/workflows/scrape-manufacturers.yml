@@ -1,0 +1,45 @@
+name: Scrape Manufacturer Catalogs
+
+on:
+  # Run quarterly (1st of Jan, Apr, Jul, Oct at 8 AM UTC)
+  schedule:
+    - cron: '0 8 1 1,4,7,10 *'
+  # Allow manual trigger from GitHub UI or API
+  workflow_dispatch:
+    inputs:
+      manufacturer:
+        description: 'Specific manufacturer slug (leave empty for all)'
+        required: false
+        default: ''
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Puppeteer browser
+        run: npx puppeteer browsers install chrome
+
+      - name: Run manufacturer scraper
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -n "${{ github.event.inputs.manufacturer }}" ]; then
+            node scripts/scrape-all-manufacturers.mjs --manufacturer="${{ github.event.inputs.manufacturer }}"
+          else
+            node scripts/scrape-all-manufacturers.mjs
+          fi
