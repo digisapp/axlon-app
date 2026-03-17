@@ -107,13 +107,13 @@ function DealCard({ deal }: { deal: DealListing }) {
     <Link href={`/listing/${deal.id}`}>
       <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur">
         <div className="relative aspect-[4/3]">
-          {primaryImage ? (
+          {primaryImage?.url ? (
             <Image
-              src={primaryImage.thumbnail_url || primaryImage.url}
+              src={primaryImage.thumbnail_url && primaryImage.thumbnail_url.length > 0 ? primaryImage.thumbnail_url : primaryImage.url}
               alt={deal.title}
               fill
+              sizes="(max-width: 768px) 50vw, 25vw"
               className="object-cover"
-              unoptimized
             />
           ) : (
             <div className="w-full h-full bg-muted flex items-center justify-center">
