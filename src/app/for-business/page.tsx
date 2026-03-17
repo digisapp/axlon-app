@@ -31,6 +31,17 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/for-business',
   },
+  openGraph: {
+    title: 'For Business — The AI Operating System | AXLON AI',
+    description: 'Replace your DMS, CRM, answering service, and BDC team with one AI platform built for equipment businesses.',
+    type: 'website',
+    url: '/for-business',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AXLON AI for Business',
+    description: 'Replace your DMS, CRM, answering service, and BDC team with one AI platform.',
+  },
 };
 
 const pillars = [

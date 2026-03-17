@@ -4,6 +4,17 @@ export const metadata: Metadata = {
   title: 'Privacy Policy — AXLON AI',
   description: 'AXLON AI privacy policy. Learn how we collect, use, and protect your data.',
   alternates: { canonical: '/privacy' },
+  openGraph: {
+    title: 'Privacy Policy — AXLON AI',
+    description: 'Learn how AXLON AI collects, uses, and protects your data.',
+    type: 'website',
+    url: '/privacy',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Privacy Policy — AXLON AI',
+    description: 'Learn how AXLON AI collects, uses, and protects your data.',
+  },
 };
 
 export default function PrivacyPage() {

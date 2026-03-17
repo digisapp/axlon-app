@@ -26,6 +26,17 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/pricing',
   },
+  openGraph: {
+    title: 'Pricing | AXLON AI',
+    description: 'Simple, transparent pricing for the AI-powered business platform. AXLON Platform $399/mo, Voice AI $499/mo add-on. No hidden fees.',
+    type: 'website',
+    url: '/pricing',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Pricing | AXLON AI',
+    description: 'Simple, transparent pricing. AXLON Platform $399/mo, Voice AI $499/mo add-on.',
+  },
 };
 
 export default function PricingPage() {

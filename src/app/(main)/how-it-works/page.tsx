@@ -7,6 +7,17 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/how-it-works',
   },
+  openGraph: {
+    title: 'AI Platform for Equipment Businesses | AXLON AI',
+    description: 'The AI operating system for equipment businesses. Sales assistant, CRM, voice agents, and automation — all in one platform.',
+    type: 'website',
+    url: '/how-it-works',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AI Platform for Equipment Businesses | AXLON AI',
+    description: 'Sales assistant, CRM, voice agents, and automation — all in one platform. Starting at $399/mo.',
+  },
 };
 
 export default function HowItWorksPage() {

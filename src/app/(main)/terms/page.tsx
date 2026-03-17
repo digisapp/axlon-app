@@ -4,6 +4,17 @@ export const metadata: Metadata = {
   title: 'Terms of Service — AXLON AI',
   description: 'AXLON AI terms of service. Read the terms governing your use of our platform.',
   alternates: { canonical: '/terms' },
+  openGraph: {
+    title: 'Terms of Service — AXLON AI',
+    description: 'Read the terms governing your use of the AXLON AI platform.',
+    type: 'website',
+    url: '/terms',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Terms of Service — AXLON AI',
+    description: 'Read the terms governing your use of the AXLON AI platform.',
+  },
 };
 
 export default function TermsPage() {
