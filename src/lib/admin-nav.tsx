@@ -15,6 +15,7 @@ import {
   Bot,
   TrendingUp,
   Database,
+  Truck,
 } from 'lucide-react';
 
 export interface AdminNavItem {
@@ -132,6 +133,11 @@ export const adminNavSections: AdminNavSection[] = [
         href: '/admin/manufacturers',
         label: 'Manufacturers',
         icon: <Factory className="w-5 h-5" />,
+      },
+      {
+        href: '/admin/dealer-sources',
+        label: 'Dealer Sources',
+        icon: <Truck className="w-5 h-5" />,
       },
     ],
   },

@@ -1,0 +1,46 @@
+name: Scrape Dealer Inventory
+
+on:
+  # Run every 15 days at 6 AM UTC
+  schedule:
+    - cron: '0 6 1,16 * *'
+  # Allow manual trigger from GitHub UI or API
+  workflow_dispatch:
+    inputs:
+      dealer:
+        description: 'Specific dealer slug (leave empty for all)'
+        required: false
+        default: ''
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Puppeteer browser
+        run: npx puppeteer browsers install chrome
+
+      - name: Run dealer scraper
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+        run: |
+          if [ -n "${{ github.event.inputs.dealer }}" ]; then
+            node scripts/scrape-dealer-inventory.mjs --dealer "${{ github.event.inputs.dealer }}"
+          else
+            node scripts/scrape-dealer-inventory.mjs
+          fi
