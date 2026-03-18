@@ -1,7 +1,7 @@
 {
-  "name": "AXLON AI — Trucks, Trailers & Equipment Marketplace",
+  "name": "AXLON AI — Trucks, Trailers & Heavy Equipment Marketplace",
   "short_name": "AXLON AI",
-  "description": "AI-powered marketplace for trucks, trailers, and heavy equipment. Buy, sell, and manage your fleet with AI.",
+  "description": "Browse thousands of trucks, trailers, and heavy equipment. AI tools for dealers and businesses — smart search, instant listings, voice agents, and lead management.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",

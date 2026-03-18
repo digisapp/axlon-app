@@ -20,7 +20,7 @@ function OrganizationJsonLd() {
     name: 'AXLON AI',
     url: 'https://axlon.ai',
     logo: 'https://axlon.ai/images/axlonai-logo.png',
-    description: 'AI-powered marketplace for trucks, trailers, and equipment. Search with AI, get smart pricing, and list your equipment instantly.',
+    description: 'The AI-powered marketplace for trucks, trailers, and heavy equipment. AI tools for businesses — voice agents, lead management, smart pricing, and instant listings.',
     foundingDate: '2024',
     contactPoint: {
       '@type': 'ContactPoint',
@@ -91,27 +91,27 @@ const gunship = localFont({
 
 export const metadata: Metadata = {
   title: {
-    default: "AXLON AI - AI-Powered Truck & Equipment Marketplace",
+    default: "AXLON AI — Trucks, Trailers & Heavy Equipment Marketplace",
     template: "%s | AXLON AI",
   },
-  description: "The future of buying and selling trucks, trailers, and equipment. AI-powered search, smart pricing, and instant listings.",
-  keywords: ["trucks", "trailers", "heavy equipment", "marketplace", "semi trucks", "commercial vehicles", "Peterbilt", "Freightliner", "Kenworth", "Volvo", "buy trucks", "sell trucks"],
+  description: "Browse thousands of trucks, trailers, and heavy equipment. AI tools for dealers and businesses — smart search, instant listings, voice agents, and lead management.",
+  keywords: ["trucks", "trailers", "heavy equipment", "marketplace", "semi trucks", "commercial vehicles", "Peterbilt", "Freightliner", "Kenworth", "Volvo", "buy trucks", "sell trucks", "AI tools", "dealer management", "lowboy trailers"],
   authors: [{ name: "AXLON AI" }],
   creator: "AXLON AI",
   publisher: "AXLON AI",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://axlon.ai"),
   openGraph: {
-    title: "AXLON AI - AI-Powered Truck & Equipment Marketplace",
-    description: "The future of buying and selling trucks, trailers, and equipment. Search with AI, get smart pricing, and list your equipment instantly.",
+    title: "AXLON AI — Trucks, Trailers & Heavy Equipment Marketplace",
+    description: "Browse thousands of trucks, trailers, and heavy equipment. AI tools for dealers and businesses — smart search, instant listings, voice agents, and lead management.",
     type: "website",
     siteName: "AXLON AI",
     locale: "en_US",
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "AXLON AI - AI-Powered Truck & Equipment Marketplace" }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "AXLON AI — Trucks, Trailers & Heavy Equipment Marketplace" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "AXLON AI - AI-Powered Truck & Equipment Marketplace",
-    description: "The future of buying and selling trucks, trailers, and equipment.",
+    title: "AXLON AI — Trucks, Trailers & Heavy Equipment Marketplace",
+    description: "Browse thousands of trucks, trailers, and heavy equipment. AI tools for dealers and businesses.",
     images: ["/opengraph-image"],
   },
   robots: {
