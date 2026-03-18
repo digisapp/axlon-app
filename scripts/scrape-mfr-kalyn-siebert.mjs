@@ -118,17 +118,17 @@ function classifyProductType(name, description = '', category = '') {
   const text = `${name} ${description} ${category}`.toLowerCase();
 
   // ISO / Container
-  if (/iso|container.?chassis/i.test(text)) return 'container-chassis';
+  if (/iso|container.?chassis/i.test(text)) return 'other';
   // Extendable
   if (/extendable/i.test(text) && !/iso/i.test(text)) return 'extendable';
   // Step deck
   if (/step.?deck/i.test(text)) return 'step-deck';
   // Dry van / chip van
-  if (/chip.?van|ag.?chip|dry.?van/i.test(text)) return 'dry-van';
+  if (/chip.?van|ag.?chip|dry.?van/i.test(text)) return 'other';
   // Data center / specialized
-  if (/data.?center|tactical|defense/i.test(text)) return 'specialized';
+  if (/data.?center|tactical|defense/i.test(text)) return 'other';
   // Vans (defense)
-  if (/^vans$/i.test(name.trim())) return 'specialized';
+  if (/^vans$/i.test(name.trim())) return 'other';
   // Platform deck / construction
   if (/platform.?deck|mini.?deck/i.test(text)) return 'lowboy';
   // Oil & Gas / oilfield
@@ -341,13 +341,18 @@ async function scrapeProductPage(page, url) {
   }
 
   const pageData = await page.evaluate(() => {
-    // --- Name / title ---
+    // --- Name / title (Kalyn Siebert uses h3 for product name, no h1/h2) ---
     const h1 = document.querySelector('h1');
     let name = h1 ? h1.textContent.trim() : '';
-    // Fallback to entry title or main heading
+    // Fallback to first h3 (actual product heading on KS pages)
     if (!name) {
-      const entryTitle = document.querySelector('.entry-title, .et_pb_module_header');
-      name = entryTitle ? entryTitle.textContent.trim() : '';
+      const h3 = document.querySelector('h3');
+      name = h3 ? h3.textContent.trim() : '';
+    }
+    // Final fallback: extract from page title (e.g. "Diamondback - Kalyn Siebert")
+    if (!name) {
+      const titleParts = document.title.split(' - ');
+      if (titleParts.length > 1) name = titleParts[0].trim();
     }
 
     // --- Tagline (often in a subtitle or first prominent heading after h1) ---

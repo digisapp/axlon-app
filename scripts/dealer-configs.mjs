@@ -171,17 +171,17 @@ export const DEALER_CONFIGS = [
     scrapeMethod: 'css',
     scrapeConfig: {
       listingSelector: '.filter-course-item',
-      titleSelector: '.heading-14, .recently-heading',
+      titleSelector: '.subheading-regular.inventory',
       priceSelector: '.price',
-      imageSelector: '.course-item-video-wrapper img, .image-16, .recently-image',
-      linkSelector: 'a[href*="inventory"], .link-block-2, .recently-link',
-      maxPages: 5, // pagination via ?b09ec52b_page=N
+      imageSelector: '.course-video-thumbnail',
+      linkSelector: '.link-block-2',
+      maxPages: 5,
     },
     city: 'Phoenix',
     state: 'AZ',
   },
 
-  // ─── J & B Pavelka (JS-rendered, auto-detect) ───────────────────
+  // ─── J & B Pavelka (blocked by Imperva/Distil bot protection) ──
   {
     name: 'J & B Pavelka',
     slug: 'jb-pavelka',
@@ -189,6 +189,7 @@ export const DEALER_CONFIGS = [
     inventoryUrl: 'https://www.jbpavelkainc.com/Inventory/?/listings/for-sale/trailers/28?accountcrmid=361605&settingscrmid=361605&dlr=1',
     scrapeMethod: 'auto',
     scrapeConfig: { maxPages: 5 },
+    active: false, // Site blocks automated browsers (Imperva bot protection)
     city: 'Robstown',
     state: 'TX',
   },

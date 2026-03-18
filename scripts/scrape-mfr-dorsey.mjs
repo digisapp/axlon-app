@@ -110,7 +110,7 @@ function classifyProductType(name, description = '') {
   const text = `${name} ${description}`.toLowerCase();
   if (/lowboy|lb35/i.test(text)) return 'lowboy';
   if (/extendable/i.test(text)) return 'extendable';
-  if (/chip\s*van|walking\s*floor/i.test(text)) return 'dry-van';
+  if (/chip\s*van|walking\s*floor/i.test(text)) return 'other';
   if (/drop\s*flat|drop\s*deck/i.test(text)) return 'step-deck';
   if (/beavertail/i.test(text)) return 'flatbed';
   if (/lift\s*hauler/i.test(text)) return 'flatbed';
@@ -258,14 +258,14 @@ async function scrapeProductPage(page, url) {
   }
 
   const pageData = await page.evaluate(() => {
-    // --- Name / title ---
-    const h1 = document.querySelector('h1');
-    const name = h1 ? h1.textContent.trim() : '';
+    // --- Name / title (Dorsey uses h2 as main heading, not h1) ---
+    const heading = document.querySelector('h1') || document.querySelector('h2');
+    const name = heading ? heading.textContent.trim() : '';
 
     // --- Tagline (often in a subtitle or first prominent paragraph) ---
     let tagline = '';
     const subtitle = document.querySelector(
-      '.entry-subtitle, .page-subtitle, .hero-subtitle, h2'
+      '.entry-subtitle, .page-subtitle, .hero-subtitle'
     );
     if (subtitle) {
       tagline = subtitle.textContent.trim();

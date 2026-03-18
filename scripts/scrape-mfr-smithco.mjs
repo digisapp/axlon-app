@@ -105,7 +105,7 @@ function randomDelay() {
  * All SmithCo products are side dump trailers.
  */
 function classifyProductType(_name, _description = '') {
-  return 'dump-trailer';
+  return 'other'; // side dump trailers — not in standard enum
 }
 
 /**
