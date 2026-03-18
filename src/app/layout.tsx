@@ -10,6 +10,8 @@ import { FloatingCallButton } from "@/components/FloatingCallButton";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { PWACleanup } from "@/components/PWAInstallPrompt";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 // Organization JSON-LD Schema for rich search results
@@ -181,6 +183,8 @@ export default function RootLayout({
             </NotificationProvider>
           </QueryProvider>
         </ThemeProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
