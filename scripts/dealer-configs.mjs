@@ -75,11 +75,11 @@ export const DEALER_CONFIGS = [
     inventoryUrl: 'https://haletrailer.com/trailer/',
     scrapeMethod: 'css',
     scrapeConfig: {
-      listingSelector: '.trailer',
-      titleSelector: '.repeater-title a strong, .repeater-title a',
+      listingSelector: 'ul.alm-listing > li.alm-item',
+      titleSelector: 'a strong, a',
       priceSelector: '.price, [class*="price"]',
       imageSelector: 'img',
-      linkSelector: '.repeater-title a',
+      linkSelector: 'a[href*="/trailer/"]',
       maxPages: 10,
     },
     city: 'Voorhees',
@@ -194,6 +194,158 @@ export const DEALER_CONFIGS = [
     state: 'TX',
   },
 
+  // ─── The Pete Store (Liferay CMS, .product-listing-card) ───────
+  {
+    name: 'The Pete Store',
+    slug: 'the-pete-store',
+    website: 'https://www.thepetestore.com',
+    inventoryUrl: 'https://www.thepetestore.com/g/new',
+    scrapeMethod: 'css',
+    scrapeConfig: {
+      listingSelector: '.product-listing-card',
+      titleSelector: '.product-card-title a',
+      priceSelector: '.prod-price',
+      imageSelector: '.product-card-top img',
+      linkSelector: '.product-card-title a',
+      maxPages: 10,
+    },
+    city: 'Multi-Location',
+    state: 'FL',
+  },
+
+  // ─── LMI Tennessee (Sandhills/MachineryTrader, .listing-card) ──
+  {
+    name: 'LMI Tennessee',
+    slug: 'lmi-tennessee',
+    website: 'https://www.lmitennessee.com',
+    inventoryUrl: 'https://www.lmitennessee.com/inventory/?/listings/for-sale/trailers/28?DSCompanyID=2184&dlr=1&settingscrmid=5010937',
+    scrapeMethod: 'css',
+    scrapeConfig: {
+      listingSelector: '.listing-card',
+      titleSelector: '.listing-main-image',
+      priceSelector: '.listing-price-value',
+      imageSelector: '.listing-main-image, .listing-main-img',
+      linkSelector: 'a[href*="listing/for-sale"]',
+      maxPages: 5,
+    },
+    city: 'Waverly',
+    state: 'TN',
+  },
+
+  // ─── Bruckner Truck & Equipment (JS-heavy, auto-detect) ───────
+  {
+    name: 'Bruckner Truck & Equipment',
+    slug: 'bruckner-truck',
+    website: 'https://www.brucknertruck.com',
+    inventoryUrl: 'https://www.brucknertruck.com/Pre-Owned-Inventory-For-Sale/?category=Trailer',
+    scrapeMethod: 'auto',
+    scrapeConfig: { maxPages: 5 },
+    city: 'Dallas',
+    state: 'TX',
+  },
+
+  // ─── Nuss Truck & Equipment (blocked: 403 Forbidden) ──────────
+  {
+    name: 'Nuss Truck & Equipment',
+    slug: 'nuss-group',
+    website: 'https://www.nussgrp.com',
+    inventoryUrl: 'https://www.nussgrp.com/shoptrailers/',
+    scrapeMethod: 'auto',
+    scrapeConfig: { maxPages: 5 },
+    active: false, // Returns 403 Forbidden
+    city: 'Rochester',
+    state: 'MN',
+  },
+
+  // ─── All Roads Kenworth (SandHills Global inventory widget) ──
+  {
+    name: 'All Roads Kenworth',
+    slug: 'all-roads-kenworth',
+    website: 'https://www.allroadskenworth.com',
+    inventoryUrl: 'https://www.allroadskenworth.com/inventory/all/',
+    scrapeMethod: 'css',
+    scrapeConfig: {
+      listingSelector: '.list-listing-card-wrapper',
+      titleSelector: 'h2.listing-portion-title, a.list-listing-title-link',
+      priceSelector: '.price-contain',
+      imageSelector: 'img.listing-main-img',
+      linkSelector: 'a.list-listing-title-link',
+      maxPages: 5,
+    },
+    city: 'Maryland',
+    state: 'MD',
+  },
+
+  // ─── Tri-State Trailer Sales (SandHills Global, 84 listings) ─
+  {
+    name: 'Tri-State Trailer Sales',
+    slug: 'tri-state-trailer',
+    website: 'https://www.tristatetrailer.com',
+    inventoryUrl: 'https://www.tristatetrailer.com/inventory/?/listings/for-sale/trailers/28?DSCompanyID=3584&dlr=1&settingscrmid=367709',
+    scrapeMethod: 'css',
+    scrapeConfig: {
+      listingSelector: '.list-listing-card-wrapper',
+      titleSelector: 'h2.listing-portion-title, a.list-listing-title-link',
+      priceSelector: '.price-contain',
+      imageSelector: 'img.listing-main-img',
+      linkSelector: 'a.list-listing-title-link',
+      maxPages: 5,
+    },
+    city: 'Pittsburgh',
+    state: 'PA',
+  },
+
+  // ─── Peters & Keatts (buzznerd/Algolia widget) ──────────────
+  {
+    name: 'Peters & Keatts',
+    slug: 'peters-keatts',
+    website: 'https://www.petersandkeatts.net',
+    inventoryUrl: 'https://www.petersandkeatts.net/inventory/trailers/',
+    scrapeMethod: 'css',
+    scrapeConfig: {
+      listingSelector: '.ais-InfiniteHits-item',
+      titleSelector: '.contentRightCol h4, .contentRightCol a, .item a[href*="product"]',
+      priceSelector: '[class*="price"]',
+      imageSelector: '.pictures-wrapper img',
+      linkSelector: 'a[href*="product"]',
+      maxPages: 1, // Algolia infinite scroll
+    },
+    city: 'Raleigh',
+    state: 'NC',
+  },
+
+  // ─── Bulk Equipment (blocked by Imperva bot protection) ─────
+  {
+    name: 'Bulk Equipment',
+    slug: 'bulk-equipment',
+    website: 'https://www.bulkequipment.com',
+    inventoryUrl: 'https://www.bulkequipment.com/all-equipment',
+    scrapeMethod: 'auto',
+    scrapeConfig: { maxPages: 5 },
+    active: false, // Imperva/Incapsula bot protection blocks all requests
+    city: 'Ellaville',
+    state: 'GA',
+  },
+
+  // ─── Preferred Lowboys (MyLittleSalesman platform, SSR) ────
+  {
+    name: 'Preferred Lowboys',
+    slug: 'preferred-lowboys',
+    website: 'https://www.preferredlowboys.com',
+    inventoryUrl: 'https://www.preferredlowboys.com/all-equipment',
+    scrapeMethod: 'css',
+    scrapeConfig: {
+      listingSelector: 'a[href*="/for-sale/"]',
+      titleSelector: 'a[href*="/for-sale/"]',
+      priceSelector: 'p',
+      imageSelector: 'img',
+      linkSelector: 'a[href*="/for-sale/"]',
+      maxPages: 4, // 25 per page, ~95 total
+    },
+    city: 'Houston',
+    state: 'TX',
+  },
+
 ];
 
 export function getDealerBySlug(slug) {
@@ -201,5 +353,5 @@ export function getDealerBySlug(slug) {
 }
 
 export function getActiveDealers() {
-  return DEALER_CONFIGS;
+  return DEALER_CONFIGS.filter(d => d.active !== false);
 }

@@ -2,7 +2,7 @@
 /**
  * Master runner for all manufacturer product catalog scrapers.
  *
- * Runs all 16 manufacturer scrapers sequentially with error isolation —
+ * Runs all 18 manufacturer scrapers sequentially with error isolation —
  * if one manufacturer fails, the rest still run.
  *
  * Usage:
@@ -42,6 +42,8 @@ const MANUFACTURERS = [
   { slug: 'dorsey',          script: 'scrape-mfr-dorsey.mjs' },
   { slug: 'kalyn-siebert',   script: 'scrape-mfr-kalyn-siebert.mjs' },
   { slug: 'smithco',         script: 'scrape-mfr-smithco.mjs' },
+  { slug: 'mack',            script: 'scrape-mfr-mack.mjs' },
+  { slug: 'felling',         script: 'scrape-mfr-felling.mjs' },
 ];
 
 // ---------------------------------------------------------------------------
