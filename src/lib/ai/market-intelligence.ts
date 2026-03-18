@@ -1,13 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
 import { createXai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import { logger } from '@/lib/logger';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return createAdminClient();
 }
 
 function getXai() {

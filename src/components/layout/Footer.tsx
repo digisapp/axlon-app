@@ -11,12 +11,14 @@ const footerLinks = {
     { href: '/categories', label: 'Categories' },
     { href: '/dealers', label: 'Directory' },
     { href: '/finance', label: 'Financing' },
+    { href: '/tools/axle-weight-calculator', label: 'Axle Calculator' },
   ],
   platform: [
     { href: '/how-it-works', label: 'AI Platform' },
     { href: '/voice', label: 'Voice Agent' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/get-started', label: 'For Business' },
+    { href: '/become-a-dealer', label: 'Become a Dealer' },
   ],
   company: [
     { href: '/about', label: 'About Us' },
