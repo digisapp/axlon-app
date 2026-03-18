@@ -35,9 +35,7 @@ import { FinancingCalculator } from '@/components/listings/FinancingCalculator';
 import { VideoPlayer } from '@/components/listings/VideoPlayer';
 import { TranslatableTitle, TranslatableDescription } from '@/components/listings/TranslatableContent';
 import { SimilarListingCard } from '@/components/listings/SimilarListingCard';
-// Temporarily disabled - dealer integration coming later
-// import { LiveChat } from '@/components/listings/LiveChat';
-// import { DealerAIChat } from '@/components/listings/DealerAIChat';
+import { DealerAIChat } from '@/components/listings/DealerAIChat';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -629,9 +627,19 @@ export default async function ListingPage({ params }: PageProps) {
             {/* Contact Form - Routes to AXLON AI */}
             <ContactSeller
               listingId={id}
-              sellerId=""
+              sellerId={listing.user?.id || ''}
               listingTitle={listing.title}
             />
+
+            {/* AI Chat Widget */}
+            {listing.user?.id && listing.user?.is_business && (
+              <DealerAIChat
+                dealerId={listing.user.id}
+                dealerName={listing.user.company_name || 'Dealer'}
+                listingId={id}
+                listingTitle={listing.title}
+              />
+            )}
 
             {/* Quick Stats */}
             <Card>
@@ -720,7 +728,7 @@ export default async function ListingPage({ params }: PageProps) {
           {/* Contact Form - Routes to AXLON AI */}
           <ContactSeller
             listingId={id}
-            sellerId=""
+            sellerId={listing.user?.id || ''}
             listingTitle={listing.title}
           />
           {listing.price && listing.price > 0 && (
