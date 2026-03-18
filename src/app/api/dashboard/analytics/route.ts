@@ -1,86 +1,64 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
-import { logger } from '@/lib/logger';
+import { NextResponse } from 'next/server';
+import { withAuth } from '@/lib/auth/with-auth';
+import { RATE_LIMITS } from '@/lib/security/rate-limit';
 
-export async function GET(request: NextRequest) {
-  try {
-    const identifier = getClientIdentifier(request);
-    const rateLimitResult = await checkRateLimit(identifier, {
-      ...RATE_LIMITS.standard,
-      prefix: 'ratelimit:dashboard-analytics',
+export const GET = withAuth(async (request, { user, supabase }) => {
+  const { searchParams } = new URL(request.url);
+  const days = parseInt(searchParams.get('days') || '30');
+
+  // Get daily views using the RPC function
+  const { data: dailyViews } = await supabase
+    .rpc('get_user_daily_views', {
+      p_user_id: user.id,
+      p_days: days,
     });
-    if (!rateLimitResult.success) {
-      return rateLimitResponse(rateLimitResult);
-    }
 
-    const supabase = await createClient();
-    const { searchParams } = new URL(request.url);
-    const days = parseInt(searchParams.get('days') || '30');
-
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Get daily views using the RPC function
-    const { data: dailyViews, error: viewsError } = await supabase
-      .rpc('get_user_daily_views', {
-        p_user_id: user.id,
-        p_days: days,
-      });
-
-    // Get daily leads using the RPC function
-    const { data: dailyLeads, error: leadsError } = await supabase
-      .rpc('get_user_daily_leads', {
-        p_user_id: user.id,
-        p_days: days,
-      });
-
-    // Get view stats with trend
-    const { data: viewStats } = await supabase
-      .rpc('get_user_view_stats', {
-        p_user_id: user.id,
-        p_period_days: 7,
-      });
-
-    // Get lead stats with trend
-    const { data: leadStats } = await supabase
-      .rpc('get_user_lead_stats', {
-        p_user_id: user.id,
-        p_period_days: 7,
-      });
-
-    // Fill in missing dates with zeros for charts
-    const viewsData = fillMissingDates(dailyViews || [], days, 'view_date', 'view_count');
-    const leadsData = fillMissingDates(dailyLeads || [], days, 'lead_date', 'lead_count');
-
-    // Calculate totals
-    const totalViews = viewsData.reduce((sum, d) => sum + d.count, 0);
-    const totalLeads = leadsData.reduce((sum, d) => sum + d.count, 0);
-
-    return NextResponse.json({
-      views: {
-        daily: viewsData,
-        total: totalViews,
-        trend: viewStats?.[0]?.trend_percentage || 0,
-        currentPeriod: viewStats?.[0]?.current_period_views || 0,
-        previousPeriod: viewStats?.[0]?.previous_period_views || 0,
-      },
-      leads: {
-        daily: leadsData,
-        total: totalLeads,
-        trend: leadStats?.[0]?.trend_percentage || 0,
-        currentPeriod: leadStats?.[0]?.current_period_leads || 0,
-        previousPeriod: leadStats?.[0]?.previous_period_leads || 0,
-      },
+  // Get daily leads using the RPC function
+  const { data: dailyLeads } = await supabase
+    .rpc('get_user_daily_leads', {
+      p_user_id: user.id,
+      p_days: days,
     });
-  } catch (error) {
-    logger.error('Analytics error', { error });
-    return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 });
-  }
-}
+
+  // Get view stats with trend
+  const { data: viewStats } = await supabase
+    .rpc('get_user_view_stats', {
+      p_user_id: user.id,
+      p_period_days: 7,
+    });
+
+  // Get lead stats with trend
+  const { data: leadStats } = await supabase
+    .rpc('get_user_lead_stats', {
+      p_user_id: user.id,
+      p_period_days: 7,
+    });
+
+  // Fill in missing dates with zeros for charts
+  const viewsData = fillMissingDates(dailyViews || [], days, 'view_date', 'view_count');
+  const leadsData = fillMissingDates(dailyLeads || [], days, 'lead_date', 'lead_count');
+
+  // Calculate totals
+  const totalViews = viewsData.reduce((sum, d) => sum + d.count, 0);
+  const totalLeads = leadsData.reduce((sum, d) => sum + d.count, 0);
+
+  return NextResponse.json({
+    views: {
+      daily: viewsData,
+      total: totalViews,
+      trend: viewStats?.[0]?.trend_percentage || 0,
+      currentPeriod: viewStats?.[0]?.current_period_views || 0,
+      previousPeriod: viewStats?.[0]?.previous_period_views || 0,
+    },
+    leads: {
+      daily: leadsData,
+      total: totalLeads,
+      trend: leadStats?.[0]?.trend_percentage || 0,
+      currentPeriod: leadStats?.[0]?.current_period_leads || 0,
+      previousPeriod: leadStats?.[0]?.previous_period_leads || 0,
+    },
+  });
+}, { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:dashboard-analytics' } });
 
 function fillMissingDates(
   data: Array<{ [key: string]: string | number }>,

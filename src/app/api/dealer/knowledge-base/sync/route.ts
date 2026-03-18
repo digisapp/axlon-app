@@ -1,29 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { NextResponse } from 'next/server';
+import { withAuth } from '@/lib/auth/with-auth';
 import { syncAllListings, syncListingToCollection } from '@/lib/ai/listing-sync';
 import { kbSyncSchema, validateBody, ValidationError } from '@/lib/validations/api';
-import { checkRateLimit, getClientIdentifier, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 
 // POST - Manual sync (full or single listing)
-export async function POST(request: NextRequest) {
-  const identifier = getClientIdentifier(request);
-  const rateLimitResult = await checkRateLimit(identifier, {
-    limit: 5,
-    windowSeconds: 300, // 5 minutes
-    prefix: 'ratelimit:kb-sync',
-  });
-  if (!rateLimitResult.success) {
-    return rateLimitResponse(rateLimitResult);
-  }
-
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export const POST = withAuth(async (request, { user, supabase }) => {
   // Verify KB is active
   const { data: settings } = await supabase
     .from('dealer_ai_settings')
@@ -48,13 +30,8 @@ export async function POST(request: NextRequest) {
 
   if (validated.listing_id) {
     // Single listing sync
-    try {
-      await syncListingToCollection(user.id, validated.listing_id);
-      return NextResponse.json({ message: 'Listing synced' });
-    } catch (error) {
-      logger.error('Single listing sync failed', { error, listingId: validated.listing_id });
-      return NextResponse.json({ error: 'Sync failed' }, { status: 500 });
-    }
+    await syncListingToCollection(user.id, validated.listing_id);
+    return NextResponse.json({ message: 'Listing synced' });
   }
 
   // Full sync - fire and forget since it can be slow
@@ -63,4 +40,4 @@ export async function POST(request: NextRequest) {
     .catch(e => logger.error('Manual full sync failed', { error: e, dealerId: user.id }));
 
   return NextResponse.json({ message: 'Full sync started' });
-}
+}, { rateLimit: { limit: 5, windowSeconds: 300, prefix: 'ratelimit:kb-sync' } });

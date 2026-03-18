@@ -1,26 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
+import { NextResponse } from 'next/server';
+import { withAuth } from '@/lib/auth/with-auth';
+import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { validateBody, ValidationError, createMessageSchema } from '@/lib/validations/api';
 
 // GET - Fetch conversations for the current user
-export async function GET(request: NextRequest) {
-  const identifier = getClientIdentifier(request);
-  const rateLimitResult = await checkRateLimit(identifier, {
-    ...RATE_LIMITS.standard,
-    prefix: 'ratelimit:messages',
-  });
-  if (!rateLimitResult.success) {
-    return rateLimitResponse(rateLimitResult);
-  }
-
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export const GET = withAuth(async (request, { user, supabase }) => {
   // Get all conversations where user is sender or recipient
   const { data: messages, error } = await supabase
     .from('messages')
@@ -71,26 +55,10 @@ export async function GET(request: NextRequest) {
   const conversations = Array.from(conversationsMap.values());
 
   return NextResponse.json({ data: conversations });
-}
+}, { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:messages' } });
 
 // POST - Send a new message
-export async function POST(request: NextRequest) {
-  const identifier = getClientIdentifier(request);
-  const rateLimitResult = await checkRateLimit(identifier, {
-    ...RATE_LIMITS.standard,
-    prefix: 'ratelimit:messages',
-  });
-  if (!rateLimitResult.success) {
-    return rateLimitResponse(rateLimitResult);
-  }
-
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export const POST = withAuth(async (request, { user, supabase }) => {
   const body = await request.json();
   let validatedData;
   try {
@@ -148,4 +116,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ data: message });
-}
+}, { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:messages' } });

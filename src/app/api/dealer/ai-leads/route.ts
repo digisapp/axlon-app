@@ -2,175 +2,122 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { verifyInternalRequest } from '@/lib/security/internal-auth';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
+import { withAuth } from '@/lib/auth/with-auth';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, aiLeadUpdateSchema, aiLeadNotificationSchema } from '@/lib/validations/api';
 import { sendEmail } from '@/lib/email/resend';
 import { newLeadEmail } from '@/lib/email/templates';
 
 // Get dealer's AI leads
-export async function GET(request: NextRequest) {
-  try {
-    const identifier = getClientIdentifier(request);
-    const rateLimitResult = await checkRateLimit(identifier, {
-      ...RATE_LIMITS.standard,
-      prefix: 'ratelimit:dealer-ai-leads',
-    });
-    if (!rateLimitResult.success) {
-      return rateLimitResponse(rateLimitResult);
-    }
+export const GET = withAuth(async (request, { user, supabase }) => {
+  const { searchParams } = new URL(request.url);
+  const status = searchParams.get('status');
+  const limit = parseInt(searchParams.get('limit') || '50');
+  const offset = parseInt(searchParams.get('offset') || '0');
 
-    const supabase = await createClient();
+  let query = supabase
+    .from('dealer_ai_leads')
+    .select(`
+      *,
+      conversation:chat_conversations(
+        id,
+        created_at,
+        listing:listings(id, title)
+      )
+    `)
+    .eq('dealer_id', user.id)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+  if (status) {
+    query = query.eq('status', status);
+  }
 
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const offset = parseInt(searchParams.get('offset') || '0');
+  const { data: leads, error, count } = await query;
 
-    let query = supabase
-      .from('dealer_ai_leads')
-      .select(`
-        *,
-        conversation:chat_conversations(
-          id,
-          created_at,
-          listing:listings(id, title)
-        )
-      `)
-      .eq('dealer_id', user.id)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (status) {
-      query = query.eq('status', status);
-    }
-
-    const { data: leads, error, count } = await query;
-
-    if (error) {
-      logger.error('Fetch leads error', { error });
-      return NextResponse.json(
-        { error: 'Failed to fetch leads' },
-        { status: 500 }
-      );
-    }
-
-    // Get lead stats
-    const { data: statsData } = await supabase
-      .from('dealer_ai_leads')
-      .select('status')
-      .eq('dealer_id', user.id);
-
-    const stats = {
-      total: statsData?.length || 0,
-      new: statsData?.filter(l => l.status === 'new').length || 0,
-      contacted: statsData?.filter(l => l.status === 'contacted').length || 0,
-      qualified: statsData?.filter(l => l.status === 'qualified').length || 0,
-      converted: statsData?.filter(l => l.status === 'converted').length || 0,
-    };
-
-    return NextResponse.json({
-      leads,
-      stats,
-      pagination: {
-        total: count,
-        limit,
-        offset,
-      },
-    });
-  } catch (error) {
-    logger.error('AI Leads error', { error });
+  if (error) {
+    logger.error('Fetch leads error', { error });
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to fetch leads' },
       { status: 500 }
     );
   }
-}
+
+  // Get lead stats
+  const { data: statsData } = await supabase
+    .from('dealer_ai_leads')
+    .select('status')
+    .eq('dealer_id', user.id);
+
+  const stats = {
+    total: statsData?.length || 0,
+    new: statsData?.filter(l => l.status === 'new').length || 0,
+    contacted: statsData?.filter(l => l.status === 'contacted').length || 0,
+    qualified: statsData?.filter(l => l.status === 'qualified').length || 0,
+    converted: statsData?.filter(l => l.status === 'converted').length || 0,
+  };
+
+  return NextResponse.json({
+    leads,
+    stats,
+    pagination: {
+      total: count,
+      limit,
+      offset,
+    },
+  });
+}, { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:dealer-ai-leads' } });
 
 // Update lead status
-export async function PATCH(request: NextRequest) {
+export const PATCH = withAuth(async (request, { user, supabase }) => {
+  const body = await request.json();
+  let validatedData;
   try {
-    const identifier = getClientIdentifier(request);
-    const rateLimitResult = await checkRateLimit(identifier, {
-      ...RATE_LIMITS.standard,
-      prefix: 'ratelimit:dealer-ai-leads',
-    });
-    if (!rateLimitResult.success) {
-      return rateLimitResponse(rateLimitResult);
-    }
-
-    const supabase = await createClient();
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    validatedData = validateBody(aiLeadUpdateSchema, body);
+  } catch (err) {
+    if (err instanceof ValidationError) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        { error: 'Validation failed', details: err.errors },
+        { status: 400 }
       );
     }
+    throw err;
+  }
+  const { leadId, status, notes } = validatedData;
 
-    const body = await request.json();
-    let validatedData;
-    try {
-      validatedData = validateBody(aiLeadUpdateSchema, body);
-    } catch (err) {
-      if (err instanceof ValidationError) {
-        return NextResponse.json(
-          { error: 'Validation failed', details: err.errors },
-          { status: 400 }
-        );
-      }
-      throw err;
+  const updateData: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (status) {
+    updateData.status = status;
+    if (status === 'contacted') {
+      updateData.contacted_at = new Date().toISOString();
     }
-    const { leadId, status, notes } = validatedData;
+  }
 
-    const updateData: Record<string, unknown> = {
-      updated_at: new Date().toISOString(),
-    };
+  if (notes !== undefined) {
+    updateData.notes = notes;
+  }
 
-    if (status) {
-      updateData.status = status;
-      if (status === 'contacted') {
-        updateData.contacted_at = new Date().toISOString();
-      }
-    }
+  const { data: lead, error } = await supabase
+    .from('dealer_ai_leads')
+    .update(updateData)
+    .eq('id', leadId)
+    .eq('dealer_id', user.id)
+    .select()
+    .single();
 
-    if (notes !== undefined) {
-      updateData.notes = notes;
-    }
-
-    const { data: lead, error } = await supabase
-      .from('dealer_ai_leads')
-      .update(updateData)
-      .eq('id', leadId)
-      .eq('dealer_id', user.id)
-      .select()
-      .single();
-
-    if (error) {
-      logger.error('Update lead error', { error });
-      return NextResponse.json(
-        { error: 'Failed to update lead' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ lead });
-  } catch (error) {
+  if (error) {
     logger.error('Update lead error', { error });
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to update lead' },
       { status: 500 }
     );
   }
-}
+
+  return NextResponse.json({ lead });
+}, { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:dealer-ai-leads' } });
 
 // Send notification email for new lead (called internally)
 // Requires HMAC signature verification via x-internal-signature header

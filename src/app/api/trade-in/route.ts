@@ -1,13 +1,16 @@
-import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
+import { createClient } from '@/lib/supabase/server';
+import { withAuth } from '@/lib/auth/with-auth';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, tradeInRequestSchema } from '@/lib/validations/api';
 import { escapeHtml } from '@/lib/utils/html-escape';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'sales@axlon.ai';
 
+// POST does NOT use withAuth because trade-in submissions are allowed for
+// unauthenticated users (user_id is optional).
 export async function POST(request: NextRequest) {
   try {
     const identifier = getClientIdentifier(request);
@@ -136,66 +139,41 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
-  try {
-    const identifier = getClientIdentifier(request);
-    const rateLimitResult = await checkRateLimit(identifier, {
-      ...RATE_LIMITS.standard,
-      prefix: 'ratelimit:trade-in',
-    });
-    if (!rateLimitResult.success) {
-      return rateLimitResponse(rateLimitResult);
+export const GET = withAuth(async (request, { user, supabase }) => {
+  const { searchParams } = new URL(request.url);
+  const status = searchParams.get('status');
+
+  // Check if user is a dealer
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_business, is_admin')
+    .eq('id', user.id)
+    .single();
+
+  let query = supabase
+    .from('trade_in_requests')
+    .select(`
+      *,
+      interested_listing:listings(id, title, price),
+      interested_category:categories(id, name)
+    `)
+    .order('created_at', { ascending: false });
+
+  // If dealer, show assigned requests; otherwise show own requests
+  if (profile?.is_business || profile?.is_admin) {
+    if (status) {
+      query = query.eq('status', status);
     }
-
-    const supabase = await createClient();
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
-
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user is a dealer
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_business, is_admin')
-      .eq('id', user.id)
-      .single();
-
-    let query = supabase
-      .from('trade_in_requests')
-      .select(`
-        *,
-        interested_listing:listings(id, title, price),
-        interested_category:categories(id, name)
-      `)
-      .order('created_at', { ascending: false });
-
-    // If dealer, show assigned requests; otherwise show own requests
-    if (profile?.is_business || profile?.is_admin) {
-      if (status) {
-        query = query.eq('status', status);
-      }
-      // Dealers see requests assigned to them or unassigned
-      query = query.or(`assigned_dealer_id.eq.${user.id},assigned_dealer_id.is.null`);
-    } else {
-      // Regular users see only their own requests
-      query = query.eq('user_id', user.id);
-    }
-
-    const { data, error } = await query;
-
-    if (error) throw error;
-
-    return NextResponse.json({ data });
-  } catch (error) {
-    logger.error('Error fetching trade-in requests', { error });
-    return NextResponse.json(
-      { error: 'Failed to fetch trade-in requests' },
-      { status: 500 }
-    );
+    // Dealers see requests assigned to them or unassigned
+    query = query.or(`assigned_dealer_id.eq.${user.id},assigned_dealer_id.is.null`);
+  } else {
+    // Regular users see only their own requests
+    query = query.eq('user_id', user.id);
   }
-}
+
+  const { data, error } = await query;
+
+  if (error) throw error;
+
+  return NextResponse.json({ data });
+}, { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:trade-in' } });

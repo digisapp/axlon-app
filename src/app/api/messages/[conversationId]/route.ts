@@ -1,19 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { NextResponse } from 'next/server';
+import { withAuth } from '@/lib/auth/with-auth';
+import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { parseConversationId } from '@/lib/validations/api';
 
 // GET - Fetch messages for a specific conversation (listing + user combo)
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ conversationId: string }> }
-) {
-  const { conversationId } = await params;
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export const GET = withAuth(async (request, { user, supabase }) => {
+  // Extract conversationId from URL path
+  const url = new URL(request.url);
+  const conversationId = url.pathname.split('/').pop()!;
 
   // Parse and validate conversation ID (format: listingUUID-userUUID)
   const parsed = parseConversationId(conversationId);
@@ -77,20 +71,13 @@ export async function GET(
       otherUser,
     },
   });
-}
+}, { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:messages' } });
 
 // PUT - Mark messages as read
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ conversationId: string }> }
-) {
-  const { conversationId } = await params;
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export const PUT = withAuth(async (request, { user, supabase }) => {
+  // Extract conversationId from URL path
+  const url = new URL(request.url);
+  const conversationId = url.pathname.split('/').pop()!;
 
   // Parse and validate conversation ID
   const parsed = parseConversationId(conversationId);
@@ -112,4 +99,4 @@ export async function PUT(
   }
 
   return NextResponse.json({ success: true });
-}
+}, { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:messages' } });

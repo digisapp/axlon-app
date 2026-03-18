@@ -1,26 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
+import { withAuth } from '@/lib/auth/with-auth';
+import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { validateBody, ValidationError, favoriteSchema } from '@/lib/validations/api';
 
+const rateLimitConfig = { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:favorites' } };
+
 // GET - Fetch user's favorites
-export async function GET(request: NextRequest) {
-  const identifier = getClientIdentifier(request);
-  const rateLimitResult = await checkRateLimit(identifier, {
-    ...RATE_LIMITS.standard,
-    prefix: 'ratelimit:favorites',
-  });
-  if (!rateLimitResult.success) {
-    return rateLimitResponse(rateLimitResult);
-  }
-
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export const GET = withAuth(async (request, { user, supabase }) => {
   const { data: favorites, error } = await supabase
     .from('favorites')
     .select(`
@@ -43,26 +29,10 @@ export async function GET(request: NextRequest) {
   const validFavorites = favorites?.filter((f) => f.listing) || [];
 
   return NextResponse.json({ data: validFavorites });
-}
+}, rateLimitConfig);
 
 // POST - Add a favorite
-export async function POST(request: NextRequest) {
-  const identifier = getClientIdentifier(request);
-  const rateLimitResult = await checkRateLimit(identifier, {
-    ...RATE_LIMITS.standard,
-    prefix: 'ratelimit:favorites',
-  });
-  if (!rateLimitResult.success) {
-    return rateLimitResponse(rateLimitResult);
-  }
-
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export const POST = withAuth(async (request, { user, supabase }) => {
   const body = await request.json();
   let validatedData;
   try {
@@ -115,26 +85,10 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ data: { success: true } });
-}
+}, rateLimitConfig);
 
 // DELETE - Remove a favorite
-export async function DELETE(request: NextRequest) {
-  const identifier = getClientIdentifier(request);
-  const rateLimitResult = await checkRateLimit(identifier, {
-    ...RATE_LIMITS.standard,
-    prefix: 'ratelimit:favorites',
-  });
-  if (!rateLimitResult.success) {
-    return rateLimitResponse(rateLimitResult);
-  }
-
-  const supabase = await createClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export const DELETE = withAuth(async (request, { user, supabase }) => {
   const { searchParams } = new URL(request.url);
   const listingId = searchParams.get('listing_id');
 
@@ -153,4 +107,4 @@ export async function DELETE(request: NextRequest) {
   }
 
   return NextResponse.json({ data: { success: true } });
-}
+}, rateLimitConfig);

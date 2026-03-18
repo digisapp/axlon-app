@@ -1,22 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { NextResponse } from 'next/server';
+import { withAuth } from '@/lib/auth/with-auth';
+import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { deleteFileFromCollection } from '@/lib/ai/collections';
 import { logger } from '@/lib/logger';
 
 // DELETE - Remove a custom document
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ docId: string }> }
-) {
-  const { docId } = await params;
-  const supabase = await createClient();
+export const DELETE = withAuth(async (request, { user, supabase }) => {
+  const segments = new URL(request.url).pathname.split('/');
+  const docId = segments[segments.indexOf('documents') + 1];
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Get the document (RLS ensures ownership)
+  // Get the document (verify ownership)
   const { data: doc } = await supabase
     .from('dealer_kb_documents')
     .select('id, xai_file_id, storage_path, dealer_id')
@@ -60,4 +53,4 @@ export async function DELETE(
   }
 
   return NextResponse.json({ success: true });
-}
+}, { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:kb-documents' } });

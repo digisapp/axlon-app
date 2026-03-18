@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
+import { NextResponse } from 'next/server';
+import { withAuth } from '@/lib/auth/with-auth';
+import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import {
   detectDataType,
@@ -152,176 +152,153 @@ async function extractContent(file: File, buffer: Buffer): Promise<{
 
 // --- Route Handler ---
 
-export async function POST(request: NextRequest) {
-  try {
-    const identifier = getClientIdentifier(request);
-    const rateLimitResult = await checkRateLimit(identifier, {
-      ...RATE_LIMITS.ai,
-      prefix: 'ratelimit:smart-import',
-    });
-    if (!rateLimitResult.success) {
-      return rateLimitResponse(rateLimitResult);
-    }
+export const POST = withAuth(async (request) => {
+  // Parse multipart form data
+  const formData = await request.formData();
+  const file = formData.get('file') as File | null;
+  const hint = (formData.get('hint') as string) || 'auto';
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  if (!file) {
+    return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+  }
 
-    // Parse multipart form data
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    const hint = (formData.get('hint') as string) || 'auto';
+  // Validate file size
+  if (file.size > MAX_FILE_SIZE) {
+    return NextResponse.json({ error: 'File must be under 25MB' }, { status: 400 });
+  }
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-    }
-
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: 'File must be under 25MB' }, { status: 400 });
-    }
-
-    // Validate MIME type (also check by extension as fallback)
-    const ext = file.name.toLowerCase().split('.').pop();
-    const validExtensions = ['csv', 'xlsx', 'xls', 'pdf', 'txt', 'json', 'docx', 'md'];
-    if (!ALLOWED_MIME_TYPES.includes(file.type) && !validExtensions.includes(ext || '')) {
-      return NextResponse.json(
-        { error: 'Supported formats: CSV, Excel, PDF, TXT, JSON, DOCX' },
-        { status: 400 },
-      );
-    }
-
-    // Extract content
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const content = await extractContent(file, buffer);
-
-    // Row limit for tabular data
-    if (content.format === 'tabular' && content.rows.length > MAX_ROWS) {
-      return NextResponse.json(
-        { error: `File has ${content.rows.length} rows. Maximum is ${MAX_ROWS}. Please split into smaller files.` },
-        { status: 400 },
-      );
-    }
-
-    // Handle text/document files
-    if (content.format === 'text' || content.rows.length === 0) {
-      if (!content.rawText.trim()) {
-        return NextResponse.json({ error: 'File appears to be empty' }, { status: 400 });
-      }
-
-      const analysis = await analyzeDocument(content.rawText, file.name);
-
-      const preview: SmartImportPreview = {
-        detectedType: 'document',
-        detectedSource: 'Uploaded file',
-        confidence: 0.8,
-        totalRows: 0,
-        validRows: 0,
-        warningRows: 0,
-        columnMapping: {},
-        previewRows: [],
-        allRows: [],
-        unmappedColumns: [],
-        fileName: file.name,
-        documentPreview: {
-          suggestedTitle: analysis.suggestedTitle,
-          suggestedType: analysis.suggestedType,
-          summary: analysis.summary,
-        },
-      };
-
-      return NextResponse.json(preview);
-    }
-
-    // Detect data type
-    const detection = await detectDataType(content.headers, content.rows, file.name);
-
-    // Use hint to override if provided and detection is uncertain
-    const effectiveType = hint !== 'auto' && detection.confidence < 0.7
-      ? (hint === 'crm' ? 'crm_contacts' : hint === 'inventory' ? 'inventory' : detection.dataType)
-      : detection.dataType;
-
-    if (effectiveType === 'unknown') {
-      const preview: SmartImportPreview = {
-        detectedType: 'unknown',
-        detectedSource: detection.detectedSource,
-        confidence: detection.confidence,
-        totalRows: content.rows.length,
-        validRows: 0,
-        warningRows: 0,
-        columnMapping: detection.columnMapping,
-        previewRows: [],
-        allRows: [],
-        unmappedColumns: content.headers,
-        fileName: file.name,
-      };
-
-      return NextResponse.json(preview);
-    }
-
-    // Parse rows based on detected type
-    if (effectiveType === 'inventory') {
-      const { parsed, unmappedColumns } = await parseInventoryBatch(
-        content.rows,
-        detection.columnMapping,
-        detection.detectedSource,
-      );
-
-      const validRows = parsed.filter(r => r.confidence >= 0.6).length;
-      const warningRows = parsed.filter(r => r.confidence >= 0.4 && r.confidence < 0.6).length;
-
-      const preview: SmartImportPreview = {
-        detectedType: 'inventory',
-        detectedSource: detection.detectedSource,
-        confidence: detection.confidence,
-        totalRows: parsed.length,
-        validRows,
-        warningRows,
-        columnMapping: detection.columnMapping,
-        previewRows: parsed.slice(0, 10),
-        allRows: parsed,
-        unmappedColumns,
-        fileName: file.name,
-      };
-
-      return NextResponse.json(preview);
-    }
-
-    if (effectiveType === 'crm_contacts') {
-      const { parsed, unmappedColumns } = await parseCRMBatch(
-        content.rows,
-        detection.columnMapping,
-        detection.detectedSource,
-      );
-
-      const validRows = parsed.filter(r => r.confidence >= 0.6).length;
-      const warningRows = parsed.filter(r => r.confidence >= 0.4 && r.confidence < 0.6).length;
-
-      const preview: SmartImportPreview = {
-        detectedType: 'crm_contacts',
-        detectedSource: detection.detectedSource,
-        confidence: detection.confidence,
-        totalRows: parsed.length,
-        validRows,
-        warningRows,
-        columnMapping: detection.columnMapping,
-        previewRows: parsed.slice(0, 10),
-        allRows: parsed,
-        unmappedColumns,
-        fileName: file.name,
-      };
-
-      return NextResponse.json(preview);
-    }
-
-    return NextResponse.json({ error: 'Unsupported data type detected' }, { status: 422 });
-  } catch (error) {
-    logger.error('Smart Import error', { error });
+  // Validate MIME type (also check by extension as fallback)
+  const ext = file.name.toLowerCase().split('.').pop();
+  const validExtensions = ['csv', 'xlsx', 'xls', 'pdf', 'txt', 'json', 'docx', 'md'];
+  if (!ALLOWED_MIME_TYPES.includes(file.type) && !validExtensions.includes(ext || '')) {
     return NextResponse.json(
-      { error: 'Failed to process file. Try using manual CSV import instead.' },
-      { status: 500 },
+      { error: 'Supported formats: CSV, Excel, PDF, TXT, JSON, DOCX' },
+      { status: 400 },
     );
   }
-}
+
+  // Extract content
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const content = await extractContent(file, buffer);
+
+  // Row limit for tabular data
+  if (content.format === 'tabular' && content.rows.length > MAX_ROWS) {
+    return NextResponse.json(
+      { error: `File has ${content.rows.length} rows. Maximum is ${MAX_ROWS}. Please split into smaller files.` },
+      { status: 400 },
+    );
+  }
+
+  // Handle text/document files
+  if (content.format === 'text' || content.rows.length === 0) {
+    if (!content.rawText.trim()) {
+      return NextResponse.json({ error: 'File appears to be empty' }, { status: 400 });
+    }
+
+    const analysis = await analyzeDocument(content.rawText, file.name);
+
+    const preview: SmartImportPreview = {
+      detectedType: 'document',
+      detectedSource: 'Uploaded file',
+      confidence: 0.8,
+      totalRows: 0,
+      validRows: 0,
+      warningRows: 0,
+      columnMapping: {},
+      previewRows: [],
+      allRows: [],
+      unmappedColumns: [],
+      fileName: file.name,
+      documentPreview: {
+        suggestedTitle: analysis.suggestedTitle,
+        suggestedType: analysis.suggestedType,
+        summary: analysis.summary,
+      },
+    };
+
+    return NextResponse.json(preview);
+  }
+
+  // Detect data type
+  const detection = await detectDataType(content.headers, content.rows, file.name);
+
+  // Use hint to override if provided and detection is uncertain
+  const effectiveType = hint !== 'auto' && detection.confidence < 0.7
+    ? (hint === 'crm' ? 'crm_contacts' : hint === 'inventory' ? 'inventory' : detection.dataType)
+    : detection.dataType;
+
+  if (effectiveType === 'unknown') {
+    const preview: SmartImportPreview = {
+      detectedType: 'unknown',
+      detectedSource: detection.detectedSource,
+      confidence: detection.confidence,
+      totalRows: content.rows.length,
+      validRows: 0,
+      warningRows: 0,
+      columnMapping: detection.columnMapping,
+      previewRows: [],
+      allRows: [],
+      unmappedColumns: content.headers,
+      fileName: file.name,
+    };
+
+    return NextResponse.json(preview);
+  }
+
+  // Parse rows based on detected type
+  if (effectiveType === 'inventory') {
+    const { parsed, unmappedColumns } = await parseInventoryBatch(
+      content.rows,
+      detection.columnMapping,
+      detection.detectedSource,
+    );
+
+    const validRows = parsed.filter(r => r.confidence >= 0.6).length;
+    const warningRows = parsed.filter(r => r.confidence >= 0.4 && r.confidence < 0.6).length;
+
+    const preview: SmartImportPreview = {
+      detectedType: 'inventory',
+      detectedSource: detection.detectedSource,
+      confidence: detection.confidence,
+      totalRows: parsed.length,
+      validRows,
+      warningRows,
+      columnMapping: detection.columnMapping,
+      previewRows: parsed.slice(0, 10),
+      allRows: parsed,
+      unmappedColumns,
+      fileName: file.name,
+    };
+
+    return NextResponse.json(preview);
+  }
+
+  if (effectiveType === 'crm_contacts') {
+    const { parsed, unmappedColumns } = await parseCRMBatch(
+      content.rows,
+      detection.columnMapping,
+      detection.detectedSource,
+    );
+
+    const validRows = parsed.filter(r => r.confidence >= 0.6).length;
+    const warningRows = parsed.filter(r => r.confidence >= 0.4 && r.confidence < 0.6).length;
+
+    const preview: SmartImportPreview = {
+      detectedType: 'crm_contacts',
+      detectedSource: detection.detectedSource,
+      confidence: detection.confidence,
+      totalRows: parsed.length,
+      validRows,
+      warningRows,
+      columnMapping: detection.columnMapping,
+      previewRows: parsed.slice(0, 10),
+      allRows: parsed,
+      unmappedColumns,
+      fileName: file.name,
+    };
+
+    return NextResponse.json(preview);
+  }
+
+  return NextResponse.json({ error: 'Unsupported data type detected' }, { status: 422 });
+}, { rateLimit: { ...RATE_LIMITS.ai, prefix: 'ratelimit:smart-import' } });
