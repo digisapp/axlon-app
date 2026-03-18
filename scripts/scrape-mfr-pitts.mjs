@@ -251,7 +251,12 @@ async function discoverProductLinks(page) {
         document.querySelectorAll('a[href]').forEach((a) => {
           const href = a.getAttribute('href');
           if (!href) return;
-          const fullUrl = href.startsWith('http') ? href : new URL(href, baseUrl).href;
+          // Skip malformed URLs, PDFs, and anchors
+          if (href.includes('.pdf') || href.startsWith('#') || href.startsWith('mailto:')) return;
+          let fullUrl;
+          try {
+            fullUrl = href.startsWith('http') ? new URL(href).href : new URL(href, baseUrl).href;
+          } catch { return; }
           // Only keep links on pittstrailers.com
           if (fullUrl.includes('pittstrailers.com')) {
             found.push(fullUrl.replace(/\/$/, '') + '/');
@@ -318,8 +323,21 @@ async function scrapeProductPage(page, url) {
 
   const pageData = await page.evaluate(() => {
     // --- Name / title ---
+    // Pitts uses h1 for generic "LOWBOY TRAILER" brand text;
+    // the actual product name (e.g. "LB55-22GT") is in h2.
+    const h2 = document.querySelector('h2');
     const h1 = document.querySelector('h1');
-    const name = h1 ? h1.textContent.trim() : '';
+    let name = '';
+    if (h2 && /^LB\d/i.test(h2.textContent.trim())) {
+      name = h2.textContent.trim();
+    } else if (h1 && !/^LOWBOY/i.test(h1.textContent.trim())) {
+      name = h1.textContent.trim();
+    } else {
+      // Fallback: extract from page title (e.g. "LB55-22GT - Pitts Trailers")
+      const titleParts = document.title.split(' - ');
+      if (titleParts.length > 1) name = titleParts[0].trim();
+      else name = h2 ? h2.textContent.trim() : '';
+    }
 
     // --- Tagline (often in a subtitle or first prominent element after h1) ---
     let tagline = '';
@@ -471,6 +489,12 @@ async function scrapeProductPage(page, url) {
 
   if (!pageData || !pageData.name) {
     console.log('    No product name found, skipping');
+    return null;
+  }
+
+  // Skip 404 / error pages
+  if (/doesn.t seem to exist|page not found|404/i.test(pageData.name)) {
+    console.log('    Page not found, skipping');
     return null;
   }
 
