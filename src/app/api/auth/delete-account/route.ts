@@ -1,5 +1,5 @@
 import { createClient as createServerClient } from '@/lib/supabase/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextResponse } from 'next/server';
 
 export async function DELETE() {
@@ -16,10 +16,7 @@ export async function DELETE() {
     }
 
     // Use admin client to delete user and cascade data
-    const adminClient = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const adminClient = createAdminClient();
 
     // Delete user's storage files (avatars, listing images)
     const { data: files } = await adminClient.storage

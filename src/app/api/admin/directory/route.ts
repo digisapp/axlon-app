@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { checkIsAdmin } from '@/lib/admin/check-admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
@@ -9,13 +9,6 @@ const VALID_CATEGORIES = [
   'transportation', 'equipment_dealer', 'parts_supplier', 'services', 'other', 'uncategorized',
 ];
 const VALID_INVITE_STATUSES = ['none', 'invited', 'accepted', 'declined'];
-
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 /** Sanitize a search string for use in PostgREST ilike filters */
 function sanitizeSearch(str: string): string {
@@ -34,7 +27,7 @@ export async function GET(request: NextRequest) {
     const { isAdmin } = await checkIsAdmin();
     if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
 
-    const supabase = getSupabase();
+    const supabase = createAdminClient();
     const { searchParams } = new URL(request.url);
 
     const page = Math.max(1, Math.min(1000, parseInt(searchParams.get('page') || '1')));
@@ -130,7 +123,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid invite_status' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = createAdminClient();
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (category) updates.category = category;
     if (invite_status) updates.invite_status = invite_status;

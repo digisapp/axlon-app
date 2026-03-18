@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 // Security: Only allow seeding in development or by admin users
 const ALLOW_SEED = process.env.NODE_ENV === 'development' || process.env.ALLOW_DATABASE_SEED === 'true';
@@ -418,7 +415,7 @@ export async function POST() {
     }
 
     // Initialize admin client
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createAdminClient();
 
     // First, get all categories to map slugs to IDs
     const { data: categories, error: catError } = await supabase
@@ -505,7 +502,7 @@ export async function POST() {
 // GET endpoint to check seed status
 export async function GET() {
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createAdminClient();
 
     const { count } = await supabase
       .from('listings')

@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email/resend';
 import { confirmEmailTemplate } from '@/lib/email/templates';
 import { NextResponse } from 'next/server';
@@ -21,10 +21,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = createAdminClient();
 
     // Generate signup link without Supabase sending its own email
     const { data, error } = await supabase.auth.admin.generateLink({

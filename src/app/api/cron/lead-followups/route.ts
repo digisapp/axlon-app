@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { logger } from '@/lib/logger';
 import { sendEmail } from '@/lib/email/resend';
 import { generateFollowUpEmail, type FollowUpContext } from '@/lib/ai/lead-nurture';
@@ -23,10 +23,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = createAdminClient();
 
     const now = new Date().toISOString();
 

@@ -1,20 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { getStripe } from '@/lib/stripe/config';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
 import Stripe from 'stripe';
 import { logger } from '@/lib/logger';
-
-// Lazy initialization for Supabase service client
-function getSupabaseAdmin() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error('Supabase environment variables not configured');
-  }
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
-}
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -45,7 +34,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const supabase = getSupabaseAdmin();
+  const supabase = createAdminClient();
 
   // Idempotency check - prevent duplicate webhook processing
   const { data: existingEvent } = await supabase

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { logger } from '@/lib/logger';
 
 // Verify the request is from Vercel Cron or has correct secret
@@ -25,10 +25,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Use service role client to access all dealers
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = createAdminClient();
 
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
