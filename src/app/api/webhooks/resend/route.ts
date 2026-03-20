@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getResend } from '@/lib/email/resend';
 import { logger } from '@/lib/logger';
-import { Webhook } from 'svix';
 
 /**
  * Resend Inbound Email Webhook — /api/webhooks/resend
  *
  * Receives inbound emails from Resend when someone replies to an email
  * sent from axlon.ai. Auto-threads using In-Reply-To/References headers
- * or falls back to sender matching.
+ * or falls back to sender + subject matching.
+ *
+ * IMPORTANT: The webhook payload only contains metadata (from, to, subject).
+ * We must call the Resend API to fetch the actual email body (html/text).
  *
  * Setup:
  * 1. Add MX records for your domain pointing to Resend
@@ -16,20 +19,23 @@ import { Webhook } from 'svix';
  * 3. Set RESEND_WEBHOOK_SECRET env var with the signing secret from Resend
  */
 
-interface ResendInboundPayload {
-  type: 'email.received';
+// ─── Types ──────────────────────────────────────────────
+
+interface ResendWebhookPayload {
+  type: string;
+  created_at: string;
   data: {
-    id: string;
+    email_id: string;
     from: string;
     to: string[];
+    cc?: string[];
     subject: string;
-    html?: string;
-    text?: string;
-    reply_to?: string;
-    headers: Array<{ name: string; value: string }>;
+    message_id?: string;
     created_at: string;
   };
 }
+
+// ─── Helpers ────────────────────────────────────────────
 
 function parseEmailAddress(raw: string): { email: string; name: string | null } {
   const match = raw.match(/^(.+?)\s*<(.+?)>$/);
@@ -39,32 +45,70 @@ function parseEmailAddress(raw: string): { email: string; name: string | null } 
   return { name: null, email: raw.trim() };
 }
 
-function extractHeader(headers: Array<{ name: string; value: string }>, name: string): string | null {
-  const header = headers.find(h => h.name.toLowerCase() === name.toLowerCase());
-  return header?.value || null;
+// ─── Spam Filtering ─────────────────────────────────────
+
+const SPAM_PATTERNS = [
+  /\b(viagra|cialis|lottery|winner|prince|inheritance)\b/i,
+  /\b(click here|act now|limited time|free money)\b/i,
+  /\b(unsubscribe|opt.out)\b/i, // marketing blasts, not real replies
+  /\bnoreply@/i, // auto-generated, not real replies
+  /\bmailer-daemon@/i,
+  /\bpostmaster@/i,
+];
+
+const BLOCKED_DOMAINS = [
+  'spam.com',
+  'tempmail.com',
+  'throwaway.email',
+  'guerrillamail.com',
+  'mailinator.com',
+  'yopmail.com',
+  'sharklasers.com',
+];
+
+function isSpam(from: string, subject: string): { isSpam: boolean; reason?: string } {
+  const senderEmail = parseEmailAddress(from).email.toLowerCase();
+  const senderDomain = senderEmail.split('@')[1];
+
+  // Block disposable/known-spam domains
+  if (BLOCKED_DOMAINS.includes(senderDomain)) {
+    return { isSpam: true, reason: `blocked domain: ${senderDomain}` };
+  }
+
+  // Check subject against spam patterns
+  for (const pattern of SPAM_PATTERNS) {
+    if (pattern.test(subject)) {
+      return { isSpam: true, reason: `spam pattern in subject: ${pattern.source}` };
+    }
+  }
+
+  // Empty subject with no prior thread is suspicious
+  if (!subject || subject.trim().length === 0) {
+    return { isSpam: true, reason: 'empty subject' };
+  }
+
+  return { isSpam: false };
 }
+
+// ─── Handler ────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.text();
+    const payload = await request.text();
 
-    // Verify webhook signature if secret is configured
+    // Verify webhook signature using Resend SDK
     const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
     if (webhookSecret) {
-      const svixId = request.headers.get('svix-id');
-      const svixTimestamp = request.headers.get('svix-timestamp');
-      const svixSignature = request.headers.get('svix-signature');
-
-      if (!svixId || !svixTimestamp || !svixSignature) {
-        return NextResponse.json({ error: 'Missing webhook headers' }, { status: 400 });
-      }
-
+      const resend = getResend();
       try {
-        const wh = new Webhook(webhookSecret);
-        wh.verify(body, {
-          'svix-id': svixId,
-          'svix-timestamp': svixTimestamp,
-          'svix-signature': svixSignature,
+        resend.webhooks.verify({
+          payload,
+          headers: {
+            id: request.headers.get('svix-id') || '',
+            timestamp: request.headers.get('svix-timestamp') || '',
+            signature: request.headers.get('svix-signature') || '',
+          },
+          webhookSecret,
         });
       } catch {
         logger.error('Webhook signature verification failed');
@@ -72,33 +116,54 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const payload: ResendInboundPayload = JSON.parse(body);
+    const event: ResendWebhookPayload = JSON.parse(payload);
 
-    if (payload.type !== 'email.received') {
+    // Only handle inbound emails
+    if (event.type !== 'email.received') {
       return NextResponse.json({ received: true });
     }
 
-    const { data } = payload;
+    const { data } = event;
     const sender = parseEmailAddress(data.from);
-    const inReplyTo = extractHeader(data.headers, 'in-reply-to');
-    const references = extractHeader(data.headers, 'references');
+
+    // ─── Spam Filter ──────────────────────────────────
+    const spamCheck = isSpam(data.from, data.subject);
+    if (spamCheck.isSpam) {
+      logger.info('Inbound email filtered as spam', { from: sender.email, reason: spamCheck.reason });
+      return NextResponse.json({ received: true, filtered: true });
+    }
+
+    // ─── Fetch Full Email Body via Resend API ─────────
+    // The webhook only sends metadata — we need the actual content
+    const resend = getResend();
+    let htmlBody: string | null = null;
+    let textBody: string | null = null;
+
+    try {
+      const emailDetail = await resend.emails.get(data.email_id);
+      if (emailDetail.data) {
+        const emailData = emailDetail.data as unknown as { html?: string; text?: string };
+        htmlBody = emailData.html || null;
+        textBody = emailData.text || null;
+      }
+    } catch (fetchErr) {
+      logger.warn('Could not fetch email body from Resend API', { emailId: data.email_id, error: fetchErr });
+      // Continue without body — we still want to store the metadata
+    }
 
     const supabase = createAdminClient();
 
-    // --- Thread matching (3-tier) ---
+    // ─── Thread Matching (3-tier) ─────────────────────
 
     let threadId: string | null = null;
 
-    // 1. Match by In-Reply-To / References header → resend_id
-    const messageIds = [inReplyTo, ...(references?.split(/\s+/) || [])]
-      .filter(Boolean)
-      .map(id => id!.replace(/[<>]/g, ''));
-
-    if (messageIds.length > 0) {
+    // 1. Match by message_id → In-Reply-To/References (Resend provides message_id)
+    if (data.message_id) {
+      const cleanId = data.message_id.replace(/[<>]/g, '');
       const { data: existingEmail } = await supabase
         .from('emails')
         .select('thread_id')
-        .in('resend_id', messageIds)
+        .eq('resend_id', cleanId)
         .limit(1)
         .single();
 
@@ -139,7 +204,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // --- Determine owner ---
+    // ─── Determine Owner ──────────────────────────────
+
     let ownerId: string | null = null;
 
     if (threadId) {
@@ -152,7 +218,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!ownerId) {
-      // Default to first admin
+      // Default to first admin user
       const { data: adminProfile } = await supabase
         .from('profiles')
         .select('id')
@@ -167,7 +233,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No owner found' }, { status: 422 });
     }
 
-    // --- Create thread if needed ---
+    // ─── Create or Update Thread ──────────────────────
+
     if (!threadId) {
       const { data: newThread, error: threadError } = await supabase
         .from('email_threads')
@@ -188,27 +255,27 @@ export async function POST(request: NextRequest) {
       }
       threadId = newThread.id;
     } else {
-      // Update existing thread status
       await supabase
         .from('email_threads')
         .update({ is_unread: true, status: 'received' })
         .eq('id', threadId);
     }
 
-    // --- Store inbound email ---
+    // ─── Store Inbound Email ──────────────────────────
+
     const { error: emailError } = await supabase.from('emails').insert({
       thread_id: threadId,
-      resend_id: data.id,
+      resend_id: data.email_id,
       direction: 'inbound',
       from_email: sender.email,
       from_name: sender.name,
       to_email: data.to[0],
       subject: data.subject,
-      html_body: data.html || null,
-      text_body: data.text || null,
+      html_body: htmlBody,
+      text_body: textBody,
       status: 'received',
       is_read: false,
-      headers: Object.fromEntries(data.headers.map(h => [h.name, h.value])),
+      headers: { message_id: data.message_id || null },
     });
 
     if (emailError) {
@@ -216,7 +283,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to store email' }, { status: 500 });
     }
 
-    logger.info('Inbound email stored', { threadId, from: sender.email });
+    logger.info('Inbound email stored', { threadId, from: sender.email, hasBody: !!(htmlBody || textBody) });
     return NextResponse.json({ success: true, threadId });
   } catch (error) {
     logger.error('Inbound webhook error', { error });

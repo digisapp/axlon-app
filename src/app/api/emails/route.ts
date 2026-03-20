@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth, AuthContext } from '@/lib/auth/with-auth';
+import { withAdmin, AuthContext } from '@/lib/auth/with-auth';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { sendTrackedEmail } from '@/lib/email/resend';
 
@@ -8,7 +8,7 @@ import { sendTrackedEmail } from '@/lib/email/resend';
  * POST /api/emails - Compose a new email (creates thread + sends)
  */
 
-export const GET = withAuth(
+export const GET = withAdmin(
   async (request: NextRequest, { user, supabase }: AuthContext) => {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'open';
@@ -64,7 +64,7 @@ export const GET = withAuth(
   { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:emails:list' } }
 );
 
-export const POST = withAuth(
+export const POST = withAdmin(
   async (request: NextRequest, { user, supabase }: AuthContext) => {
     const body = await request.json();
     const { to, subject, html, text, listingId, leadId } = body;

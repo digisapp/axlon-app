@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth, AuthContext } from '@/lib/auth/with-auth';
+import { withAdmin, AuthContext } from '@/lib/auth/with-auth';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 
 /**
@@ -7,7 +7,7 @@ import { RATE_LIMITS } from '@/lib/security/rate-limit';
  * PATCH /api/emails/[threadId] - Update thread (archive, mark read, etc)
  */
 
-export const GET = withAuth(
+export const GET = withAdmin(
   async (
     request: NextRequest,
     { user, supabase }: AuthContext
@@ -53,7 +53,7 @@ export const GET = withAuth(
   { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:emails:thread' } }
 );
 
-export const PATCH = withAuth(
+export const PATCH = withAdmin(
   async (
     request: NextRequest,
     { user, supabase }: AuthContext

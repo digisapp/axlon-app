@@ -33,6 +33,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SandboxedEmail } from '@/components/admin/SandboxedEmail';
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -347,16 +348,7 @@ export default function AdminEmailPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    {email.html_body ? (
-                      <div
-                        className="prose prose-sm dark:prose-invert max-w-none [&_img]:max-w-full [&_a]:text-blue-600"
-                        dangerouslySetInnerHTML={{ __html: email.html_body }}
-                      />
-                    ) : email.text_body ? (
-                      <p className="text-sm whitespace-pre-wrap">{email.text_body}</p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground italic">No content</p>
-                    )}
+                    <SandboxedEmail html={email.html_body} text={email.text_body} />
                   </CardContent>
                 </Card>
               ))}

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withAuth, AuthContext } from '@/lib/auth/with-auth';
+import { withAdmin, AuthContext } from '@/lib/auth/with-auth';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { sendTrackedEmail } from '@/lib/email/resend';
 
 /**
  * POST /api/emails/[threadId]/reply - Reply to an email thread
  */
-export const POST = withAuth(
+export const POST = withAdmin(
   async (
     request: NextRequest,
     { user, supabase }: AuthContext
