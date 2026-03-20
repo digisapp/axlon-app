@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
 
 let resendInstance: Resend | null = null;
@@ -20,6 +21,10 @@ export interface EmailTemplate {
   headers?: Record<string, string>;
 }
 
+/**
+ * Send an email via Resend (existing behavior, no DB tracking).
+ * Used for transactional emails like welcome, confirmation, alerts.
+ */
 export async function sendEmail(template: EmailTemplate) {
   const resend = getResend();
 
@@ -43,4 +48,52 @@ export async function sendEmail(template: EmailTemplate) {
   }
 
   return data;
+}
+
+/**
+ * Send an email via Resend AND track it in the emails table.
+ * Used for inbox emails (compose, reply) where we want conversation threading.
+ */
+export interface TrackedEmailOptions {
+  to: string;
+  subject: string;
+  html: string;
+  headers?: Record<string, string>;
+  threadId: string;
+  userId: string;
+  supabase: SupabaseClient;
+}
+
+export async function sendTrackedEmail(options: TrackedEmailOptions) {
+  const { to, subject, html, headers, threadId, userId, supabase } = options;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'AXLON AI <noreply@axlon.ai>';
+
+  // Send via Resend
+  const resendData = await sendEmail({ to, subject, html, headers });
+
+  // Parse the from address for storage
+  const fromMatch = fromEmail.match(/^(.+?)\s*<(.+?)>$/);
+  const fromAddr = fromMatch ? fromMatch[2] : fromEmail;
+  const fromName = fromMatch ? fromMatch[1].trim() : null;
+
+  // Store in database
+  const { data: email, error } = await supabase.from('emails').insert({
+    thread_id: threadId,
+    resend_id: resendData?.id || null,
+    direction: 'outbound',
+    from_email: fromAddr,
+    from_name: fromName,
+    to_email: to,
+    subject,
+    html_body: html,
+    status: 'sent',
+    is_read: true,
+    headers: headers || {},
+  }).select('id').single();
+
+  if (error) {
+    logger.error('Failed to track sent email in DB', { error, threadId });
+  }
+
+  return { resendId: resendData?.id, emailId: email?.id };
 }

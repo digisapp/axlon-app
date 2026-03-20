@@ -16,6 +16,7 @@ import {
   TrendingUp,
   Database,
   Truck,
+  Mail,
 } from 'lucide-react';
 
 export interface AdminNavItem {
@@ -68,6 +69,11 @@ export const adminNavSections: AdminNavSection[] = [
         href: '/admin/outreach',
         label: 'Outreach',
         icon: <Megaphone className="w-5 h-5" />,
+      },
+      {
+        href: '/admin/email',
+        label: 'Email',
+        icon: <Mail className="w-5 h-5" />,
       },
     ],
   },
