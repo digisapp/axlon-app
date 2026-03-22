@@ -44,7 +44,7 @@ CREATE TABLE emails (
   html_body TEXT,
   text_body TEXT,
   -- Delivery status
-  status TEXT NOT NULL DEFAULT 'sent' CHECK (status IN ('queued', 'sent', 'delivered', 'opened', 'clicked', 'bounced', 'complained', 'failed', 'received')),
+  status TEXT NOT NULL DEFAULT 'sent' CHECK (status IN ('queued', 'sent', 'delivered', 'opened', 'clicked', 'bounced', 'complained', 'failed', 'received', 'replied')),
   -- Metadata
   headers JSONB DEFAULT '{}',
   metadata JSONB DEFAULT '{}',
@@ -130,6 +130,12 @@ CREATE POLICY "Admins can insert emails"
 
 CREATE POLICY "Admins can update emails"
   ON emails FOR UPDATE
+  USING (
+    EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+  );
+
+CREATE POLICY "Admins can delete emails"
+  ON emails FOR DELETE
   USING (
     EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
   );

@@ -15,6 +15,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import {
@@ -43,6 +45,7 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { SandboxedEmail } from '@/components/admin/SandboxedEmail';
+import { toast } from 'sonner';
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -170,6 +173,12 @@ export default function AdminEmailPage() {
   const [autoReplyEnabled, setAutoReplyEnabled] = useState(true);
   const [autoReplyLoading, setAutoReplyLoading] = useState(false);
 
+  // Delete confirmation
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'thread' | 'bulk'; ids: string[] } | null>(null);
+
+  // Ignored AI drafts (dismissed in current session)
+  const [ignoredDrafts, setIgnoredDrafts] = useState<Set<string>>(new Set());
+
   // ─── Settings ─────────────────────────────────────
 
   useEffect(() => {
@@ -181,12 +190,20 @@ export default function AdminEmailPage() {
 
   const toggleAutoReply = async (enabled: boolean) => {
     setAutoReplyLoading(true);
+    const previous = autoReplyEnabled;
     setAutoReplyEnabled(enabled);
-    await fetch('/api/admin/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'ai_auto_reply_enabled', value: enabled }),
-    });
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'ai_auto_reply_enabled', value: enabled }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(`AI Auto-Reply ${enabled ? 'enabled' : 'disabled'}`);
+    } catch {
+      setAutoReplyEnabled(previous);
+      toast.error('Failed to update auto-reply setting');
+    }
     setAutoReplyLoading(false);
   };
 
@@ -194,6 +211,7 @@ export default function AdminEmailPage() {
 
   const fetchThreads = useCallback(async (page = 1, search = searchQuery) => {
     setIsLoading(true);
+    setSelectedIds(new Set());
     const params = new URLSearchParams({
       page: page.toString(),
       status: activeTab === 'inbox' ? 'received' : 'open',
@@ -261,11 +279,14 @@ export default function AdminEmailPage() {
     if (response.ok) {
       setReplyText('');
       setShowReply(false);
+      toast.success('Reply sent');
       const refreshRes = await fetch(`/api/emails/${selectedThread.id}`);
       if (refreshRes.ok) {
         const { data } = await refreshRes.json();
         setThreadEmails(data.emails);
       }
+    } else {
+      toast.error('Failed to send reply');
     }
     setSending(false);
   };
@@ -290,6 +311,9 @@ export default function AdminEmailPage() {
       setComposeOpen(false);
       setActiveTab('sent');
       fetchThreads(1, searchQuery);
+      toast.success('Email sent');
+    } else {
+      toast.error('Failed to send email');
     }
     setComposeSending(false);
   };
@@ -318,31 +342,46 @@ export default function AdminEmailPage() {
     const threadIds = Array.from(selectedIds);
 
     if (action === 'delete') {
-      await fetch('/api/emails', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threadIds }),
-      });
+      setDeleteConfirm({ type: 'bulk', ids: threadIds });
+      return;
+    }
+
+    const res = await fetch('/api/emails', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ threadIds, action }),
+    });
+
+    if (res.ok) {
+      toast.success(`${action.replace('_', ' ')} applied to ${threadIds.length} thread(s)`);
     } else {
-      await fetch('/api/emails', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threadIds, action }),
-      });
+      toast.error('Bulk action failed');
     }
 
     setSelectedIds(new Set());
     fetchThreads(pagination.page, searchQuery);
   };
 
-  const deleteThread = async (threadId: string) => {
-    await fetch('/api/emails', {
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    const res = await fetch('/api/emails', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ threadIds: [threadId] }),
+      body: JSON.stringify({ threadIds: deleteConfirm.ids }),
     });
-    setSelectedThread(null);
+    if (res.ok) {
+      toast.success(`${deleteConfirm.ids.length} thread(s) deleted`);
+    } else {
+      toast.error('Failed to delete');
+    }
+    if (deleteConfirm.type === 'thread') setSelectedThread(null);
+    setSelectedIds(new Set());
+    setDeleteConfirm(null);
     fetchThreads(pagination.page, searchQuery);
+  };
+
+  const deleteThread = (threadId: string) => {
+    setDeleteConfirm({ type: 'thread', ids: [threadId] });
   };
 
   // ─── Keyboard Shortcuts ───────────────────────────
@@ -388,7 +427,7 @@ export default function AdminEmailPage() {
             <Button size="sm" variant="outline" onClick={() => setShowReply(true)}>
               <Reply className="w-4 h-4 mr-2" /> Reply
             </Button>
-            <Button size="sm" variant="outline" className="text-destructive" onClick={() => deleteThread(selectedThread.id)}>
+            <Button size="sm" variant="outline" className="text-destructive" onClick={() => deleteThread(selectedThread.id)} aria-label="Delete thread">
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
@@ -451,7 +490,7 @@ export default function AdminEmailPage() {
                     <SandboxedEmail html={email.html_body} text={email.text_body} />
 
                     {/* AI Draft Section */}
-                    {email.ai_draft_html && email.direction === 'inbound' && !email.replied_at && (
+                    {email.ai_draft_html && email.direction === 'inbound' && !email.replied_at && !ignoredDrafts.has(email.id) && (
                       <div className="mt-4 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
                         <div className="flex items-center gap-2 mb-2">
                           <Bot className="w-4 h-4 text-amber-600" />
@@ -481,7 +520,7 @@ export default function AdminEmailPage() {
                           >
                             <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit Draft
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => {/* just ignore */}}>
+                          <Button size="sm" variant="ghost" onClick={() => setIgnoredDrafts(prev => new Set(prev).add(email.id))}>
                             <X className="w-3.5 h-3.5 mr-1.5" /> Ignore
                           </Button>
                         </div>
@@ -756,6 +795,22 @@ export default function AdminEmailPage() {
           </div>
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete {deleteConfirm?.ids.length === 1 ? 'thread' : `${deleteConfirm?.ids.length} threads`}?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete {deleteConfirm?.ids.length === 1 ? 'this thread and all its emails' : `these ${deleteConfirm?.ids.length} threads and all their emails`}. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

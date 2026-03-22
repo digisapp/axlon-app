@@ -7,7 +7,8 @@ import { useRef, useEffect, useState } from 'react';
  * Prevents XSS, script execution, and style leakage from untrusted email HTML.
  *
  * The iframe uses:
- * - sandbox="" (most restrictive — no scripts, no forms, no popups)
+ * - sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+ *   (no scripts, no forms — but allows link clicks and parent DOM access for height measurement)
  * - srcdoc for inline content (no network requests from iframe)
  * - Auto-resizes to fit content height
  */
@@ -81,7 +82,7 @@ export function SandboxedEmail({ html, text }: { html?: string | null; text?: st
     <iframe
       ref={iframeRef}
       srcDoc={wrappedHtml}
-      sandbox=""
+      sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
       style={{
         width: '100%',
         height: `${height}px`,

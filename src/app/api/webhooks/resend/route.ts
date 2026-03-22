@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { after } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getResend } from '@/lib/email/resend';
 import { classifyAndDraftReply, wrapInBrandedTemplate } from '@/lib/ai/email-classifier';
@@ -451,15 +452,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to store email' }, { status: 500 });
     }
 
-    // ─── Async AI Processing (non-blocking) ───────────
-    processWithAI(storedEmail.id, {
-      fromEmail: sender.email,
-      fromName: sender.name,
-      subject: data.subject || '',
-      bodyText: textBody,
-      bodyHtml: htmlBody,
-      threadId: threadId!,
-    }).catch(err => logger.error('Background AI processing failed', { error: err }));
+    // ─── Async AI Processing (survives after response is sent) ───────────
+    after(async () => {
+      try {
+        await processWithAI(storedEmail.id, {
+          fromEmail: sender.email,
+          fromName: sender.name,
+          subject: data.subject || '',
+          bodyText: textBody,
+          bodyHtml: htmlBody,
+          threadId: threadId!,
+        });
+      } catch (err) {
+        logger.error('Background AI processing failed', { error: err });
+      }
+    });
 
     logger.info('Inbound email stored', { threadId, from: sender.email, hasBody: !!(htmlBody || textBody) });
     return NextResponse.json({ success: true, threadId });

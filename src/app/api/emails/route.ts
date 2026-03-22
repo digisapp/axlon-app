@@ -44,9 +44,13 @@ export const GET = withAdmin(
       .range(offset, offset + limit - 1);
 
     if (search) {
-      query = query.or(
-        `subject.ilike.%${search}%,participant_email.ilike.%${search}%,participant_name.ilike.%${search}%`
-      );
+      // Sanitize search input — escape PostgREST special characters
+      const sanitized = search.replace(/[%_,().*]/g, '');
+      if (sanitized) {
+        query = query.or(
+          `subject.ilike.%${sanitized}%,participant_email.ilike.%${sanitized}%,participant_name.ilike.%${sanitized}%`
+        );
+      }
     }
 
     const { data: threads, error, count } = await query;
@@ -147,12 +151,6 @@ export const DELETE = withAdmin(
     }
 
     if (emailIds?.length) {
-      // Clear thread_id references first (for threaded emails)
-      await supabase
-        .from('emails')
-        .update({ thread_id: null } as never)
-        .in('thread_id', emailIds);
-
       const { error } = await supabase
         .from('emails')
         .delete()

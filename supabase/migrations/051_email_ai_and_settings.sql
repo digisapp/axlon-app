@@ -43,16 +43,4 @@ CREATE POLICY "Admins can insert platform settings"
     EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
   );
 
--- Add DELETE policy for emails (was missing)
-CREATE POLICY "Admins can delete emails"
-  ON emails FOR DELETE
-  USING (
-    EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
-  );
-
--- Add DELETE policy for email_threads
-CREATE POLICY "Admins can delete email threads"
-  ON email_threads FOR DELETE
-  USING (
-    EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
-  );
+-- DELETE policies for emails and email_threads are already in 050_email_inbox.sql
