@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAdmin, AuthContext } from '@/lib/auth/with-auth';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { sendTrackedEmail } from '@/lib/email/resend';
+import { wrapInBrandedTemplate } from '@/lib/ai/email-classifier';
 
 /**
  * POST /api/emails/[threadId]/reply - Reply to an email thread
@@ -33,10 +34,10 @@ export const POST = withAdmin(
       return NextResponse.json({ error: 'Thread not found' }, { status: 404 });
     }
 
-    // Get the last email in thread for reply headers
+    // Get the last email in thread for reply headers + quoting
     const { data: lastEmail } = await supabase
       .from('emails')
-      .select('resend_id, subject')
+      .select('resend_id, subject, html_body, text_body')
       .eq('thread_id', threadId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -50,15 +51,25 @@ export const POST = withAdmin(
     }
 
     try {
+      const replyBody = html || `<p>${text}</p>`;
+      const quotedOriginal = lastEmail?.html_body || lastEmail?.text_body || '';
+      const brandedHtml = wrapInBrandedTemplate(replyBody, quotedOriginal);
+
       const result = await sendTrackedEmail({
         to: thread.participant_email,
         subject: replySubject,
-        html: html || `<p>${text}</p>`,
+        html: brandedHtml,
         headers,
         threadId: thread.id,
         userId: user.id,
         supabase,
       });
+
+      // Mark thread as replied
+      await supabase.from('email_threads').update({
+        status: 'replied',
+        updated_at: new Date().toISOString(),
+      }).eq('id', threadId);
 
       return NextResponse.json({ data: { emailId: result.emailId } });
     } catch {

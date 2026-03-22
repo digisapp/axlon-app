@@ -1,37 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getResend } from '@/lib/email/resend';
+import { classifyAndDraftReply, wrapInBrandedTemplate } from '@/lib/ai/email-classifier';
 import { logger } from '@/lib/logger';
 
 /**
- * Resend Inbound Email Webhook — /api/webhooks/resend
+ * Resend Webhook — /api/webhooks/resend
  *
- * Receives inbound emails from Resend when someone replies to an email
- * sent from axlon.ai. Auto-threads using In-Reply-To/References headers
- * or falls back to sender + subject matching.
- *
- * IMPORTANT: The webhook payload only contains metadata (from, to, subject).
- * We must call the Resend API to fetch the actual email body (html/text).
- *
- * Setup:
- * 1. Add MX records for your domain pointing to Resend
- * 2. Configure inbound webhook URL in Resend dashboard: /api/webhooks/resend
- * 3. Set RESEND_WEBHOOK_SECRET env var with the signing secret from Resend
+ * Handles:
+ * - email.received → inbound email processing + AI classification + auto-reply
+ * - email.delivered / email.bounced / email.complained → delivery status updates
  */
 
 // ─── Types ──────────────────────────────────────────────
 
-interface ResendWebhookPayload {
+interface ResendWebhookEvent {
   type: string;
   created_at: string;
   data: {
     email_id: string;
-    from: string;
-    to: string[];
+    from?: string;
+    to?: string[];
     cc?: string[];
-    subject: string;
+    subject?: string;
     message_id?: string;
-    created_at: string;
+    created_at?: string;
   };
 }
 
@@ -50,39 +43,33 @@ function parseEmailAddress(raw: string): { email: string; name: string | null } 
 const SPAM_PATTERNS = [
   /\b(viagra|cialis|lottery|winner|prince|inheritance)\b/i,
   /\b(click here|act now|limited time|free money)\b/i,
-  /\b(unsubscribe|opt.out)\b/i, // marketing blasts, not real replies
-  /\bnoreply@/i, // auto-generated, not real replies
+  /\bnoreply@/i,
   /\bmailer-daemon@/i,
   /\bpostmaster@/i,
 ];
 
 const BLOCKED_DOMAINS = [
-  'spam.com',
-  'tempmail.com',
-  'throwaway.email',
-  'guerrillamail.com',
-  'mailinator.com',
-  'yopmail.com',
-  'sharklasers.com',
+  'spam.com', 'tempmail.com', 'throwaway.email', 'guerrillamail.com',
+  'mailinator.com', 'yopmail.com', 'sharklasers.com', 'trashmail.com',
 ];
 
 function isSpam(from: string, subject: string): { isSpam: boolean; reason?: string } {
   const senderEmail = parseEmailAddress(from).email.toLowerCase();
   const senderDomain = senderEmail.split('@')[1];
 
-  // Block disposable/known-spam domains
   if (BLOCKED_DOMAINS.includes(senderDomain)) {
     return { isSpam: true, reason: `blocked domain: ${senderDomain}` };
   }
 
-  // Check subject against spam patterns
+  let matches = 0;
   for (const pattern of SPAM_PATTERNS) {
-    if (pattern.test(subject)) {
-      return { isSpam: true, reason: `spam pattern in subject: ${pattern.source}` };
-    }
+    if (pattern.test(subject) || pattern.test(from)) matches++;
+  }
+  // 2+ pattern matches = spam
+  if (matches >= 2) {
+    return { isSpam: true, reason: `${matches} spam patterns matched` };
   }
 
-  // Empty subject with no prior thread is suspicious
   if (!subject || subject.trim().length === 0) {
     return { isSpam: true, reason: 'empty subject' };
   }
@@ -90,13 +77,168 @@ function isSpam(from: string, subject: string): { isSpam: boolean; reason?: stri
   return { isSpam: false };
 }
 
-// ─── Handler ────────────────────────────────────────────
+// ─── Delivery Status Handler ────────────────────────────
+
+async function handleDeliveryStatus(type: string, emailId: string) {
+  const supabase = createAdminClient();
+
+  const statusMap: Record<string, string> = {
+    'email.delivered': 'delivered',
+    'email.bounced': 'bounced',
+    'email.complained': 'complained',
+    'email.opened': 'opened',
+    'email.clicked': 'clicked',
+  };
+
+  const newStatus = statusMap[type];
+  if (!newStatus) return;
+
+  await supabase
+    .from('emails')
+    .update({ status: newStatus })
+    .eq('resend_id', emailId);
+
+  logger.info('Email delivery status updated', { emailId, status: newStatus });
+}
+
+// ─── AI Classification + Auto-Reply ─────────────────────
+
+async function processWithAI(emailDbId: string, emailData: {
+  fromEmail: string;
+  fromName: string | null;
+  subject: string;
+  bodyText: string | null;
+  bodyHtml: string | null;
+  threadId: string;
+}) {
+  const supabase = createAdminClient();
+
+  try {
+    const classification = await classifyAndDraftReply({
+      fromEmail: emailData.fromEmail,
+      fromName: emailData.fromName,
+      subject: emailData.subject,
+      bodyText: emailData.bodyText,
+      bodyHtml: emailData.bodyHtml,
+    });
+
+    // Store AI results on the email
+    await supabase.from('emails').update({
+      ai_category: classification.category,
+      ai_confidence: classification.confidence,
+      ai_summary: classification.summary,
+      ai_draft_html: classification.draftHtml || null,
+      ai_draft_text: classification.draftText || null,
+      ai_processed_at: new Date().toISOString(),
+    }).eq('id', emailDbId);
+
+    logger.info('AI classification complete', {
+      emailId: emailDbId,
+      category: classification.category,
+      confidence: classification.confidence,
+      autoSendable: classification.autoSendable,
+    });
+
+    // Auto-reply if safe
+    if (classification.autoSendable && classification.draftHtml) {
+      // Check if auto-reply is enabled
+      const { data: setting } = await supabase
+        .from('platform_settings')
+        .select('value')
+        .eq('key', 'ai_auto_reply_enabled')
+        .single();
+
+      const autoReplyEnabled = setting?.value === true || setting?.value === 'true';
+
+      if (autoReplyEnabled) {
+        await sendAutoReply({
+          to: emailData.fromEmail,
+          subject: `Re: ${emailData.subject}`,
+          draftHtml: classification.draftHtml,
+          originalHtml: emailData.bodyHtml || emailData.bodyText || '',
+          threadId: emailData.threadId,
+          inboundEmailId: emailDbId,
+        });
+      }
+    }
+  } catch (aiError) {
+    logger.error('AI email processing failed', { error: aiError, emailId: emailDbId });
+    // Non-fatal — email is already stored
+  }
+}
+
+async function sendAutoReply(params: {
+  to: string;
+  subject: string;
+  draftHtml: string;
+  originalHtml: string;
+  threadId: string;
+  inboundEmailId: string;
+}) {
+  const supabase = createAdminClient();
+  const resend = getResend();
+
+  const brandedHtml = wrapInBrandedTemplate(params.draftHtml, params.originalHtml);
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'AXLON AI <noreply@axlon.ai>';
+
+  try {
+    const { data: sendResult, error: sendError } = await resend.emails.send({
+      from: fromEmail,
+      to: params.to,
+      subject: params.subject,
+      html: brandedHtml,
+    });
+
+    if (sendError) {
+      logger.error('Auto-reply send failed', { error: sendError });
+      return;
+    }
+
+    // Parse from address
+    const fromMatch = fromEmail.match(/^(.+?)\s*<(.+?)>$/);
+    const fromAddr = fromMatch ? fromMatch[2] : fromEmail;
+    const fromName = fromMatch ? fromMatch[1].trim() : null;
+
+    // Store outbound auto-reply
+    await supabase.from('emails').insert({
+      thread_id: params.threadId,
+      resend_id: sendResult?.id || null,
+      direction: 'outbound',
+      from_email: fromAddr,
+      from_name: fromName,
+      to_email: params.to,
+      subject: params.subject,
+      html_body: brandedHtml,
+      status: 'sent',
+      is_read: true,
+      ai_category: 'auto_reply',
+      metadata: { auto_sent: true },
+    });
+
+    // Mark inbound as replied
+    await supabase.from('emails').update({
+      status: 'replied',
+      replied_at: new Date().toISOString(),
+    }).eq('id', params.inboundEmailId);
+
+    // Update thread status
+    await supabase.from('email_threads').update({
+      status: 'replied',
+    }).eq('id', params.threadId);
+
+    logger.info('Auto-reply sent', { to: params.to, threadId: params.threadId });
+  } catch (error) {
+    logger.error('Auto-reply error', { error });
+  }
+}
+
+// ─── Main Handler ───────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   try {
     const payload = await request.text();
 
-    // Verify webhook signature using Resend SDK
+    // Verify webhook signature
     const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
     if (webhookSecret) {
       const resend = getResend();
@@ -116,25 +258,30 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const event: ResendWebhookPayload = JSON.parse(payload);
+    const event: ResendWebhookEvent = JSON.parse(payload);
 
-    // Only handle inbound emails
+    // ─── Delivery Status Events ─────────────────────
+    if (['email.delivered', 'email.bounced', 'email.complained', 'email.opened', 'email.clicked'].includes(event.type)) {
+      await handleDeliveryStatus(event.type, event.data.email_id);
+      return NextResponse.json({ received: true });
+    }
+
+    // ─── Inbound Email ──────────────────────────────
     if (event.type !== 'email.received') {
       return NextResponse.json({ received: true });
     }
 
     const { data } = event;
-    const sender = parseEmailAddress(data.from);
+    const sender = parseEmailAddress(data.from || '');
 
-    // ─── Spam Filter ──────────────────────────────────
-    const spamCheck = isSpam(data.from, data.subject);
+    // Spam filter
+    const spamCheck = isSpam(data.from || '', data.subject || '');
     if (spamCheck.isSpam) {
       logger.info('Inbound email filtered as spam', { from: sender.email, reason: spamCheck.reason });
       return NextResponse.json({ received: true, filtered: true });
     }
 
-    // ─── Fetch Full Email Body via Resend API ─────────
-    // The webhook only sends metadata — we need the actual content
+    // Fetch full email body via Resend API
     const resend = getResend();
     let htmlBody: string | null = null;
     let textBody: string | null = null;
@@ -148,7 +295,6 @@ export async function POST(request: NextRequest) {
       }
     } catch (fetchErr) {
       logger.warn('Could not fetch email body from Resend API', { emailId: data.email_id, error: fetchErr });
-      // Continue without body — we still want to store the metadata
     }
 
     const supabase = createAdminClient();
@@ -157,7 +303,7 @@ export async function POST(request: NextRequest) {
 
     let threadId: string | null = null;
 
-    // 1. Match by message_id → In-Reply-To/References (Resend provides message_id)
+    // 1. Match by message_id
     if (data.message_id) {
       const cleanId = data.message_id.replace(/[<>]/g, '');
       const { data: existingEmail } = await supabase
@@ -174,22 +320,24 @@ export async function POST(request: NextRequest) {
 
     // 2. Match by sender email + normalized subject
     if (!threadId) {
-      const normalizedSubject = data.subject.replace(/^(Re|Fwd|Fw):\s*/gi, '').trim();
-      const { data: existingThread } = await supabase
-        .from('email_threads')
-        .select('id')
-        .eq('participant_email', sender.email)
-        .ilike('subject', `%${normalizedSubject}%`)
-        .order('last_message_at', { ascending: false })
-        .limit(1)
-        .single();
+      const normalizedSubject = (data.subject || '').replace(/^(Re|Fwd|Fw):\s*/gi, '').trim();
+      if (normalizedSubject) {
+        const { data: existingThread } = await supabase
+          .from('email_threads')
+          .select('id')
+          .eq('participant_email', sender.email)
+          .ilike('subject', `%${normalizedSubject}%`)
+          .order('last_message_at', { ascending: false })
+          .limit(1)
+          .single();
 
-      if (existingThread) {
-        threadId = existingThread.id;
+        if (existingThread) {
+          threadId = existingThread.id;
+        }
       }
     }
 
-    // 3. Match by sender email alone (most recent thread)
+    // 3. Match by sender email alone
     if (!threadId) {
       const { data: existingThread } = await supabase
         .from('email_threads')
@@ -217,8 +365,28 @@ export async function POST(request: NextRequest) {
       ownerId = thread?.owner_id || null;
     }
 
+    // Try to link sender to a user
     if (!ownerId) {
-      // Default to first admin user
+      const { data: userByEmail } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', sender.email)
+        .limit(1)
+        .single();
+
+      if (userByEmail) {
+        // Find an admin to own the thread
+        const { data: adminProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('is_admin', true)
+          .limit(1)
+          .single();
+        ownerId = adminProfile?.id || null;
+      }
+    }
+
+    if (!ownerId) {
       const { data: adminProfile } = await supabase
         .from('profiles')
         .select('id')
@@ -239,7 +407,7 @@ export async function POST(request: NextRequest) {
       const { data: newThread, error: threadError } = await supabase
         .from('email_threads')
         .insert({
-          subject: data.subject.replace(/^(Re|Fwd|Fw):\s*/gi, '').trim(),
+          subject: (data.subject || '(no subject)').replace(/^(Re|Fwd|Fw):\s*/gi, '').trim(),
           owner_id: ownerId,
           participant_email: sender.email,
           participant_name: sender.name,
@@ -263,25 +431,35 @@ export async function POST(request: NextRequest) {
 
     // ─── Store Inbound Email ──────────────────────────
 
-    const { error: emailError } = await supabase.from('emails').insert({
+    const { data: storedEmail, error: emailError } = await supabase.from('emails').insert({
       thread_id: threadId,
       resend_id: data.email_id,
       direction: 'inbound',
       from_email: sender.email,
       from_name: sender.name,
-      to_email: data.to[0],
-      subject: data.subject,
+      to_email: data.to?.[0] || '',
+      subject: data.subject || '(no subject)',
       html_body: htmlBody,
       text_body: textBody,
       status: 'received',
       is_read: false,
       headers: { message_id: data.message_id || null },
-    });
+    }).select('id').single();
 
     if (emailError) {
       logger.error('Failed to store inbound email', { error: emailError });
       return NextResponse.json({ error: 'Failed to store email' }, { status: 500 });
     }
+
+    // ─── Async AI Processing (non-blocking) ───────────
+    processWithAI(storedEmail.id, {
+      fromEmail: sender.email,
+      fromName: sender.name,
+      subject: data.subject || '',
+      bodyText: textBody,
+      bodyHtml: htmlBody,
+      threadId: threadId!,
+    }).catch(err => logger.error('Background AI processing failed', { error: err }));
 
     logger.info('Inbound email stored', { threadId, from: sender.email, hasBody: !!(htmlBody || textBody) });
     return NextResponse.json({ success: true, threadId });
