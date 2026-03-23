@@ -32,6 +32,7 @@ import {
   Zap,
   Bot,
   PenLine,
+  Camera,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { VINDecoder } from '@/components/listings/VINDecoder';
@@ -424,6 +425,15 @@ export default function NewListingPage() {
           >
             <Bot className="w-4 h-4 mr-2" />
             AI Smart Create
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.push('/dashboard/listings/snap')}
+            size="sm"
+          >
+            <Camera className="w-4 h-4 mr-2" />
+            Snap & List
           </Button>
         </div>
 

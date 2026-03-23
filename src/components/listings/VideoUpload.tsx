@@ -2,6 +2,8 @@
 
 import { useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useIsMobile } from '@/hooks/useIsMobile';
+import { formatFileSize } from '@/lib/upload-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,8 +16,8 @@ import {
   Loader2,
   Play,
   AlertCircle,
+  Camera,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 
 interface VideoUploadProps {
@@ -24,7 +26,7 @@ interface VideoUploadProps {
   listingId?: string;
 }
 
-const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB (up from 100MB)
 const ALLOWED_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
 
 export function VideoUpload({ value, onChange, listingId }: VideoUploadProps) {
@@ -33,7 +35,10 @@ export function VideoUpload({ value, onChange, listingId }: VideoUploadProps) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(value || null);
+  const [fileSize, setFileSize] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
   const supabase = createClient();
 
   const handleUrlChange = (url: string) => {
@@ -42,21 +47,19 @@ export function VideoUpload({ value, onChange, listingId }: VideoUploadProps) {
     setError(null);
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const uploadVideo = async (file: File) => {
     setError(null);
+    setFileSize(file.size);
 
-    // Validate file type
+    // Validate type
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setError('Please upload a valid video file (MP4, WebM, MOV, or AVI)');
+      setError('Please upload MP4, WebM, MOV, or AVI');
       return;
     }
 
-    // Validate file size
+    // Validate size
     if (file.size > MAX_VIDEO_SIZE) {
-      setError('Video must be less than 100MB');
+      setError(`Video must be under ${formatFileSize(MAX_VIDEO_SIZE)}. Your file is ${formatFileSize(file.size)}.`);
       return;
     }
 
@@ -64,42 +67,61 @@ export function VideoUpload({ value, onChange, listingId }: VideoUploadProps) {
     setUploadProgress(0);
 
     try {
-      // Generate unique filename
-      const ext = file.name.split('.').pop();
+      const ext = file.name.split('.').pop() || 'mp4';
       const fileName = `${listingId || 'temp'}-${Date.now()}.${ext}`;
       const filePath = `videos/${fileName}`;
 
-      // Upload to Supabase Storage
-      const { error: uploadError, data } = await supabase.storage
-        .from('listings')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
+      // Get auth for XHR upload with progress
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
 
-      if (uploadError) {
-        throw uploadError;
-      }
+      const uploadUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/listings/${filePath}`;
 
-      // Get public URL
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', uploadUrl, true);
+        xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
+        xhr.setRequestHeader('x-upsert', 'false');
+        xhr.setRequestHeader('Cache-Control', '3600');
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            setUploadProgress(Math.round((e.loaded / e.total) * 100));
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else reject(new Error(`Upload failed (${xhr.status})`));
+        };
+
+        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.send(file);
+      });
+
       const { data: urlData } = supabase.storage
         .from('listings')
         .getPublicUrl(filePath);
 
-      const videoUrl = urlData.publicUrl;
-      onChange(videoUrl);
-      setPreviewUrl(videoUrl);
+      onChange(urlData.publicUrl);
+      setPreviewUrl(urlData.publicUrl);
       setUploadProgress(100);
     } catch (err) {
-      logger.error('Upload error', { error: err });
+      logger.error('Video upload error', { error: err });
       setError('Failed to upload video. Please try again.');
     } finally {
       setIsUploading(false);
     }
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await uploadVideo(file);
+    e.target.value = '';
+  };
+
   const handleRemove = async () => {
-    // If it's an uploaded video, try to delete it
     if (previewUrl && previewUrl.includes('supabase')) {
       try {
         const path = previewUrl.split('/listings/')[1];
@@ -114,12 +136,9 @@ export function VideoUpload({ value, onChange, listingId }: VideoUploadProps) {
     onChange('');
     setPreviewUrl(null);
     setError(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    setFileSize(null);
   };
 
-  // Check if URL is YouTube/Vimeo
   const isEmbeddable = (url: string) => {
     return url.includes('youtube.com') || url.includes('youtu.be') || url.includes('vimeo.com');
   };
@@ -169,6 +188,7 @@ export function VideoUpload({ value, onChange, listingId }: VideoUploadProps) {
       {/* Upload Mode */}
       {mode === 'upload' && (
         <div>
+          {/* Hidden file inputs */}
           <input
             ref={fileInputRef}
             type="file"
@@ -176,35 +196,64 @@ export function VideoUpload({ value, onChange, listingId }: VideoUploadProps) {
             onChange={handleFileSelect}
             className="hidden"
           />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="video/*"
+            capture="environment"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
 
           {!previewUrl && !isUploading && (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full border-2 border-dashed rounded-xl p-8 text-center hover:border-primary/50 hover:bg-muted/50 transition-colors"
-            >
+            <div className="border-2 border-dashed rounded-xl p-8 text-center hover:border-primary/50 hover:bg-muted/50 transition-colors">
               <Video className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-              <p className="font-medium">Click to upload video</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                MP4, WebM, MOV, or AVI (max 100MB)
+              <p className="font-medium mb-1">Record or upload a walk-around video</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                MP4, WebM, MOV (max 500MB)
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                Recommended: 30-60 second walk-around
-              </p>
-            </button>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {isMobile && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="gap-2"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Record Video
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant={isMobile ? 'outline' : 'default'}
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  {isMobile ? 'Choose from Gallery' : 'Browse Files'}
+                </Button>
+              </div>
+            </div>
           )}
 
           {isUploading && (
             <div className="border-2 border-dashed rounded-xl p-8 text-center">
               <Loader2 className="w-10 h-10 mx-auto mb-3 text-primary animate-spin" />
               <p className="font-medium">Uploading video...</p>
+              {fileSize && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {formatFileSize(fileSize)} · {uploadProgress}%
+                </p>
+              )}
               <Progress value={uploadProgress} className="mt-4 max-w-xs mx-auto" />
             </div>
           )}
         </div>
       )}
 
-      {/* Error Message */}
+      {/* Error */}
       {error && (
         <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -249,10 +298,10 @@ export function VideoUpload({ value, onChange, listingId }: VideoUploadProps) {
         <div className="p-3 bg-muted/50 rounded-lg">
           <p className="text-sm font-medium mb-2">Video Tips</p>
           <ul className="text-xs text-muted-foreground space-y-1">
-            <li>Keep it short (30-60 seconds)</li>
-            <li>Show exterior walk-around, interior, and engine</li>
-            <li>Good lighting makes a big difference</li>
-            <li>Landscape orientation works best</li>
+            <li>Keep it 30-60 seconds — walk around the equipment</li>
+            <li>Show exterior, interior, engine, and any damage</li>
+            <li>Good lighting and landscape orientation work best</li>
+            <li>Videos are uploaded at full quality</li>
           </ul>
         </div>
       )}
