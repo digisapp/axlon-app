@@ -3,24 +3,20 @@ export const revalidate = 300;
 
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
   MapPin,
   Calendar,
   Gauge,
-  Phone,
   Shield,
   TrendingUp,
   Check,
   AlertCircle,
   ChevronLeft,
-  Sparkles,
 } from 'lucide-react';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { FavoriteButton } from '@/components/listings/FavoriteButton';
@@ -414,34 +410,6 @@ export default async function ListingPage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Mobile Contact CTA - AXLON AI */}
-            <div className="lg:hidden">
-              <Card>
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Image
-                        src="/images/axlonai-logo.png"
-                        alt="AXLON AI"
-                        width={24}
-                        height={24}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold truncate">Listed by AXLON AI</p>
-                      <p className="text-xs text-muted-foreground">Axlon is here to help 24/7</p>
-                    </div>
-                  </div>
-                  <Button className="w-full" size="lg" asChild>
-                    <a href="tel:+14694213536">
-                      <Phone className="w-4 h-4 mr-2" />
-                      Call: (469) 421-3536
-                    </a>
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-
             {/* AI Price Analysis */}
             {listing.ai_price_estimate && (
               <Card className="border-primary/20 bg-primary/5">
@@ -578,52 +546,8 @@ export default async function ListingPage({ params }: PageProps) {
             */}
           </div>
 
-          {/* Sidebar - Desktop */}
-          <div className="hidden lg:block space-y-6">
-            {/* AXLON AI Contact Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Listed by AXLON AI</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Image
-                      src="/images/axlonai-logo.png"
-                      alt="AXLON AI"
-                      width={32}
-                      height={32}
-                    />
-                  </div>
-                  <div>
-                    <p className="font-semibold">AXLON AI</p>
-                    <p className="text-sm text-muted-foreground">Axlon is here to help 24/7</p>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-3">
-                  <Button className="w-full" size="lg" asChild>
-                    <a href="tel:+14694213536">
-                      <Phone className="w-4 h-4 mr-2" />
-                      (469) 421-3536
-                    </a>
-                  </Button>
-                  <Button variant="outline" className="w-full" asChild>
-                    <Link href={`/?ask=${encodeURIComponent(`Tell me about ${listing.title}`)}`}>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Ask Axlon
-                    </Link>
-                  </Button>
-                </div>
-
-                <p className="text-xs text-muted-foreground text-center">
-                  Questions about this listing? Ask Axlon anytime.
-                </p>
-              </CardContent>
-            </Card>
-
+          {/* Sidebar */}
+          <div className="space-y-6">
             {/* Contact Form - Routes to AXLON AI */}
             <ContactSeller
               listingId={id}
@@ -664,21 +588,6 @@ export default async function ListingPage({ params }: PageProps) {
               <FinancingCalculator listingPrice={listing.price} />
             )}
 
-            {/* Safety Tips */}
-            <Card className="bg-muted/50">
-              <CardContent className="p-4">
-                <h3 className="font-semibold flex items-center gap-2 mb-3">
-                  <Shield className="w-4 h-4" />
-                  Safety Tips
-                </h3>
-                <ul className="text-sm text-muted-foreground space-y-2">
-                  <li>Meet in a public place for test drives</li>
-                  <li>Verify VIN and title before purchase</li>
-                  <li>Use secure payment methods</li>
-                  <li>Get a mechanic inspection</li>
-                </ul>
-              </CardContent>
-            </Card>
           </div>
         </div>
 
@@ -699,42 +608,6 @@ export default async function ListingPage({ params }: PageProps) {
           <RecentlyViewed currentListingId={id} maxItems={6} />
         </div>
 
-        {/* Mobile Contact Form & Financing */}
-        <div className="lg:hidden mt-8 space-y-6">
-          {/* Mobile AI Chat */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Ask Axlon</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Have questions about this listing? Axlon is here to help 24/7.
-              </p>
-              <Button className="w-full" asChild>
-                <Link href={`/?ask=${encodeURIComponent(`Tell me about ${listing.title}`)}`}>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Ask Axlon
-                </Link>
-              </Button>
-              <Button variant="outline" className="w-full" asChild>
-                <a href="tel:+14694213536">
-                  <Phone className="w-4 h-4 mr-2" />
-                  Call: (469) 421-3536
-                </a>
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Contact Form - Routes to AXLON AI */}
-          <ContactSeller
-            listingId={id}
-            sellerId={listing.user?.id || ''}
-            listingTitle={listing.title}
-          />
-          {listing.price && listing.price > 0 && (
-            <FinancingCalculator listingPrice={listing.price} />
-          )}
-        </div>
       </div>
     </div>
   );
