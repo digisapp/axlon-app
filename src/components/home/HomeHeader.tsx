@@ -31,8 +31,7 @@ interface UserProfile {
 
 const navLinks = [
   { href: '/search', label: 'Marketplace' },
-  { href: '/for-business', label: 'For Business' },
-  { href: '/apply', label: 'Apply Now' },
+  { href: '/dashboard/listings/new', label: 'List Equipment' },
 ];
 
 export function HomeHeader() {
@@ -214,7 +213,7 @@ export function HomeHeader() {
           </Link>
           <Link href="/signup" className="hidden md:inline-flex">
             <Button size="sm" className="rounded-full shadow-lg shadow-primary/25">
-              Get Started
+              List Equipment Free
             </Button>
           </Link>
         </>
@@ -249,7 +248,7 @@ export function HomeHeader() {
               <div className="flex flex-col gap-2">
                 <Button asChild className="w-full">
                   <Link href="/signup" onClick={() => setIsOpen(false)}>
-                    Get Started
+                    List Equipment Free
                   </Link>
                 </Button>
                 <Button variant="outline" asChild className="w-full">

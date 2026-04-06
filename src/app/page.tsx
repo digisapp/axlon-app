@@ -111,9 +111,9 @@ export default function HomePage() {
             className="gap-2 rounded-full glass-button !bg-white/80 dark:!bg-white/10 flex-1 sm:flex-none"
             asChild
           >
-            <Link href="/get-started">
+            <Link href="/signup">
               <Zap className="w-4 h-4" />
-              Try AXLON Free
+              List Equipment Free
             </Link>
           </Button>
         </div>
@@ -325,20 +325,20 @@ export default function HomePage() {
 
         {/* Final CTA */}
         <section className="w-full max-w-3xl mx-auto mb-10 md:mb-12 px-4 text-center">
-          <h2 className="text-xl md:text-2xl font-bold mb-2">Ready to transform your business with AI?</h2>
+          <h2 className="text-xl md:text-2xl font-bold mb-2">Sell more equipment with AI</h2>
           <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-5">
-            We work with a select group of heavy haul and equipment businesses. Apply to see if you qualify.
+            List your inventory, get a branded storefront, and let AI capture leads for you — free.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
             <Button size="lg" className="rounded-full gap-2 shadow-lg shadow-primary/20 group w-full sm:w-auto" asChild>
-              <Link href="/apply">
-                Apply Now
+              <Link href="/signup">
+                List Equipment Free
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
             <Button size="lg" variant="outline" className="rounded-full glass-button !bg-white/80 dark:!bg-white/10 w-full sm:w-auto" asChild>
-              <Link href="/transform">
-                See the Program
+              <Link href="/contact?plan=demo">
+                Book a Demo
               </Link>
             </Button>
           </div>
