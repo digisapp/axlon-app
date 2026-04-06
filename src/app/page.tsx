@@ -319,26 +319,26 @@ export default function HomePage() {
             </table>
           </div>
           <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center mt-3">
-            Replace thousands in monthly tools with one AI platform starting at $399/mo.
+            Purpose-built for heavy haul, crane & rigging, and equipment businesses.
           </p>
         </section>
 
-        {/* Final CTA — pricing + action */}
+        {/* Final CTA */}
         <section className="w-full max-w-3xl mx-auto mb-10 md:mb-12 px-4 text-center">
-          <h2 className="text-xl md:text-2xl font-bold mb-2">Start selling equipment with AI</h2>
+          <h2 className="text-xl md:text-2xl font-bold mb-2">Ready to transform your business with AI?</h2>
           <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-5">
-            Plans start at $399/month &middot; 30-day free trial &middot; No credit card required
+            We work with a select group of heavy haul and equipment businesses. Apply to see if you qualify.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
             <Button size="lg" className="rounded-full gap-2 shadow-lg shadow-primary/20 group w-full sm:w-auto" asChild>
-              <Link href="/get-started">
-                Start Free Trial
+              <Link href="/apply">
+                Apply Now
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
             <Button size="lg" variant="outline" className="rounded-full glass-button !bg-white/80 dark:!bg-white/10 w-full sm:w-auto" asChild>
-              <Link href="/contact?plan=demo">
-                Book a Demo
+              <Link href="/transform">
+                See the Program
               </Link>
             </Button>
           </div>
