@@ -31,8 +31,8 @@ interface UserProfile {
 
 const navLinks = [
   { href: '/search', label: 'Marketplace' },
-  { href: '/how-it-works', label: 'Platform' },
-  { href: '/transform', label: 'AI Transformation' },
+  { href: '/for-business', label: 'For Business' },
+  { href: '/apply', label: 'Apply Now' },
 ];
 
 export function HomeHeader() {
