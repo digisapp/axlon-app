@@ -125,7 +125,7 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
       await resend.emails.send({
         from: `${profile?.company_name || 'AXLON'} via AXLON <leads@axlon.ai>`,
         to: item.from_email,
-        reply_to: profile?.email || undefined,
+        replyTo: profile?.email || undefined,
         subject: finalSubject,
         html: finalHtml,
       });
