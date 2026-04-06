@@ -90,7 +90,7 @@ export default async function ApplicationsPage() {
                 // Parse the structured message field
                 const lines = (app.message || '').split('\n').filter(Boolean);
                 const parseField = (label: string) => {
-                  const line = lines.find(l => l.startsWith(label));
+                  const line = lines.find((l: string) => l.startsWith(label));
                   return line ? line.replace(label, '').trim() : null;
                 };
 
