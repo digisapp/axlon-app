@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -118,11 +117,9 @@ export function NotificationBell() {
 
         {notifications.length > 0 && (
           <div className="p-2 border-t">
-            <Link href="/dashboard/notifications" onClick={() => setOpen(false)}>
-              <Button variant="ghost" size="sm" className="w-full">
-                View All Notifications
-              </Button>
-            </Link>
+            <Button variant="ghost" size="sm" className="w-full" onClick={() => setOpen(false)}>
+              Dismiss All
+            </Button>
           </div>
         )}
       </PopoverContent>

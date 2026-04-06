@@ -174,7 +174,7 @@ export function DashboardHeader({
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/help" className="cursor-pointer">
+                <Link href="/contact" className="cursor-pointer">
                   <HelpCircle className="w-4 h-4 mr-2" />
                   Help & Support
                 </Link>
