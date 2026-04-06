@@ -1,13 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
   Check,
   X,
-  Star,
   Zap,
   Building2,
   Mail,
@@ -17,62 +16,59 @@ import {
   BarChart3,
   Crown,
   PhoneCall,
-  Sparkles,
-  Shield,
+  Store,
 } from 'lucide-react';
 import Link from 'next/link';
 
-// Plan limits
-const PLAN_LIMITS = {
-  free: {
-    listings: 5,
-    aiPriceEstimates: 5,
-    featuredListings: 0,
-    aiAssistant: false,
-    advancedAnalytics: false,
-    customStorefront: false,
-    crm: false,
-    dealDesk: false,
-    floorPlan: false,
-    staffManagement: false,
-    smartImport: false,
-  },
-  pro: {
-    listings: -1, // unlimited
-    aiPriceEstimates: -1,
-    featuredListings: -1,
-    aiAssistant: true,
-    advancedAnalytics: true,
-    customStorefront: true,
-    crm: true,
-    dealDesk: true,
-    floorPlan: true,
-    staffManagement: true,
-    smartImport: true,
-  },
-  enterprise: {
-    listings: -1,
-    aiPriceEstimates: -1,
-    featuredListings: -1,
-    aiAssistant: true,
-    advancedAnalytics: true,
-    customStorefront: true,
-    crm: true,
-    dealDesk: true,
-    floorPlan: true,
-    staffManagement: true,
-    smartImport: true,
-  },
-};
+const FREE_FEATURES = [
+  'Unlimited listings on marketplace',
+  'Branded storefront page',
+  'Buyer messaging & inquiries',
+  'Basic analytics',
+  '10 AI price estimates/month',
+];
+
+const PLATFORM_FEATURES = [
+  'Everything in Marketplace',
+  'AI lead response (AI Inbox)',
+  'AI Sales Assistant — 24/7 lead capture',
+  'CRM + Deal Desk + Quote generation',
+  'Advanced analytics & market trends',
+  'Bulk import & inventory management',
+  'Custom branded storefront',
+  'Floor plan financing tracker',
+  'Staff management with permissions',
+  'Unlimited AI price estimates',
+  'Featured listings (5/month)',
+];
+
+const VOICE_FEATURES = [
+  'Dedicated AI phone number',
+  '24/7 inbound call handling',
+  '500 minutes included/month',
+  'Inventory search during calls',
+  'Automatic lead capture from every call',
+  'Call recording + AI transcription',
+  'Staff PIN authentication',
+  'Business hours routing',
+];
+
+const TRANSFORMATION_FEATURES = [
+  'Platform + Voice included',
+  'We build & configure everything for you',
+  'AI lead response system deployed',
+  'Voice agent trained on your business',
+  'Monthly performance reviews',
+  'Dedicated AXLON strategist',
+  'Ongoing optimization & tuning',
+  'Priority support',
+];
 
 export default async function BillingPage() {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/login?redirect=/dashboard/billing');
-  }
+  if (!user) redirect('/login?redirect=/dashboard/billing');
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -80,258 +76,150 @@ export default async function BillingPage() {
     .eq('id', user.id)
     .single();
 
-  const currentTier = (profile?.subscription_tier || 'free') as keyof typeof PLAN_LIMITS;
-  const limits = PLAN_LIMITS[currentTier];
+  const { data: voiceAgent } = await supabase
+    .from('dealer_voice_agents')
+    .select('plan_tier, minutes_used, minutes_included, is_active')
+    .eq('dealer_id', user.id)
+    .single();
 
-  // Get current usage
-  const [
-    { count: listingCount },
-    { data: voiceAgent },
-  ] = await Promise.all([
-    supabase
-      .from('listings')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id),
-    supabase
-      .from('dealer_voice_agents')
-      .select('plan_tier, minutes_used, minutes_included, is_active')
-      .eq('dealer_id', user.id)
-      .single(),
-  ]);
+  const { count: listingCount } = await supabase
+    .from('listings')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id);
 
-  const usage = {
-    listings: listingCount || 0,
-  };
-
-  const listingPercentage = limits.listings === -1
-    ? 0
-    : Math.min(100, (usage.listings / limits.listings) * 100);
-
+  const currentTier = profile?.subscription_tier || 'free';
+  const isPro = currentTier === 'pro' || currentTier === 'enterprise';
   const hasVoice = voiceAgent?.is_active;
   const voiceMinutesUsed = voiceAgent?.minutes_used || 0;
-  const voiceMinutesIncluded = voiceAgent?.minutes_included || 0;
-  const voicePercentage = voiceMinutesIncluded > 0
-    ? Math.min(100, (voiceMinutesUsed / voiceMinutesIncluded) * 100)
-    : 0;
+  const voiceMinutesIncluded = voiceAgent?.minutes_included || 500;
+  const voicePercentage = Math.min(100, (voiceMinutesUsed / voiceMinutesIncluded) * 100);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header */}
       <div>
         <h1 className="text-2xl md:text-3xl font-bold">Plans & Billing</h1>
-        <p className="text-muted-foreground mt-1">
-          Manage your subscription and view usage
-        </p>
+        <p className="text-muted-foreground mt-1">Manage your subscription and usage</p>
       </div>
 
-      {/* Current Plan & Usage */}
+      {/* Current Plan */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
                 Current Plan
-                {currentTier === 'pro' && <Crown className="w-5 h-5 text-primary" />}
+                {isPro && <Crown className="w-5 h-5 text-primary" />}
               </CardTitle>
               <CardDescription>
-                {currentTier === 'free' && 'You are on the Free plan'}
-                {currentTier === 'pro' && 'You are on the AXLON Platform plan'}
-                {currentTier === 'enterprise' && 'You are on the Enterprise plan'}
+                {currentTier === 'free' && 'Marketplace — free forever'}
+                {currentTier === 'pro' && 'AXLON Platform — $499/month'}
+                {currentTier === 'enterprise' && 'AI Transformation Program'}
               </CardDescription>
             </div>
-            <Badge
-              variant={currentTier === 'free' ? 'secondary' : 'default'}
-              className={currentTier === 'pro' ? 'bg-primary' : ''}
-            >
-              {currentTier === 'free' ? 'Free' : currentTier === 'pro' ? 'Platform' : 'Enterprise'}
+            <Badge variant={isPro ? 'default' : 'secondary'}>
+              {currentTier === 'free' ? 'Free' : currentTier === 'pro' ? 'Platform' : 'Transformation'}
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Usage Stats */}
-          <div className="space-y-4">
-            <h4 className="font-medium text-sm text-muted-foreground">Usage</h4>
-
-            {/* Listings */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <Package className="w-4 h-4 text-muted-foreground" />
-                  <span>Active Listings</span>
-                </div>
-                <span className="font-medium">
-                  {usage.listings} / {limits.listings === -1 ? '∞' : limits.listings}
-                </span>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2">
+                <Package className="w-4 h-4 text-muted-foreground" />
+                <span>Active Listings</span>
               </div>
-              {limits.listings !== -1 && (
-                <Progress value={listingPercentage} className="h-2" />
-              )}
-              {limits.listings !== -1 && usage.listings >= limits.listings && (
-                <p className="text-xs text-destructive">
-                  You&apos;ve reached your listing limit. Upgrade to add more.
-                </p>
-              )}
+              <span className="font-medium">{listingCount || 0} / ∞</span>
             </div>
 
-            {/* Voice Minutes */}
             {hasVoice && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
                     <PhoneCall className="w-4 h-4 text-muted-foreground" />
                     <span>Voice Minutes</span>
                   </div>
-                  <span className="font-medium">
-                    {voiceMinutesUsed} / {voiceMinutesIncluded} min
-                  </span>
+                  <span className="font-medium">{voiceMinutesUsed} / {voiceMinutesIncluded} min</span>
                 </div>
                 <Progress value={voicePercentage} className="h-2" />
                 {voicePercentage >= 80 && (
-                  <p className="text-xs text-amber-600">
-                    Approaching minute limit. Overage billed at $0.25/min.
-                  </p>
+                  <p className="text-xs text-amber-600">Approaching limit — overage at $0.25/min</p>
                 )}
               </div>
             )}
           </div>
-
-          {/* Current Plan Features */}
-          <div className="pt-4 border-t">
-            <h4 className="font-medium text-sm text-muted-foreground mb-3">Your Plan Includes</h4>
-            <ul className="grid sm:grid-cols-2 gap-2 text-sm">
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-500" />
-                {limits.listings === -1 ? 'Unlimited' : `Up to ${limits.listings}`} listings
-              </li>
-              <li className="flex items-center gap-2">
-                {limits.aiAssistant ? (
-                  <Check className="w-4 h-4 text-green-500" />
-                ) : (
-                  <X className="w-4 h-4 text-muted-foreground" />
-                )}
-                <span className={!limits.aiAssistant ? 'text-muted-foreground' : ''}>
-                  AI Sales Assistant (24/7)
-                </span>
-              </li>
-              <li className="flex items-center gap-2">
-                {limits.crm ? (
-                  <Check className="w-4 h-4 text-green-500" />
-                ) : (
-                  <X className="w-4 h-4 text-muted-foreground" />
-                )}
-                <span className={!limits.crm ? 'text-muted-foreground' : ''}>
-                  CRM + Deal Desk
-                </span>
-              </li>
-              <li className="flex items-center gap-2">
-                {limits.advancedAnalytics ? (
-                  <Check className="w-4 h-4 text-green-500" />
-                ) : (
-                  <X className="w-4 h-4 text-muted-foreground" />
-                )}
-                <span className={!limits.advancedAnalytics ? 'text-muted-foreground' : ''}>
-                  Advanced Analytics
-                </span>
-              </li>
-              <li className="flex items-center gap-2">
-                {limits.customStorefront ? (
-                  <Check className="w-4 h-4 text-green-500" />
-                ) : (
-                  <X className="w-4 h-4 text-muted-foreground" />
-                )}
-                <span className={!limits.customStorefront ? 'text-muted-foreground' : ''}>
-                  Custom Storefront
-                </span>
-              </li>
-              <li className="flex items-center gap-2">
-                {limits.smartImport ? (
-                  <Check className="w-4 h-4 text-green-500" />
-                ) : (
-                  <X className="w-4 h-4 text-muted-foreground" />
-                )}
-                <span className={!limits.smartImport ? 'text-muted-foreground' : ''}>
-                  Smart Import (AI)
-                </span>
-              </li>
-            </ul>
-          </div>
         </CardContent>
       </Card>
 
-      {/* Upgrade Options - Only show if not on enterprise */}
+      {/* Plans */}
       {currentTier !== 'enterprise' && (
         <>
-          <h2 className="text-xl font-bold pt-4">
-            {currentTier === 'free' ? 'Upgrade Your Plan' : 'Available Plans'}
+          <h2 className="text-xl font-bold pt-2">
+            {isPro ? 'Your Plan & Add-ons' : 'Upgrade Your Plan'}
           </h2>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Platform Plan */}
-            <Card className={`relative ${currentTier === 'free' ? 'border-primary/50 shadow-lg' : ''}`}>
+          <div className="grid md:grid-cols-3 gap-6">
+
+            {/* Marketplace Free */}
+            <Card className={currentTier === 'free' ? 'border-primary/40' : ''}>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Store className="w-5 h-5 text-amber-500" />
+                  <CardTitle className="text-base">Marketplace</CardTitle>
+                  {currentTier === 'free' && <Badge variant="outline" className="ml-auto text-xs">Current</Badge>}
+                </div>
+                <div className="mt-3">
+                  <span className="text-3xl font-bold">Free</span>
+                  <p className="text-xs text-muted-foreground mt-1">Free forever — no credit card</p>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm mb-6">
+                  {FREE_FEATURES.map(f => (
+                    <li key={f} className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                  {PLATFORM_FEATURES.slice(1).map(f => (
+                    <li key={f} className="flex items-start gap-2 opacity-40">
+                      <X className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                {currentTier === 'free' ? (
+                  <Button variant="outline" className="w-full" disabled>Current Plan</Button>
+                ) : null}
+              </CardContent>
+            </Card>
+
+            {/* Platform */}
+            <Card className={`relative ${currentTier === 'free' ? 'border-primary shadow-lg shadow-primary/10' : ''}`}>
               {currentTier === 'free' && (
-                <div className="absolute -top-3 left-4">
-                  <Badge className="bg-primary">Recommended</Badge>
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <Badge className="bg-primary px-3">Most Popular</Badge>
                 </div>
               )}
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Star className="w-5 h-5 text-primary" />
-                  <CardTitle>AXLON Platform</CardTitle>
-                  {currentTier === 'pro' && (
-                    <Badge variant="outline" className="ml-2">Current</Badge>
-                  )}
+                  <Bot className="w-5 h-5 text-primary" />
+                  <CardTitle className="text-base">AXLON Platform</CardTitle>
+                  {isPro && !hasVoice && <Badge variant="outline" className="ml-auto text-xs">Current</Badge>}
                 </div>
-                <CardDescription>Everything you need to run your business with AI</CardDescription>
-                <div className="mt-4">
-                  <span className="text-3xl font-bold">$399</span>
-                  <span className="text-muted-foreground">/month</span>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    or $3,990/year (save $798)
-                  </p>
+                <div className="mt-3">
+                  <span className="text-3xl font-bold">$499</span>
+                  <span className="text-muted-foreground text-sm">/mo</span>
+                  <p className="text-xs text-muted-foreground mt-1">or $4,990/yr — save $998</p>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    <strong>Unlimited</strong> listings on marketplace
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    AI Sales Assistant (24/7 lead capture)
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    AI Knowledge Base (trained on your inventory)
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    CRM + Deal Desk + Quote PDF generation
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    Floor Plan financing tracker
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    AI price estimates & image analysis
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    Custom branded storefront
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    Advanced analytics & trends
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    Staff management with permissions
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    Smart Import (AI-powered data migration)
-                  </li>
+              <CardContent>
+                <ul className="space-y-2 text-sm mb-6">
+                  {PLATFORM_FEATURES.map(f => (
+                    <li key={f} className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
                 </ul>
                 {currentTier === 'free' ? (
                   <Button className="w-full" asChild>
@@ -340,247 +228,103 @@ export default async function BillingPage() {
                       Upgrade to Platform
                     </Link>
                   </Button>
-                ) : (
-                  <Button className="w-full" variant="outline" disabled>
-                    Current Plan
-                  </Button>
-                )}
+                ) : !hasVoice ? (
+                  <Button className="w-full" variant="outline" disabled>Current Plan</Button>
+                ) : null}
               </CardContent>
             </Card>
 
             {/* Voice Add-on */}
-            <Card className="relative border-cyan-500/30">
+            <Card className={`relative border-cyan-500/30 ${hasVoice ? 'border-cyan-500' : ''}`}>
               <div className="absolute -top-3 left-4">
-                <Badge className="bg-cyan-600">Add-on</Badge>
+                <Badge className="bg-cyan-600 text-white">{hasVoice ? 'Active' : 'Add-on'}</Badge>
               </div>
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <PhoneCall className="w-5 h-5 text-cyan-600" />
-                  <CardTitle>AXLON Voice</CardTitle>
-                  {hasVoice && (
-                    <Badge variant="outline" className="ml-2">Active</Badge>
-                  )}
+                  <CardTitle className="text-base">Voice Agent</CardTitle>
                 </div>
-                <CardDescription>AI answers your phones 24/7 — never miss a lead</CardDescription>
-                <div className="mt-4">
-                  <span className="text-3xl font-bold">$499</span>
-                  <span className="text-muted-foreground">/month</span>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    or $4,990/year (save $998) &middot; Requires Platform plan
-                  </p>
+                <div className="mt-3">
+                  <span className="text-3xl font-bold">$299</span>
+                  <span className="text-muted-foreground text-sm">/mo</span>
+                  <p className="text-xs text-muted-foreground mt-1">Requires Platform · Bundle saves $99/mo</p>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    Dedicated AI phone number
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    24/7 inbound call handling
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    <strong>500 minutes</strong> included/month
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    Inventory search during calls
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    Automatic lead capture from every call
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    Call recording + AI transcription + summaries
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    Staff PIN authentication for internal data
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    Business hours routing + after-hours handling
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-500" />
-                    Call transfer to human when needed
-                  </li>
+              <CardContent>
+                <ul className="space-y-2 text-sm mb-4">
+                  {VOICE_FEATURES.map(f => (
+                    <li key={f} className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-cyan-500 shrink-0 mt-0.5" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
                 </ul>
-                <p className="text-xs text-muted-foreground border rounded-lg p-2 bg-muted/50">
+                <p className="text-xs text-muted-foreground border rounded-lg p-2 bg-muted/50 mb-4">
                   Overage: $0.25/min beyond 500 included minutes
                 </p>
                 {!hasVoice ? (
                   <Button className="w-full bg-cyan-600 hover:bg-cyan-700" asChild>
                     <Link href="/contact?plan=voice">
                       <PhoneCall className="w-4 h-4 mr-2" />
-                      Add Voice Agent
+                      {isPro ? 'Add Voice Agent' : 'Get Platform + Voice — $699/mo'}
                     </Link>
                   </Button>
                 ) : (
-                  <Button className="w-full" variant="outline" disabled>
-                    Active
-                  </Button>
+                  <Button className="w-full" variant="outline" disabled>Active</Button>
                 )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Onboarding Options */}
-          <Card className="bg-muted/30">
-            <CardContent className="p-6">
-              <h3 className="font-semibold mb-2 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                Onboarding & Setup
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Choose how you want to get started
-              </p>
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div className="p-4 bg-background rounded-lg border">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-sm">Self-Service</span>
-                    <span className="font-bold text-green-600">Free</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Sign up online and set up everything yourself. Use Smart Import to migrate
-                    your data from spreadsheets, TruckPaper, or any other system.
-                  </p>
-                  <ul className="mt-3 space-y-1">
-                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Check className="w-3 h-3 text-green-500" />
-                      AI-powered Smart Import
-                    </li>
-                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Check className="w-3 h-3 text-green-500" />
-                      Self-guided setup wizard
-                    </li>
-                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Check className="w-3 h-3 text-green-500" />
-                      Help docs & video tutorials
-                    </li>
-                  </ul>
+          {/* Bundle callout */}
+          {!hasVoice && (
+            <Card className="bg-gradient-to-r from-primary/5 to-cyan-500/5 border-primary/20">
+              <CardContent className="p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <p className="font-semibold">Platform + Voice Bundle</p>
+                  <p className="text-sm text-muted-foreground">Get both for <span className="font-bold text-foreground">$699/mo</span> — save $99 vs separate</p>
                 </div>
-                <div className="p-4 bg-background rounded-lg border border-primary/30">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-sm">Guided Setup</span>
-                    <span className="font-bold">$2,499</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Remote onboarding via phone &amp; Zoom. We configure your AI, help migrate
-                    your data, and train your team — all remotely.
-                  </p>
-                  <ul className="mt-3 space-y-1">
-                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Check className="w-3 h-3 text-green-500" />
-                      Dedicated onboarding specialist
-                    </li>
-                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Check className="w-3 h-3 text-green-500" />
-                      AI configuration & training
-                    </li>
-                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Check className="w-3 h-3 text-green-500" />
-                      Data migration assistance
-                    </li>
-                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Check className="w-3 h-3 text-green-500" />
-                      Team training calls
-                    </li>
-                  </ul>
-                  <p className="text-xs text-green-600 font-medium mt-3">
-                    Waived with annual commitment
-                  </p>
-                </div>
-                <div className="p-4 bg-background rounded-lg border border-primary/50 shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-sm">Enterprise Onboarding</span>
-                    <span className="font-bold">$14,999</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    We fly to your office, analyze your entire operation, train the AI on your
-                    specific business, migrate all your data, and have you live in 2 weeks.
-                  </p>
-                  <ul className="mt-3 space-y-1">
-                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Check className="w-3 h-3 text-green-500" />
-                      On-site at your location
-                    </li>
-                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Check className="w-3 h-3 text-green-500" />
-                      Full company analysis
-                    </li>
-                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Check className="w-3 h-3 text-green-500" />
-                      Custom AI integration
-                    </li>
-                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Check className="w-3 h-3 text-green-500" />
-                      Complete data migration
-                    </li>
-                    <li className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Check className="w-3 h-3 text-green-500" />
-                      In-person team training
-                    </li>
-                  </ul>
-                  <p className="text-xs text-green-600 font-medium mt-3">
-                    Waived with annual commitment
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                <Button asChild className="shrink-0">
+                  <Link href="/contact?plan=bundle">Get the Bundle</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Enterprise */}
-          <Card>
+          {/* AI Transformation */}
+          <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-muted-foreground" />
-                <CardTitle>Enterprise</CardTitle>
+                <Building2 className="w-5 h-5 text-amber-600" />
+                <CardTitle>AI Transformation Program</CardTitle>
+                <Badge className="bg-amber-600 text-white ml-2">By Application</Badge>
               </div>
-              <CardDescription>For multi-location businesses</CardDescription>
-              <div className="mt-4">
-                <span className="text-3xl font-bold">Custom</span>
+              <CardDescription>
+                We build, configure, and run your entire AI operation — you focus on selling.
+              </CardDescription>
+              <div className="mt-3">
+                <span className="text-3xl font-bold">$4,500</span>
+                <span className="text-muted-foreground text-sm">–$15,000/mo</span>
+                <p className="text-xs text-muted-foreground mt-1">12-month engagement · Platform + Voice included</p>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-500" />
-                  Everything in Platform + Voice
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-500" />
-                  Multi-location support
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-500" />
-                  API access & integrations
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-500" />
-                  Dedicated account manager
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-500" />
-                  Custom onboarding & training
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-500" />
-                  Priority support
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-500" />
-                  Volume pricing on voice minutes
-                </li>
-              </ul>
-              <Button variant="outline" className="w-full" asChild>
-                <Link href="/contact?plan=enterprise">
-                  Contact Sales
-                </Link>
-              </Button>
+            <CardContent>
+              <div className="grid sm:grid-cols-2 gap-2 mb-6">
+                {TRANSFORMATION_FEATURES.map(f => (
+                  <div key={f} className="flex items-start gap-2 text-sm">
+                    <Check className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <span>{f}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button className="bg-amber-600 hover:bg-amber-700" asChild>
+                  <Link href="/apply">Apply Now</Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/transform">See the Program</Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </>
@@ -588,26 +332,24 @@ export default async function BillingPage() {
 
       {/* Contact */}
       <Card className="bg-muted/50">
-        <CardContent className="p-6">
-          <div className="text-center">
-            <h3 className="font-semibold mb-2">Have questions?</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Our team is here to help you choose the right plan
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button variant="outline" asChild>
-                <a href="mailto:sales@axlon.ai">
-                  <Mail className="w-4 h-4 mr-2" />
-                  sales@axlon.ai
-                </a>
-              </Button>
-              <Button variant="outline" asChild>
-                <a href="tel:+1234567890">
-                  <Phone className="w-4 h-4 mr-2" />
-                  Contact Us
-                </a>
-              </Button>
-            </div>
+        <CardContent className="p-6 text-center">
+          <h3 className="font-semibold mb-2">Questions about pricing?</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Talk to us — we&apos;ll help you find the right fit.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Button variant="outline" asChild>
+              <a href="mailto:sales@axlon.ai">
+                <Mail className="w-4 h-4 mr-2" />
+                sales@axlon.ai
+              </a>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/contact">
+                <Phone className="w-4 h-4 mr-2" />
+                Contact Us
+              </Link>
+            </Button>
           </div>
         </CardContent>
       </Card>

@@ -2,9 +2,9 @@
 export type PlanTier = 'free' | 'pro' | 'enterprise';
 
 export interface PlanLimits {
-  listings: number; // -1 = unlimited
-  aiPriceEstimates: number; // per month, -1 = unlimited
-  featuredListings: number; // per month
+  listings: number;          // -1 = unlimited
+  aiPriceEstimates: number;  // per month, -1 = unlimited
+  featuredListings: number;  // per month
   aiAssistant: boolean;
   advancedAnalytics: boolean;
   customStorefront: boolean;
@@ -13,8 +13,8 @@ export interface PlanLimits {
 
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
   free: {
-    listings: 5,
-    aiPriceEstimates: 5,
+    listings: -1, // unlimited — marketplace is genuinely free
+    aiPriceEstimates: 10,
     featuredListings: 0,
     aiAssistant: false,
     advancedAnalytics: false,
@@ -22,9 +22,9 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     bulkImport: false,
   },
   pro: {
-    listings: -1, // unlimited
+    listings: -1,
     aiPriceEstimates: -1,
-    featuredListings: 3,
+    featuredListings: 5,
     aiAssistant: true,
     advancedAnalytics: true,
     customStorefront: true,
@@ -41,11 +41,13 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
   },
 };
 
-export const PLAN_PRICES: Record<PlanTier, number | null> = {
+export const PLAN_PRICES = {
   free: 0,
-  pro: 79,
-  enterprise: null, // custom pricing
-};
+  pro: 499,           // Platform — replaces Salesforce + DMS + answering service
+  voice_addon: 299,   // Voice Agent add-on
+  bundle: 699,        // Platform + Voice bundle (save $99/mo)
+  enterprise: null,   // AI Transformation — custom
+} as const;
 
 export function getPlanLimits(tier: string | null | undefined): PlanLimits {
   const validTier = (tier && tier in PLAN_LIMITS) ? tier as PlanTier : 'free';
@@ -57,13 +59,16 @@ export function canCreateListing(currentCount: number, tier: string | null | und
   return limits.listings === -1 || currentCount < limits.listings;
 }
 
-export function canUseFeature(feature: keyof Omit<PlanLimits, 'listings' | 'aiPriceEstimates' | 'featuredListings'>, tier: string | null | undefined): boolean {
+export function canUseFeature(
+  feature: keyof Omit<PlanLimits, 'listings' | 'aiPriceEstimates' | 'featuredListings'>,
+  tier: string | null | undefined
+): boolean {
   const limits = getPlanLimits(tier);
   return limits[feature];
 }
 
 export function getRemainingListings(currentCount: number, tier: string | null | undefined): number | null {
   const limits = getPlanLimits(tier);
-  if (limits.listings === -1) return null; // unlimited
+  if (limits.listings === -1) return null;
   return Math.max(0, limits.listings - currentCount);
 }

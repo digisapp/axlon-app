@@ -352,20 +352,15 @@ export default function NewListingPage() {
               </div>
               <CardTitle>Listing Limit Reached</CardTitle>
               <CardDescription>
-                You&apos;ve used all {limits.listings} listings on your Free plan.
-                Upgrade to Pro for unlimited listings.
+                Upgrade to AXLON Platform for unlimited listings and AI tools.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-2xl font-bold">{currentListingCount} / {limits.listings}</p>
-                <p className="text-sm text-muted-foreground">Listings used</p>
-              </div>
               <div className="space-y-2">
                 <Button className="w-full" asChild>
                   <Link href="/dashboard/billing">
                     <Zap className="w-4 h-4 mr-2" />
-                    Upgrade to Pro - $79/mo
+                    Upgrade to Platform — $499/mo
                   </Link>
                 </Button>
                 <Button variant="outline" className="w-full" asChild>
@@ -375,7 +370,7 @@ export default function NewListingPage() {
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground">
-                Pro includes unlimited listings, AI Sales Assistant, and advanced analytics.
+                Platform includes unlimited listings, AI lead response, CRM, and advanced analytics.
               </p>
             </CardContent>
           </Card>

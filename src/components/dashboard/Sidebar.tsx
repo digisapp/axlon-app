@@ -130,22 +130,22 @@ export function Sidebar({ unreadMessages = 0, newLeads = 0, pendingAiInbox = 0, 
           <div className="p-3 border-t">
             {subscriptionTier === 'free' ? (
               <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-4">
-                <p className="font-medium text-sm mb-1">Upgrade to Pro</p>
+                <p className="font-medium text-sm mb-1">Unlock AI Tools</p>
                 <p className="text-xs text-muted-foreground mb-3">
-                  AI assistant, CRM, voice agent & more
+                  AI lead response, CRM, analytics & more — $499/mo
                 </p>
                 <Button size="sm" className="w-full" asChild>
-                  <Link href="/dashboard/billing">Upgrade</Link>
+                  <Link href="/dashboard/billing">See Plans</Link>
                 </Button>
               </div>
             ) : (
-              <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-4">
+              <div className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 rounded-lg p-4">
                 <p className="font-medium text-sm mb-1">Add Voice Agent</p>
                 <p className="text-xs text-muted-foreground mb-3">
-                  AI answers your calls 24/7
+                  AI answers your calls 24/7 — $299/mo
                 </p>
                 <Button size="sm" className="w-full" asChild>
-                  <Link href="/dashboard/voice-agent">Learn More</Link>
+                  <Link href="/dashboard/billing">Add Voice</Link>
                 </Button>
               </div>
             )}
