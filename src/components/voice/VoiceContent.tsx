@@ -316,7 +316,7 @@ export function VoiceContent() {
                   </Link>
                 </Button>
                 <Button variant="outline" className="flex-1" size="lg" asChild>
-                  <Link href="/pricing">
+                  <Link href="/transform">
                     Compare Plans
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>

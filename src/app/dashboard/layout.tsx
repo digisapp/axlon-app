@@ -56,6 +56,13 @@ export default async function DashboardLayout({
     .eq('user_id', user.id)
     .eq('status', 'new');
 
+  // Get pending AI inbox count
+  const { count: pendingAiInbox } = await supabase
+    .from('ai_inbox_items')
+    .select('*', { count: 'exact', head: true })
+    .eq('dealer_id', user.id)
+    .eq('status', 'pending');
+
   // Trial countdown
   const trialStart = profile?.created_at ? new Date(profile.created_at) : new Date();
   const trialEnd = new Date(trialStart.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -70,6 +77,7 @@ export default async function DashboardLayout({
         <Sidebar
           unreadMessages={unreadMessages || 0}
           newLeads={newLeads || 0}
+          pendingAiInbox={pendingAiInbox || 0}
           subscriptionTier={profile?.subscription_tier || 'free'}
         />
       </div>
@@ -82,6 +90,7 @@ export default async function DashboardLayout({
           profile={profile}
           unreadMessages={unreadMessages || 0}
           newLeads={newLeads || 0}
+          pendingAiInbox={pendingAiInbox || 0}
           trialDaysRemaining={trialDaysRemaining}
         />
 

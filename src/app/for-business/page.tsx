@@ -580,7 +580,7 @@ export default function ForDealersPage() {
             <p className="text-xs text-muted-foreground">&copy; 2026 AXLON AI. All rights reserved.</p>
           </div>
           <div className="flex gap-6">
-            <Link href="/pricing" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+            <Link href="/transform" className="text-xs text-muted-foreground hover:text-foreground transition-colors">AI Transformation</Link>
             <Link href="/contact" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Contact</Link>
             <Link href="/privacy" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>
             <Link href="/terms" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Terms</Link>

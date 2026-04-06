@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { calculateLeadScoreWithAI } from '@/lib/leads/scoring';
+import { generateLeadAutoReply } from '@/lib/ai/lead-auto-reply';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { escapeHtml } from '@/lib/utils/html-escape';
 import { z } from 'zod';
@@ -110,75 +111,163 @@ export async function POST(request: NextRequest) {
     // Use listing title from earlier fetch, or fallback
     const emailListingTitle = listingTitle || 'a listing';
 
-    // Determine notification recipient
+    // Determine notification recipient + collect seller context for auto-reply
     let notificationEmail: string | null = null;
+    let sellerCompanyName: string | null = null;
+    let sellerPhone: string | null = null;
+    let sellerEmail: string | null = null;
+    let sellerCity: string | null = null;
+    let sellerState: string | null = null;
+    let sellerSpecialties: string[] = [];
 
     if (isAxlonAILead) {
-      // Send to AXLON AI admin
       notificationEmail = AXLONAI_ADMIN_EMAIL;
+      sellerCompanyName = 'AXLON AI';
+      sellerEmail = AXLONAI_ADMIN_EMAIL;
     } else if (seller_id) {
-      // Get seller info for email notification
       const { data: seller } = await supabase
         .from('profiles')
-        .select('email, company_name')
+        .select('email, company_name, phone, city, state')
         .eq('id', seller_id)
         .single();
-      notificationEmail = seller?.email || null;
+      if (seller) {
+        notificationEmail = seller.email || null;
+        sellerEmail = seller.email || null;
+        sellerCompanyName = seller.company_name || null;
+        sellerPhone = seller.phone || null;
+        sellerCity = seller.city || null;
+        sellerState = seller.state || null;
+      }
+
+      // Fetch dealer AI settings for specialties
+      const { data: aiSettings } = await supabase
+        .from('dealer_ai_settings')
+        .select('specialties')
+        .eq('dealer_id', seller_id)
+        .single();
+      if (aiSettings?.specialties) {
+        sellerSpecialties = aiSettings.specialties;
+      }
     }
 
-    // Send email notification (if Resend is configured)
-    if (notificationEmail && process.env.RESEND_API_KEY) {
+    // Send dealer notification + AI buyer auto-reply in parallel
+    if (process.env.RESEND_API_KEY) {
+      const dashboardUrl = isAxlonAILead
+        ? `${process.env.NEXT_PUBLIC_APP_URL}/admin/leads`
+        : `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/leads`;
+
+      const dealerNotificationHtml = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">New Lead — ${escapeHtml(priority.toUpperCase())} Priority (Score: ${score})</h2>
+          <p>New inquiry about <strong>${escapeHtml(emailListingTitle)}</strong>.</p>
+
+          <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Contact Information</h3>
+            <p><strong>Name:</strong> ${escapeHtml(buyer_name)}</p>
+            <p><strong>Email:</strong> <a href="mailto:${escapeHtml(buyer_email)}">${escapeHtml(buyer_email)}</a></p>
+            ${buyer_phone ? `<p><strong>Phone:</strong> <a href="tel:${escapeHtml(buyer_phone)}">${escapeHtml(buyer_phone)}</a></p>` : ''}
+          </div>
+
+          ${message ? `
+          <div style="background: #fff; border: 1px solid #ddd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="margin-top: 0;">Their Message</h3>
+            <p>${escapeHtml(message)}</p>
+          </div>
+          ` : ''}
+
+          <p style="background: #e8f5e9; padding: 12px 16px; border-radius: 6px; color: #2e7d32; font-size: 14px;">
+            ✓ AI drafted a response — review it in your AI Inbox
+          </p>
+
+          <p>
+            <a href="${dashboardUrl}"
+               style="display: inline-block; background: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
+              View in ${isAxlonAILead ? 'Admin Panel' : 'Dashboard'}
+            </a>
+          </p>
+        </div>
+      `;
+
       try {
-        const dashboardUrl = isAxlonAILead
-          ? `${process.env.NEXT_PUBLIC_APP_URL}/admin/leads`
-          : `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/leads`;
+        const emailPromises: Promise<unknown>[] = [];
 
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: 'AXLON AI <leads@axlon.ai>',
-            to: notificationEmail,
-            subject: `New Lead: ${escapeHtml(buyer_name)} interested in ${escapeHtml(emailListingTitle)}`,
-            html: `
-              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #333;">New Lead Received!</h2>
-                <p>You have a new inquiry about <strong>${escapeHtml(emailListingTitle)}</strong>.</p>
+        // 1. Dealer notification
+        if (notificationEmail) {
+          emailPromises.push(
+            fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                from: 'AXLON AI <leads@axlon.ai>',
+                to: notificationEmail,
+                subject: `New ${priority} lead: ${escapeHtml(buyer_name)} — ${escapeHtml(emailListingTitle)}`,
+                html: dealerNotificationHtml,
+              }),
+            })
+          );
+        }
 
-                <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                  <h3 style="margin-top: 0;">Contact Information</h3>
-                  <p><strong>Name:</strong> ${escapeHtml(buyer_name)}</p>
-                  <p><strong>Email:</strong> <a href="mailto:${escapeHtml(buyer_email)}">${escapeHtml(buyer_email)}</a></p>
-                  ${buyer_phone ? `<p><strong>Phone:</strong> <a href="tel:${escapeHtml(buyer_phone)}">${escapeHtml(buyer_phone)}</a></p>` : ''}
-                </div>
+        // 2. AI auto-reply to buyer — confidence-gated
+        if (sellerEmail && sellerCompanyName && !isAxlonAILead) {
+          const autoReply = await generateLeadAutoReply({
+            buyerName: buyer_name,
+            buyerEmail: buyer_email,
+            message: message || null,
+            listingTitle: listingTitle || null,
+            businessName: sellerCompanyName,
+            businessPhone: sellerPhone,
+            businessEmail: sellerEmail,
+            businessSpecialties: sellerSpecialties,
+            businessCity: sellerCity,
+            businessState: sellerState,
+            leadPriority: priority,
+          });
 
-                ${message ? `
-                <div style="background: #fff; border: 1px solid #ddd; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                  <h3 style="margin-top: 0;">Message</h3>
-                  <p>${escapeHtml(message)}</p>
-                </div>
-                ` : ''}
+          // Always save to AI inbox for full audit trail
+          await supabase.from('ai_inbox_items').insert({
+            dealer_id: seller_id,
+            lead_id: lead.id,
+            channel: 'form',
+            from_name: buyer_name,
+            from_email: buyer_email,
+            from_phone: buyer_phone || null,
+            inquiry_text: message || `Inquiry about ${emailListingTitle}`,
+            ai_subject: autoReply.subject,
+            ai_draft: autoReply.plainText,
+            ai_draft_html: autoReply.html,
+            confidence: autoReply.confidence,
+            confidence_reasons: autoReply.confidenceReasons,
+            status: autoReply.autoSend ? 'approved' : 'pending',
+          });
 
-                <p>
-                  <a href="${dashboardUrl}"
-                     style="display: inline-block; background: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
-                    View in ${isAxlonAILead ? 'Admin Panel' : 'Dashboard'}
-                  </a>
-                </p>
+          if (autoReply.autoSend) {
+            // High confidence — send immediately
+            emailPromises.push(
+              fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  from: `${sellerCompanyName} via AXLON <leads@axlon.ai>`,
+                  to: buyer_email,
+                  reply_to: sellerEmail,
+                  subject: autoReply.subject,
+                  html: autoReply.html,
+                }),
+              })
+            );
+          }
+          // else: queued in ai_inbox_items with status='pending' for dealer approval
+        }
 
-                <p style="color: #666; font-size: 14px; margin-top: 30px;">
-                  This lead was generated through AXLON AI. Respond promptly to increase your chances of closing the sale.
-                </p>
-              </div>
-            `,
-          }),
-        });
+        await Promise.allSettled(emailPromises);
       } catch (emailError) {
-        // Don't fail the request if email fails
-        logger.error('Failed to send email notification', { error: emailError });
+        logger.error('Failed to send lead emails', { error: emailError });
       }
     }
 

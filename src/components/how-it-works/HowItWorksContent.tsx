@@ -39,30 +39,30 @@ export function HowItWorksContent() {
       {/* Three Product Cards */}
       <section className="max-w-6xl mx-auto px-4 mb-10 md:mb-14">
         <div className="grid md:grid-cols-3 gap-4 md:gap-6 items-start">
-          {/* AI Platform Card */}
-          <Link href="/pricing" className="group block">
+          {/* Free Assessment Card */}
+          <Link href="/apply" className="group block">
             <Card className="h-full border-primary/30 hover:border-primary/60 hover:shadow-xl transition-all">
               <CardHeader className="pb-3">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
-                  <Bot className="w-5 h-5 text-primary" />
+                  <PhoneCall className="w-5 h-5 text-primary" />
                 </div>
-                <CardTitle className="text-lg">AI Platform</CardTitle>
+                <CardTitle className="text-lg">Free AI Assessment</CardTitle>
                 <CardDescription className="text-sm">
-                  Run your inventory, leads, and deals with AI.
+                  See exactly where AI creates value in your operation.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline gap-1 mb-3">
-                  <span className="text-2xl font-bold">$399</span>
-                  <span className="text-sm text-muted-foreground">/mo</span>
+                  <span className="text-2xl font-bold">Free</span>
+                  <span className="text-sm text-muted-foreground">· 45 minutes</span>
                 </div>
                 <ul className="space-y-2 mb-4">
                   {[
-                    'AI Sales Assistant captures leads 24/7',
-                    'CRM + Deal Desk with AI scoring',
-                    'Inventory management & analytics',
-                    'Knowledge Base trained on your listings',
-                    'Custom branded business storefront',
+                    'Custom to your operation — not a generic demo',
+                    'Specific ROI projections for your business',
+                    'No obligation to continue',
+                    'Delivered by our senior team',
+                    'Includes your AI opportunity map',
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
                       <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
@@ -71,42 +71,39 @@ export function HowItWorksContent() {
                   ))}
                 </ul>
                 <span className="text-sm text-primary font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
-                  Start 30-day free trial <ArrowRight className="w-4 h-4" />
+                  Apply now <ArrowRight className="w-4 h-4" />
                 </span>
               </CardContent>
             </Card>
           </Link>
 
-          {/* AI Suite — Center Hero */}
-          <Link href="/pricing" className="group block">
+          {/* AI Transformation — Center Hero */}
+          <Link href="/transform" className="group block">
             <Card className="h-full border-2 border-emerald-500/50 hover:border-emerald-500/80 hover:shadow-xl transition-all bg-gradient-to-b from-emerald-50/50 to-transparent dark:from-emerald-950/20 relative shadow-lg">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <Badge className="bg-emerald-600 text-xs">Most Popular</Badge>
+                <Badge className="bg-emerald-600 text-xs">Most Common</Badge>
               </div>
               <CardHeader className="pb-3">
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-2">
                   <Zap className="w-5 h-5 text-emerald-600" />
                 </div>
-                <CardTitle className="text-lg">AI Suite</CardTitle>
+                <CardTitle className="text-lg">AI Transformation</CardTitle>
                 <CardDescription className="text-sm">
-                  Your business powered entirely by AI.
+                  Full 12-month AI overhaul of your entire operation.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-2xl font-bold text-emerald-600">$699</span>
-                  <span className="text-sm text-muted-foreground">/mo</span>
-                  <span className="text-xs text-muted-foreground line-through">$898</span>
+                  <span className="text-2xl font-bold text-emerald-600">Custom</span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">Save $199/mo vs buying separately</p>
-                <p className="text-xs font-medium mb-2">Includes everything in Platform plus:</p>
+                <p className="text-xs text-muted-foreground mb-3">$4,500–$12,000/mo · 12-month program</p>
                 <ul className="space-y-2 mb-4">
                   {[
-                    'AI Voice Agent answers calls 24/7',
-                    'Phone lead capture & qualification',
-                    'Call transcripts synced to CRM',
-                    'Team PIN access for company intel',
-                    'Every call, lead, and deal in one place',
+                    'AI Lead Response System (24/7 capture)',
+                    'Dispatch & load matching automation',
+                    'Document AI for BOLs, invoices & titles',
+                    'Sales team AI assistant & CRM',
+                    'Full Axlon Marketplace integration',
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
                       <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
@@ -114,38 +111,38 @@ export function HowItWorksContent() {
                     </li>
                   ))}
                 </ul>
-                <p className="text-[11px] text-muted-foreground mb-3">Most businesses choose this plan.</p>
+                <p className="text-[11px] text-muted-foreground mb-3">Average ROI: $150k–$500k in year one.</p>
                 <span className="text-sm text-emerald-600 font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
-                  Start 30-day free trial <ArrowRight className="w-4 h-4" />
+                  See the full program <ArrowRight className="w-4 h-4" />
                 </span>
               </CardContent>
             </Card>
           </Link>
 
-          {/* Voice Agent Card */}
-          <Link href="/voice" className="group block">
+          {/* Marketplace Card */}
+          <Link href="/search" className="group block">
             <Card className="h-full border-cyan-500/30 hover:border-cyan-500/60 hover:shadow-xl transition-all">
               <CardHeader className="pb-3">
                 <div className="w-10 h-10 rounded-xl bg-cyan-600/10 flex items-center justify-center mb-2">
                   <Headphones className="w-5 h-5 text-cyan-600" />
                 </div>
-                <CardTitle className="text-lg">Voice Agent</CardTitle>
+                <CardTitle className="text-lg">Axlon Marketplace</CardTitle>
                 <CardDescription className="text-sm">
-                  Never miss another customer call.
+                  Buy and sell heavy haul equipment and trailers.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-baseline gap-1 mb-3">
-                  <span className="text-2xl font-bold">$499</span>
-                  <span className="text-sm text-muted-foreground">/mo</span>
+                  <span className="text-2xl font-bold">Free</span>
+                  <span className="text-sm text-muted-foreground">to browse</span>
                 </div>
                 <ul className="space-y-2 mb-4">
                   {[
-                    'Dedicated AI phone number',
-                    '24/7 call answering in 30+ languages',
-                    'Automatic lead capture from every call',
-                    'Call recordings + AI transcripts',
-                    'CRM integration with deals & customers',
+                    'Lowboy & heavy haul trailers',
+                    'Semi trucks & day cabs',
+                    'Heavy equipment & cranes',
+                    'Verified dealer network',
+                    'AI-powered search by specs & capacity',
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
                       <Check className="w-4 h-4 text-cyan-600 shrink-0 mt-0.5" />
@@ -154,7 +151,7 @@ export function HowItWorksContent() {
                   ))}
                 </ul>
                 <span className="text-sm text-cyan-600 font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
-                  Learn more <ArrowRight className="w-4 h-4" />
+                  Browse equipment <ArrowRight className="w-4 h-4" />
                 </span>
               </CardContent>
             </Card>
@@ -253,14 +250,14 @@ export function HowItWorksContent() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Button size="lg" className="rounded-full gap-2 w-full sm:w-auto" asChild>
-            <Link href="/pricing">
-              View Pricing
+            <Link href="/apply">
+              Apply for Free Assessment
               <ArrowRight className="w-4 h-4" />
             </Link>
           </Button>
           <Button size="lg" variant="outline" className="rounded-full w-full sm:w-auto" asChild>
-            <Link href="/contact?plan=demo">
-              Book a Demo
+            <Link href="/transform">
+              See the Full Program
             </Link>
           </Button>
         </div>
@@ -270,21 +267,21 @@ export function HowItWorksContent() {
       <section className="py-8 md:py-12 px-4 bg-primary/5 border-t">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-lg md:text-2xl font-bold mb-2">
-            Ready to get started?
+            Ready to see what&apos;s possible?
           </h2>
           <p className="text-sm text-muted-foreground mb-4">
-            30-day free trial. No credit card required.
+            Start with a free 45-minute AI Opportunity Assessment. No obligation.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button size="lg" className="w-full sm:w-auto" asChild>
-              <Link href="/get-started">
+              <Link href="/apply">
                 <Zap className="w-4 h-4 mr-2" />
-                Start 30-Day Free Trial
+                Apply for Free Assessment
               </Link>
             </Button>
             <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
-              <Link href="/pricing">
-                View Pricing
+              <Link href="/transform">
+                See the Full Program
               </Link>
             </Button>
           </div>

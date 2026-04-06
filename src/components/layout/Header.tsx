@@ -223,11 +223,11 @@ export function Header() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/pricing" className="flex items-center gap-3">
+                  <Link href="/transform" className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
                       <DollarSign className="w-4 h-4" />
                     </div>
-                    Pricing
+                    AI Transformation
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -454,12 +454,12 @@ export function Header() {
                       </span>
                     </Link>
                     <Link
-                      href="/pricing"
+                      href="/transform"
                       onClick={() => setIsOpen(false)}
                       className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-muted"
                     >
                       <DollarSign className="w-5 h-5" />
-                      Pricing
+                      AI Transformation
                     </Link>
                   </nav>
 

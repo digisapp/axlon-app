@@ -37,6 +37,7 @@ interface DashboardHeaderProps {
   } | null;
   unreadMessages?: number;
   newLeads?: number;
+  pendingAiInbox?: number;
   trialDaysRemaining?: number | null;
 }
 
@@ -45,6 +46,7 @@ export function DashboardHeader({
   profile,
   unreadMessages = 0,
   newLeads = 0,
+  pendingAiInbox = 0,
   trialDaysRemaining,
 }: DashboardHeaderProps) {
   const displayName = profile?.company_name || user.email?.split('@')[0] || 'User';
@@ -55,7 +57,7 @@ export function DashboardHeader({
     <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30">
       <div className="h-full px-4 flex items-center justify-between gap-4">
         {/* Mobile Menu Trigger */}
-        <MobileSidebar unreadMessages={unreadMessages} newLeads={newLeads} />
+        <MobileSidebar unreadMessages={unreadMessages} newLeads={newLeads} pendingAiInbox={pendingAiInbox} />
 
         {/* Page Title - Hidden on mobile, visible on desktop */}
         <div className="hidden lg:block">

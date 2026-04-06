@@ -363,7 +363,7 @@ export default function HomePage() {
           </ul>
           <h2>For Business</h2>
           <ul>
-            <li><Link href="/pricing">AI Platform Pricing</Link></li>
+            <li><Link href="/transform">AI Transformation Program</Link></li>
             <li><Link href="/contact?plan=demo">Book a Demo</Link></li>
             <li><Link href="/dashboard/listings/new">List Equipment</Link></li>
           </ul>
@@ -394,7 +394,7 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 md:flex gap-3 sm:gap-6 text-center sm:text-left">
             <FooterLink href="/new-trailers">New Trailers</FooterLink>
-            <FooterLink href="/pricing">Pricing</FooterLink>
+            <FooterLink href="/transform">Transform</FooterLink>
             <FooterLink href="/dealers">Directory</FooterLink>
             <FooterLink href="/about">About</FooterLink>
             <FooterLink href="/privacy">Privacy</FooterLink>

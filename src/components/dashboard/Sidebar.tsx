@@ -18,14 +18,15 @@ import { dashboardNavSections, getNavSectionsWithBadges } from '@/lib/dashboard-
 interface SidebarProps {
   unreadMessages?: number;
   newLeads?: number;
+  pendingAiInbox?: number;
   subscriptionTier?: string;
 }
 
-export function Sidebar({ unreadMessages = 0, newLeads = 0, subscriptionTier = 'free' }: SidebarProps) {
+export function Sidebar({ unreadMessages = 0, newLeads = 0, pendingAiInbox = 0, subscriptionTier = 'free' }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
 
-  const sections = getNavSectionsWithBadges(dashboardNavSections, unreadMessages, newLeads);
+  const sections = getNavSectionsWithBadges(dashboardNavSections, unreadMessages, newLeads, pendingAiInbox);
 
   return (
     <TooltipProvider delayDuration={0}>

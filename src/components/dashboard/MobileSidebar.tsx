@@ -19,16 +19,18 @@ import { dashboardNavSections, getNavSectionsWithBadges } from '@/lib/dashboard-
 interface MobileSidebarProps {
   unreadMessages?: number;
   newLeads?: number;
+  pendingAiInbox?: number;
 }
 
 export function MobileSidebar({
   unreadMessages = 0,
   newLeads = 0,
+  pendingAiInbox = 0,
 }: MobileSidebarProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
-  const sections = getNavSectionsWithBadges(dashboardNavSections, unreadMessages, newLeads);
+  const sections = getNavSectionsWithBadges(dashboardNavSections, unreadMessages, newLeads, pendingAiInbox);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>

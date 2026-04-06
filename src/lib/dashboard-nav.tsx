@@ -19,6 +19,8 @@ import {
   Heart,
   BotMessageSquare,
   DollarSign,
+  Bot,
+  Inbox,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -103,6 +105,16 @@ export const dashboardNavSections: NavSection[] = [
     label: 'AI Tools',
     items: [
       {
+        href: '/dashboard/ai-inbox',
+        label: 'AI Inbox',
+        icon: <Inbox className="w-5 h-5" />,
+      },
+      {
+        href: '/dashboard/ai-performance',
+        label: 'AI Performance',
+        icon: <Bot className="w-5 h-5" />,
+      },
+      {
         href: '/dashboard/ai-assistant',
         label: 'AI Assistant',
         icon: <Brain className="w-5 h-5" />,
@@ -173,7 +185,7 @@ export function getNavItemsWithBadges(
   items: NavItem[],
   unreadMessages: number,
   newLeads: number,
-  newAiLeads?: number
+  pendingAiInbox?: number,
 ): NavItem[] {
   return items.map((item) => {
     if (item.href === '/dashboard/messages' && unreadMessages > 0) {
@@ -181,6 +193,9 @@ export function getNavItemsWithBadges(
     }
     if (item.href === '/dashboard/leads' && newLeads > 0) {
       return { ...item, badge: newLeads };
+    }
+    if (item.href === '/dashboard/ai-inbox' && pendingAiInbox && pendingAiInbox > 0) {
+      return { ...item, badge: pendingAiInbox };
     }
     return item;
   });
@@ -190,9 +205,10 @@ export function getNavSectionsWithBadges(
   sections: NavSection[],
   unreadMessages: number,
   newLeads: number,
+  pendingAiInbox?: number,
 ): NavSection[] {
   return sections.map((section) => ({
     ...section,
-    items: getNavItemsWithBadges(section.items, unreadMessages, newLeads),
+    items: getNavItemsWithBadges(section.items, unreadMessages, newLeads, pendingAiInbox),
   }));
 }

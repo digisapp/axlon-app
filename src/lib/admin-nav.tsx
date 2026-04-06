@@ -17,6 +17,9 @@ import {
   Database,
   Truck,
   Mail,
+  Zap,
+  ClipboardList,
+  Target,
 } from 'lucide-react';
 
 export interface AdminNavItem {
@@ -44,6 +47,26 @@ export const adminNavSections: AdminNavSection[] = [
         href: '/admin/analytics',
         label: 'Analytics',
         icon: <BarChart3 className="w-5 h-5" />,
+      },
+    ],
+  },
+  {
+    label: 'Consulting',
+    items: [
+      {
+        href: '/admin/applications',
+        label: 'Applications',
+        icon: <ClipboardList className="w-5 h-5" />,
+      },
+      {
+        href: '/admin/clients',
+        label: 'Active Clients',
+        icon: <Target className="w-5 h-5" />,
+      },
+      {
+        href: '/transform',
+        label: 'Transform Page ↗',
+        icon: <Zap className="w-5 h-5" />,
       },
     ],
   },
