@@ -1,0 +1,116 @@
+AXLON AI — OUTREACH LIST SUMMARY
+Generated: 4/5/2026
+═══════════════════════════════════════════════════════════════
+
+TIER 1 — SCRA (Specialized Carriers & Rigging Association)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total qualified prospects: 276
+Direct company emails available: 276
+Named contacts found: 0
+
+By vertical:
+  Crane & Rigging                     219
+  Specialized Transport               57
+
+Top states:
+  TX         47 companies
+  OH         20 companies
+  GA         13 companies
+  IL         12 companies
+  PA         11 companies
+  IN         11 companies
+  FL         10 companies
+  CA         9 companies
+  NY         9 companies
+  MI         8 companies
+
+Top 10 prospects (highest score):
+   1. AAA Machinery Services, Inc.             Crane & Rigging                javier@aaamachineryriggersinc.com
+   2. Aber's Towing & Crane Service Inc.       Crane & Rigging                aaron@aberscrane.com
+   3. Active Crane Rentals                     Crane & Rigging                hs@activecrane.com
+   4. Adkins Export Packing and Machinery Movers Crane & Rigging                cmaloneadkins@gmail.com
+   5. Advanced Freight Dynamics LLC            Crane & Rigging                steven@afd-web.com
+   6. Advanced Freight Dynamics LLC (B)        Crane & Rigging                steven@afd-web.com
+   7. AK Contratistas Industriales De Mexico, S.A. De C.V. (B) Crane & Rigging                marnett@akic.net
+   8. AK Industrial Contractors, Inc.          Crane & Rigging                marnett@akic.net
+   9. Alliance Riggers & Constructors, Ltd.    Crane & Rigging                aconde@allianceriggers.com
+  10. Americrane Rentals                       Crane & Rigging                jrobertson@americraneusa.com
+
+File: data/outreach-tier1-scra.csv
+
+─────────────────────────────────────────────────────────────
+
+TIER 2 — CONEXPO-CON/AGG 2026 Exhibitors
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total qualified prospects: 300
+With direct contact email: 278
+With named contact: 277
+
+By vertical:
+  Crane & Rigging                     57
+  Trailer / Heavy Haul                47
+  Equipment Rental                    45
+  Equipment Dealer                    27
+  Equipment Dealer / Manufacturer     124
+
+Top states:
+  TX         31 companies
+  IL         24 companies
+  CA         23 companies
+  OH         21 companies
+  FL         19 companies
+  PA         17 companies
+  WI         15 companies
+  IA         14 companies
+  NC         12 companies
+  MN         11 companies
+
+Top 10 prospects (highest score):
+   1. Construction Equipment Guide             Crane & Rigging           TMcKeonjr@cegltd.com
+   2. Rock Rental / Sewer Equipment            Trailer / Heavy Haul      larryhageman@rock-rental.com
+   3. Arrowhead Winch                          Crane & Rigging           paul.hiltenbeitel@arrowheadwinch.com
+   4. Nelson Manufacturing Company             Crane & Rigging           tim.sarka@nelsontrailers.com
+   5. Amur Equipment Finance                   Crane & Rigging           livler@goamur.com
+   6. LiuGong North America                    Equipment Rental          cwatts@liugongna.com
+   7. Felling Trailers, Inc.                   Trailer / Heavy Haul      trailers@felling.com
+   8. Voltek Systems                           Crane & Rigging           Lance@volteksystems.com
+   9. Atlantic Logistics                       Crane & Rigging           rob@shipatlantic.com
+  10. Bigge Crane and Rigging Co               Crane & Rigging           1-888-897-2444
+
+File: data/outreach-tier2-conexpo.csv
+
+═══════════════════════════════════════════════════════════════
+
+OUTREACH TEMPLATES (use the "outreach_template" column)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[crane-rigging]
+Subject: AI for crane & rigging operations — quick question
+Hi {{contact_name || "there"}},
+Noticed {{company}} is in the crane and rigging space.
+We help rigging companies automate quoting, document processing, and lead follow-up using AI — typically saving 15-20 hours/week in admin work.
+Would you be open to a 15-min call to see if this is relevant for your operation?
+
+[heavy-haul]
+Subject: Cutting dispatcher workload with AI — {{company}}
+Hi {{contact_name || "there"}},
+We've been working with lowboy and heavy haul operators to automate dispatch coordination and capture more inbound loads using AI.
+Would you be against a quick 15-minute call to see what's possible?
+
+[equipment-dealer]
+Subject: AI lead follow-up for equipment dealers
+Hi {{contact_name || "there"}},
+We work with equipment dealers to build AI systems that reply to every inbound inquiry instantly and keep leads warm automatically.
+Most dealers we work with see a 25-30% improvement in lead conversion within 90 days.
+Worth a 15-minute call?
+
+─────────────────────────────────────────────────────────────
+
+RECOMMENDED SEQUENCE
+1. Week 1: Send LinkedIn connection requests to all Tier 1 SCRA crane/rigging contacts
+2. Week 1: Email top 25 SCRA prospects (sort by score desc, crane/rigging first)
+3. Week 2: Email top 25 CONEXPO prospects with direct contact emails
+4. Week 2-3: Follow up with everyone who opened but didn't reply (3-day cadence)
+5. Month 2: Work down the rest of the list in batches of 20/week
+
+GOAL: 12-15 free assessments booked → 2 founding partners signed

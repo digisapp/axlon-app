@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { requireCsrf } from '@/lib/security/csrf';
 
 const patchSchema = z.object({
   status: z.enum(['prospect', 'scoping', 'active', 'maintenance', 'churned']).optional(),
@@ -62,6 +63,9 @@ export async function PATCH(
     if (!await requireAdmin(supabase)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
+
     const { id } = await params;
     const body = await request.json();
 

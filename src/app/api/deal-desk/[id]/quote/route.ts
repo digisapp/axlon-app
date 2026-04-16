@@ -4,6 +4,7 @@ import { generateQuotePdf, generateQuoteFilename } from '@/lib/deals/generateQuo
 import { generateQuoteSchema } from '@/lib/validations/deals';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { requireCsrf } from '@/lib/security/csrf';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -28,6 +29,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
+
 
     // Get deal with all details
     const { data: deal, error: dealError } = await supabase

@@ -1,9 +1,13 @@
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireCsrf } from '@/lib/security/csrf';
 
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
   try {
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
+
     // Get the authenticated user
     const supabase = await createServerClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';import { validateBody, ValidationError, adminVoiceAgentCreateSchema } from '@/lib/validations/api';
+import { requireCsrf } from '@/lib/security/csrf';
 
 // GET /api/admin/dealer-voice-agents - List all dealer voice agents
 export async function GET(request: NextRequest) {
@@ -118,7 +119,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Forbidden' }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
+, { status: 403 });
     }
 
     const body = await request.json();

@@ -4,6 +4,7 @@ import { getStripe, PRICING } from '@/lib/stripe/config';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, stripeCheckoutSchema } from '@/lib/validations/api';
+import { requireCsrf } from '@/lib/security/csrf';
 
 function isAllowedRedirect(url: string | undefined): url is string {
   if (!url) return false;
@@ -28,6 +29,9 @@ export async function POST(request: NextRequest) {
       { status: 401 }
     );
   }
+
+  const csrfError = await requireCsrf(request);
+  if (csrfError) return csrfError;
 
   try {
     const identifier = getClientIdentifier(request);

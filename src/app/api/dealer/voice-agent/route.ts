@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, voiceAgentSchema } from '@/lib/validations/api';
+import { requireCsrf } from '@/lib/security/csrf';
 
 /**
  * Validate and normalize phone number to E.164 format
@@ -49,6 +50,9 @@ export async function GET(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
+
 
     // Get dealer's voice agent
     const { data: agent, error } = await supabase
@@ -88,6 +92,9 @@ export async function POST(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
+
 
     // Check if dealer already has a voice agent
     const { data: existing } = await supabase
@@ -171,6 +178,9 @@ export async function PATCH(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
+
 
     const body = await request.json();
 

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { recordPaymentSchema } from '@/lib/validations/floor-plan';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { requireCsrf } from '@/lib/security/csrf';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -29,6 +30,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (!rateLimitResult.success) {
       return rateLimitResponse(rateLimitResult);
     }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
 
     const body = await request.json();
     const parseResult = recordPaymentSchema.safeParse(body);

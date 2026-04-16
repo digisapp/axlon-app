@@ -62,6 +62,12 @@ export async function validateCsrfToken(request: NextRequest): Promise<boolean> 
  * Use on state-changing endpoints (POST, PUT, DELETE, PATCH)
  */
 export async function requireCsrf(request: NextRequest): Promise<NextResponse | null> {
+  // Skip CSRF for read-only methods (only mutating methods need protection)
+  const method = request.method.toUpperCase();
+  if (['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    return null;
+  }
+
   // Skip CSRF for API routes that use other auth (e.g., webhook signatures, internal auth)
   const isWebhook = request.nextUrl.pathname.includes('/webhook');
   const isInternal = request.headers.get('x-internal-signature');

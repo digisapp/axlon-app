@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { updateFloorPlanUnitSchema } from '@/lib/validations/floor-plan';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { requireCsrf } from '@/lib/security/csrf';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -76,6 +77,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
 
     const body = await request.json();
     const parseResult = updateFloorPlanUnitSchema.safeParse(body);

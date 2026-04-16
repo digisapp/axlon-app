@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, adminVoiceAgentUpdateSchema } from '@/lib/validations/api';
+import { requireCsrf } from '@/lib/security/csrf';
 
 /**
  * Validate and normalize phone number to E.164 format
@@ -291,7 +292,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Forbidden' }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
+, { status: 403 });
     }
 
     // Delete voice agent

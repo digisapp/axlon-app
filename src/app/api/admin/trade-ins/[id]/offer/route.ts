@@ -4,6 +4,7 @@ import { Resend } from 'resend';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, tradeInOfferSchema } from '@/lib/validations/api';
+import { requireCsrf } from '@/lib/security/csrf';
 
 export async function POST(
   request: NextRequest,
@@ -36,7 +37,11 @@ export async function POST(
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Forbidden' }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
+, { status: 403 });
     }
 
     let validatedData;

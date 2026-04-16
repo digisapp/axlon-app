@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { requireCsrf } from '@/lib/security/csrf';
 
 const clientSchema = z.object({
   company_name: z.string().min(1).max(200),
@@ -74,6 +75,9 @@ export async function POST(request: NextRequest) {
     if (!await requireAdmin(supabase)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
 
     const body = await request.json();
     const parsed = clientSchema.safeParse(body);

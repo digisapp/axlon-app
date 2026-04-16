@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createFloorPlanUnitSchema, floorPlanUnitsQuerySchema } from '@/lib/validations/floor-plan';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { requireCsrf } from '@/lib/security/csrf';
 
 // GET - List floored units
 export async function GET(request: NextRequest) {
@@ -114,6 +115,9 @@ export async function POST(request: NextRequest) {
     if (!rateLimitResult.success) {
       return rateLimitResponse(rateLimitResult);
     }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
 
     const body = await request.json();
     const parseResult = createFloorPlanUnitSchema.safeParse(body);
