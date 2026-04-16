@@ -299,8 +299,13 @@ export async function POST(request: NextRequest) {
         .insert(industryInserts);
 
       if (industryError) {
-        logger.error('Industry insert error', { industryError });
-        // Don't fail the whole request, just log the error
+        logger.error('Industry insert error — rolling back listing', { industryError, listingId: data.id });
+        // Rollback: delete the orphaned listing so we don't leave it without its industries
+        await supabase.from('listings').delete().eq('id', data.id);
+        return NextResponse.json(
+          { error: 'Failed to attach industries to listing' },
+          { status: 500 }
+        );
       }
     }
 

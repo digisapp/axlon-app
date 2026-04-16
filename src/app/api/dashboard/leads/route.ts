@@ -7,8 +7,8 @@ import { validateBody, ValidationError, dashboardCreateLeadSchema } from '@/lib/
 export const GET = withAuth(async (request, { user, supabase }) => {
   const searchParams = request.nextUrl.searchParams;
   const status = searchParams.get('status');
-  const limit = parseInt(searchParams.get('limit') || '50');
-  const offset = parseInt(searchParams.get('offset') || '0');
+  const limit = Math.max(1, Math.min(parseInt(searchParams.get('limit') || '50'), 200));
+  const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'));
 
   let query = supabase
     .from('leads')

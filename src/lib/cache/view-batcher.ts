@@ -128,3 +128,23 @@ export async function getBatchedViewCount(listingId: string): Promise<number> {
 
 // Export flush interval for external scheduling
 export { FLUSH_INTERVAL, FLUSH_THRESHOLD };
+
+// Graceful shutdown: flush all pending view batches before the process exits.
+// This prevents view counts being lost when the server restarts before a batch
+// reaches the auto-flush threshold.
+if (typeof process !== 'undefined' && process.on) {
+  let flushing = false;
+  const gracefulFlush = () => {
+    if (flushing) return;
+    flushing = true;
+    flushAllViewBatches()
+      .then(({ flushed, totalViews }) => {
+        if (flushed > 0) {
+          logger.info('Graceful shutdown: flushed view batches', { flushed, totalViews });
+        }
+      })
+      .catch((err) => logger.error('Graceful shutdown: view batch flush failed', { error: err }));
+  };
+  process.once('SIGTERM', gracefulFlush);
+  process.once('SIGINT', gracefulFlush);
+}
