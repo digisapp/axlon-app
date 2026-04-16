@@ -25,6 +25,7 @@ import {
   Target,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface TradeInFormProps {
   interestedListingId?: string;
@@ -67,7 +68,7 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('/api/categories');
+        const response = await csrfFetch('/api/categories');
         if (response.ok) {
           const { data } = await response.json();
           // Flatten categories for the dropdown
@@ -114,7 +115,7 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/trade-in', {
+      const response = await csrfFetch('/api/trade-in', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

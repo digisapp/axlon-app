@@ -41,6 +41,7 @@ import { ListingWizard } from '@/components/agents/ListingWizard';
 import { canCreateListing, getPlanLimits, getRemainingListings } from '@/lib/plans';
 import type { Category, AIPriceEstimate } from '@/types';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 export default function NewListingPage() {
   const router = useRouter();
@@ -141,7 +142,7 @@ export default function NewListingPage() {
 
     const fetchIndustries = async () => {
       try {
-        const response = await fetch('/api/industries');
+        const response = await csrfFetch('/api/industries');
         if (response.ok) {
           const { data } = await response.json();
           setIndustries(data || []);
@@ -197,7 +198,7 @@ export default function NewListingPage() {
     setIsEstimating(true);
 
     try {
-      const response = await fetch('/api/ai/price', {
+      const response = await csrfFetch('/api/ai/price', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -288,7 +289,7 @@ export default function NewListingPage() {
         industries: formData.selected_industries,
       };
 
-      const response = await fetch('/api/listings', {
+      const response = await csrfFetch('/api/listings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(listingData),

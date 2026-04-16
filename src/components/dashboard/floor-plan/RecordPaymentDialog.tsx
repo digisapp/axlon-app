@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import type { ListingFloorPlan } from '@/types/floor-plan';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface RecordPaymentDialogProps {
   open: boolean;
@@ -49,7 +50,7 @@ export function RecordPaymentDialog({
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/floor-plan/units/${floorPlan.id}/payment`, {
+      const response = await csrfFetch(`/api/floor-plan/units/${floorPlan.id}/payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -55,6 +55,7 @@ const ImageUpload = dynamic(
 );
 import type { Category, AIPriceEstimate } from '@/types';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 // Feature flag: set to true to enable AI video preview generation (~$0.25/video via xAI)
 const AI_VIDEO_PREVIEW_ENABLED = false;
@@ -211,7 +212,7 @@ export default function EditListingPage({ params }: PageProps) {
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/ai/video-preview?listingId=${id}`);
+        const res = await csrfFetch(`/api/ai/video-preview?listingId=${id}`);
         const data = await res.json();
 
         if (data.status === 'completed' && data.url) {
@@ -236,7 +237,7 @@ export default function EditListingPage({ params }: PageProps) {
     setAiVideoPreviewUrl(null);
 
     try {
-      const res = await fetch('/api/ai/video-preview', {
+      const res = await csrfFetch('/api/ai/video-preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ listingId: id }),
@@ -289,7 +290,7 @@ export default function EditListingPage({ params }: PageProps) {
         .slice(0, 4)
         .map((img) => img.url);
 
-      const response = await fetch('/api/ai/describe', {
+      const response = await csrfFetch('/api/ai/describe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -329,7 +330,7 @@ export default function EditListingPage({ params }: PageProps) {
     setIsEstimating(true);
 
     try {
-      const response = await fetch('/api/ai/price', {
+      const response = await csrfFetch('/api/ai/price', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -361,7 +362,7 @@ export default function EditListingPage({ params }: PageProps) {
 
     try {
       // Update listing
-      const response = await fetch(`/api/listings/${id}`, {
+      const response = await csrfFetch(`/api/listings/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -384,7 +385,7 @@ export default function EditListingPage({ params }: PageProps) {
       // Add new images (ones without id)
       const newImages = imagesToSave.filter((img) => !img.id);
       if (newImages.length > 0) {
-        await fetch(`/api/listings/${id}/images`, {
+        await csrfFetch(`/api/listings/${id}/images`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ images: newImages }),
@@ -394,7 +395,7 @@ export default function EditListingPage({ params }: PageProps) {
       // Update existing images order/primary
       const existingImages = imagesToSave.filter((img) => img.id);
       if (existingImages.length > 0) {
-        await fetch(`/api/listings/${id}/images`, {
+        await csrfFetch(`/api/listings/${id}/images`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ images: existingImages }),
@@ -415,7 +416,7 @@ export default function EditListingPage({ params }: PageProps) {
     setIsDeleting(true);
 
     try {
-      const response = await fetch(`/api/listings/${id}`, {
+      const response = await csrfFetch(`/api/listings/${id}`, {
         method: 'DELETE',
       });
 
@@ -435,7 +436,7 @@ export default function EditListingPage({ params }: PageProps) {
     setIsCloning(true);
 
     try {
-      const response = await fetch(`/api/listings/${id}/clone`, {
+      const response = await csrfFetch(`/api/listings/${id}/clone`, {
         method: 'POST',
       });
 

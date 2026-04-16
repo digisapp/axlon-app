@@ -35,6 +35,7 @@ import {
   Phone,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 const VERTICALS = [
   'Heavy Haul / Lowboy Carrier',
@@ -163,7 +164,7 @@ export default function ActiveClientsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/consulting-clients');
+      const res = await csrfFetch('/api/admin/consulting-clients');
       if (res.ok) setClients(await res.json());
     } catch (err) {
       logger.error('Failed to load clients', { err });
@@ -179,7 +180,7 @@ export default function ActiveClientsPage() {
     setSaving(true);
     setFormError('');
     try {
-      const res = await fetch('/api/admin/consulting-clients', {
+      const res = await csrfFetch('/api/admin/consulting-clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -210,7 +211,7 @@ export default function ActiveClientsPage() {
   }
 
   async function updateMilestone(clientId: string, milestoneId: string, status: string) {
-    await fetch(`/api/admin/consulting-clients/${clientId}`, {
+    await csrfFetch(`/api/admin/consulting-clients/${clientId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ milestone_id: milestoneId, status }),

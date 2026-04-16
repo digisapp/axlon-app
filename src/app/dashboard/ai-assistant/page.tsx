@@ -43,6 +43,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface FAQ {
   question: string;
@@ -400,7 +401,7 @@ export default function AIAssistantPage() {
   // Knowledge Base functions
   const fetchKBStatus = async () => {
     try {
-      const res = await fetch('/api/dealer/knowledge-base');
+      const res = await csrfFetch('/api/dealer/knowledge-base');
       if (res.ok) {
         const data = await res.json();
         setKbStatus(data);
@@ -412,7 +413,7 @@ export default function AIAssistantPage() {
 
   const fetchKBDocuments = async () => {
     try {
-      const res = await fetch('/api/dealer/knowledge-base/documents');
+      const res = await csrfFetch('/api/dealer/knowledge-base/documents');
       if (res.ok) {
         const data = await res.json();
         setKbDocuments(data.data || []);
@@ -425,7 +426,7 @@ export default function AIAssistantPage() {
   const toggleKB = async (enable: boolean) => {
     setKbLoading(true);
     try {
-      const res = await fetch('/api/dealer/knowledge-base', {
+      const res = await csrfFetch('/api/dealer/knowledge-base', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: enable ? 'enable' : 'disable' }),
@@ -443,7 +444,7 @@ export default function AIAssistantPage() {
   const syncAllKB = async () => {
     setKbSyncing(true);
     try {
-      await fetch('/api/dealer/knowledge-base/sync', {
+      await csrfFetch('/api/dealer/knowledge-base/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -465,7 +466,7 @@ export default function AIAssistantPage() {
       formData.append('title', title);
       formData.append('document_type', docType);
 
-      const res = await fetch('/api/dealer/knowledge-base/documents', {
+      const res = await csrfFetch('/api/dealer/knowledge-base/documents', {
         method: 'POST',
         body: formData,
       });
@@ -486,7 +487,7 @@ export default function AIAssistantPage() {
 
   const deleteKBDocument = async (docId: string) => {
     try {
-      const res = await fetch(`/api/dealer/knowledge-base/documents/${docId}`, {
+      const res = await csrfFetch(`/api/dealer/knowledge-base/documents/${docId}`, {
         method: 'DELETE',
       });
       if (res.ok) {

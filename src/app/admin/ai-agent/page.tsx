@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface AIAgentSettings {
   id: string;
@@ -61,7 +62,7 @@ export default function AIAgentSettingsPage() {
 
   async function fetchSettings() {
     try {
-      const res = await fetch('/api/admin/ai-agent');
+      const res = await csrfFetch('/api/admin/ai-agent');
       if (!res.ok) throw new Error('Failed to fetch settings');
       const data = await res.json();
       setSettings(data);
@@ -78,7 +79,7 @@ export default function AIAgentSettingsPage() {
 
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/ai-agent', {
+      const res = await csrfFetch('/api/admin/ai-agent', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),

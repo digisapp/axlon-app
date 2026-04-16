@@ -55,6 +55,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface DealerStaff {
   id: string;
@@ -124,7 +125,7 @@ export default function AdminStaffPage() {
         params.set('search', searchQuery);
       }
 
-      const response = await fetch(`/api/admin/dealer-staff?${params}`);
+      const response = await csrfFetch(`/api/admin/dealer-staff?${params}`);
       if (response.ok) {
         const data = await response.json();
         setStaff(data.data || []);
@@ -157,7 +158,7 @@ export default function AdminStaffPage() {
     setIsSubmitting(true);
     try {
       if (action === 'delete') {
-        const response = await fetch(`/api/admin/dealer-staff/${selectedStaff.id}`, {
+        const response = await csrfFetch(`/api/admin/dealer-staff/${selectedStaff.id}`, {
           method: 'DELETE',
         });
 
@@ -166,7 +167,7 @@ export default function AdminStaffPage() {
           fetchStaff();
         }
       } else {
-        const response = await fetch(`/api/admin/dealer-staff/${selectedStaff.id}`, {
+        const response = await csrfFetch(`/api/admin/dealer-staff/${selectedStaff.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action }),

@@ -3,12 +3,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { Deal, DealStatus } from '@/types/deals';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 export function useDeal(dealId: string | null, enabled = true) {
   return useQuery<Deal>({
     queryKey: ['deal', dealId],
     queryFn: async () => {
-      const res = await fetch(`/api/deal-desk/${dealId}`);
+      const res = await csrfFetch(`/api/deal-desk/${dealId}`);
       if (!res.ok) throw new Error('Failed to load deal');
       const { data } = await res.json();
       return data;
@@ -22,7 +23,7 @@ export function useUpdateDealStatus(dealId: string | null) {
 
   return useMutation({
     mutationFn: async (newStatus: DealStatus) => {
-      const res = await fetch(`/api/deal-desk/${dealId}`, {
+      const res = await csrfFetch(`/api/deal-desk/${dealId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -44,7 +45,7 @@ export function useAddLineItem(dealId: string | null) {
 
   return useMutation({
     mutationFn: async (item: { item_type: string; description: string; quantity: number; unit_price: number }) => {
-      const res = await fetch(`/api/deal-desk/${dealId}/line-items`, {
+      const res = await csrfFetch(`/api/deal-desk/${dealId}/line-items`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(item),
@@ -66,7 +67,7 @@ export function useRemoveLineItem(dealId: string | null) {
 
   return useMutation({
     mutationFn: async (itemId: string) => {
-      const res = await fetch(`/api/deal-desk/${dealId}/line-items/${itemId}`, {
+      const res = await csrfFetch(`/api/deal-desk/${dealId}/line-items/${itemId}`, {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('Failed to remove line item');
@@ -92,7 +93,7 @@ export function useAddPayment(dealId: string | null) {
       payment_date: string;
       reference_number: string;
     }) => {
-      const res = await fetch(`/api/deal-desk/${dealId}/payments`, {
+      const res = await csrfFetch(`/api/deal-desk/${dealId}/payments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payment),
@@ -114,7 +115,7 @@ export function useGenerateQuote(dealId: string | null, dealNumber?: string) {
 
   return useMutation({
     mutationFn: async () => {
-      const res = await fetch(`/api/deal-desk/${dealId}/quote`, {
+      const res = await csrfFetch(`/api/deal-desk/${dealId}/quote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),

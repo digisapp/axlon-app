@@ -46,6 +46,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { SandboxedEmail } from '@/components/admin/SandboxedEmail';
 import { toast } from 'sonner';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -193,7 +194,7 @@ export default function AdminEmailPage() {
     const previous = autoReplyEnabled;
     setAutoReplyEnabled(enabled);
     try {
-      const res = await fetch('/api/admin/settings', {
+      const res = await csrfFetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'ai_auto_reply_enabled', value: enabled }),
@@ -217,7 +218,7 @@ export default function AdminEmailPage() {
       status: activeTab === 'inbox' ? 'received' : 'open',
       ...(search && { search }),
     });
-    const response = await fetch(`/api/emails?${params}`);
+    const response = await csrfFetch(`/api/emails?${params}`);
     if (response.ok) {
       const result = await response.json();
       setThreads(result.data || []);
@@ -251,7 +252,7 @@ export default function AdminEmailPage() {
     setLoadingThread(true);
     setShowReply(false);
     setReplyText('');
-    const response = await fetch(`/api/emails/${thread.id}`);
+    const response = await csrfFetch(`/api/emails/${thread.id}`);
     if (response.ok) {
       const { data } = await response.json();
       setThreadEmails(data.emails);
@@ -270,7 +271,7 @@ export default function AdminEmailPage() {
     const isRawHtml = !!htmlOverride;
     const html = isRawHtml ? content : `<p>${content.replace(/\n/g, '<br/>')}</p>`;
 
-    const response = await fetch(`/api/emails/${selectedThread.id}/reply`, {
+    const response = await csrfFetch(`/api/emails/${selectedThread.id}/reply`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ html }),
@@ -280,7 +281,7 @@ export default function AdminEmailPage() {
       setReplyText('');
       setShowReply(false);
       toast.success('Reply sent');
-      const refreshRes = await fetch(`/api/emails/${selectedThread.id}`);
+      const refreshRes = await csrfFetch(`/api/emails/${selectedThread.id}`);
       if (refreshRes.ok) {
         const { data } = await refreshRes.json();
         setThreadEmails(data.emails);
@@ -297,7 +298,7 @@ export default function AdminEmailPage() {
     e.preventDefault();
     setComposeSending(true);
     const fd = new FormData(e.currentTarget);
-    const response = await fetch('/api/emails', {
+    const response = await csrfFetch('/api/emails', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -346,7 +347,7 @@ export default function AdminEmailPage() {
       return;
     }
 
-    const res = await fetch('/api/emails', {
+    const res = await csrfFetch('/api/emails', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ threadIds, action }),
@@ -364,7 +365,7 @@ export default function AdminEmailPage() {
 
   const confirmDelete = async () => {
     if (!deleteConfirm) return;
-    const res = await fetch('/api/emails', {
+    const res = await csrfFetch('/api/emails', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ threadIds: deleteConfirm.ids }),

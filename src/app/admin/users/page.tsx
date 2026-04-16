@@ -47,6 +47,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface User {
   id: string;
@@ -93,7 +94,7 @@ export default function AdminUsersPage() {
         type: typeFilter,
         status: statusFilter,
       });
-      const response = await fetch(`/api/admin/users?${params}`);
+      const response = await csrfFetch(`/api/admin/users?${params}`);
       if (response.ok) {
         const data = await response.json();
         setUsers(data.data || []);
@@ -111,7 +112,7 @@ export default function AdminUsersPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/admin/users/${selectedUser.id}`, {
+      const response = await csrfFetch(`/api/admin/users/${selectedUser.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

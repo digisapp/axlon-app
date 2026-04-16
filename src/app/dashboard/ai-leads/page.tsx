@@ -40,6 +40,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface Lead {
   id: string;
@@ -101,7 +102,7 @@ export default function AILeadsPage() {
         params.set('status', activeTab);
       }
 
-      const response = await fetch(`/api/dealer/ai-leads?${params}`);
+      const response = await csrfFetch(`/api/dealer/ai-leads?${params}`);
       if (response.ok) {
         const data = await response.json();
         setLeads(data.leads || []);
@@ -117,7 +118,7 @@ export default function AILeadsPage() {
   const updateLeadStatus = async (leadId: string, status: string) => {
     setIsSaving(true);
     try {
-      const response = await fetch('/api/dealer/ai-leads', {
+      const response = await csrfFetch('/api/dealer/ai-leads', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ leadId, status }),
@@ -146,7 +147,7 @@ export default function AILeadsPage() {
 
   const updateLeadNotes = async (leadId: string, notes: string) => {
     try {
-      const response = await fetch('/api/dealer/ai-leads', {
+      const response = await csrfFetch('/api/dealer/ai-leads', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ leadId, notes }),

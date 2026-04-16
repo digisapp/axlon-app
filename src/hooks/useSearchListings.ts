@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import type { Listing, AISearchResult } from '@/types';
 import type { FilterValues } from '@/components/search/AdvancedFilters';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 // Category keywords for fallback detection when AI search fails
 const CATEGORY_KEYWORDS: Record<string, string> = {
@@ -134,7 +135,7 @@ export function useSearchListings(
         let currentAiFilters = null;
         if (query && !category) {
           try {
-            const aiResponse = await fetch('/api/ai/search', {
+            const aiResponse = await csrfFetch('/api/ai/search', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ query }),
@@ -166,7 +167,7 @@ export function useSearchListings(
           detectedCategory,
         });
 
-        const response = await fetch(`/api/listings?${params.toString()}`);
+        const response = await csrfFetch(`/api/listings?${params.toString()}`);
         const data = await response.json();
 
         // If 0 results with AI price filters, retry without price constraints
@@ -178,7 +179,7 @@ export function useSearchListings(
           fallbackParams.delete('min_price');
           fallbackParams.delete('max_price');
 
-          const fallbackResponse = await fetch(`/api/listings?${fallbackParams.toString()}`);
+          const fallbackResponse = await csrfFetch(`/api/listings?${fallbackParams.toString()}`);
           const fallbackData = await fallbackResponse.json();
 
           if (currentFetchId === fetchIdRef.current) {
@@ -229,7 +230,7 @@ export function useSearchListings(
         advancedFilters,
       });
 
-      const response = await fetch(`/api/listings?${params.toString()}`);
+      const response = await csrfFetch(`/api/listings?${params.toString()}`);
       const data = await response.json();
 
       if (data.data?.length > 0) {

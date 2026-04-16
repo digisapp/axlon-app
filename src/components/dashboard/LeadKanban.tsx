@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { LeadCard } from '@/components/leads/LeadCard';
 import { LeadDetailDialog } from '@/components/leads/LeadDetailDialog';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface Lead {
   id: string;
@@ -79,7 +80,7 @@ export function LeadKanban({ leads: initialLeads, teamMembers = [], currentUserI
 
     setIsSaving(true);
     try {
-      const response = await fetch(`/api/dashboard/leads/${selectedLead.id}`, {
+      const response = await csrfFetch(`/api/dashboard/leads/${selectedLead.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -117,7 +118,7 @@ export function LeadKanban({ leads: initialLeads, teamMembers = [], currentUserI
     );
 
     try {
-      const response = await fetch(`/api/dashboard/leads/${leadId}`, {
+      const response = await csrfFetch(`/api/dashboard/leads/${leadId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),

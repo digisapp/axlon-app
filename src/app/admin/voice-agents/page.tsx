@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { DealerVoiceAgent } from '@/types';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 const VOICE_OPTIONS = [
   { value: 'Sal', label: 'Sal (Male)' },
@@ -105,7 +106,7 @@ export default function AdminVoiceAgentsPage() {
       if (searchQuery) {
         url += `&search=${encodeURIComponent(searchQuery)}`;
       }
-      const response = await fetch(url);
+      const response = await csrfFetch(url);
       if (response.ok) {
         const data = await response.json();
         setAgents(data.data || []);
@@ -146,7 +147,7 @@ export default function AdminVoiceAgentsPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/admin/dealer-voice-agents/${selectedAgent.id}`, {
+      const response = await csrfFetch(`/api/admin/dealer-voice-agents/${selectedAgent.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editForm),
@@ -169,7 +170,7 @@ export default function AdminVoiceAgentsPage() {
     }
 
     try {
-      const response = await fetch(`/api/admin/dealer-voice-agents/${agent.id}`, {
+      const response = await csrfFetch(`/api/admin/dealer-voice-agents/${agent.id}`, {
         method: 'DELETE',
       });
 
@@ -183,7 +184,7 @@ export default function AdminVoiceAgentsPage() {
 
   const toggleActive = async (agent: DealerWithAgent) => {
     try {
-      const response = await fetch(`/api/admin/dealer-voice-agents/${agent.id}`, {
+      const response = await csrfFetch(`/api/admin/dealer-voice-agents/${agent.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: !agent.is_active }),

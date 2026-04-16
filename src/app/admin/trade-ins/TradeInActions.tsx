@@ -33,6 +33,7 @@ import {
   Send,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface TradeInActionsProps {
   tradeInId: string;
@@ -61,7 +62,7 @@ export function TradeInActions({
   const updateStatus = async (newStatus: string) => {
     setIsUpdating(true);
     try {
-      const response = await fetch(`/api/admin/trade-ins/${tradeInId}`, {
+      const response = await csrfFetch(`/api/admin/trade-ins/${tradeInId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -91,7 +92,7 @@ export function TradeInActions({
       // Update message with actual amount
       const finalMessage = offerMessage.replace('[AMOUNT]', offerAmount);
 
-      const response = await fetch(`/api/admin/trade-ins/${tradeInId}/offer`, {
+      const response = await csrfFetch(`/api/admin/trade-ins/${tradeInId}/offer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

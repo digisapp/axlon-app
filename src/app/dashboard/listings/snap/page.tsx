@@ -35,6 +35,7 @@ import {
   Video,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 // ─── Types ─────────────────────────────────────────
 
@@ -245,7 +246,7 @@ export default function SnapListPage() {
         // AI analyze first photo only (to get make/model/type)
         if (i === 0) {
           try {
-            const aiRes = await fetch('/api/ai/analyze', {
+            const aiRes = await csrfFetch('/api/ai/analyze', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ imageUrl: url }),
@@ -311,7 +312,7 @@ export default function SnapListPage() {
       }
 
       // Create listing
-      const res = await fetch('/api/listings', {
+      const res = await csrfFetch('/api/listings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -343,7 +344,7 @@ export default function SnapListPage() {
       // Save images
       const uploadedPhotos = photos.filter(p => p.uploadedUrl);
       if (uploadedPhotos.length > 0) {
-        await fetch(`/api/listings/${listing.id}/images`, {
+        await csrfFetch(`/api/listings/${listing.id}/images`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

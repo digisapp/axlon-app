@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Bell, BellRing, Loader2, Check } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface SaveSearchButtonProps {
   query?: string;
@@ -44,7 +45,7 @@ export function SaveSearchButton({ query, filters, disabled }: SaveSearchButtonP
     setIsSaving(true);
 
     try {
-      const response = await fetch('/api/saved-searches', {
+      const response = await csrfFetch('/api/saved-searches', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ListingFloorPlan } from '@/types/floor-plan';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface PayoffDialogProps {
   open: boolean;
@@ -42,7 +43,7 @@ export function PayoffDialog({
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/floor-plan/units/${floorPlan.id}/payoff`, {
+      const response = await csrfFetch(`/api/floor-plan/units/${floorPlan.id}/payoff`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

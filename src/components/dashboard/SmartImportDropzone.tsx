@@ -21,6 +21,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 // Types matching the API response
 interface ParsedRow {
@@ -108,7 +109,7 @@ export function SmartImportDropzone({ compact, onComplete }: SmartImportDropzone
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      const response = await fetch('/api/dashboard/smart-import', {
+      const response = await csrfFetch('/api/dashboard/smart-import', {
         method: 'POST',
         body: formData,
       });
@@ -164,7 +165,7 @@ export function SmartImportDropzone({ compact, onComplete }: SmartImportDropzone
       formData.append('file', file);
       formData.append('hint', hint);
 
-      const response = await fetch('/api/dashboard/smart-import', {
+      const response = await csrfFetch('/api/dashboard/smart-import', {
         method: 'POST',
         body: formData,
       });
@@ -241,7 +242,7 @@ export function SmartImportDropzone({ compact, onComplete }: SmartImportDropzone
           continue;
         }
 
-        const res = await fetch(endpoint, {
+        const res = await csrfFetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
@@ -278,7 +279,7 @@ export function SmartImportDropzone({ compact, onComplete }: SmartImportDropzone
       formData.append('title', preview.documentPreview.suggestedTitle);
       formData.append('document_type', preview.documentPreview.suggestedType);
 
-      const res = await fetch('/api/dealer/knowledge-base/documents', {
+      const res = await csrfFetch('/api/dealer/knowledge-base/documents', {
         method: 'POST',
         body: formData,
       });

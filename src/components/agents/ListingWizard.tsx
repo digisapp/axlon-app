@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
+import { csrfFetch } from '@/lib/csrf-fetch';
   Camera, Search, FileText, DollarSign,
   CheckCircle2, Loader2, AlertCircle, Edit3,
   ChevronRight, Sparkles,
@@ -97,7 +98,7 @@ export function ListingWizard({ onComplete, onCancel }: ListingWizardProps) {
     updateStep(0, 'running');
 
     try {
-      const response = await fetch('/api/agents/listing-creator', {
+      const response = await csrfFetch('/api/agents/listing-creator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageUrls }),

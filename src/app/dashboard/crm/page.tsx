@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+import { csrfFetch } from '@/lib/csrf-fetch';
   Users,
   Search,
   Plus,
@@ -163,7 +164,7 @@ export default function CRMPage() {
     if (status && status !== 'all') params.set('status', status);
     if (search) params.set('search', search);
 
-    const res = await fetch(`/api/dashboard/crm?${params.toString()}`);
+    const res = await csrfFetch(`/api/dashboard/crm?${params.toString()}`);
     if (!res.ok) return;
 
     const data = await res.json();
@@ -172,7 +173,7 @@ export default function CRMPage() {
 
   const fetchActivities = useCallback(async (contactId: string) => {
     setLoadingActivities(true);
-    const res = await fetch(`/api/dashboard/crm/activities?contact_id=${contactId}`);
+    const res = await csrfFetch(`/api/dashboard/crm/activities?contact_id=${contactId}`);
     if (res.ok) {
       const data = await res.json();
       setActivities(data);
@@ -222,7 +223,7 @@ export default function CRMPage() {
     setIsSaving(true);
 
     try {
-      const res = await fetch('/api/dashboard/crm', {
+      const res = await csrfFetch('/api/dashboard/crm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -251,7 +252,7 @@ export default function CRMPage() {
     setSavingActivity(true);
 
     try {
-      const res = await fetch('/api/dashboard/crm/activities', {
+      const res = await csrfFetch('/api/dashboard/crm/activities', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -275,7 +276,7 @@ export default function CRMPage() {
   };
 
   const handleUpdateStatus = async (contactId: string, newStatus: string) => {
-    const res = await fetch(`/api/dashboard/crm/${contactId}`, {
+    const res = await csrfFetch(`/api/dashboard/crm/${contactId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),
@@ -287,7 +288,7 @@ export default function CRMPage() {
   };
 
   const handleDeleteContact = async (contactId: string) => {
-    const res = await fetch(`/api/dashboard/crm/${contactId}`, {
+    const res = await csrfFetch(`/api/dashboard/crm/${contactId}`, {
       method: 'DELETE',
     });
 

@@ -59,6 +59,7 @@ import {
 import { DealerVoiceAgent } from '@/types';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 // ─── Voice Agent Types ──────────────────────────────────────────────
 
@@ -187,7 +188,7 @@ export default function VoiceAgentPage() {
   const fetchCallLogs = async () => {
     setIsLoadingCalls(true);
     try {
-      const response = await fetch('/api/dealer/call-logs?limit=10');
+      const response = await csrfFetch('/api/dealer/call-logs?limit=10');
       if (response.ok) {
         const data = await response.json();
         setCallLogs(data.data || []);
@@ -238,7 +239,7 @@ export default function VoiceAgentPage() {
         .eq('id', user.id)
         .single();
 
-      const response = await fetch('/api/dealer/voice-agent');
+      const response = await csrfFetch('/api/dealer/voice-agent');
       if (response.ok) {
         const data = await response.json();
         if (data.data) {
@@ -267,7 +268,7 @@ export default function VoiceAgentPage() {
   const handleSetup = async () => {
     setIsSaving(true);
     try {
-      const response = await fetch('/api/dealer/voice-agent', {
+      const response = await csrfFetch('/api/dealer/voice-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -288,7 +289,7 @@ export default function VoiceAgentPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const response = await fetch('/api/dealer/voice-agent', {
+      const response = await csrfFetch('/api/dealer/voice-agent', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -310,7 +311,7 @@ export default function VoiceAgentPage() {
 
   async function fetchStaff() {
     try {
-      const res = await fetch('/api/dealer/staff');
+      const res = await csrfFetch('/api/dealer/staff');
       if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
       setStaffList(data.data || []);
@@ -352,7 +353,7 @@ export default function VoiceAgentPage() {
         : '/api/dealer/staff';
       const method = editingStaff ? 'PATCH' : 'POST';
 
-      const res = await fetch(url, {
+      const res = await csrfFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(staffFormData),
@@ -379,7 +380,7 @@ export default function VoiceAgentPage() {
     if (!confirm('Are you sure you want to remove this staff member?')) return;
 
     try {
-      const res = await fetch(`/api/dealer/staff/${staffId}`, { method: 'DELETE' });
+      const res = await csrfFetch(`/api/dealer/staff/${staffId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
       toast.success('Staff member removed');
       fetchStaff();
@@ -390,7 +391,7 @@ export default function VoiceAgentPage() {
 
   async function toggleStaffActive(staffMember: StaffMember) {
     try {
-      const res = await fetch(`/api/dealer/staff/${staffMember.id}`, {
+      const res = await csrfFetch(`/api/dealer/staff/${staffMember.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: !staffMember.is_active }),

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
+import { csrfFetch } from '@/lib/csrf-fetch';
   RefreshCw,
   Globe,
   Clock,
@@ -40,7 +41,7 @@ export default function DealerSourcesPage() {
 
   const fetchDealers = async () => {
     try {
-      const resp = await fetch('/api/admin/scrape-dealers');
+      const resp = await csrfFetch('/api/admin/scrape-dealers');
       const data = await resp.json();
       setDealers(data.dealers || []);
     } catch {
@@ -59,7 +60,7 @@ export default function DealerSourcesPage() {
     setMessage(null);
 
     try {
-      const resp = await fetch('/api/admin/scrape-dealers', {
+      const resp = await csrfFetch('/api/admin/scrape-dealers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dealer: dealerSlug || '' }),

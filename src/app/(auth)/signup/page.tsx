@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Mail, Lock, Building2, ArrowLeft, Check, Package, BarChart3, Users } from 'lucide-react';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -39,7 +40,7 @@ export default function SignupPage() {
     }
 
     try {
-      const res = await fetch('/api/auth/signup', {
+      const res = await csrfFetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

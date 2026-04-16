@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Languages, Loader2 } from 'lucide-react';
 import { detectLocale, type SupportedLocale } from '@/lib/i18n';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface TranslatableContentProps {
   listingId: string;
@@ -37,7 +38,7 @@ export function TranslatableTitle({
     const translateTitle = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch('/api/translate', {
+        const response = await csrfFetch('/api/translate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -101,7 +102,7 @@ export function TranslatableDescription({
     const translateDescription = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch('/api/translate', {
+        const response = await csrfFetch('/api/translate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { DealCard } from './DealCard';
 import type { Deal, DealStatus } from '@/types/deals';
 import { toast } from 'sonner';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface DealsKanbanProps {
   initialDeals: Record<DealStatus, Deal[]>;
@@ -50,7 +51,7 @@ export function DealsKanban({ initialDeals, onDealClick }: DealsKanbanProps) {
 
     // API call
     try {
-      const response = await fetch(`/api/deal-desk/${dealId}`, {
+      const response = await csrfFetch(`/api/deal-desk/${dealId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),

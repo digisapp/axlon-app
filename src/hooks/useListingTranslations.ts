@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { detectLocale, type SupportedLocale } from '@/lib/i18n';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface TranslationResult {
   title: string;
@@ -69,7 +70,7 @@ export function useListingTranslations(
       setError(null);
 
       try {
-        const response = await fetch('/api/translate', {
+        const response = await csrfFetch('/api/translate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
+import { csrfFetch } from '@/lib/csrf-fetch';
   Search, Send, Loader2, Bot, User,
   Wrench, ChevronDown, X, Maximize2, Minimize2,
 } from 'lucide-react';
@@ -81,7 +82,7 @@ export function TrailerFinderChat({ variant = 'inline', className = '' }: Traile
         content: m.content,
       }));
 
-      const response = await fetch('/api/agents/trailer-finder', {
+      const response = await csrfFetch('/api/agents/trailer-finder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

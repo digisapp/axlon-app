@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface Message {
   id: string;
@@ -85,7 +86,7 @@ export function DealerAIChat({
     if (conversationId) return;
 
     try {
-      const response = await fetch('/api/ai/dealer-chat', {
+      const response = await csrfFetch('/api/ai/dealer-chat', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -109,7 +110,7 @@ export function DealerAIChat({
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/ai/dealer-chat', {
+      const response = await csrfFetch('/api/ai/dealer-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -187,7 +188,7 @@ export function DealerAIChat({
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/ai/dealer-chat', {
+      const response = await csrfFetch('/api/ai/dealer-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -245,7 +246,7 @@ export function DealerAIChat({
     if (!visitorInfo.email && !visitorInfo.phone) return;
 
     try {
-      const response = await fetch('/api/ai/dealer-chat', {
+      const response = await csrfFetch('/api/ai/dealer-chat', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

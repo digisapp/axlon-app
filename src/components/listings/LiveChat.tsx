@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface Message {
   id: string;
@@ -78,7 +79,7 @@ export function LiveChat({
     setIsLoading(true);
     try {
       const conversationId = `${listingId}-${sellerId}`;
-      const response = await fetch(`/api/messages/${conversationId}`);
+      const response = await csrfFetch(`/api/messages/${conversationId}`);
       if (response.ok) {
         const { data } = await response.json();
         setMessages(data?.messages || []);
@@ -154,7 +155,7 @@ export function LiveChat({
     setIsSending(true);
 
     try {
-      const response = await fetch('/api/messages', {
+      const response = await csrfFetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

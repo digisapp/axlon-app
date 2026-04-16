@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { CheckCircle, Loader2, MailX } from 'lucide-react';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 export default function UnsubscribePage() {
   const [email, setEmail] = useState('');
@@ -21,7 +22,7 @@ export default function UnsubscribePage() {
     if (!email) return;
     setStatus('loading');
     try {
-      const res = await fetch('/api/unsubscribe', {
+      const res = await csrfFetch('/api/unsubscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

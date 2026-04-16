@@ -24,6 +24,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import type { FloorPlanAccount } from '@/types/floor-plan';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface Listing {
   id: string;
@@ -68,7 +69,7 @@ export function FloorUnitSheet({
     setLoadingListings(true);
     try {
       // Fetch listings that are not already floored
-      const response = await fetch('/api/listings?status=active&has_floor_plan=false&limit=100');
+      const response = await csrfFetch('/api/listings?status=active&has_floor_plan=false&limit=100');
       if (response.ok) {
         const data = await response.json();
         setListings(data.data || []);
@@ -90,7 +91,7 @@ export function FloorUnitSheet({
 
     setLoading(true);
     try {
-      const response = await fetch('/api/floor-plan/units', {
+      const response = await csrfFetch('/api/floor-plan/units', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

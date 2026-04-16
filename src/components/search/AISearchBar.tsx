@@ -9,6 +9,7 @@ import { getRecentSearches, saveRecentSearch, clearRecentSearches } from '@/lib/
 import { ChatResponsePanel, type ChatResponse } from '@/components/search/ChatResponsePanel';
 import { SuggestionsDropdown, type AutocompleteSuggestion } from '@/components/search/SuggestionsDropdown';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 // Type declarations for Web Speech API
 interface SpeechRecognitionEvent extends Event {
@@ -128,7 +129,7 @@ export function AISearchBar({
     autocompleteTimeoutRef.current = setTimeout(async () => {
       setIsLoadingSuggestions(true);
       try {
-        const response = await fetch(`/api/search/autocomplete?q=${encodeURIComponent(searchQuery)}`);
+        const response = await csrfFetch(`/api/search/autocomplete?q=${encodeURIComponent(searchQuery)}`);
         if (response.ok) {
           const data = await response.json();
 
@@ -315,7 +316,7 @@ export function AISearchBar({
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/ai/chat', {
+      const response = await csrfFetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: q }),

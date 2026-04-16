@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { Manufacturer } from '@/types';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 const EQUIPMENT_TYPE_OPTIONS = [
   { value: 'trucks', label: 'Trucks' },
@@ -96,7 +97,7 @@ export default function AdminManufacturersPage() {
       params.set('status', statusFilter);
       if (searchQuery) params.set('search', searchQuery);
 
-      const response = await fetch(`/api/admin/manufacturers?${params}`);
+      const response = await csrfFetch(`/api/admin/manufacturers?${params}`);
       if (response.ok) {
         const data = await response.json();
         setManufacturers(data.data || []);
@@ -159,7 +160,7 @@ export default function AdminManufacturersPage() {
         ? `/api/admin/manufacturers/${editingId}`
         : '/api/admin/manufacturers';
 
-      const response = await fetch(url, {
+      const response = await csrfFetch(url, {
         method: isEditing ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -180,7 +181,7 @@ export default function AdminManufacturersPage() {
 
   const toggleActive = async (manufacturer: Manufacturer) => {
     try {
-      const response = await fetch(`/api/admin/manufacturers/${manufacturer.id}`, {
+      const response = await csrfFetch(`/api/admin/manufacturers/${manufacturer.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: !manufacturer.is_active }),
@@ -196,7 +197,7 @@ export default function AdminManufacturersPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/admin/manufacturers/${id}`, {
+      const response = await csrfFetch(`/api/admin/manufacturers/${id}`, {
         method: 'DELETE',
       });
 

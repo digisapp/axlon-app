@@ -22,6 +22,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import Link from 'next/link';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface ParsedRow {
   title: string;
@@ -182,7 +183,7 @@ export function BulkImportWizard() {
       const row = parsedData[i];
 
       try {
-        const response = await fetch('/api/dashboard/bulk/import', {
+        const response = await csrfFetch('/api/dashboard/bulk/import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

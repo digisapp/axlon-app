@@ -37,6 +37,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface Dealer {
   id: string;
@@ -73,7 +74,7 @@ export default function AdminDealersPage() {
   const fetchDealers = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/admin/dealers?status=${statusFilter}`);
+      const response = await csrfFetch(`/api/admin/dealers?status=${statusFilter}`);
       if (response.ok) {
         const data = await response.json();
         setDealers(data.data || []);
@@ -90,7 +91,7 @@ export default function AdminDealersPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`/api/admin/dealers/${selectedDealer.id}`, {
+      const response = await csrfFetch(`/api/admin/dealers/${selectedDealer.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface LeadUpdate {
   notes?: string;
@@ -16,7 +17,7 @@ export function useUpdateLead() {
 
   return useMutation({
     mutationFn: async ({ leadId, data }: { leadId: string; data: LeadUpdate }) => {
-      const response = await fetch(`/api/dashboard/leads/${leadId}`, {
+      const response = await csrfFetch(`/api/dashboard/leads/${leadId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -43,7 +44,7 @@ export function useSubmitLead() {
       buyer_phone?: string;
       message?: string;
     }) => {
-      const response = await fetch('/api/leads', {
+      const response = await csrfFetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

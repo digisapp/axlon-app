@@ -42,6 +42,7 @@ import {
   User,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -348,7 +349,7 @@ export default function AdminDirectoryPage() {
         params.set('category', tabCfg.defaultCategory);
       }
 
-      const res = await fetch(`/api/admin/directory?${params}`);
+      const res = await csrfFetch(`/api/admin/directory?${params}`);
       if (res.ok) {
         const json = await res.json();
         setBusinesses(json.data || []);
@@ -405,7 +406,7 @@ export default function AdminDirectoryPage() {
     if (!bulkCategory || selectedIds.size === 0) return;
     setIsSaving(true);
     try {
-      const res = await fetch('/api/admin/directory', {
+      const res = await csrfFetch('/api/admin/directory', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: Array.from(selectedIds), category: bulkCategory }),
@@ -956,7 +957,7 @@ export default function AdminDirectoryPage() {
                     <button
                       key={cat.value}
                       onClick={async () => {
-                        await fetch('/api/admin/directory', {
+                        await csrfFetch('/api/admin/directory', {
                           method: 'PATCH',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ ids: [detailBusiness.id], category: cat.value }),

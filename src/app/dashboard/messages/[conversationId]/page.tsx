@@ -16,6 +16,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface Message {
   id: string;
@@ -74,7 +75,7 @@ export default function ConversationPage({ params }: PageProps) {
 
       setUserId(user.id);
 
-      const response = await fetch(`/api/messages/${conversationId}`);
+      const response = await csrfFetch(`/api/messages/${conversationId}`);
       if (response.ok) {
         const { data } = await response.json();
         setMessages(data.messages || []);
@@ -134,7 +135,7 @@ export default function ConversationPage({ params }: PageProps) {
     setIsSending(true);
 
     try {
-      const response = await fetch('/api/messages', {
+      const response = await csrfFetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

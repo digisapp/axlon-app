@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
+import { csrfFetch } from '@/lib/csrf-fetch';
   ArrowRight,
   CheckCircle,
   Shield,
@@ -105,7 +106,7 @@ Phone: ${form.phone || 'Not provided'}
     `.trim();
 
     try {
-      const res = await fetch('/api/contact', {
+      const res = await csrfFetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

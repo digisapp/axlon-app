@@ -20,6 +20,7 @@ import {
 import { Eye, ImageIcon, ExternalLink, RotateCcw, Trash2 } from 'lucide-react';
 import { useImageFallback } from '@/hooks/useImageFallback';
 import { toast } from 'sonner';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface AdminListingCardProps {
   listing: {
@@ -44,7 +45,7 @@ export function AdminListingCard({ listing, imageUrl, sellerName, statusBadge }:
   const handleAction = async (action: 'restore' | 'hard_delete') => {
     setIsActing(true);
     try {
-      const res = await fetch(`/api/admin/listings/${listing.id}`, {
+      const res = await csrfFetch(`/api/admin/listings/${listing.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),

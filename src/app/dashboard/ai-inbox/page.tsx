@@ -24,6 +24,7 @@ import {
   Inbox,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 type InboxItem = {
   id: string;
@@ -84,7 +85,7 @@ export default function AIInboxPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/dashboard/ai-inbox?status=${activeTab}&limit=100`);
+      const res = await csrfFetch(`/api/dashboard/ai-inbox?status=${activeTab}&limit=100`);
       if (res.ok) {
         const data = await res.json();
         setItems(data.items || []);
@@ -115,7 +116,7 @@ export default function AIInboxPage() {
         body.edited_subject = editSubject;
         body.edited_draft = editDraft;
       }
-      const res = await fetch(`/api/dashboard/ai-inbox?id=${item.id}`, {
+      const res = await csrfFetch(`/api/dashboard/ai-inbox?id=${item.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -133,7 +134,7 @@ export default function AIInboxPage() {
   }
 
   async function sendFeedback(item: InboxItem, feedback: 'positive' | 'negative') {
-    await fetch(`/api/dashboard/ai-inbox?id=${item.id}`, {
+    await csrfFetch(`/api/dashboard/ai-inbox?id=${item.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'feedback', feedback }),

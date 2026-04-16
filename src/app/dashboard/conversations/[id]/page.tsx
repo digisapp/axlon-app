@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface Message {
   id: string;
@@ -80,7 +81,7 @@ export default function ConversationDetailPage() {
   const fetchConversation = useCallback(async (loadMore = false) => {
     const offset = loadMore && pagination ? pagination.offset + MESSAGES_PER_PAGE : 0;
 
-    const response = await fetch(
+    const response = await csrfFetch(
       `/api/dashboard/conversations/${conversationId}?limit=${MESSAGES_PER_PAGE}&offset=${offset}`
     );
     if (response.ok) {
@@ -164,7 +165,7 @@ export default function ConversationDetailPage() {
     setIsSending(true);
 
     try {
-      const response = await fetch(`/api/dashboard/conversations/${conversationId}/reply`, {
+      const response = await csrfFetch(`/api/dashboard/conversations/${conversationId}/reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: replyText }),
@@ -189,7 +190,7 @@ export default function ConversationDetailPage() {
   };
 
   const updateStatus = async (newStatus: 'active' | 'closed' | 'converted') => {
-    await fetch(`/api/dashboard/conversations/${conversationId}`, {
+    await csrfFetch(`/api/dashboard/conversations/${conversationId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),

@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Search, CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface VINDecodeResult {
   vin: string;
@@ -48,7 +49,7 @@ export function VINDecoder({ onDecode, defaultValue = '' }: VINDecoderProps) {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/vin/decode', {
+      const response = await csrfFetch('/api/vin/decode', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ vin }),

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Heart, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface FavoriteButtonProps {
   listingId: string;
@@ -69,7 +70,7 @@ export function FavoriteButton({
     try {
       if (wasLiked) {
         // Remove favorite
-        const response = await fetch(`/api/favorites?listing_id=${listingId}`, {
+        const response = await csrfFetch(`/api/favorites?listing_id=${listingId}`, {
           method: 'DELETE',
         });
 
@@ -82,7 +83,7 @@ export function FavoriteButton({
         }
       } else {
         // Add favorite
-        const response = await fetch('/api/favorites', {
+        const response = await csrfFetch('/api/favorites', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ listing_id: listingId }),

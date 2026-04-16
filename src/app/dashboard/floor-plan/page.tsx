@@ -28,6 +28,7 @@ import type {
   FloorPlanAccountWithStats,
 } from '@/types/floor-plan';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 export default function FloorPlanDashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -99,7 +100,7 @@ export default function FloorPlanDashboardPage() {
 
   const handleDismissAlert = async (alertId: string) => {
     try {
-      await fetch(`/api/floor-plan/dashboard/alerts/${alertId}/dismiss`, {
+      await csrfFetch(`/api/floor-plan/dashboard/alerts/${alertId}/dismiss`, {
         method: 'POST',
       });
     } catch (error) {

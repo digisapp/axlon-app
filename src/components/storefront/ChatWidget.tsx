@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface ChatMessage {
   id: string;
@@ -89,7 +90,7 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await csrfFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -148,7 +149,7 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
     if (!leadInfo.name || !leadInfo.email) return;
 
     try {
-      await fetch('/api/chat/lead', {
+      await csrfFetch('/api/chat/lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -22,6 +22,7 @@ import {
 import { Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface CreateDealSheetProps {
   open: boolean;
@@ -92,7 +93,7 @@ export function CreateDealSheet({
 
   const fetchLeads = async () => {
     try {
-      const res = await fetch('/api/dashboard/leads?status=qualified&limit=50');
+      const res = await csrfFetch('/api/dashboard/leads?status=qualified&limit=50');
       if (res.ok) {
         const data = await res.json();
         setLeads(data.data || []);
@@ -104,7 +105,7 @@ export function CreateDealSheet({
 
   const fetchListings = async () => {
     try {
-      const res = await fetch('/api/dashboard/listings?status=active&limit=100');
+      const res = await csrfFetch('/api/dashboard/listings?status=active&limit=100');
       if (res.ok) {
         const data = await res.json();
         setListings(data.listings || []);
@@ -124,7 +125,7 @@ export function CreateDealSheet({
 
     setLoading(true);
     try {
-      const response = await fetch('/api/deal-desk', {
+      const response = await csrfFetch('/api/deal-desk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -38,6 +38,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -225,7 +226,7 @@ export default function SettingsPage() {
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
     try {
-      const res = await fetch('/api/auth/delete-account', {
+      const res = await csrfFetch('/api/auth/delete-account', {
         method: 'DELETE',
       });
 

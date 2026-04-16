@@ -24,6 +24,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface AIAnalysis {
   detected_type?: string;
@@ -78,7 +79,7 @@ export function ImageUpload({
 
   const analyzeImageWithAI = async (imageUrl: string, imageIndex: number) => {
     try {
-      const response = await fetch('/api/ai/analyze', {
+      const response = await csrfFetch('/api/ai/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageUrl }),
