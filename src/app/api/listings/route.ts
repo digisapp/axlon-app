@@ -10,6 +10,7 @@ import {
 } from '@/lib/cache';
 import { createListingSchema, validateBody, ValidationError } from '@/lib/validations/api';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
+import { requireCsrf } from '@/lib/security/csrf';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import { logger } from '@/lib/logger';
 import { syncListingToCollection } from '@/lib/ai/listing-sync';
@@ -237,6 +238,9 @@ export async function POST(request: NextRequest) {
   if (!rateLimitResult.success) {
     return rateLimitResponse(rateLimitResult);
   }
+
+  const csrfError = await requireCsrf(request);
+  if (csrfError) return csrfError;
 
   const supabase = await createClient();
 

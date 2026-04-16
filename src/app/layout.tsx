@@ -10,6 +10,7 @@ import { FloatingCallButton } from "@/components/FloatingCallButton";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { PWACleanup } from "@/components/PWAInstallPrompt";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { CsrfProvider } from "@/context/CsrfContext";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -169,6 +170,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <QueryProvider>
+            <CsrfProvider>
             <NotificationProvider>
               <CompareProvider>
                   {children}
@@ -181,6 +183,7 @@ export default function RootLayout({
                   </div>
               </CompareProvider>
             </NotificationProvider>
+            </CsrfProvider>
           </QueryProvider>
         </ThemeProvider>
         <Analytics />

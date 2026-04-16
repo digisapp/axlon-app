@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { calculateLeadScoreWithAI } from '@/lib/leads/scoring';
 import { generateLeadAutoReply } from '@/lib/ai/lead-auto-reply';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
+import { requireCsrf } from '@/lib/security/csrf';
 import { escapeHtml } from '@/lib/utils/html-escape';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
@@ -31,6 +32,9 @@ export async function POST(request: NextRequest) {
     if (!rateLimitResult.success) {
       return rateLimitResponse(rateLimitResult);
     }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
 
     const supabase = await createClient();
     const body = await request.json();

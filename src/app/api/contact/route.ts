@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
+import { requireCsrf } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, contactFormSchema } from '@/lib/validations/api';
 import { escapeHtml } from '@/lib/utils/html-escape';
@@ -27,6 +28,9 @@ export async function POST(request: NextRequest) {
     if (!rateLimitResult.success) {
       return rateLimitResponse(rateLimitResult);
     }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
 
     const supabase = await createClient();
     const body = await request.json();

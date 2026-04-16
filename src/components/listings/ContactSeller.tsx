@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { csrfFetch } from '@/lib/csrf-fetch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -75,7 +76,7 @@ export function ContactSeller({ listingId, sellerId, listingTitle }: ContactSell
 
     try {
       // Create lead via API
-      const response = await fetch('/api/leads', {
+      const response = await csrfFetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -7,7 +7,10 @@ import {
   RATE_LIMITS,
   rateLimitResponse,
 } from '@/lib/security/rate-limit';
+import { requireCsrf } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
+
+const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 export interface AuthContext {
   user: User;
@@ -53,6 +56,12 @@ export function withAuth(
         }
       }
 
+      // CSRF validation for all state-changing methods
+      if (MUTATING_METHODS.has(request.method.toUpperCase())) {
+        const csrfError = await requireCsrf(request);
+        if (csrfError) return csrfError;
+      }
+
       // Authentication
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -91,6 +100,12 @@ export function withAdmin(
         if (!result.success) {
           return rateLimitResponse(result);
         }
+      }
+
+      // CSRF validation for all state-changing methods
+      if (MUTATING_METHODS.has(request.method.toUpperCase())) {
+        const csrfError = await requireCsrf(request);
+        if (csrfError) return csrfError;
       }
 
       // Authentication

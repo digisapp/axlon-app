@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { csrfFetch } from '@/lib/csrf-fetch';
 
 interface ContactFormProps {
   defaultSubject?: string;
@@ -33,7 +34,7 @@ export function ContactForm({ defaultSubject, defaultPlan }: ContactFormProps) {
     };
 
     try {
-      const res = await fetch('/api/contact', {
+      const res = await csrfFetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
