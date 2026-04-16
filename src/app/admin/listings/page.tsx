@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const PAGE_SIZE = 50;
+const ALL_STATUSES = ['active', 'draft', 'sold', 'expired', 'deleted'] as const;
 
 interface PageProps {
   searchParams: Promise<{ page?: string; status?: string }>;
@@ -19,44 +20,55 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
 
   const supabase = await createClient();
 
-  // Get total count (not limited by default 1000 row cap)
-  let countQuery = supabase
+  // Single query for all status counts — replaces 4 separate COUNT queries
+  const { data: allStatuses } = await supabase
     .from('listings')
-    .select('*', { count: 'exact', head: true });
+    .select('status, deleted_at');
 
-  if (statusFilter) {
-    countQuery = countQuery.eq('status', statusFilter);
+  const statusCounts: Record<string, number> = { active: 0, draft: 0, sold: 0, expired: 0, deleted: 0 };
+  let grandTotal = 0;
+  for (const row of allStatuses ?? []) {
+    grandTotal++;
+    if (row.deleted_at) {
+      statusCounts.deleted = (statusCounts.deleted || 0) + 1;
+    } else {
+      const s = row.status as keyof typeof statusCounts;
+      if (s in statusCounts) statusCounts[s]++;
+    }
   }
 
-  const { count: totalListings } = await countQuery;
-
-  // Get paginated listings
+  // Build paginated query
   let query = supabase
     .from('listings')
     .select(`
-      id, title, price, status, views_count, created_at, user_id,
+      id, title, price, status, views_count, created_at, deleted_at, user_id,
       images:listing_images(url, thumbnail_url, is_primary)
     `)
     .order('created_at', { ascending: false })
     .range(offset, offset + PAGE_SIZE - 1);
 
-  if (statusFilter) {
-    query = query.eq('status', statusFilter);
+  if (statusFilter === 'deleted') {
+    query = query.not('deleted_at', 'is', null);
+  } else if (statusFilter) {
+    query = query.eq('status', statusFilter).is('deleted_at', null);
+  } else {
+    // "All" tab — show non-deleted only (deleted has its own tab)
+    query = query.is('deleted_at', null);
   }
 
   const { data: listings } = await query;
 
-  // Get status counts for filter badges
-  const statusCounts: Record<string, number> = {};
-  for (const s of ['active', 'draft', 'sold', 'expired']) {
-    const { count } = await supabase
-      .from('listings')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', s);
-    statusCounts[s] = count || 0;
+  // Get total count for current filter (for pagination)
+  let filteredTotal: number;
+  if (statusFilter === 'deleted') {
+    filteredTotal = statusCounts.deleted;
+  } else if (statusFilter) {
+    filteredTotal = statusCounts[statusFilter] ?? 0;
+  } else {
+    filteredTotal = grandTotal - statusCounts.deleted;
   }
 
-  // Get user profiles
+  // Resolve seller profiles in one query
   const userIds = [...new Set(listings?.map((l) => l.user_id) || [])];
   const { data: profiles } = userIds.length > 0
     ? await supabase
@@ -73,27 +85,21 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
   const getPrimaryImage = (images: Array<{ url: string; thumbnail_url?: string | null; is_primary: boolean }>) => {
     const primary = images?.find((img) => img.is_primary) || images?.[0];
     if (!primary) return null;
-    if (primary.thumbnail_url && primary.thumbnail_url.length > 0) return primary.thumbnail_url;
-    return primary.url || null;
+    return primary.thumbnail_url?.length ? primary.thumbnail_url : primary.url || null;
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, isDeleted: boolean) => {
+    if (isDeleted) return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Deleted</Badge>;
     switch (status) {
-      case 'active':
-        return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Active</Badge>;
-      case 'draft':
-        return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">Draft</Badge>;
-      case 'sold':
-        return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Sold</Badge>;
-      case 'expired':
-        return <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100">Expired</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
+      case 'active':  return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Active</Badge>;
+      case 'draft':   return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">Draft</Badge>;
+      case 'sold':    return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Sold</Badge>;
+      case 'expired': return <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100">Expired</Badge>;
+      default:        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
-  const total = totalListings || 0;
-  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const totalPages = Math.ceil(filteredTotal / PAGE_SIZE);
 
   const buildHref = (p: number, s?: string) => {
     const params = new URLSearchParams();
@@ -108,8 +114,8 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
       <div>
         <h1 className="text-2xl font-bold">Listing Management</h1>
         <p className="text-sm text-muted-foreground">
-          {total.toLocaleString()} total listings
-          {statusFilter && ` (${statusFilter})`}
+          {filteredTotal.toLocaleString()} listing{filteredTotal !== 1 ? 's' : ''}
+          {statusFilter ? ` — ${statusFilter}` : ''}
         </p>
       </div>
 
@@ -123,19 +129,23 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
-            All ({Object.values(statusCounts).reduce((a, b) => a + b, 0).toLocaleString()})
+            All ({(grandTotal - statusCounts.deleted).toLocaleString()})
           </Badge>
         </Link>
-        {Object.entries(statusCounts).map(([status, count]) => (
-          <Link key={status} href={buildHref(1, status)}>
+        {ALL_STATUSES.map((s) => (
+          <Link key={s} href={buildHref(1, s)}>
             <Badge
               className={`cursor-pointer px-3 py-1 ${
-                statusFilter === status
-                  ? 'bg-slate-900 text-white hover:bg-slate-800'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                statusFilter === s
+                  ? s === 'deleted'
+                    ? 'bg-red-700 text-white hover:bg-red-600'
+                    : 'bg-slate-900 text-white hover:bg-slate-800'
+                  : s === 'deleted' && statusCounts.deleted > 0
+                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
               }`}
             >
-              {status.charAt(0).toUpperCase() + status.slice(1)} ({count.toLocaleString()})
+              {s.charAt(0).toUpperCase() + s.slice(1)} ({statusCounts[s]?.toLocaleString() ?? 0})
             </Badge>
           </Link>
         ))}
@@ -143,24 +153,26 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
 
       {/* Listings */}
       <div className="space-y-4">
-        {listings?.map((listing) => {
-          const imageUrl = getPrimaryImage(listing.images || []);
-
-          return (
-            <AdminListingCard
-              key={listing.id}
-              listing={listing}
-              imageUrl={imageUrl}
-              sellerName={profileMap[listing.user_id]?.company_name || profileMap[listing.user_id]?.email || 'Unknown'}
-              statusBadge={getStatusBadge(listing.status)}
-            />
-          );
-        })}
+        {listings?.map((listing) => (
+          <AdminListingCard
+            key={listing.id}
+            listing={listing}
+            imageUrl={getPrimaryImage(listing.images || [])}
+            sellerName={
+              profileMap[listing.user_id]?.company_name ||
+              profileMap[listing.user_id]?.email ||
+              'Unknown'
+            }
+            statusBadge={getStatusBadge(listing.status, !!listing.deleted_at)}
+          />
+        ))}
 
         {(!listings || listings.length === 0) && (
           <Card>
             <CardContent className="py-16 text-center">
-              <p className="text-muted-foreground">No listings found</p>
+              <p className="text-muted-foreground">
+                {statusFilter === 'deleted' ? 'No deleted listings' : 'No listings found'}
+              </p>
             </CardContent>
           </Card>
         )}
@@ -170,7 +182,8 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Showing {offset + 1}–{Math.min(offset + PAGE_SIZE, total)} of {total.toLocaleString()}
+            Showing {offset + 1}–{Math.min(offset + PAGE_SIZE, filteredTotal)} of{' '}
+            {filteredTotal.toLocaleString()}
           </p>
           <div className="flex items-center gap-2">
             {currentPage > 1 ? (
