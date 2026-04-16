@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkIsAdmin } from '@/lib/admin/check-admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
-import { requireCsrf } from '@/lib/security/csrf';
 
 /**
  * GET /api/admin/scrape-dealers — List dealer sources and their status
@@ -17,10 +16,7 @@ export async function GET(request: NextRequest) {
     if (!rateLimitResult.success) return rateLimitResponse(rateLimitResult);
 
     const { isAdmin } = await checkIsAdmin();
-    if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }
-
-    const csrfError = await requireCsrf(request);
-    if (csrfError) return csrfError;, { status: 403 });
+    if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
 
     const supabase = await createClient();
 
@@ -34,11 +30,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
     }
 
-    // Get listing counts per source
+    // Get listing counts per source (bounded — dealer sources are admin-seeded, not user-generated)
     const { data: listingCounts } = await supabase
       .from('listings')
       .select('source_dealer_id')
-      .not('source_dealer_id', 'is', null);
+      .not('source_dealer_id', 'is', null)
+      .limit(50000);
 
     const countMap: Record<string, number> = {};
     (listingCounts || []).forEach((l) => {

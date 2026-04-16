@@ -25,6 +25,7 @@ const ENV_VARS: EnvVar[] = [
 
   // Email
   { key: 'RESEND_API_KEY', required: true, description: 'Resend API key for transactional email' },
+  { key: 'RESEND_WEBHOOK_SECRET', required: true, description: 'Resend webhook signing secret (svix)' },
 
   // AI
   { key: 'XAI_API_KEY', required: true, description: 'xAI API key for AXLON AI assistant' },
@@ -84,6 +85,7 @@ export const env = {
   stripeSecretKey: process.env.STRIPE_SECRET_KEY!,
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
   resendApiKey: process.env.RESEND_API_KEY!,
+  resendWebhookSecret: process.env.RESEND_WEBHOOK_SECRET!,
   xaiApiKey: process.env.XAI_API_KEY!,
   cronSecret: process.env.CRON_SECRET!,
   internalApiSecret: process.env.INTERNAL_API_SECRET!,

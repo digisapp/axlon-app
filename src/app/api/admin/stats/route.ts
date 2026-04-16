@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'active'),
       supabase.from('leads').select('*', { count: 'exact', head: true }),
       supabase.from('messages').select('*', { count: 'exact', head: true }),
-      supabase.from('listings').select('views_count'),
+      supabase.from('listings').select('views_count').limit(50000),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', startDateStr),
       supabase.from('listings').select('*', { count: 'exact', head: true }).gte('created_at', startDateStr),
       supabase.from('leads').select('*', { count: 'exact', head: true }).gte('created_at', startDateStr),

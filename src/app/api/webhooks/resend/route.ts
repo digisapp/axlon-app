@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getResend } from '@/lib/email/resend';
 import { classifyAndDraftReply, wrapInBrandedTemplate } from '@/lib/ai/email-classifier';
 import { logger } from '@/lib/logger';
+import { env } from '@/lib/env';
 
 /**
  * Resend Webhook — /api/webhooks/resend
@@ -239,24 +240,21 @@ export async function POST(request: NextRequest) {
   try {
     const payload = await request.text();
 
-    // Verify webhook signature
-    const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
-    if (webhookSecret) {
-      const resend = getResend();
-      try {
-        resend.webhooks.verify({
-          payload,
-          headers: {
-            id: request.headers.get('svix-id') || '',
-            timestamp: request.headers.get('svix-timestamp') || '',
-            signature: request.headers.get('svix-signature') || '',
-          },
-          webhookSecret,
-        });
-      } catch {
-        logger.error('Webhook signature verification failed');
-        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
-      }
+    // Verify webhook signature — required, not optional
+    const resend = getResend();
+    try {
+      resend.webhooks.verify({
+        payload,
+        headers: {
+          id: request.headers.get('svix-id') || '',
+          timestamp: request.headers.get('svix-timestamp') || '',
+          signature: request.headers.get('svix-signature') || '',
+        },
+        webhookSecret: env.resendWebhookSecret,
+      });
+    } catch {
+      logger.error('Resend webhook signature verification failed');
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
     const event: ResendWebhookEvent = JSON.parse(payload);
@@ -290,9 +288,10 @@ export async function POST(request: NextRequest) {
     try {
       const emailDetail = await resend.emails.get(data.email_id);
       if (emailDetail.data) {
-        const emailData = emailDetail.data as unknown as { html?: string; text?: string };
-        htmlBody = emailData.html || null;
-        textBody = emailData.text || null;
+        // Resend SDK types don't expose html/text on GetEmailResponse — cast via record
+        const emailData = emailDetail.data as Record<string, unknown>;
+        htmlBody = typeof emailData.html === 'string' ? emailData.html : null;
+        textBody = typeof emailData.text === 'string' ? emailData.text : null;
       }
     } catch (fetchErr) {
       logger.warn('Could not fetch email body from Resend API', { emailId: data.email_id, error: fetchErr });

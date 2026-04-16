@@ -11,10 +11,11 @@ export async function GET(request: NextRequest) {
     .order('created_at', { ascending: false })
     .limit(100);
 
-  // Fetch all dealer AI settings with profile info
+  // Fetch all dealer AI settings with profile info (bounded to 1000 — dealer count is admin-controlled)
   const { data: aiSettings } = await supabase
     .from('dealer_ai_settings')
-    .select('dealer_id, is_enabled, market_reports_enabled, market_report_frequency');
+    .select('dealer_id, is_enabled, market_reports_enabled, market_report_frequency')
+    .limit(1000);
 
   // Get profile info for all dealers with AI settings
   const dealerIds = (aiSettings || []).map(s => s.dealer_id);
