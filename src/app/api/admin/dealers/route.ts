@@ -25,8 +25,10 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'pending';
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const rawPage = parseInt(searchParams.get('page') || '1');
+    const rawLimit = parseInt(searchParams.get('limit') || '20');
+    const page = Math.max(1, Math.min(rawPage, 500));
+    const limit = Math.max(1, Math.min(rawLimit, 100));
     const offset = (page - 1) * limit;
 
     const supabase = await createClient();
@@ -71,21 +73,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch dealers' }, { status: 500 });
     }
 
-    // Get counts by status
-    const { count: pendingCount } = await supabase
+    // Get counts by status — single query instead of three
+    const { data: statusCounts } = await supabase
       .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('business_status', 'pending');
+      .select('business_status')
+      .in('business_status', ['pending', 'approved', 'rejected']);
 
-    const { count: approvedCount } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('business_status', 'approved');
-
-    const { count: rejectedCount } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('business_status', 'rejected');
+    const counts = { pending: 0, approved: 0, rejected: 0 };
+    for (const row of statusCounts ?? []) {
+      const s = row.business_status as keyof typeof counts;
+      if (s in counts) counts[s]++;
+    }
 
     return NextResponse.json({
       data: dealers,
@@ -93,11 +91,7 @@ export async function GET(request: NextRequest) {
       page,
       limit,
       total_pages: Math.ceil((count || 0) / limit),
-      counts: {
-        pending: pendingCount || 0,
-        approved: approvedCount || 0,
-        rejected: rejectedCount || 0,
-      },
+      counts,
     });
   } catch (error) {
     logger.error('Admin dealers error', { error });

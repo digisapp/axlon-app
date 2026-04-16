@@ -4,6 +4,7 @@ import { estimatePrice } from '@/lib/price-estimator';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, updateListingSchema } from '@/lib/validations/api';
 import { syncListingToCollection, removeListingFromCollection } from '@/lib/ai/listing-sync';
+import { cacheDelete, cacheDeletePattern, CACHE_KEYS } from '@/lib/cache';
 
 // GET - Fetch a single listing
 export async function GET(
@@ -72,32 +73,32 @@ export async function PUT(
   }
 
   const updateData = {
-    title: body.title,
-    category_id: body.category_id || null,
-    price: body.price ? parseFloat(body.price) : null,
-    price_type: body.price_type,
-    condition: body.condition || null,
-    year: body.year ? parseInt(body.year) : null,
-    make: body.make || null,
-    model: body.model || null,
-    vin: body.vin || null,
-    mileage: body.mileage ? parseInt(body.mileage) : null,
-    hours: body.hours ? parseInt(body.hours) : null,
-    description: body.description || null,
-    city: body.city || null,
-    state: body.state || null,
-    zip_code: body.zip_code || null,
-    specs: body.specs || {},
-    status: body.status,
-    ai_price_estimate: body.ai_price_estimate || null,
-    ai_price_confidence: body.ai_price_confidence || null,
-    publish_at: body.publish_at || null,
-    unpublish_at: body.unpublish_at || null,
+    title: validatedData.title,
+    category_id: validatedData.category_id || null,
+    price: validatedData.price ? parseFloat(String(validatedData.price)) : null,
+    price_type: validatedData.price_type,
+    condition: validatedData.condition || null,
+    year: validatedData.year ? parseInt(String(validatedData.year)) : null,
+    make: validatedData.make || null,
+    model: validatedData.model || null,
+    vin: validatedData.vin || null,
+    mileage: validatedData.mileage ? parseInt(String(validatedData.mileage)) : null,
+    hours: validatedData.hours ? parseInt(String(validatedData.hours)) : null,
+    description: validatedData.description || null,
+    city: validatedData.city || null,
+    state: validatedData.state || null,
+    zip_code: validatedData.zip_code || null,
+    specs: validatedData.specs || {},
+    status: validatedData.status,
+    ai_price_estimate: validatedData.ai_price_estimate || null,
+    ai_price_confidence: validatedData.ai_price_confidence || null,
+    publish_at: validatedData.publish_at || null,
+    unpublish_at: validatedData.unpublish_at || null,
     updated_at: new Date().toISOString(),
   };
 
   // If publishing for the first time, set published_at
-  if (body.status === 'active' && !body.published_at) {
+  if (validatedData.status === 'active' && !body.published_at) {
     (updateData as Record<string, unknown>).published_at = new Date().toISOString();
   }
 
@@ -148,6 +149,10 @@ export async function PUT(
       // Don't fail the request if estimation fails
     }
   }
+
+  // Invalidate cached listing and search results
+  await cacheDelete(`${CACHE_KEYS.LISTING}${id}`);
+  await cacheDeletePattern(`${CACHE_KEYS.SEARCH}*`);
 
   // Fire-and-forget: sync to KB collection if active, or remove if no longer active
   if (listing.status === 'active') {
@@ -207,11 +212,6 @@ export async function DELETE(
     }
   }
 
-  // Fire-and-forget: remove from KB collection
-  removeListingFromCollection(user.id, id).catch(e =>
-    logger.error('KB remove after delete failed', { error: e })
-  );
-
   // Delete the listing (images cascade due to ON DELETE CASCADE)
   const { error } = await supabase
     .from('listings')
@@ -222,6 +222,15 @@ export async function DELETE(
     logger.error('Listing delete error', { id, error: error.message });
     return NextResponse.json({ error: 'Failed to delete listing' }, { status: 500 });
   }
+
+  // Invalidate caches after confirmed delete
+  await cacheDelete(`${CACHE_KEYS.LISTING}${id}`);
+  await cacheDeletePattern(`${CACHE_KEYS.SEARCH}*`);
+
+  // Fire-and-forget: remove from KB collection (only after successful DB delete)
+  removeListingFromCollection(user.id, id).catch(e =>
+    logger.error('KB remove after delete failed', { error: e })
+  );
 
   return NextResponse.json({ success: true });
 }

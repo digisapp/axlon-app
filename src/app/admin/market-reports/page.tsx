@@ -295,9 +295,12 @@ export default function AdminMarketReportsPage() {
             </DialogTitle>
           </DialogHeader>
           {previewReport?.report_html && (
-            <div
-              className="mt-4"
-              dangerouslySetInnerHTML={{ __html: previewReport.report_html }}
+            <iframe
+              className="mt-4 w-full border-0 rounded"
+              style={{ height: '60vh' }}
+              srcDoc={previewReport.report_html}
+              sandbox="allow-same-origin"
+              title="Report Preview"
             />
           )}
         </DialogContent>
