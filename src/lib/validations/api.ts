@@ -241,13 +241,31 @@ export const tradeInOfferSchema = z.object({
 });
 
 // Listing images validation
+// Only allow images hosted on our Supabase storage domain to prevent XSS via malicious URLs
+function isTrustedImageUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const supabaseHost = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://localhost').hostname;
+    return (
+      parsed.protocol === 'https:' &&
+      (parsed.hostname === supabaseHost || parsed.hostname.endsWith('.supabase.co'))
+    );
+  } catch {
+    return false;
+  }
+}
+
+const trustedImageUrl = z.string().url().refine(isTrustedImageUrl, {
+  message: 'Image URL must be hosted on trusted storage',
+});
+
 export const listingImagesSchema = z.object({
   images: z.array(z.object({
-    url: z.string().url(),
-    thumbnail_url: z.string().url().optional().nullable(),
+    url: trustedImageUrl,
+    thumbnail_url: trustedImageUrl.optional().nullable(),
     is_primary: z.boolean().optional(),
-    ai_analysis: z.string().optional().nullable(),
-  })).min(1),
+    ai_analysis: z.string().max(2000).optional().nullable(),
+  })).min(1).max(50),
 });
 
 export const updateImagesOrderSchema = z.object({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { recordViewBatch, isRedisConfigured } from '@/lib/cache';
+import { checkRateLimit, getClientIdentifier } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 
 // Generate a simple session ID for anonymous tracking
@@ -27,6 +28,17 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Rate limit: max 30 view pings per minute per IP (prevents count inflation)
+    const identifier = getClientIdentifier(request);
+    const rl = await checkRateLimit(identifier, {
+      requests: 30,
+      window: 60,
+      prefix: 'ratelimit:listing-view',
+    });
+    if (!rl.success) {
+      return NextResponse.json({ tracked: false, reason: 'rate_limited' });
+    }
+
     const { id: listingId } = await params;
     const supabase = await createClient();
 

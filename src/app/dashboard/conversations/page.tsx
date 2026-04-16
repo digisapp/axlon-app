@@ -42,6 +42,7 @@ export default function ConversationsPage() {
   const supabase = createClient();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [totalConversations, setTotalConversations] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'active' | 'converted' | 'closed'>('all');
 
@@ -61,6 +62,7 @@ export default function ConversationsPage() {
       if (response.ok) {
         const data = await response.json();
         setConversations(data.conversations || []);
+        setTotalConversations(data.total ?? 0);
       }
 
       setIsLoading(false);
@@ -84,7 +86,10 @@ export default function ConversationsPage() {
           // Refresh conversations on any change
           fetch(`/api/dashboard/conversations?status=${filter}`)
             .then((res) => res.json())
-            .then((data) => setConversations(data.conversations || []));
+            .then((data) => {
+              setConversations(data.conversations || []);
+              setTotalConversations(data.total ?? 0);
+            });
         }
       )
       .subscribe();
@@ -108,7 +113,7 @@ export default function ConversationsPage() {
   };
 
   const stats = {
-    total: conversations.length,
+    total: totalConversations,
     active: conversations.filter((c) => c.status === 'active').length,
     converted: conversations.filter((c) => c.status === 'converted').length,
   };

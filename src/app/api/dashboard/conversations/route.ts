@@ -11,19 +11,18 @@ export const GET = withAuth(async (request, { user, supabase }) => {
   const limit = Math.max(1, Math.min(rawLimit, 100));
   const offset = Math.max(0, rawOffset);
 
-  // Fetch conversations with pagination — do NOT embed messages (too expensive for list view)
   let query = supabase
     .from('chat_conversations')
     .select(`
       id,
+      dealer_id,
+      visitor_name,
+      visitor_email,
+      visitor_phone,
       status,
       created_at,
       updated_at,
-      visitor_id,
       lead_id,
-      message_count,
-      last_message_at,
-      last_message_preview,
       lead:leads(id, status, buyer_name)
     `, { count: 'exact' })
     .eq('dealer_id', user.id)
@@ -41,9 +40,44 @@ export const GET = withAuth(async (request, { user, supabase }) => {
     return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 });
   }
 
+  if (!conversations || conversations.length === 0) {
+    return NextResponse.json({ conversations: [], total: 0, limit, offset });
+  }
+
+  // Batch-fetch message stats for all conversations in one query (avoids N+1)
+  const conversationIds = conversations.map((c) => c.id);
+  const { data: messages } = await supabase
+    .from('chat_messages')
+    .select('conversation_id, role, content, created_at')
+    .in('conversation_id', conversationIds)
+    .order('created_at', { ascending: true });
+
+  // Group messages by conversation in memory
+  type MsgRow = { conversation_id: string; role: string; content: string; created_at: string };
+  const msgsByConv = new Map<string, MsgRow[]>();
+  for (const msg of messages ?? []) {
+    const arr = msgsByConv.get(msg.conversation_id) ?? [];
+    arr.push(msg);
+    msgsByConv.set(msg.conversation_id, arr);
+  }
+
+  const processedConversations = conversations.map((conv) => {
+    const msgs = msgsByConv.get(conv.id) ?? [];
+    const lastMessage = msgs[msgs.length - 1];
+    const userMessages = msgs.filter((m) => m.role === 'user');
+
+    return {
+      ...conv,
+      message_count: msgs.length,
+      user_message_count: userMessages.length,
+      last_message: lastMessage?.content?.substring(0, 100) ?? null,
+      last_message_at: lastMessage?.created_at ?? conv.updated_at,
+    };
+  });
+
   return NextResponse.json({
-    conversations,
-    total: count || 0,
+    conversations: processedConversations,
+    total: count ?? 0,
     limit,
     offset,
   });

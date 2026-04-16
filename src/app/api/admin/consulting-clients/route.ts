@@ -46,23 +46,28 @@ async function requireAdmin(supabase: Awaited<ReturnType<typeof createClient>>) 
   return profile?.is_admin ? user : null;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     if (!await requireAdmin(supabase)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const { data, error } = await supabase
+    const { searchParams } = new URL(request.url);
+    const limit = Math.max(1, Math.min(parseInt(searchParams.get('limit') || '100'), 100));
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'));
+
+    const { data, count, error } = await supabase
       .from('consulting_clients')
       .select(`
         *,
         milestones:consulting_milestones(id, title, status, due_date, phase)
-      `)
-      .order('contract_start', { ascending: false });
+      `, { count: 'exact' })
+      .order('contract_start', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) throw error;
-    return NextResponse.json(data);
+    return NextResponse.json({ data, total: count ?? 0, limit, offset });
   } catch (error) {
     logger.error('Error fetching consulting clients', { error });
     return NextResponse.json({ error: 'Failed to fetch clients' }, { status: 500 });

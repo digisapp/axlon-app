@@ -26,6 +26,11 @@ export const POST = withAuth(async (request, { user, supabase }) => {
     return NextResponse.json({ error: 'Not authorized to clone this listing' }, { status: 403 });
   }
 
+  // Refuse to clone soft-deleted listings
+  if (original.deleted_at) {
+    return NextResponse.json({ error: 'Cannot clone a deleted listing' }, { status: 400 });
+  }
+
   // Create the cloned listing
   const {
     id: _originalId,
