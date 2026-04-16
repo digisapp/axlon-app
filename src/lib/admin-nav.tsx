@@ -20,6 +20,7 @@ import {
   Zap,
   ClipboardList,
   Target,
+  Shield,
 } from 'lucide-react';
 
 export interface AdminNavItem {
@@ -47,6 +48,11 @@ export const adminNavSections: AdminNavSection[] = [
         href: '/admin/analytics',
         label: 'Analytics',
         icon: <BarChart3 className="w-5 h-5" />,
+      },
+      {
+        href: '/admin/audit-log',
+        label: 'Audit Log',
+        icon: <Shield className="w-5 h-5" />,
       },
     ],
   },
