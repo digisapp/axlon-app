@@ -297,9 +297,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .order('updated_at', { ascending: false });
 
     if (products) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      productPages = products.map((product: any) => ({
-        url: `${baseUrl}/new-trailers/${product.manufacturers.slug}/${product.slug}`,
+      productPages = products.map((product) => ({
+        url: `${baseUrl}/new-trailers/${(product.manufacturers as { slug: string }).slug}/${product.slug}`,
         lastModified: product.updated_at ? new Date(product.updated_at) : new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.7,

@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
@@ -19,7 +20,6 @@ async function getSessionId(req: NextRequest): Promise<string> {
 
 // Hash IP for privacy-safe deduplication using cryptographic hash
 function hashIP(ip: string): string {
-  const crypto = require('crypto');
   return crypto.createHash('sha256').update(ip).digest('hex').substring(0, 16);
 }
 

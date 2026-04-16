@@ -302,7 +302,7 @@ export function generateQuotePdf(
   doc.text('Questions? Contact us at ' + (dealerInfo.email || dealerInfo.phone || ''), pageWidth - margin, pageHeight - 7, { align: 'right' });
 
   // Return as Uint8Array for API use
-  return doc.output('arraybuffer') as unknown as Uint8Array;
+  return new Uint8Array(doc.output('arraybuffer') as ArrayBuffer);
 }
 
 export function generateQuoteFilename(dealNumber: string): string {
