@@ -45,3 +45,15 @@ agent/venv/
 agent/__pycache__/
 *.pyc
 .env*.local
+
+# Claude Code settings
+.claude/
+
+# VS Code
+.vscode/
+
+# Supabase temp files
+supabase/.temp/
+
+# Local data/outreach files
+data/
