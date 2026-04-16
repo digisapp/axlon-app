@@ -18,10 +18,7 @@ export async function GET(request: NextRequest) {
 
     const { isAdmin } = await checkIsAdmin();
     if (!isAdmin) {
-      return NextResponse.json({ error: 'Forbidden' }
-
-    const csrfError = await requireCsrf(request);
-    if (csrfError) return csrfError;, { status: 403 });
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const supabase = await createClient();
@@ -111,6 +108,9 @@ export async function DELETE(request: NextRequest) {
     if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
 
     const supabase = await createClient();
     const body = await request.json();

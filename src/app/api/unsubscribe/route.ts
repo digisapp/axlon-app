@@ -2,9 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logger } from '@/lib/logger';
 import { requireCsrf } from '@/lib/security/csrf';
+import { checkRateLimit, getClientIdentifier } from '@/lib/security/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: max 5 unsubscribe attempts per IP per minute to prevent bulk attacks
+    const identifier = getClientIdentifier(request);
+    const rl = await checkRateLimit(identifier, { requests: 5, window: 60, prefix: 'ratelimit:unsubscribe' });
+    if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+
     const csrfError = await requireCsrf(request);
     if (csrfError) return csrfError;
 

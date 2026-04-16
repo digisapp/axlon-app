@@ -26,10 +26,7 @@ export async function GET(request: NextRequest) {
     if (!rateLimitResult.success) return rateLimitResponse(rateLimitResult);
 
     const { isAdmin } = await checkIsAdmin();
-    if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }
-
-    const csrfError = await requireCsrf(request);
-    if (csrfError) return csrfError;, { status: 403 });
+    if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
 
     const supabase = createAdminClient();
     const { searchParams } = new URL(request.url);
@@ -108,6 +105,9 @@ export async function PATCH(request: NextRequest) {
 
     const { isAdmin } = await checkIsAdmin();
     if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
 
     const { ids, category, invite_status } = await request.json();
 

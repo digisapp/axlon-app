@@ -501,6 +501,10 @@ export async function POST() {
 
 // GET endpoint to check seed status
 export async function GET() {
+  if (!ALLOW_SEED) {
+    return NextResponse.json({ error: 'Seed endpoint disabled' }, { status: 403 });
+  }
+
   try {
     const supabase = createAdminClient();
 
