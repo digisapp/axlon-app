@@ -340,6 +340,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Clamp inputs to prevent credit exhaustion
+    if (typeof query === 'string' && query.length > 2000) {
+      body.query = query.slice(0, 2000);
+    }
+    if (Array.isArray(messages) && messages.length > 50) {
+      body.messages = messages.slice(-50); // keep last 50 messages
+    }
+
     const supabase = await createClient();
 
     // Fetch dealer's AI settings

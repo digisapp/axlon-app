@@ -5,7 +5,10 @@ import { validateBody, ValidationError, createMessageSchema } from '@/lib/valida
 
 // GET - Fetch conversations for the current user
 export const GET = withAuth(async (request, { user, supabase }) => {
-  // Get all conversations where user is sender or recipient
+  const { searchParams } = new URL(request.url);
+  const limit = Math.max(1, Math.min(parseInt(searchParams.get('limit') || '200'), 500));
+
+  // Get messages where user is sender or recipient (bounded)
   const { data: messages, error } = await supabase
     .from('messages')
     .select(`
@@ -21,7 +24,8 @@ export const GET = withAuth(async (request, { user, supabase }) => {
       recipient:profiles!messages_recipient_id_fkey(id, company_name, email, avatar_url)
     `)
     .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(limit);
 
   if (error) {
     return NextResponse.json({ error: 'Operation failed' }, { status: 500 });

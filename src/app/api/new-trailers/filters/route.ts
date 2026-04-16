@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,7 +16,7 @@ export async function GET() {
       .eq('is_active', true);
 
     if (error) {
-      console.error('Error fetching filter data', error);
+      logger.error('Error fetching filter data', { error: error });
       return NextResponse.json(
         { error: 'Failed to fetch filter options' },
         { status: 500 }
@@ -87,7 +88,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('New trailers filters API error', error);
+    logger.error('New trailers filters API error', { error: error });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

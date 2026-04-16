@@ -689,14 +689,16 @@ export async function POST(request: NextRequest) {
       return rateLimitResponse(rateLimitResult);
     }
 
-    const { query } = await request.json();
+    const { query: rawQuery } = await request.json();
 
-    if (!query || typeof query !== 'string') {
+    if (!rawQuery || typeof rawQuery !== 'string') {
       return NextResponse.json(
         { error: 'Query is required' },
         { status: 400 }
       );
     }
+    // Clamp query length to prevent prompt injection / credit exhaustion
+    const query = rawQuery.slice(0, 2000);
 
     // Check if this is a question or a search
     const questionDetected = isQuestion(query);

@@ -2,6 +2,7 @@ import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCsrf } from '@/lib/security/csrf';
+import { logger } from '@/lib/logger';
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -38,7 +39,7 @@ export async function DELETE(request: NextRequest) {
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);
 
     if (deleteError) {
-      console.error('Delete user error:', deleteError);
+      logger.error('Delete user error:', { error: deleteError });
       return NextResponse.json(
         { error: 'Failed to delete account' },
         { status: 500 }
@@ -47,7 +48,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('Delete account error:', err);
+    logger.error('Delete account error:', { error: err });
     return NextResponse.json(
       { error: 'An unexpected error occurred' },
       { status: 500 }

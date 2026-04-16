@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,7 +39,7 @@ export async function GET(
 
     return NextResponse.json({ data });
   } catch (error) {
-    console.error('New trailer product detail API error', error);
+    logger.error('New trailer product detail API error', { error: error });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

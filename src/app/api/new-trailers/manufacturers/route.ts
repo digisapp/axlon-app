@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,7 +17,7 @@ export async function GET() {
       .order('name', { ascending: true });
 
     if (error) {
-      console.error('Error fetching manufacturers with products', error);
+      logger.error('Error fetching manufacturers with products', { error: error });
       return NextResponse.json(
         { error: 'Failed to fetch manufacturers' },
         { status: 500 }
@@ -25,7 +26,7 @@ export async function GET() {
 
     return NextResponse.json({ data: manufacturers || [] });
   } catch (error) {
-    console.error('New trailers manufacturers API error', error);
+    logger.error('New trailers manufacturers API error', { error: error });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

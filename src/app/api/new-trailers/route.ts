@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { newTrailersQuerySchema } from '@/lib/validations/api';
+import { logger } from '@/lib/logger';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -124,7 +125,7 @@ export async function GET(request: NextRequest) {
     const { data, count, error } = await query;
 
     if (error) {
-      console.error('New trailers query error', error);
+      logger.error('New trailers query error', { error: error });
       return NextResponse.json(
         { error: 'Failed to fetch new trailers' },
         { status: 500 }
@@ -140,7 +141,7 @@ export async function GET(request: NextRequest) {
       total_pages: Math.ceil(total / limit),
     });
   } catch (error) {
-    console.error('New trailers API error', error);
+    logger.error('New trailers API error', { error: error });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

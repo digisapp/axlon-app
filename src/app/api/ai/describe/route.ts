@@ -14,9 +14,11 @@ export async function POST(request: NextRequest) {
       return rateLimitResponse(rateLimitResult);
     }
 
-    const { imageUrls, specs } = await request.json();
+    const body = await request.json();
+    const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.slice(0, 10) : [];
+    const specs = body.specs && typeof body.specs === 'object' ? body.specs : {};
 
-    if (!imageUrls || imageUrls.length === 0) {
+    if (imageUrls.length === 0) {
       return NextResponse.json(
         { error: 'At least one image URL is required' },
         { status: 400 }
