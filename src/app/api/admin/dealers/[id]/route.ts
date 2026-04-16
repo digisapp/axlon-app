@@ -4,6 +4,7 @@ import { checkIsAdmin, logAdminAction } from '@/lib/admin/check-admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, adminDealerActionSchema } from '@/lib/validations/api';
+import { requireCsrf } from '@/lib/security/csrf';
 
 export async function PATCH(
   request: NextRequest,
@@ -23,7 +24,10 @@ export async function PATCH(
     const { isAdmin, userId } = await checkIsAdmin();
 
     if (!isAdmin || !userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized' }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;, { status: 403 });
     }
 
     const body = await request.json();

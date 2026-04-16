@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logger } from '@/lib/logger';
+import { requireCsrf } from '@/lib/security/csrf';
 
 export async function POST(request: NextRequest) {
   try {
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
+
     const { email } = await request.json();
 
     if (!email || typeof email !== 'string') {

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { checkIsAdmin } from '@/lib/admin/check-admin';
 import { logger } from '@/lib/logger';
+import { requireCsrf } from '@/lib/security/csrf';
 
 export async function PATCH(
   request: NextRequest,
@@ -20,7 +21,10 @@ export async function PATCH(
 
     const { isAdmin } = await checkIsAdmin();
     if (!isAdmin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Forbidden' }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;, { status: 403 });
     }
 
     const supabase = await createClient();

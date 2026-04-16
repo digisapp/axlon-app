@@ -4,6 +4,7 @@ import { checkIsAdmin, logAdminAction } from '@/lib/admin/check-admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';import { validateBody, ValidationError, manufacturerSchema } from '@/lib/validations/api';
+import { requireCsrf } from '@/lib/security/csrf';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +20,10 @@ export async function GET(request: NextRequest) {
     const { isAdmin } = await checkIsAdmin();
 
     if (!isAdmin) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized' }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

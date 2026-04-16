@@ -6,6 +6,7 @@ import { withAuth } from '@/lib/auth/with-auth';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, tradeInRequestSchema } from '@/lib/validations/api';
 import { escapeHtml } from '@/lib/utils/html-escape';
+import { requireCsrf } from '@/lib/security/csrf';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'sales@axlon.ai';
 
@@ -21,6 +22,9 @@ export async function POST(request: NextRequest) {
     if (!rateLimitResult.success) {
       return rateLimitResponse(rateLimitResult);
     }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
 
     const supabase = await createClient();
     const body = await request.json();

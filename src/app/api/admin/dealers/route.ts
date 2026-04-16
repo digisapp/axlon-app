@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { checkIsAdmin } from '@/lib/admin/check-admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { requireCsrf } from '@/lib/security/csrf';
 
 export async function GET(request: NextRequest) {
   try {

@@ -7,6 +7,7 @@ import { cacheDelete, cacheDeletePattern, CACHE_KEYS } from '@/lib/cache';
 import { removeListingFromCollection } from '@/lib/ai/listing-sync';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { requireCsrf } from '@/lib/security/csrf';
 
 const actionSchema = z.object({
   action: z.enum(['restore', 'hard_delete']),
@@ -32,6 +33,9 @@ export async function PATCH(
     if (!isAdmin || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
 
     const body = await request.json();
     const parsed = actionSchema.safeParse(body);
