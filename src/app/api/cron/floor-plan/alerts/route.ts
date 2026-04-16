@@ -193,19 +193,22 @@ export async function GET(request: NextRequest) {
       .delete()
       .or(`is_dismissed.eq.true,created_at.lt.${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()}`);
 
-    // Insert new alerts (upsert to avoid duplicates)
+    // Insert new alerts, deduplicating by (floor_plan_id, alert_type)
     if (alertsToCreate.length > 0) {
-      // Delete existing alerts of the same type for the same floor plan today
-      for (const alert of alertsToCreate) {
+      // Build unique (floor_plan_id, alert_type) pairs for a single batch delete
+      // instead of looping N individual DELETEs
+      const fpIds = [...new Set(alertsToCreate.map((a) => a.floor_plan_id).filter(Boolean))];
+      const alertTypes = [...new Set(alertsToCreate.map((a) => a.alert_type))];
+
+      if (fpIds.length > 0) {
         await supabase
           .from('floor_plan_alerts')
           .delete()
-          .eq('floor_plan_id', alert.floor_plan_id)
-          .eq('alert_type', alert.alert_type)
+          .in('floor_plan_id', fpIds)
+          .in('alert_type', alertTypes)
           .eq('is_dismissed', false);
       }
 
-      // Insert new alerts
       const { error: insertError } = await supabase
         .from('floor_plan_alerts')
         .insert(alertsToCreate);
@@ -221,6 +224,15 @@ export async function GET(request: NextRequest) {
       .select('id, dealer_id, credit_limit, available_credit, provider:floor_plan_providers(name)')
       .eq('status', 'active');
 
+    const creditAlertsToDelete: string[] = [];
+    const creditAlertsToCreate: Array<{
+      dealer_id: string;
+      alert_type: string;
+      severity: 'info' | 'warning' | 'critical';
+      title: string;
+      message: string;
+    }> = [];
+
     for (const account of accounts || []) {
       const utilization = account.credit_limit > 0
         ? ((account.credit_limit - account.available_credit) / account.credit_limit) * 100
@@ -233,41 +245,37 @@ export async function GET(request: NextRequest) {
         : providerData?.name || 'floor plan';
 
       if (utilization >= 90) {
-        // Delete existing credit limit warning for this account
-        await supabase
-          .from('floor_plan_alerts')
-          .delete()
-          .eq('dealer_id', account.dealer_id)
-          .eq('alert_type', 'credit_limit_warning')
-          .eq('is_dismissed', false);
-
-        await supabase
-          .from('floor_plan_alerts')
-          .insert({
-            dealer_id: account.dealer_id,
-            alert_type: 'credit_limit_warning',
-            severity: 'critical',
-            title: 'Credit Limit Critical',
-            message: `Your ${accountProviderName} account is at ${utilization.toFixed(0)}% utilization.`,
-          });
+        creditAlertsToDelete.push(account.dealer_id);
+        creditAlertsToCreate.push({
+          dealer_id: account.dealer_id,
+          alert_type: 'credit_limit_warning',
+          severity: 'critical' as const,
+          title: 'Credit Limit Critical',
+          message: `Your ${accountProviderName} account is at ${utilization.toFixed(0)}% utilization.`,
+        });
       } else if (utilization >= 80) {
-        await supabase
-          .from('floor_plan_alerts')
-          .delete()
-          .eq('dealer_id', account.dealer_id)
-          .eq('alert_type', 'credit_limit_warning')
-          .eq('is_dismissed', false);
-
-        await supabase
-          .from('floor_plan_alerts')
-          .insert({
-            dealer_id: account.dealer_id,
-            alert_type: 'credit_limit_warning',
-            severity: 'warning',
-            title: 'Credit Limit Warning',
-            message: `Your ${accountProviderName} account is at ${utilization.toFixed(0)}% utilization.`,
-          });
+        creditAlertsToDelete.push(account.dealer_id);
+        creditAlertsToCreate.push({
+          dealer_id: account.dealer_id,
+          alert_type: 'credit_limit_warning',
+          severity: 'warning' as const,
+          title: 'Credit Limit Warning',
+          message: `Your ${accountProviderName} account is at ${utilization.toFixed(0)}% utilization.`,
+        });
       }
+    }
+
+    // Batch delete + insert credit limit alerts (replaces per-account loop)
+    if (creditAlertsToDelete.length > 0) {
+      await supabase
+        .from('floor_plan_alerts')
+        .delete()
+        .in('dealer_id', creditAlertsToDelete)
+        .eq('alert_type', 'credit_limit_warning')
+        .eq('is_dismissed', false);
+    }
+    if (creditAlertsToCreate.length > 0) {
+      await supabase.from('floor_plan_alerts').insert(creditAlertsToCreate);
     }
 
     return NextResponse.json({

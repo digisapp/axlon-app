@@ -5,8 +5,16 @@
       "schedule": "*/5 * * * *"
     },
     {
+      "path": "/api/cron/scheduled-listings",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/lead-followups",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/floor-plan/alerts",
+      "schedule": "0 7 * * *"
     },
     {
       "path": "/api/cron/market-reports",
