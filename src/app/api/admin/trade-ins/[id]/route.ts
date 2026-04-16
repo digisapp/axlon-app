@@ -2,6 +2,15 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { requireCsrf } from '@/lib/security/csrf';
+import { z } from 'zod';
+
+const updateTradeInSchema = z.object({
+  status: z.enum(['pending', 'reviewing', 'offered', 'accepted', 'rejected', 'completed']).optional(),
+  offer_amount: z.number().min(0).optional(),
+  admin_notes: z.string().max(2000).optional(),
+  assigned_dealer_id: z.string().uuid().nullable().optional(),
+});
 
 export async function PATCH(
   request: NextRequest,
@@ -37,25 +46,17 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Update trade-in request
-    const updateData: Record<string, unknown> = {};
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
 
-    if (body.status) {
-      updateData.status = body.status;
-    }
-    if (body.offer_amount !== undefined) {
-      updateData.offer_amount = body.offer_amount;
-    }
-    if (body.admin_notes !== undefined) {
-      updateData.admin_notes = body.admin_notes;
-    }
-    if (body.assigned_dealer_id !== undefined) {
-      updateData.assigned_dealer_id = body.assigned_dealer_id;
+    const parsed = updateTradeInSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Validation failed', details: parsed.error.issues }, { status: 400 });
     }
 
     const { data, error } = await supabase
       .from('trade_in_requests')
-      .update(updateData)
+      .update(parsed.data)
       .eq('id', id)
       .select()
       .single();

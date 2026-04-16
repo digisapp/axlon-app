@@ -5,6 +5,8 @@ import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, updateListingSchema } from '@/lib/validations/api';
 import { syncListingToCollection, removeListingFromCollection } from '@/lib/ai/listing-sync';
 import { cacheDelete, cacheDeletePattern, CACHE_KEYS } from '@/lib/cache';
+import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
+import { requireCsrf } from '@/lib/security/csrf';
 
 // GET - Fetch a single listing
 export async function GET(
@@ -44,6 +46,13 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const identifier = getClientIdentifier(request);
+  const rl = await checkRateLimit(identifier, { ...RATE_LIMITS.standard, prefix: 'ratelimit:listings-update' });
+  if (!rl.success) return rateLimitResponse(rl);
+
+  const csrfError = await requireCsrf(request);
+  if (csrfError) return csrfError;
+
   const { id } = await params;
   const supabase = await createClient();
 
@@ -181,6 +190,13 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const identifier = getClientIdentifier(request);
+  const rl = await checkRateLimit(identifier, { ...RATE_LIMITS.standard, prefix: 'ratelimit:listings-delete' });
+  if (!rl.success) return rateLimitResponse(rl);
+
+  const csrfError = await requireCsrf(request);
+  if (csrfError) return csrfError;
+
   const { id } = await params;
   const supabase = await createClient();
 

@@ -2,6 +2,19 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit'
 import { logger } from '@/lib/logger'
+import { requireCsrf } from '@/lib/security/csrf'
+import { z } from 'zod'
+
+const aiAgentSettingsSchema = z.object({
+  voice: z.enum(['Ara', 'Eve', 'Mika', 'Leo', 'Rex', 'Sal']).optional(),
+  agent_name: z.string().min(1).max(100).optional(),
+  greeting_message: z.string().max(1000).optional(),
+  instructions: z.string().max(5000).optional(),
+  model: z.string().max(100).optional(),
+  temperature: z.number().min(0).max(2).optional(),
+  phone_number: z.string().max(20).optional(),
+  is_active: z.boolean().optional(),
+})
 
 // GET - Fetch AI agent settings
 export async function GET(request: NextRequest) {
@@ -79,26 +92,20 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
   }
 
-  const body = await request.json()
+  const csrfError = await requireCsrf(request)
+  if (csrfError) return csrfError
 
-  // Validate voice option
-  const validVoices = ['Ara', 'Eve', 'Mika', 'Leo', 'Rex', 'Sal']
-  if (body.voice && !validVoices.includes(body.voice)) {
-    return NextResponse.json({ error: 'Invalid voice option' }, { status: 400 })
+  const body = await request.json()
+  const parsed = aiAgentSettingsSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid settings', details: parsed.error.issues }, { status: 400 })
   }
 
   // Update settings
   const { data, error } = await supabase
     .from('ai_agent_settings')
     .update({
-      voice: body.voice,
-      agent_name: body.agent_name,
-      greeting_message: body.greeting_message,
-      instructions: body.instructions,
-      model: body.model,
-      temperature: body.temperature,
-      phone_number: body.phone_number,
-      is_active: body.is_active,
+      ...parsed.data,
       updated_at: new Date().toISOString(),
     })
     .eq('id', '00000000-0000-0000-0000-000000000001')

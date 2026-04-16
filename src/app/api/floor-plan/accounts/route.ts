@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createFloorPlanAccountSchema } from '@/lib/validations/floor-plan';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { requireCsrf } from '@/lib/security/csrf';
 
 // GET - List dealer's floor plan accounts
 export async function GET(request: NextRequest) {
@@ -37,24 +38,34 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch accounts' }, { status: 500 });
     }
 
-    // Get active units count and total floored for each account
-    const accountsWithStats = await Promise.all(
-      (data || []).map(async (account) => {
-        const { count, data: unitsData } = await supabase
-          .from('listing_floor_plans')
-          .select('current_balance', { count: 'exact' })
-          .eq('account_id', account.id)
-          .eq('status', 'active');
+    // Get active units count and total floored — single batch query (avoids N+1)
+    const accountIds = (data || []).map((a) => a.id);
+    const statsMap = new Map<string, { count: number; total: number }>();
 
-        const totalFloored = unitsData?.reduce((sum, u) => sum + (u.current_balance || 0), 0) || 0;
+    if (accountIds.length > 0) {
+      const { data: unitRows } = await supabase
+        .from('listing_floor_plans')
+        .select('account_id, current_balance')
+        .eq('status', 'active')
+        .in('account_id', accountIds);
 
-        return {
-          ...account,
-          active_units_count: count || 0,
-          total_floored_amount: totalFloored,
-        };
-      })
-    );
+      for (const row of unitRows ?? []) {
+        const existing = statsMap.get(row.account_id) ?? { count: 0, total: 0 };
+        statsMap.set(row.account_id, {
+          count: existing.count + 1,
+          total: existing.total + (row.current_balance || 0),
+        });
+      }
+    }
+
+    const accountsWithStats = (data || []).map((account) => {
+      const stats = statsMap.get(account.id) ?? { count: 0, total: 0 };
+      return {
+        ...account,
+        active_units_count: stats.count,
+        total_floored_amount: stats.total,
+      };
+    });
 
     return NextResponse.json({ data: accountsWithStats });
   } catch (error) {
@@ -83,6 +94,9 @@ export async function POST(request: NextRequest) {
     if (!rateLimitResult.success) {
       return rateLimitResponse(rateLimitResult);
     }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
 
     const body = await request.json();
     const parseResult = createFloorPlanAccountSchema.safeParse(body);

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { backfillEstimates, updateListingEstimate } from '@/lib/price-estimator';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { requireCsrf } from '@/lib/security/csrf';
 
 // POST - Backfill estimates for multiple listings
 export async function POST(request: NextRequest) {
@@ -35,8 +36,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
   }
 
+  const csrfError = await requireCsrf(request);
+  if (csrfError) return csrfError;
+
   try {
-    const { limit = 100 } = await request.json().catch(() => ({}));
+    const body = await request.json().catch(() => ({}));
+    const limit = Math.max(1, Math.min(parseInt(body.limit ?? 100), 1000));
 
     const result = await backfillEstimates(limit);
 
