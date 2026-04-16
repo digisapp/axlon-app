@@ -108,20 +108,17 @@ export async function GET(request: NextRequest) {
       listing_count: countMap.get(user.id) || 0,
     }));
 
-    // Get overall counts
-    const { count: totalUsers } = await supabase
+    // Get overall counts — single query + in-memory aggregation (avoids 3 round trips)
+    const { data: profileFlags } = await supabase
       .from('profiles')
-      .select('*', { count: 'exact', head: true });
+      .select('is_business, is_suspended');
 
-    const { count: totalBusinesses } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_business', true);
-
-    const { count: suspendedUsers } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_suspended', true);
+    let totalUsers = 0, totalBusinesses = 0, suspendedUsers = 0;
+    for (const p of profileFlags ?? []) {
+      totalUsers++;
+      if (p.is_business) totalBusinesses++;
+      if (p.is_suspended) suspendedUsers++;
+    }
 
     return NextResponse.json({
       data: usersWithStats,
@@ -130,9 +127,9 @@ export async function GET(request: NextRequest) {
       limit,
       total_pages: Math.ceil((count || 0) / limit),
       stats: {
-        total_users: totalUsers || 0,
-        total_businesses: totalBusinesses || 0,
-        suspended_users: suspendedUsers || 0,
+        total_users: totalUsers,
+        total_businesses: totalBusinesses,
+        suspended_users: suspendedUsers,
       },
     });
   } catch (error) {

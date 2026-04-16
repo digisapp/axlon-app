@@ -15,6 +15,7 @@ export const GET = withAuth(async (request, { user, supabase }) => {
       images:listing_images(url, thumbnail_url, is_primary)
     `)
     .eq('user_id', user.id)
+    .is('deleted_at', null) // exclude soft-deleted listings
     .order('created_at', { ascending: false })
     .limit(limit);
 

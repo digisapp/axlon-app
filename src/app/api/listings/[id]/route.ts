@@ -30,6 +30,12 @@ export async function GET(
     return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
   }
 
+  // RLS already hides soft-deleted listings from non-owners/non-admins,
+  // but if somehow visible, return 410 Gone so clients know it was deleted
+  if ((listing as Record<string, unknown>).deleted_at) {
+    return NextResponse.json({ error: 'Listing has been deleted' }, { status: 410 });
+  }
+
   return NextResponse.json({ data: listing });
 }
 
@@ -168,7 +174,9 @@ export async function PUT(
   return NextResponse.json({ data: listing });
 }
 
-// DELETE - Delete a listing
+// DELETE - Soft-delete a listing
+// Sets deleted_at + status='deleted'; recoverable by admins via restore_listing().
+// Hard deletion (storage cleanup) is deferred to a cron/admin action.
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -181,55 +189,46 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Verify listing ownership
+  // Verify listing ownership (also confirms it isn't already deleted)
   const { data: listing } = await supabase
     .from('listings')
-    .select('user_id')
+    .select('user_id, deleted_at')
     .eq('id', id)
     .single();
 
-  if (!listing || listing.user_id !== user.id) {
+  if (!listing) {
+    return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
+  }
+  if (listing.user_id !== user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-
-  // Get all images to delete from storage
-  const { data: images } = await supabase
-    .from('listing_images')
-    .select('url')
-    .eq('listing_id', id);
-
-  // Delete images from storage
-  if (images && images.length > 0) {
-    const paths = images
-      .map((img) => {
-        const urlParts = img.url.split('/listing-images/');
-        return urlParts[1];
-      })
-      .filter(Boolean);
-
-    if (paths.length > 0) {
-      await supabase.storage.from('listing-images').remove(paths);
-    }
+  if (listing.deleted_at) {
+    return NextResponse.json({ error: 'Listing already deleted' }, { status: 410 });
   }
 
-  // Delete the listing (images cascade due to ON DELETE CASCADE)
+  // Soft-delete: mark as deleted rather than removing the row
   const { error } = await supabase
     .from('listings')
-    .delete()
-    .eq('id', id);
+    .update({
+      deleted_at: new Date().toISOString(),
+      deleted_by: user.id,
+      status: 'deleted',
+    })
+    .eq('id', id)
+    .eq('user_id', user.id); // extra ownership guard at DB level
 
   if (error) {
-    logger.error('Listing delete error', { id, error: error.message });
+    logger.error('Listing soft-delete error', { id, error: error.message });
     return NextResponse.json({ error: 'Failed to delete listing' }, { status: 500 });
   }
 
-  // Invalidate caches after confirmed delete
+  // Invalidate caches after confirmed soft-delete
   await cacheDelete(`${CACHE_KEYS.LISTING}${id}`);
   await cacheDeletePattern(`${CACHE_KEYS.SEARCH}*`);
 
-  // Fire-and-forget: remove from KB collection (only after successful DB delete)
+  // Fire-and-forget: remove from KB collection
   removeListingFromCollection(user.id, id).catch(e =>
-    logger.error('KB remove after delete failed', { error: e })
+    logger.error('KB remove after soft-delete failed', { error: e })
   );
 
   return NextResponse.json({ success: true });
