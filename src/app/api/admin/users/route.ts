@@ -32,8 +32,10 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const type = searchParams.get('type') || 'all'; // all, dealers, individuals
     const status = searchParams.get('status') || 'all'; // all, active, suspended
-    const sort = searchParams.get('sort') || 'created_at';
-    const order = searchParams.get('order') || 'desc';
+    const VALID_SORT_FIELDS = new Set(['created_at', 'email', 'company_name', 'is_business', 'is_suspended']);
+    const rawSort = searchParams.get('sort') || 'created_at';
+    const sort = VALID_SORT_FIELDS.has(rawSort) ? rawSort : 'created_at';
+    const order = searchParams.get('order') === 'asc' ? 'asc' : 'desc';
     const offset = (page - 1) * limit;
 
     const supabase = await createClient();

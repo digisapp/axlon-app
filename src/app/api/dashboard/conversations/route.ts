@@ -6,44 +6,45 @@ import { logger } from '@/lib/logger';
 export const GET = withAuth(async (request, { user, supabase }) => {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get('status'); // active, closed, converted, all
+  const rawLimit = parseInt(searchParams.get('limit') || '50');
+  const rawOffset = parseInt(searchParams.get('offset') || '0');
+  const limit = Math.max(1, Math.min(rawLimit, 100));
+  const offset = Math.max(0, rawOffset);
 
-  // Fetch conversations for this dealer
+  // Fetch conversations with pagination — do NOT embed messages (too expensive for list view)
   let query = supabase
     .from('chat_conversations')
     .select(`
-      *,
-      lead:leads(id, status, buyer_name),
-      messages:chat_messages(id, role, content, created_at)
-    `)
+      id,
+      status,
+      created_at,
+      updated_at,
+      visitor_id,
+      lead_id,
+      message_count,
+      last_message_at,
+      last_message_preview,
+      lead:leads(id, status, buyer_name)
+    `, { count: 'exact' })
     .eq('dealer_id', user.id)
-    .order('updated_at', { ascending: false });
+    .order('updated_at', { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (status && status !== 'all') {
     query = query.eq('status', status);
   }
 
-  const { data: conversations, error } = await query;
+  const { data: conversations, count, error } = await query;
 
   if (error) {
     logger.error('Error fetching conversations', { error });
     return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 });
   }
 
-  // Process conversations to add summary info
-  const processedConversations = conversations?.map((conv) => {
-    const messages = conv.messages || [];
-    const lastMessage = messages[messages.length - 1];
-    const userMessages = messages.filter((m: { role: string }) => m.role === 'user');
-
-    return {
-      ...conv,
-      message_count: messages.length,
-      user_message_count: userMessages.length,
-      last_message: lastMessage?.content?.substring(0, 100) || null,
-      last_message_at: lastMessage?.created_at || conv.created_at,
-      messages: undefined, // Remove full messages from list view
-    };
+  return NextResponse.json({
+    conversations,
+    total: count || 0,
+    limit,
+    offset,
   });
-
-  return NextResponse.json({ conversations: processedConversations });
 }, { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:dashboard-conversations' } });
