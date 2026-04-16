@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { checkIsAdmin } from '@/lib/admin/check-admin';
 
 export async function GET(request: NextRequest) {
+  const { isAdmin } = await checkIsAdmin();
+  if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+
   const supabase = createAdminClient();
 
   // Fetch all generated reports (most recent first)

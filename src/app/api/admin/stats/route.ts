@@ -86,21 +86,25 @@ export async function GET(request: NextRequest) {
       .eq('is_business', true)
       .limit(10);
 
-    // Get listing counts for top dealers
-    const topBusinessesWithStats = await Promise.all(
-      (topBusinesses || []).map(async (dealer) => {
-        const { count } = await supabase
+    // Get listing counts for top dealers — single batch query instead of N+1
+    const topDealerIds = (topBusinesses || []).map(d => d.id);
+    const { data: dealerListingRows } = topDealerIds.length > 0
+      ? await supabase
           .from('listings')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', dealer.id)
-          .eq('status', 'active');
+          .select('user_id')
+          .in('user_id', topDealerIds)
+          .eq('status', 'active')
+      : { data: [] };
 
-        return {
-          ...dealer,
-          listing_count: count || 0,
-        };
-      })
-    );
+    const dealerListingCounts = new Map<string, number>();
+    for (const row of dealerListingRows ?? []) {
+      dealerListingCounts.set(row.user_id, (dealerListingCounts.get(row.user_id) ?? 0) + 1);
+    }
+
+    const topBusinessesWithStats = (topBusinesses || []).map(dealer => ({
+      ...dealer,
+      listing_count: dealerListingCounts.get(dealer.id) ?? 0,
+    }));
 
     // Sort by listing count
     topBusinessesWithStats.sort((a, b) => b.listing_count - a.listing_count);
