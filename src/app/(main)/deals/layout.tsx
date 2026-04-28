@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 
 export const metadata: Metadata = {
   title: 'Deals - Below Market Price Trucks & Trailers',
@@ -17,11 +18,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function DealsLayout({ children }: { children: React.ReactNode }) {
+export default async function DealsLayout({ children }: { children: React.ReactNode }) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
   return (
     <>
       {children}
       <script
+        nonce={nonce}
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({

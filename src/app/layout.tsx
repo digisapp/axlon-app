@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import { ThemeProvider } from "next-themes";
@@ -16,7 +17,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 // Organization JSON-LD Schema for rich search results
-function OrganizationJsonLd() {
+function OrganizationJsonLd({ nonce }: { nonce?: string }) {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
@@ -42,6 +43,7 @@ function OrganizationJsonLd() {
 
   return (
     <script
+      nonce={nonce}
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
     />
@@ -49,7 +51,7 @@ function OrganizationJsonLd() {
 }
 
 // WebSite JSON-LD Schema with SearchAction for sitelinks search box
-function WebsiteJsonLd() {
+function WebsiteJsonLd({ nonce }: { nonce?: string }) {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
@@ -67,6 +69,7 @@ function WebsiteJsonLd() {
 
   return (
     <script
+      nonce={nonce}
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
     />
@@ -149,16 +152,18 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <OrganizationJsonLd />
-        <WebsiteJsonLd />
+        <OrganizationJsonLd nonce={nonce} />
+        <WebsiteJsonLd nonce={nonce} />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${gunship.variable} antialiased min-h-screen`}
