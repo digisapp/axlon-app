@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
@@ -5,6 +6,10 @@ import { AdminHeader } from '@/components/admin/AdminHeader';
 import { adminNavSections, getAdminNavWithBadges } from '@/lib/admin-nav';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function AdminLayout({
   children,
