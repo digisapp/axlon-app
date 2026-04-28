@@ -15,6 +15,7 @@ export const createListingSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(200, 'Title too long'),
   description: z.string().max(10000, 'Description too long').optional(),
   price: z.number().min(0, 'Price cannot be negative').max(100000000, 'Price too high').optional().nullable(),
+  price_type: z.enum(['fixed', 'negotiable', 'contact', 'auction']).optional().nullable(),
   year: z.number().int().min(1900).max(new Date().getFullYear() + 2).optional().nullable(),
   make: z.string().max(100).optional().nullable(),
   model: z.string().max(100).optional().nullable(),
@@ -24,10 +25,14 @@ export const createListingSchema = z.object({
   condition: z.enum(['new', 'used', 'certified', 'salvage']).optional().nullable(),
   category_id: uuidSchema.optional().nullable(),
   location: z.string().max(200).optional().nullable(),
+  city: z.string().max(100).optional().nullable(),
+  state: z.string().max(100).optional().nullable(),
+  zip_code: z.string().max(20).optional().nullable(),
   latitude: z.number().min(-90).max(90).optional().nullable(),
   longitude: z.number().min(-180).max(180).optional().nullable(),
   status: z.enum(['draft', 'active', 'sold', 'expired']).default('draft'),
   industries: z.array(uuidSchema).optional(),
+  specs: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
 });
 
 export const updateListingSchema = createListingSchema.partial();

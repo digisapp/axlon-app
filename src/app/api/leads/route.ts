@@ -5,6 +5,7 @@ import { generateLeadAutoReply } from '@/lib/ai/lead-auto-reply';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { requireCsrf } from '@/lib/security/csrf';
 import { escapeHtml } from '@/lib/utils/html-escape';
+import { getResend } from '@/lib/email/resend';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 
@@ -198,18 +199,11 @@ export async function POST(request: NextRequest) {
         // 1. Dealer notification
         if (notificationEmail) {
           emailPromises.push(
-            fetch('https://api.resend.com/emails', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                from: 'AXLON AI <leads@axlon.ai>',
-                to: notificationEmail,
-                subject: `New ${priority} lead: ${escapeHtml(buyer_name)} — ${escapeHtml(emailListingTitle)}`,
-                html: dealerNotificationHtml,
-              }),
+            getResend().emails.send({
+              from: 'AXLON AI <leads@axlon.ai>',
+              to: notificationEmail,
+              subject: `New ${priority} lead: ${escapeHtml(buyer_name)} — ${escapeHtml(emailListingTitle)}`,
+              html: dealerNotificationHtml,
             })
           );
         }
@@ -250,19 +244,12 @@ export async function POST(request: NextRequest) {
           if (autoReply.autoSend) {
             // High confidence — send immediately
             emailPromises.push(
-              fetch('https://api.resend.com/emails', {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  from: `${sellerCompanyName} via AXLON <leads@axlon.ai>`,
-                  to: buyer_email,
-                  reply_to: sellerEmail,
-                  subject: autoReply.subject,
-                  html: autoReply.html,
-                }),
+              getResend().emails.send({
+                from: `${sellerCompanyName} via AXLON <leads@axlon.ai>`,
+                to: buyer_email,
+                reply_to: sellerEmail,
+                subject: autoReply.subject,
+                html: autoReply.html,
               })
             );
           }

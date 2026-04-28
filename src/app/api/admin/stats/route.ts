@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     startDate.setDate(startDate.getDate() - daysAgo);
     const startDateStr = startDate.toISOString();
 
-    // Batch all independent count queries in parallel
+    // Batch all independent count queries in parallel — aggregates stay in Postgres
     const [
       { count: totalUsers },
       { count: totalBusinesses },
@@ -43,13 +43,13 @@ export async function GET(request: NextRequest) {
       { count: activeListings },
       { count: totalLeads },
       { count: totalMessages },
-      { data: viewsData },
+      { data: totalViewsRow },
       { count: newUsers },
       { count: newListings },
       { count: newLeads },
-      { data: dailySignups },
-      { data: dailyListings },
-      { data: dailyLeads },
+      { data: dailySignupsRows },
+      { data: dailyListingsRows },
+      { data: dailyLeadsRows },
     ] = await Promise.all([
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_business', true),
@@ -58,21 +58,21 @@ export async function GET(request: NextRequest) {
       supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'active'),
       supabase.from('leads').select('*', { count: 'exact', head: true }),
       supabase.from('messages').select('*', { count: 'exact', head: true }),
-      supabase.from('listings').select('views_count').limit(50000),
+      supabase.rpc('get_total_views_count'),
       supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', startDateStr),
       supabase.from('listings').select('*', { count: 'exact', head: true }).gte('created_at', startDateStr),
       supabase.from('leads').select('*', { count: 'exact', head: true }).gte('created_at', startDateStr),
-      supabase.from('profiles').select('created_at').gte('created_at', startDateStr).order('created_at', { ascending: true }).limit(10000),
-      supabase.from('listings').select('created_at').gte('created_at', startDateStr).order('created_at', { ascending: true }).limit(10000),
-      supabase.from('leads').select('created_at').gte('created_at', startDateStr).order('created_at', { ascending: true }).limit(10000),
+      supabase.rpc('get_daily_counts', { table_name: 'profiles', start_date: startDateStr }),
+      supabase.rpc('get_daily_counts', { table_name: 'listings', start_date: startDateStr }),
+      supabase.rpc('get_daily_counts', { table_name: 'leads', start_date: startDateStr }),
     ]);
 
-    const totalViews = viewsData?.reduce((sum, l) => sum + (l.views_count || 0), 0) || 0;
+    const totalViews = Number(totalViewsRow) || 0;
 
-    // Group by day
-    const signupsByDay = groupByDay(dailySignups || [], 'created_at', daysAgo);
-    const listingsByDay = groupByDay(dailyListings || [], 'created_at', daysAgo);
-    const leadsByDay = groupByDay(dailyLeads || [], 'created_at', daysAgo);
+    // Build day-keyed maps from RPC results
+    const signupsByDay = groupByDayFromRpc(dailySignupsRows || [], daysAgo);
+    const listingsByDay = groupByDayFromRpc(dailyListingsRows || [], daysAgo);
+    const leadsByDay = groupByDayFromRpc(dailyLeadsRows || [], daysAgo);
 
     // Get top dealers by listings
     const { data: topBusinesses } = await supabase
@@ -109,27 +109,10 @@ export async function GET(request: NextRequest) {
     // Sort by listing count
     topBusinessesWithStats.sort((a, b) => b.listing_count - a.listing_count);
 
-    // Get listing breakdown by category
-    const { data: categoryBreakdown } = await supabase
-      .from('listings')
-      .select(`
-        category:categories(name),
-        status
-      `)
-      .eq('status', 'active');
-
-    const categoryStats = (categoryBreakdown || []).reduce((acc, listing) => {
-      // Type assertion for the joined category (can be single object or array)
-      const category = listing.category as unknown as { name: string } | { name: string }[] | null;
-      let categoryName = 'Uncategorized';
-      if (category) {
-        if (Array.isArray(category)) {
-          categoryName = category[0]?.name || 'Uncategorized';
-        } else {
-          categoryName = category.name || 'Uncategorized';
-        }
-      }
-      acc[categoryName] = (acc[categoryName] || 0) + 1;
+    // Get listing breakdown by category via aggregate RPC
+    const { data: categoryRows } = await supabase.rpc('get_active_listings_by_category');
+    const categoryStats = (categoryRows || []).reduce((acc: Record<string, number>, row: { category_name: string; listing_count: number }) => {
+      acc[row.category_name] = Number(row.listing_count);
       return acc;
     }, {} as Record<string, number>);
 
@@ -164,29 +147,24 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function groupByDay(
-  data: { created_at: string }[],
-  dateField: string,
+function groupByDayFromRpc(
+  rows: { date_bucket: string; cnt: number }[],
   days: number
 ): { date: string; count: number }[] {
   const result: Record<string, number> = {};
 
-  // Initialize all days with 0
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date();
     date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split('T')[0];
-    result[dateStr] = 0;
+    result[date.toISOString().split('T')[0]] = 0;
   }
 
-  // Count items per day
-  data.forEach((item) => {
-    const dateStr = new Date(item.created_at).toISOString().split('T')[0];
-    if (result.hasOwnProperty(dateStr)) {
-      result[dateStr]++;
+  for (const row of rows) {
+    const dateStr = row.date_bucket.split('T')[0];
+    if (Object.hasOwn(result, dateStr)) {
+      result[dateStr] = Number(row.cnt);
     }
-  });
+  }
 
-  // Convert to array
   return Object.entries(result).map(([date, count]) => ({ date, count }));
 }

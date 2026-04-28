@@ -72,6 +72,23 @@ export async function GET(request: NextRequest) {
     return rateLimitResponse(rateLimitResult);
   }
 
+  // Check if user is admin
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile?.is_admin) {
+    return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+  }
+
   const { searchParams } = new URL(request.url);
   const listingId = searchParams.get('listing_id');
 

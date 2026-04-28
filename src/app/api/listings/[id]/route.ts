@@ -87,30 +87,33 @@ export async function PUT(
     throw err;
   }
 
-  const updateData = {
+  const updateData: Record<string, unknown> = {
     title: validatedData.title,
-    category_id: validatedData.category_id || null,
-    price: validatedData.price ? parseFloat(String(validatedData.price)) : null,
-    price_type: validatedData.price_type,
-    condition: validatedData.condition || null,
-    year: validatedData.year ? parseInt(String(validatedData.year)) : null,
-    make: validatedData.make || null,
-    model: validatedData.model || null,
-    vin: validatedData.vin || null,
-    mileage: validatedData.mileage ? parseInt(String(validatedData.mileage)) : null,
-    hours: validatedData.hours ? parseInt(String(validatedData.hours)) : null,
-    description: validatedData.description || null,
-    city: validatedData.city || null,
-    state: validatedData.state || null,
-    zip_code: validatedData.zip_code || null,
-    specs: validatedData.specs || {},
+    category_id: validatedData.category_id ?? null,
+    price: validatedData.price != null ? parseFloat(String(validatedData.price)) : null,
+    price_type: validatedData.price_type ?? null,
+    condition: validatedData.condition ?? null,
+    year: validatedData.year != null ? parseInt(String(validatedData.year)) : null,
+    make: validatedData.make ?? null,
+    model: validatedData.model ?? null,
+    vin: validatedData.vin ?? null,
+    mileage: validatedData.mileage != null ? parseInt(String(validatedData.mileage)) : null,
+    hours: validatedData.hours != null ? parseInt(String(validatedData.hours)) : null,
+    description: validatedData.description ?? null,
     status: validatedData.status,
-    ai_price_estimate: validatedData.ai_price_estimate || null,
-    ai_price_confidence: validatedData.ai_price_confidence || null,
-    publish_at: validatedData.publish_at || null,
-    unpublish_at: validatedData.unpublish_at || null,
     updated_at: new Date().toISOString(),
   };
+
+  // Only overwrite these fields when the client explicitly sends them —
+  // omitting them from the request body preserves the existing DB values.
+  if (body.city !== undefined) updateData.city = validatedData.city ?? null;
+  if (body.state !== undefined) updateData.state = validatedData.state ?? null;
+  if (body.zip_code !== undefined) updateData.zip_code = validatedData.zip_code ?? null;
+  if (body.specs !== undefined) updateData.specs = validatedData.specs ?? {};
+  if (body.ai_price_estimate !== undefined) updateData.ai_price_estimate = body.ai_price_estimate ?? null;
+  if (body.ai_price_confidence !== undefined) updateData.ai_price_confidence = body.ai_price_confidence ?? null;
+  if (body.publish_at !== undefined) updateData.publish_at = body.publish_at ?? null;
+  if (body.unpublish_at !== undefined) updateData.unpublish_at = body.unpublish_at ?? null;
 
   // If publishing for the first time, set published_at
   if (validatedData.status === 'active' && !body.published_at) {

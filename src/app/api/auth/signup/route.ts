@@ -1,26 +1,33 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email/resend';
 import { confirmEmailTemplate } from '@/lib/email/templates';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
+import { z } from 'zod';
 
-export async function POST(request: Request) {
+const signupSchema = z.object({
+  email: z.string().email('Invalid email').max(254, 'Email too long'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password too long'),
+  companyName: z.string().min(1, 'Company name is required').max(200, 'Company name too long'),
+});
+
+export async function POST(request: NextRequest) {
   try {
-    const { email, password, companyName } = await request.json();
+    const identifier = getClientIdentifier(request);
+    const rl = await checkRateLimit(identifier, { ...RATE_LIMITS.auth, prefix: 'ratelimit:signup' });
+    if (!rl.success) return rateLimitResponse(rl);
 
-    if (!email || !password || !companyName) {
+    const body = await request.json().catch(() => ({}));
+    const parsed = signupSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Email, password, and company name are required' },
+        { error: 'Invalid request', details: parsed.error.issues.map(i => i.message) },
         { status: 400 }
       );
     }
 
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: 'Password must be at least 8 characters' },
-        { status: 400 }
-      );
-    }
+    const { email, password, companyName } = parsed.data;
 
     const supabase = createAdminClient();
 

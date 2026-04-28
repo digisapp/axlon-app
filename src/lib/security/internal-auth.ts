@@ -70,19 +70,3 @@ export function generateInternalHeaders(): Record<string, string> {
   };
 }
 
-/**
- * Alternative: Verify using Supabase service role
- * For endpoints that should only be called with service role privileges
- */
-export function isServiceRoleRequest(request: NextRequest): boolean {
-  const authHeader = request.headers.get('authorization');
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!authHeader || !serviceRoleKey) {
-    return false;
-  }
-
-  // Check if using service role key as bearer token
-  const token = authHeader.replace('Bearer ', '');
-  return token === serviceRoleKey;
-}

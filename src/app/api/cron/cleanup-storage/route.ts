@@ -7,7 +7,6 @@ const RETENTION_DAYS = 30;
 function verifyRequest(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization');
   if (authHeader === `Bearer ${process.env.CRON_SECRET}`) return true;
-  if (process.env.VERCEL && request.headers.get('x-vercel-cron') === '1') return true;
   return false;
 }
 

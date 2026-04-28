@@ -3,13 +3,11 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { logger } from '@/lib/logger';
 import { sendEmail } from '@/lib/email/resend';
 import { generateFollowUpEmail, type FollowUpContext } from '@/lib/ai/lead-nurture';
+import { escapeHtml, escapeAttribute } from '@/lib/utils/html-escape';
 
 function verifyRequest(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization');
   if (authHeader === `Bearer ${process.env.CRON_SECRET}`) {
-    return true;
-  }
-  if (process.env.VERCEL && request.headers.get('x-vercel-cron') === '1') {
     return true;
   }
   return false;
@@ -266,33 +264,33 @@ function buildDealerAlertHtml(
   <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
     <tr>
       <td style="padding: 8px 12px; background: #f9fafb; font-weight: 600; width: 140px;">Name</td>
-      <td style="padding: 8px 12px; background: #f9fafb;">${lead.visitor_name || 'Not provided'}</td>
+      <td style="padding: 8px 12px; background: #f9fafb;">${escapeHtml(lead.visitor_name) || 'Not provided'}</td>
     </tr>
     <tr>
       <td style="padding: 8px 12px; font-weight: 600;">Email</td>
-      <td style="padding: 8px 12px;"><a href="mailto:${lead.visitor_email}" style="color: #2563eb;">${lead.visitor_email || 'N/A'}</a></td>
+      <td style="padding: 8px 12px;"><a href="mailto:${escapeAttribute(lead.visitor_email)}" style="color: #2563eb;">${escapeHtml(lead.visitor_email) || 'N/A'}</a></td>
     </tr>
     <tr>
       <td style="padding: 8px 12px; background: #f9fafb; font-weight: 600;">Phone</td>
-      <td style="padding: 8px 12px; background: #f9fafb;">${lead.visitor_phone ? `<a href="tel:${lead.visitor_phone}" style="color: #2563eb;">${lead.visitor_phone}</a>` : 'Not provided'}</td>
+      <td style="padding: 8px 12px; background: #f9fafb;">${lead.visitor_phone ? `<a href="tel:${escapeAttribute(lead.visitor_phone)}" style="color: #2563eb;">${escapeHtml(lead.visitor_phone)}</a>` : 'Not provided'}</td>
     </tr>
     <tr>
       <td style="padding: 8px 12px; font-weight: 600;">Looking for</td>
-      <td style="padding: 8px 12px;">${lead.equipment_interest || 'General inquiry'}</td>
+      <td style="padding: 8px 12px;">${escapeHtml(lead.equipment_interest) || 'General inquiry'}</td>
     </tr>
   </table>
 
   ${lead.ai_summary ? `
   <div style="margin-bottom: 20px;">
     <strong>AI Summary:</strong>
-    <p style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-top: 8px; line-height: 1.5;">${lead.ai_summary}</p>
+    <p style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-top: 8px; line-height: 1.5;">${escapeHtml(lead.ai_summary)}</p>
   </div>
   ` : ''}
 
   ${conversationSummary ? `
   <div style="margin-bottom: 20px;">
     <strong>Conversation:</strong>
-    <pre style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-top: 8px; font-family: inherit; white-space: pre-wrap; line-height: 1.5; font-size: 13px;">${conversationSummary.substring(0, 1000)}</pre>
+    <pre style="background: #f3f4f6; padding: 12px; border-radius: 8px; margin-top: 8px; font-family: inherit; white-space: pre-wrap; line-height: 1.5; font-size: 13px;">${escapeHtml(conversationSummary.substring(0, 1000))}</pre>
   </div>
   ` : ''}
 
@@ -302,7 +300,7 @@ function buildDealerAlertHtml(
   </div>
 
   <div style="margin-top: 24px; font-size: 12px; color: #9ca3af;">
-    <p>AXLON Lead Follow-Up Agent — automated lead nurturing for ${dealerName}</p>
+    <p>AXLON Lead Follow-Up Agent — automated lead nurturing for ${escapeHtml(dealerName)}</p>
   </div>
 </body>
 </html>`;

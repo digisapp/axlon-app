@@ -506,6 +506,16 @@ export async function GET() {
   }
 
   try {
+    const serverClient = await createServerClient();
+    const { data: { user } } = await serverClient.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { data: profile } = await serverClient.from('profiles').select('is_admin').eq('id', user.id).single();
+    if (!profile?.is_admin) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
     const supabase = createAdminClient();
 
     const { count } = await supabase

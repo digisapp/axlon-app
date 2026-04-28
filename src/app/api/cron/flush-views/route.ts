@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { flushAllViewBatches } from '@/lib/cache';
 
-// Verify the request is from Vercel Cron or has correct secret
 import { logger } from '@/lib/logger'
+
 function verifyRequest(request: NextRequest): boolean {
-  // Check for Vercel Cron header
   const authHeader = request.headers.get('authorization');
   if (authHeader === `Bearer ${process.env.CRON_SECRET}`) {
-    return true;
-  }
-
-  // Check for Vercel internal cron (only accept in Vercel environment)
-  if (process.env.VERCEL && request.headers.get('x-vercel-cron') === '1') {
     return true;
   }
 

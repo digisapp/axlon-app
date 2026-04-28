@@ -26,9 +26,11 @@ export async function PATCH(
       return rateLimitResponse(rateLimitResult);
     }
 
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
+
     const supabase = await createClient();
     const { id } = await params;
-    const body = await request.json();
 
     // Check if user is admin
     const { data: { user } } = await supabase.auth.getUser();
@@ -46,9 +48,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const csrfError = await requireCsrf(request);
-    if (csrfError) return csrfError;
-
+    const body = await request.json();
     const parsed = updateTradeInSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: 'Validation failed', details: parsed.error.issues }, { status: 400 });

@@ -9,9 +9,6 @@ function verifyRequest(request: NextRequest): boolean {
   if (authHeader === `Bearer ${process.env.CRON_SECRET}`) {
     return true;
   }
-  if (process.env.VERCEL && request.headers.get('x-vercel-cron') === '1') {
-    return true;
-  }
   return false;
 }
 

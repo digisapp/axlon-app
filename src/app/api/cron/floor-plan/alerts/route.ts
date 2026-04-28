@@ -2,15 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logger } from '@/lib/logger';
 
-// Verify the request is from Vercel Cron or has correct secret
 function verifyRequest(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization');
   if (authHeader === `Bearer ${process.env.CRON_SECRET}`) {
-    return true;
-  }
-
-  // Only accept in Vercel environment with correct header value
-  if (process.env.VERCEL && request.headers.get('x-vercel-cron') === '1') {
     return true;
   }
 
