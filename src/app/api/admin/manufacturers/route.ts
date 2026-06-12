@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { checkIsAdmin, logAdminAction } from '@/lib/admin/check-admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
-import { sanitizeSearchFilter } from '@/lib/security/sanitize';import { validateBody, ValidationError, manufacturerSchema } from '@/lib/validations/api';
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';
+import { validateBody, ValidationError, manufacturerSchema } from '@/lib/validations/api';
 import { requireCsrf } from '@/lib/security/csrf';
 
 export async function GET(request: NextRequest) {
@@ -20,10 +21,7 @@ export async function GET(request: NextRequest) {
     const { isAdmin } = await checkIsAdmin();
 
     if (!isAdmin) {
-      return NextResponse.json({ error: 'Unauthorized' }
-
-    const csrfError = await requireCsrf(request);
-    if (csrfError) return csrfError;, { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -71,16 +69,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch manufacturers' }, { status: 500 });
     }
 
-    // Get counts
-    const { count: activeCount } = await supabase
-      .from('manufacturers')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_active', true);
-
-    const { count: featuredCount } = await supabase
-      .from('manufacturers')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_featured', true);
+    // Get counts (totalCount is unfiltered — `count` reflects the current
+    // status/search filter and would make the "Total" stat shrink as you type)
+    const [{ count: totalCount }, { count: activeCount }, { count: featuredCount }] = await Promise.all([
+      supabase
+        .from('manufacturers')
+        .select('*', { count: 'exact', head: true }),
+      supabase
+        .from('manufacturers')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true),
+      supabase
+        .from('manufacturers')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_featured', true),
+    ]);
 
     return NextResponse.json({
       data: manufacturers,
@@ -89,7 +92,7 @@ export async function GET(request: NextRequest) {
       limit,
       total_pages: Math.ceil((count || 0) / limit),
       counts: {
-        total: count || 0,
+        total: totalCount || 0,
         active: activeCount || 0,
         featured: featuredCount || 0,
       },
@@ -116,6 +119,9 @@ export async function POST(request: NextRequest) {
     if (!isAdmin || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
 
     const body = await request.json();
     let validatedData;

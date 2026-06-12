@@ -700,6 +700,7 @@ export async function PUT(request: NextRequest) {
           visitor_email: visitorEmail,
           visitor_phone: visitorPhone,
           visitor_intent: visitorIntent,
+          lead_captured: !!(visitorEmail || visitorPhone),
           status: 'active',
         })
         .select()
@@ -713,9 +714,46 @@ export async function PUT(request: NextRequest) {
         );
       }
 
+      // The lead form can submit before a conversation exists (e.g. the
+      // initial conversation insert failed) — still capture the lead here
+      if (visitorEmail || visitorPhone) {
+        const { data: lead, error: leadError } = await supabase
+          .from('dealer_ai_leads')
+          .insert({
+            conversation_id: conversation.id,
+            dealer_id: dealerId,
+            visitor_name: visitorName,
+            visitor_email: visitorEmail,
+            visitor_phone: visitorPhone,
+            equipment_interest: visitorIntent,
+            status: 'new',
+          })
+          .select()
+          .single();
+
+        if (!leadError && lead) {
+          try {
+            await supabase.rpc('increment_dealer_ai_leads', {
+              p_dealer_id: dealerId,
+            });
+          } catch {
+            // Ignore stats update errors
+          }
+
+          return NextResponse.json({
+            success: true,
+            conversationId: conversation.id,
+            leadId: lead.id,
+            leadCaptured: true,
+            isNew: true,
+          });
+        }
+      }
+
       return NextResponse.json({
         success: true,
         conversationId: conversation.id,
+        leadCaptured: !!(visitorEmail || visitorPhone),
         isNew: true,
       });
     }

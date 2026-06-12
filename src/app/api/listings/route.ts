@@ -28,13 +28,14 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const supabase = await createClient();
 
-  // Parse and validate pagination parameters with limits
+  // Parse and validate pagination parameters with limits (NaN — e.g.
+  // ?page=abc — passes straight through Math.max/min and errors the query)
   const rawPage = parseInt(searchParams.get('page') || '1');
   const rawPerPage = parseInt(searchParams.get('per_page') || '20');
 
   // Enforce limits to prevent resource exhaustion
-  const page = Math.max(1, Math.min(rawPage, 1000)); // Max 1000 pages
-  const perPage = Math.max(1, Math.min(rawPerPage, 100)); // Max 100 items per page
+  const page = Number.isNaN(rawPage) ? 1 : Math.max(1, Math.min(rawPage, 1000)); // Max 1000 pages
+  const perPage = Number.isNaN(rawPerPage) ? 20 : Math.max(1, Math.min(rawPerPage, 100)); // Max 100 items per page
   const category = searchParams.get('category');
   const minPrice = searchParams.get('min_price');
   const maxPrice = searchParams.get('max_price');
@@ -101,7 +102,7 @@ export async function GET(request: NextRequest) {
     .select(`
       *,
       category:categories!left(id, name, slug),
-      images:listing_images!inner(id, url, thumbnail_url, is_primary, sort_order),
+      images:listing_images!left(id, url, thumbnail_url, is_primary, sort_order),
       user:profiles!listings_user_id_fkey(id, company_name, avatar_url, is_business)
     `, { count: 'exact' })
     .eq('status', 'active');

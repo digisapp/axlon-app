@@ -132,7 +132,7 @@ export function AdminHeader({ user, sections, badges }: AdminHeaderProps) {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/admin/settings" className="cursor-pointer">
+                <Link href="/dashboard/settings" className="cursor-pointer">
                   <Settings className="w-4 h-4 mr-2" />
                   Settings
                 </Link>

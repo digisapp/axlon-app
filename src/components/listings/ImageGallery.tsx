@@ -72,6 +72,8 @@ interface ImageGalleryProps {
 
 export const ImageGallery = memo(function ImageGallery({ images, title, className }: ImageGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  // Keyed by URL, not image id — a broken thumbnail_url must not blank out
+  // the (working) full-size url for the same image
   const [erroredImages, setErroredImages] = useState<Set<string>>(new Set());
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -266,7 +268,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
           onTouchMove={swipeHandlers.onTouchMove}
           onTouchEnd={swipeHandlers.onTouchEnd}
         >
-          {erroredImages.has(selectedImage.id) ? (
+          {erroredImages.has(selectedImage.url) ? (
             <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2 cursor-pointer" onClick={() => setIsLightboxOpen(true)}>
               <ImageOff className="w-10 h-10 opacity-50" />
               <span className="text-sm">Image unavailable</span>
@@ -281,7 +283,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
               onClick={() => setIsLightboxOpen(true)}
               priority={selectedIndex === 0}
               draggable={false}
-              onError={() => setErroredImages(prev => new Set(prev).add(selectedImage.id))}
+              onError={() => setErroredImages(prev => new Set(prev).add(selectedImage.url))}
             />
           )}
 
@@ -348,7 +350,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
                     : 'border-transparent hover:border-muted-foreground/30'
                 )}
               >
-                {erroredImages.has(image.id) ? (
+                {erroredImages.has(getImageSrc(image) || image.url) ? (
                   <div className="w-full h-full flex items-center justify-center bg-muted">
                     <ImageOff className="w-4 h-4 text-muted-foreground/50" />
                   </div>
@@ -359,7 +361,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
                     fill
                     sizes="80px"
                     className="object-cover"
-                    onError={() => setErroredImages(prev => new Set(prev).add(image.id))}
+                    onError={() => setErroredImages(prev => new Set(prev).add(getImageSrc(image) || image.url))}
                   />
                 )}
               </button>
@@ -537,7 +539,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
                 transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
               }}
             >
-              {erroredImages.has(selectedImage.id) ? (
+              {erroredImages.has(selectedImage.url) ? (
                 <div className="flex flex-col items-center justify-center text-white/70 gap-3">
                   <ImageOff className="w-16 h-16" />
                   <span className="text-lg">Image unavailable</span>
@@ -551,7 +553,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
                   sizes="100vw"
                   className="max-h-[calc(100vh-160px)] w-auto object-contain pointer-events-none"
                   draggable={false}
-                  onError={() => setErroredImages(prev => new Set(prev).add(selectedImage.id))}
+                  onError={() => setErroredImages(prev => new Set(prev).add(selectedImage.url))}
                 />
               )}
             </div>
@@ -593,7 +595,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
                       : 'border-transparent opacity-50 hover:opacity-100'
                   )}
                 >
-                  {erroredImages.has(image.id) ? (
+                  {erroredImages.has(getImageSrc(image) || image.url) ? (
                     <div className="w-full h-full flex items-center justify-center bg-white/10">
                       <ImageOff className="w-4 h-4 text-white/50" />
                     </div>
@@ -604,7 +606,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
                       fill
                       sizes="64px"
                       className="object-cover"
-                      onError={() => setErroredImages(prev => new Set(prev).add(image.id))}
+                      onError={() => setErroredImages(prev => new Set(prev).add(getImageSrc(image) || image.url))}
                     />
                   )}
                 </button>

@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
 import { csrfFetch } from '@/lib/csrf-fetch';
+import {
   Search, Send, Loader2, Bot, User,
   Wrench, ChevronDown, X, Maximize2, Minimize2,
 } from 'lucide-react';

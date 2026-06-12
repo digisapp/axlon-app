@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +44,7 @@ interface Dealer {
   id: string;
   email: string;
   company_name: string | null;
+  slug: string | null;
   phone: string | null;
   city: string | null;
   state: string | null;
@@ -74,7 +76,7 @@ export default function AdminDealersPage() {
   const fetchDealers = async () => {
     setIsLoading(true);
     try {
-      const response = await csrfFetch(`/api/admin/dealers?status=${statusFilter}`);
+      const response = await csrfFetch(`/api/admin/dealers?status=${statusFilter}&limit=100`);
       if (response.ok) {
         const data = await response.json();
         setDealers(data.data || []);
@@ -105,9 +107,13 @@ export default function AdminDealersPage() {
         setActionType(null);
         setRejectionReason('');
         fetchDealers();
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast.error(data.error || 'Failed to update dealer');
       }
     } catch (error) {
       logger.error('Error updating dealer', { error });
+      toast.error('Failed to update dealer');
     }
     setIsSubmitting(false);
   };
@@ -279,11 +285,13 @@ export default function AdminDealersPage() {
                         </Badge>
                       )}
 
-                      <Link href={`/${dealer.id}`}>
-                        <Button variant="ghost" size="sm">
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </Link>
+                      {dealer.slug && (
+                        <Link href={`/${dealer.slug}`}>
+                          <Button variant="ghost" size="sm">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </Link>
+                      )}
                     </div>
                   </div>
                 ))}

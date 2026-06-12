@@ -32,7 +32,18 @@ export function useListingTranslations(
 
   // Track which listings we've already requested to avoid duplicate fetches
   const requestedIdsRef = useRef<Set<string>>(new Set());
-  const abortControllerRef = useRef<AbortController | null>(null);
+  // Each batch covers a disjoint set of listing IDs, so multiple requests may
+  // be in flight at once; track them for unmount cleanup and the loading flag
+  const inFlightControllersRef = useRef<Set<AbortController>>(new Set());
+
+  // Abort any in-flight requests on unmount
+  useEffect(() => {
+    const controllers = inFlightControllersRef.current;
+    return () => {
+      controllers.forEach((c) => c.abort());
+      controllers.clear();
+    };
+  }, []);
 
   // Detect locale on mount
   useEffect(() => {
@@ -59,11 +70,11 @@ export function useListingTranslations(
     // Mark these as requested
     needsTranslation.forEach((l) => requestedIdsRef.current.add(l.id));
 
-    // Abort any previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
+    // Note: earlier batches are NOT aborted — they cover different listing
+    // IDs (e.g. page 1 while this batch is page 2) and their results are
+    // still wanted
+    const controller = new AbortController();
+    inFlightControllersRef.current.add(controller);
 
     const translateListings = async () => {
       setIsTranslating(true);
@@ -81,7 +92,7 @@ export function useListingTranslations(
             })),
             targetLang: locale,
           }),
-          signal: abortControllerRef.current?.signal,
+          signal: controller.signal,
         });
 
         if (!response.ok) {
@@ -99,16 +110,20 @@ export function useListingTranslations(
           return next;
         });
       } catch (err) {
+        // On abort or failure, un-mark the batch so it can be retried —
+        // leaving the IDs in requestedIdsRef would block translation forever
+        needsTranslation.forEach((l) => requestedIdsRef.current.delete(l.id));
         if (err instanceof Error && err.name === 'AbortError') {
-          // Request was aborted, ignore
           return;
         }
         console.error('Translation error:', err);
         setError('Failed to translate listings');
-        // Remove from requested set so we can retry
-        needsTranslation.forEach((l) => requestedIdsRef.current.delete(l.id));
       } finally {
-        setIsTranslating(false);
+        inFlightControllersRef.current.delete(controller);
+        // Only clear the loading flag when no other batch is still running
+        if (inFlightControllersRef.current.size === 0) {
+          setIsTranslating(false);
+        }
       }
     };
 

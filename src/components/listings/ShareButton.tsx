@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -43,17 +43,29 @@ export function ShareButton({
   className,
 }: ShareButtonProps) {
   const [copied, setCopied] = useState(false);
+  const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+    };
+  }, []);
 
   const shareUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
   const shareText = price ? `${title} - $${price.toLocaleString()}` : title;
   const fullDescription = description || `Check out this listing on AXLON AI: ${title}`;
 
+  const flagCopied = () => {
+    setCopied(true);
+    toast.success('Link copied to clipboard');
+    if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+    copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
+  };
+
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      toast.success('Link copied to clipboard');
-      setTimeout(() => setCopied(false), 2000);
+      flagCopied();
     } catch {
       // Fallback
       const textarea = document.createElement('textarea');
@@ -62,9 +74,7 @@ export function ShareButton({
       textarea.select();
       document.execCommand('copy');
       document.body.removeChild(textarea);
-      setCopied(true);
-      toast.success('Link copied to clipboard');
-      setTimeout(() => setCopied(false), 2000);
+      flagCopied();
     }
   };
 

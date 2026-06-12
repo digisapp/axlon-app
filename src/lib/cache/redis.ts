@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { createHash } from 'crypto';
 import { logger } from '@/lib/logger';
 
 // Lazy initialization - only create client when needed
@@ -171,15 +172,11 @@ export function generateSearchCacheKey(params: Record<string, string | undefined
     .map(k => `${k}=${params[k]}`)
     .join('&');
 
-  // Simple hash function
-  let hash = 0;
-  for (let i = 0; i < sortedParams.length; i++) {
-    const char = sortedParams.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
+  // SHA-256 — a 32-bit hash collides across distinct search params and
+  // serves one query's cached results for another
+  const digest = createHash('sha256').update(sortedParams).digest('hex').slice(0, 32);
 
-  return `${CACHE_KEYS.SEARCH}${Math.abs(hash).toString(36)}`;
+  return `${CACHE_KEYS.SEARCH}${digest}`;
 }
 
 /**

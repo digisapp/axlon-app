@@ -247,7 +247,7 @@ export async function POST(request: NextRequest) {
               getResend().emails.send({
                 from: `${sellerCompanyName} via AXLON <leads@axlon.ai>`,
                 to: buyer_email,
-                reply_to: sellerEmail,
+                replyTo: sellerEmail,
                 subject: autoReply.subject,
                 html: autoReply.html,
               })

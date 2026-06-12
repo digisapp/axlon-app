@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -165,6 +166,9 @@ export default function AdminStaffPage() {
         if (response.ok) {
           setActionDialog(null);
           fetchStaff();
+        } else {
+          const data = await response.json().catch(() => ({}));
+          toast.error(data.error || 'Failed to delete staff member');
         }
       } else {
         const response = await csrfFetch(`/api/admin/dealer-staff/${selectedStaff.id}`, {
@@ -182,10 +186,14 @@ export default function AdminStaffPage() {
             setActionDialog(null);
             fetchStaff();
           }
+        } else {
+          const data = await response.json().catch(() => ({}));
+          toast.error(data.error || 'Action failed');
         }
       }
     } catch (error) {
       logger.error('Error performing action', { error });
+      toast.error('Action failed');
     }
     setIsSubmitting(false);
   };

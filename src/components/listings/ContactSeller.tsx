@@ -81,7 +81,7 @@ export function ContactSeller({ listingId, sellerId, listingTitle }: ContactSell
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           listing_id: listingId,
-          seller_id: sellerId,
+          seller_id: sellerId || null,
           buyer_name: formData.name.trim(),
           buyer_email: formData.email.trim(),
           buyer_phone: formData.phone.trim() || null,

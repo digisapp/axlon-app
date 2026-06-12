@@ -78,12 +78,19 @@ export function CompareBar() {
             <Button variant="ghost" size="sm" onClick={clearAll}>
               Clear All
             </Button>
-            <Link href="/compare">
-              <Button size="sm" disabled={listings.length < 2}>
+            {listings.length >= 2 ? (
+              <Link href="/compare">
+                <Button size="sm">
+                  Compare Now
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
+            ) : (
+              <Button size="sm" disabled>
                 Compare Now
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-            </Link>
+            )}
           </div>
         </div>
       </div>

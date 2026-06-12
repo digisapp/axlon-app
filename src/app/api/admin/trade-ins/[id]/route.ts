@@ -6,7 +6,7 @@ import { requireCsrf } from '@/lib/security/csrf';
 import { z } from 'zod';
 
 const updateTradeInSchema = z.object({
-  status: z.enum(['pending', 'reviewing', 'offered', 'accepted', 'rejected', 'completed']).optional(),
+  status: z.enum(['pending', 'reviewing', 'contacted', 'offered', 'accepted', 'rejected', 'completed']).optional(),
   offer_amount: z.number().min(0).optional(),
   admin_notes: z.string().max(2000).optional(),
   assigned_dealer_id: z.string().uuid().nullable().optional(),

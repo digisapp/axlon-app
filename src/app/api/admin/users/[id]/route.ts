@@ -24,11 +24,11 @@ export async function PATCH(
     const { isAdmin, userId } = await checkIsAdmin();
 
     if (!isAdmin || !userId) {
-      return NextResponse.json({ error: 'Unauthorized' }
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
 
     const csrfError = await requireCsrf(request);
-    if (csrfError) return csrfError;, { status: 403 });
-    }
+    if (csrfError) return csrfError;
 
     const body = await request.json();
     let validatedData;

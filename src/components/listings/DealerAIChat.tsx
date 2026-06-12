@@ -137,6 +137,15 @@ export function DealerAIChat({
           suggestedListings: data.suggestedListings,
         };
         setMessages([greeting]);
+      } else {
+        // 404 (AI not configured for this dealer), 429, 500 — show a
+        // fallback greeting instead of an empty chat panel
+        setMessages([{
+          id: `msg-${Date.now()}`,
+          role: 'assistant',
+          content: `Hey there! I'm here to help you explore ${dealerName}'s inventory. What are you looking for today?`,
+          timestamp: new Date(),
+        }]);
       }
     } catch (error) {
       logger.error('Failed to fetch greeting', { error });
@@ -219,6 +228,13 @@ export function DealerAIChat({
             setShowLeadForm(true);
           }, 500);
         }
+      } else {
+        setMessages(prev => [...prev, {
+          id: `msg-${Date.now() + 1}`,
+          role: 'assistant',
+          content: "I'm having trouble responding right now. Please try again or contact us directly.",
+          timestamp: new Date(),
+        }]);
       }
     } catch (error) {
       logger.error('Failed to send message', { error });
@@ -264,6 +280,11 @@ export function DealerAIChat({
         if (data.leadCaptured) {
           setLeadCaptured(true);
           setShowLeadForm(false);
+          // The PUT may have created a fresh conversation (e.g. the initial
+          // one failed to init) — keep its id for the rest of the session
+          if (data.conversationId) {
+            setConversationId(data.conversationId);
+          }
 
           // Add confirmation message
           setMessages(prev => [...prev, {
@@ -272,10 +293,26 @@ export function DealerAIChat({
             content: `Thanks ${visitorInfo.name || 'for your info'}! A team member from ${dealerName} will be in touch with you shortly. Is there anything else I can help you with in the meantime?`,
             timestamp: new Date(),
           }]);
+          return;
         }
       }
+      // Surface the failure instead of leaving the form silently open
+      setMessages(prev => [...prev, {
+        id: `msg-${Date.now()}`,
+        role: 'assistant',
+        content: "I couldn't save your contact info just now. Please try again in a moment or reach out to the dealer directly.",
+        timestamp: new Date(),
+      }]);
+      setShowLeadForm(false);
     } catch (error) {
       logger.error('Failed to submit lead', { error });
+      setMessages(prev => [...prev, {
+        id: `msg-${Date.now()}`,
+        role: 'assistant',
+        content: "I couldn't save your contact info just now. Please try again in a moment or reach out to the dealer directly.",
+        timestamp: new Date(),
+      }]);
+      setShowLeadForm(false);
     }
   };
 
@@ -462,9 +499,9 @@ export function DealerAIChat({
                       </p>
                       <form onSubmit={handleLeadSubmit} className="space-y-3">
                         <div>
-                          <Label htmlFor="name" className="text-xs">Name</Label>
+                          <Label htmlFor="chat-lead-name" className="text-xs">Name</Label>
                           <Input
-                            id="name"
+                            id="chat-lead-name"
                             placeholder="Your name"
                             value={visitorInfo.name}
                             onChange={(e) => setVisitorInfo({ ...visitorInfo, name: e.target.value })}
@@ -472,9 +509,9 @@ export function DealerAIChat({
                           />
                         </div>
                         <div>
-                          <Label htmlFor="email" className="text-xs">Email</Label>
+                          <Label htmlFor="chat-lead-email" className="text-xs">Email</Label>
                           <Input
-                            id="email"
+                            id="chat-lead-email"
                             type="email"
                             placeholder="your@email.com"
                             value={visitorInfo.email}
@@ -483,9 +520,9 @@ export function DealerAIChat({
                           />
                         </div>
                         <div>
-                          <Label htmlFor="phone" className="text-xs">Phone (optional)</Label>
+                          <Label htmlFor="chat-lead-phone" className="text-xs">Phone (optional)</Label>
                           <Input
-                            id="phone"
+                            id="chat-lead-phone"
                             type="tel"
                             placeholder="(555) 123-4567"
                             value={visitorInfo.phone}

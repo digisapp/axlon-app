@@ -165,7 +165,10 @@ export default function ActiveClientsPage() {
     setLoading(true);
     try {
       const res = await csrfFetch('/api/admin/consulting-clients');
-      if (res.ok) setClients(await res.json());
+      if (res.ok) {
+        const json = await res.json();
+        setClients(Array.isArray(json) ? json : json.data || []);
+      }
     } catch (err) {
       logger.error('Failed to load clients', { err });
     } finally {
@@ -427,11 +430,6 @@ export default function ActiveClientsPage() {
                         </span>
                       )}
                     </div>
-                    <Button size="sm" variant="outline" asChild>
-                      <Link href={`/admin/clients/${client.id}`}>
-                        Details <ArrowRight className="w-3 h-3 ml-1" />
-                      </Link>
-                    </Button>
                   </div>
                 </CardContent>
               </Card>

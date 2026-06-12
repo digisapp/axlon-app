@@ -12,7 +12,7 @@ const aiAgentSettingsSchema = z.object({
   instructions: z.string().max(5000).optional(),
   model: z.string().max(100).optional(),
   temperature: z.number().min(0).max(2).optional(),
-  phone_number: z.string().max(20).optional(),
+  phone_number: z.string().max(20).nullable().optional(),
   is_active: z.boolean().optional(),
 })
 

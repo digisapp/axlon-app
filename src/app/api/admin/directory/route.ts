@@ -7,7 +7,8 @@ import { requireCsrf } from '@/lib/security/csrf';
 
 const VALID_CATEGORIES = [
   'trailer_dealer', 'crane_rigging', 'truck_manufacturer', 'trailer_manufacturer',
-  'transportation', 'equipment_dealer', 'parts_supplier', 'services', 'other', 'uncategorized',
+  'transportation', 'equipment_dealer', 'parts_supplier', 'services', 'towing',
+  'construction', 'buyer_lead', 'other', 'uncategorized',
 ];
 const VALID_INVITE_STATUSES = ['none', 'invited', 'accepted', 'declined'];
 

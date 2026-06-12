@@ -12,6 +12,9 @@ import { logger } from '@/lib/logger';
 const BATCH_KEY_PREFIX = CACHE_KEYS.VIEW_BATCH;
 const FLUSH_THRESHOLD = 10; // Flush after this many views per listing
 const FLUSH_INTERVAL = CACHE_TTL.VIEW_BATCH_FLUSH * 1000; // Flush interval in ms
+// Batch keys must outlive the flush cron (*/5 min in vercel.json) or
+// sub-threshold view counts expire before they are ever flushed.
+const BATCH_KEY_TTL = 15 * 60; // seconds
 
 /**
  * Record a view in the batch (Redis)
@@ -23,7 +26,7 @@ export async function recordViewBatch(listingId: string): Promise<number> {
   }
 
   const key = `${BATCH_KEY_PREFIX}${listingId}`;
-  const count = await cacheIncr(key, CACHE_TTL.VIEW_BATCH_FLUSH * 2);
+  const count = await cacheIncr(key, BATCH_KEY_TTL);
 
   // Auto-flush if threshold reached
   if (count >= FLUSH_THRESHOLD) {
@@ -132,7 +135,7 @@ export { FLUSH_INTERVAL, FLUSH_THRESHOLD };
 // Graceful shutdown: flush all pending view batches before the process exits.
 // This prevents view counts being lost when the server restarts before a batch
 // reaches the auto-flush threshold.
-if (typeof process !== 'undefined' && process.on) {
+if (typeof process !== 'undefined' && typeof process.on === 'function') {
   let flushing = false;
   const gracefulFlush = () => {
     if (flushing) return;

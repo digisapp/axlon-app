@@ -73,7 +73,8 @@ function SearchPageContent() {
   const router = useRouter();
   const query = searchParams.get('q') || '';
   const category = searchParams.get('category') || '';
-  const page = parseInt(searchParams.get('page') || '1');
+  const pageParam = parseInt(searchParams.get('page') || '1');
+  const page = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
   const initialSort = SORT_MAP[searchParams.get('sort') || ''] || 'created_at';
 
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('grid');
@@ -81,6 +82,26 @@ function SearchPageContent() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<FilterValues>({});
   const [useInfiniteMode, setUseInfiniteMode] = useState(false);
+
+  // Changing filters or sort restarts the result set, so a page > 1 from the
+  // URL would request a stale page and can show a false "no results"
+  const resetToFirstPage = useCallback(() => {
+    if ((parseInt(searchParams.get('page') || '1') || 1) > 1) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('page');
+      router.replace(`/search?${params.toString()}`);
+    }
+  }, [searchParams, router]);
+
+  const handleSortChange = useCallback((value: string) => {
+    setSortBy(value);
+    resetToFirstPage();
+  }, [resetToFirstPage]);
+
+  const handleFiltersChange = useCallback((filters: FilterValues) => {
+    setAdvancedFilters(filters);
+    resetToFirstPage();
+  }, [resetToFirstPage]);
 
   const categories = useCategories();
 
@@ -117,9 +138,18 @@ function SearchPageContent() {
       );
       return isActive ? {} : filter;
     });
-  }, []);
+    resetToFirstPage();
+  }, [resetToFirstPage]);
 
-  const activeFilterCount = Object.keys(advancedFilters).length;
+  // Count only filters with meaningful values — cleared filters leave behind
+  // undefined keys, and "Any" selects can produce NaN
+  const activeFilterCount = Object.values(advancedFilters).filter(
+    (v) =>
+      v !== undefined &&
+      v !== '' &&
+      !(typeof v === 'number' && Number.isNaN(v)) &&
+      (!Array.isArray(v) || v.length > 0)
+  ).length;
 
   // JSON-LD ItemList schema for search results SEO
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
@@ -242,7 +272,7 @@ function SearchPageContent() {
 
           {activeFilterCount > 0 && (
             <button
-              onClick={() => setAdvancedFilters({})}
+              onClick={() => handleFiltersChange({})}
               className="px-3 py-1.5 text-xs md:text-sm rounded-full border border-destructive/50 text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-1.5"
             >
               Clear All
@@ -289,7 +319,7 @@ function SearchPageContent() {
                 <div className="mt-4">
                   <AdvancedFilters
                     filters={advancedFilters}
-                    onFiltersChange={setAdvancedFilters}
+                    onFiltersChange={handleFiltersChange}
                     categories={categories}
                     onClose={() => setFiltersOpen(false)}
                   />
@@ -317,14 +347,14 @@ function SearchPageContent() {
                 <div className="mt-4">
                   <AdvancedFilters
                     filters={advancedFilters}
-                    onFiltersChange={setAdvancedFilters}
+                    onFiltersChange={handleFiltersChange}
                     categories={categories}
                   />
                 </div>
               </SheetContent>
             </Sheet>
 
-            <Select value={sortBy} onValueChange={setSortBy}>
+            <Select value={sortBy} onValueChange={handleSortChange}>
               <SelectTrigger className="w-32 md:w-40 flex-shrink-0">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>

@@ -51,6 +51,11 @@ export function useUploadQueue(options: UseUploadQueueOptions = {}) {
     const next = queueRef.current.find(i => i.status === 'pending');
     if (!next) return;
 
+    // Claim the item synchronously before the first await — concurrent
+    // processNext calls would otherwise all pick this same pending item and
+    // upload it multiple times
+    next.status = 'compressing';
+
     activeCountRef.current++;
     const itemId = next.id;
 

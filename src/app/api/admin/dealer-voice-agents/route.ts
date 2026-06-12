@@ -119,12 +119,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Forbidden' }
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const csrfError = await requireCsrf(request);
     if (csrfError) return csrfError;
-, { status: 403 });
-    }
 
     const body = await request.json();
     let validatedData;

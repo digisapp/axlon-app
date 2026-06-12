@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
         id,
         email,
         company_name,
+        slug,
         phone,
         city,
         state,

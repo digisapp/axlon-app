@@ -250,23 +250,48 @@ export default async function ListingPage({ params }: PageProps) {
   // Capture current time once to avoid impure Date.now() calls during render
   const now = Date.now();
 
-  // Increment view count
-  await supabase
-    .from('listings')
-    .update({ views_count: (listing.views_count || 0) + 1 })
-    .eq('id', id);
+  // View counting is owned by TrackViewClient → /api/listings/[id]/view
+  // (session-deduped, Redis-batched). Do not also increment here: every
+  // request (bots, prefetches, the owner) would double-count.
 
-  // Get similar listings
-  const { data: similarListings } = await supabase
-    .from('listings')
-    .select(`
-      id, title, price, year, make, model, city, state,
-      images:listing_images!left(url, is_primary)
-    `)
-    .eq('status', 'active')
-    .neq('id', id)
-    .or(`make.eq.${listing.make},category_id.eq.${listing.category_id}`)
-    .limit(4);
+  // Get similar listings — build the .or() only from non-null values
+  // (category_id.eq.null fails the UUID cast and errors the whole query),
+  // and escape make to keep it from corrupting the filter expression
+  const similarConditions: string[] = [];
+  if (listing.make) {
+    const safeMake = String(listing.make).replace(/[\\(),."']/g, '');
+    if (safeMake) similarConditions.push(`make.eq.${safeMake}`);
+  }
+  if (listing.category_id) {
+    similarConditions.push(`category_id.eq.${listing.category_id}`);
+  }
+
+  let similarListings:
+    | Array<{
+        id: string;
+        title: string;
+        price: number | null;
+        year: number | null;
+        make: string | null;
+        model: string | null;
+        city: string | null;
+        state: string | null;
+        images: { url: string; is_primary?: boolean }[] | null;
+      }>
+    | null = null;
+  if (similarConditions.length > 0) {
+    const { data } = await supabase
+      .from('listings')
+      .select(`
+        id, title, price, year, make, model, city, state,
+        images:listing_images!left(url, is_primary)
+      `)
+      .eq('status', 'active')
+      .neq('id', id)
+      .or(similarConditions.join(','))
+      .limit(4);
+    similarListings = data;
+  }
 
   // Sort images by sort_order, primary first
   const sortedImages = [...(listing.images || [])]

@@ -4,6 +4,7 @@ import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } f
 import { checkIsAdmin } from '@/lib/admin/check-admin';
 import { logger } from '@/lib/logger';
 import { requireCsrf } from '@/lib/security/csrf';
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 
 export async function GET(request: NextRequest) {
   try {
@@ -46,9 +47,12 @@ export async function GET(request: NextRequest) {
       query = query.eq('state', state);
     }
     if (search) {
-      query = query.or(
-        `name.ilike.%${search}%,email.ilike.%${search}%,city.ilike.%${search}%,state.ilike.%${search}%,phone.ilike.%${search}%`
-      );
+      const s = sanitizeSearchFilter(search);
+      if (s) {
+        query = query.or(
+          `name.ilike.%${s}%,email.ilike.%${s}%,city.ilike.%${s}%,state.ilike.%${s}%,phone.ilike.%${s}%`
+        );
+      }
     }
 
     const { data: contacts, count, error } = await query;

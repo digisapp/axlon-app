@@ -4,8 +4,8 @@ import { useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
 import { csrfFetch } from '@/lib/csrf-fetch';
+import {
   Camera, Search, FileText, DollarSign,
   CheckCircle2, Loader2, AlertCircle, Edit3,
   ChevronRight, Sparkles,

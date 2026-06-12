@@ -72,6 +72,23 @@ const planSchema = z.object({
   equipment_query: z.string().optional().describe('Equipment name to look up weight for'),
 });
 
+// Bound the request body — an uncapped message/history drives unbounded
+// model token usage
+const requestSchema = z.object({
+  message: z.string().min(1).max(2000),
+  conversationHistory: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string().max(4000),
+      })
+    )
+    .max(20)
+    .optional(),
+});
+
+const MODEL_TIMEOUT_MS = 30_000;
+
 export async function POST(request: NextRequest) {
   try {
     const identifier = getClientIdentifier(request);
@@ -84,14 +101,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { message, conversationHistory = [] } = body as {
-      message: string;
-      conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>;
-    };
-
-    if (!message) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    const parsed = requestSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid request', details: parsed.error.issues.map(i => i.message) },
+        { status: 400 }
+      );
     }
+    const { message, conversationHistory = [] } = parsed.data;
 
     const xai = getXai();
 
@@ -99,6 +116,7 @@ export async function POST(request: NextRequest) {
     const { object: plan } = await generateObject({
       model: xai('grok-4-1-fast-non-reasoning'),
       schema: planSchema,
+      abortSignal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
       prompt: `Analyze this user message and determine what data we need to fetch.
 
 Recent conversation context:
@@ -185,6 +203,8 @@ Determine the intent and extract relevant parameters. Available intents:
       model: xai('grok-4-1-fast-non-reasoning'),
       system: SYSTEM_PROMPT,
       messages,
+      maxOutputTokens: 2048,
+      abortSignal: AbortSignal.timeout(MODEL_TIMEOUT_MS),
     });
 
     return NextResponse.json({

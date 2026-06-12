@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -53,6 +54,7 @@ interface User {
   id: string;
   email: string;
   company_name: string | null;
+  slug: string | null;
   phone: string | null;
   city: string | null;
   state: string | null;
@@ -126,9 +128,13 @@ export default function AdminUsersPage() {
         setActionType(null);
         setSuspendReason('');
         fetchUsers();
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast.error(data.error || 'Failed to update user');
       }
     } catch (error) {
       logger.error('Error updating user', { error });
+      toast.error('Failed to update user');
     }
     setIsSubmitting(false);
   };
@@ -326,12 +332,16 @@ export default function AdminUsersPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/${user.id}`}>
-                              View Profile
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
+                          {user.is_business && user.slug && (
+                            <>
+                              <DropdownMenuItem asChild>
+                                <Link href={`/${user.slug}`}>
+                                  View Profile
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                            </>
+                          )}
                           {user.is_suspended ? (
                             <DropdownMenuItem
                               onClick={() => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
@@ -50,6 +50,8 @@ export interface UploadedImage {
   error?: string;
   ai_analysis?: AIAnalysis;
   analyzing?: boolean;
+  /** Stable client-side key so async upload callbacks survive reorders/removals */
+  clientKey?: string;
 }
 
 interface ImageUploadProps {
@@ -75,9 +77,25 @@ export function ImageUpload({
   const isMobile = useIsMobile();
   const supabase = createClient();
 
+  // Async upload/analysis callbacks must read the latest images array, never
+  // the `images` prop captured when their closure was created — concurrent
+  // uploads would otherwise overwrite each other's results.
+  const imagesRef = useRef(images);
+  useEffect(() => {
+    imagesRef.current = images;
+  }, [images]);
+
+  const updateImages = useCallback(
+    (updater: (imgs: UploadedImage[]) => UploadedImage[]) => {
+      imagesRef.current = updater(imagesRef.current);
+      onChange(imagesRef.current);
+    },
+    [onChange]
+  );
+
   // ─── AI Analysis ────────────────────────────────────
 
-  const analyzeImageWithAI = async (imageUrl: string, imageIndex: number) => {
+  const analyzeImageWithAI = async (imageUrl: string, clientKey: string) => {
     try {
       const response = await csrfFetch('/api/ai/analyze', {
         method: 'POST',
@@ -87,14 +105,16 @@ export function ImageUpload({
 
       if (response.ok) {
         const { data } = await response.json();
+        const isFirstImage =
+          imagesRef.current.findIndex((img) => img.clientKey === clientKey) === 0;
 
-        onChange(images.map((img, idx) =>
-          idx === imageIndex
+        updateImages((imgs) => imgs.map((img) =>
+          img.clientKey === clientKey
             ? { ...img, ai_analysis: data, analyzing: false }
             : img
         ));
 
-        if (imageIndex === 0 && onAIDetection) {
+        if (isFirstImage && onAIDetection) {
           onAIDetection({
             make: data.detected_make,
             model: data.detected_model,
@@ -102,38 +122,37 @@ export function ImageUpload({
             tags: data.suggested_tags,
           });
         }
+      } else {
+        updateImages((imgs) => imgs.map((img) =>
+          img.clientKey === clientKey ? { ...img, analyzing: false } : img
+        ));
       }
     } catch (error) {
       logger.error('AI analysis failed', { error });
-      onChange(images.map((img, idx) =>
-        idx === imageIndex ? { ...img, analyzing: false } : img
+      updateImages((imgs) => imgs.map((img) =>
+        img.clientKey === clientKey ? { ...img, analyzing: false } : img
       ));
     }
   };
 
   // ─── Upload Single Image with XHR Progress ─────────
 
-  const uploadSingleImage = async (
-    file: File,
-    index: number,
-    currentImages: UploadedImage[]
-  ): Promise<UploadedImage[]> => {
+  const uploadSingleImage = async (file: File, clientKey: string): Promise<void> => {
+    const patch = (changes: Partial<UploadedImage>) =>
+      updateImages((imgs) => imgs.map((img) =>
+        img.clientKey === clientKey ? { ...img, ...changes } : img
+      ));
+
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
     if (!allowedTypes.includes(file.type)) {
       toast.error(`"${file.name}" is not a supported format`);
-      currentImages = currentImages.map((img, idx) =>
-        idx === index ? { ...img, uploading: false, error: 'Unsupported format' } : img
-      );
-      onChange(currentImages);
-      return currentImages;
+      patch({ uploading: false, error: 'Unsupported format' });
+      return;
     }
 
     // Step 1: Compress
-    currentImages = currentImages.map((img, idx) =>
-      idx === index ? { ...img, compressing: true, uploading: false } : img
-    );
-    onChange(currentImages);
+    patch({ compressing: true, uploading: false });
 
     let compressed: File;
     try {
@@ -142,28 +161,19 @@ export function ImageUpload({
       compressed = file; // Fall back to original on compression failure
     }
 
-    currentImages = currentImages.map((img, idx) =>
-      idx === index ? { ...img, compressing: false, uploading: true, uploadProgress: 0 } : img
-    );
-    onChange(currentImages);
+    patch({ compressing: false, uploading: true, uploadProgress: 0 });
 
     // Step 2: Upload with XHR for progress
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      currentImages = currentImages.map((img, idx) =>
-        idx === index ? { ...img, uploading: false, error: 'Not authenticated' } : img
-      );
-      onChange(currentImages);
-      return currentImages;
+      patch({ uploading: false, error: 'Not authenticated' });
+      return;
     }
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      currentImages = currentImages.map((img, idx) =>
-        idx === index ? { ...img, uploading: false, error: 'No session' } : img
-      );
-      onChange(currentImages);
-      return currentImages;
+      patch({ uploading: false, error: 'No session' });
+      return;
     }
 
     const ext = compressed.type === 'image/webp' ? 'webp' : (file.name.split('.').pop() || 'jpg');
@@ -180,11 +190,7 @@ export function ImageUpload({
 
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable) {
-            const pct = Math.round((e.loaded / e.total) * 100);
-            currentImages = currentImages.map((img, idx) =>
-              idx === index ? { ...img, uploadProgress: pct } : img
-            );
-            onChange(currentImages);
+            patch({ uploadProgress: Math.round((e.loaded / e.total) * 100) });
           }
         };
 
@@ -201,41 +207,33 @@ export function ImageUpload({
         xhr.send(compressed);
       });
 
-      // Success — update with final URL
-      URL.revokeObjectURL(currentImages[index].url);
-      currentImages = currentImages.map((img, idx) =>
-        idx === index
-          ? { ...img, url, uploading: false, uploadProgress: 100, compressing: false, file: undefined, error: undefined, analyzing: true }
-          : img
-      );
-      onChange(currentImages);
+      // Success — release the blob preview and swap in the final URL
+      const previous = imagesRef.current.find((img) => img.clientKey === clientKey);
+      if (previous?.url.startsWith('blob:')) {
+        URL.revokeObjectURL(previous.url);
+      }
+      patch({ url, uploading: false, uploadProgress: 100, compressing: false, file: undefined, error: undefined, analyzing: true });
 
       // Trigger AI analysis (first 3 images only)
-      if (index < 3) {
-        analyzeImageWithAI(url, index);
+      const index = imagesRef.current.findIndex((img) => img.clientKey === clientKey);
+      if (index > -1 && index < 3) {
+        analyzeImageWithAI(url, clientKey);
       } else {
-        currentImages = currentImages.map((img, idx) =>
-          idx === index ? { ...img, analyzing: false } : img
-        );
-        onChange(currentImages);
+        patch({ analyzing: false });
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Upload failed';
       logger.error('Upload error', { error: err });
-      currentImages = currentImages.map((img, idx) =>
-        idx === index ? { ...img, uploading: false, compressing: false, error: msg } : img
-      );
-      onChange(currentImages);
+      patch({ uploading: false, compressing: false, error: msg });
     }
-
-    return currentImages;
   };
 
   // ─── Handle Files (batch with concurrency) ─────────
 
   const handleFiles = useCallback(async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
-    const remainingSlots = maxImages - images.length;
+    const existing = imagesRef.current;
+    const remainingSlots = maxImages - existing.length;
 
     if (remainingSlots <= 0) {
       toast.error(`Maximum ${maxImages} images allowed`);
@@ -249,39 +247,32 @@ export function ImageUpload({
 
     // Create preview entries
     const newImages: UploadedImage[] = filesToUpload.map((file, i) => ({
+      clientKey: `upload-${Date.now()}-${i}-${Math.random().toString(36).slice(2)}`,
       url: URL.createObjectURL(file),
-      is_primary: images.length === 0 && i === 0,
-      sort_order: images.length + i,
+      is_primary: existing.length === 0 && i === 0,
+      sort_order: existing.length + i,
       file,
       uploading: true,
       uploadProgress: 0,
       compressing: false,
     }));
 
-    let currentImages = [...images, ...newImages];
-    onChange(currentImages);
-
-    const totalSaved = filesToUpload.reduce((acc, f) => acc + f.size, 0);
+    updateImages((imgs) => [...imgs, ...newImages]);
 
     // Upload with concurrency control
-    const startIdx = images.length;
-    for (let i = 0; i < filesToUpload.length; i += MAX_CONCURRENT) {
-      const batch = filesToUpload.slice(i, i + MAX_CONCURRENT);
-      const promises = batch.map((file, j) =>
-        uploadSingleImage(file, startIdx + i + j, currentImages)
-      );
-      const results = await Promise.all(promises);
-      // Merge results — take the latest state
-      if (results.length > 0) {
-        currentImages = results[results.length - 1];
-      }
+    for (let i = 0; i < newImages.length; i += MAX_CONCURRENT) {
+      const batch = newImages.slice(i, i + MAX_CONCURRENT);
+      await Promise.all(batch.map((img) => uploadSingleImage(img.file!, img.clientKey!)));
     }
 
-    const successCount = currentImages.filter((img, idx) => idx >= startIdx && !img.error && !img.uploading).length;
+    const batchKeys = new Set(newImages.map((img) => img.clientKey));
+    const successCount = imagesRef.current.filter(
+      (img) => batchKeys.has(img.clientKey) && !img.error && !img.uploading
+    ).length;
     if (successCount > 0) {
       toast.success(`${successCount} photo${successCount > 1 ? 's' : ''} uploaded`);
     }
-  }, [images, maxImages, onChange, supabase]);
+  }, [maxImages, updateImages, supabase]);
 
   // ─── Retry Failed Upload ───────────────────────────
 
@@ -289,12 +280,14 @@ export function ImageUpload({
     const image = images[index];
     if (!image?.file) return;
 
-    let currentImages = images.map((img, idx) =>
-      idx === index ? { ...img, error: undefined, uploading: true, uploadProgress: 0 } : img
-    );
-    onChange(currentImages);
-    await uploadSingleImage(image.file, index, currentImages);
-  }, [images, onChange, supabase]);
+    const clientKey = image.clientKey || `upload-${Date.now()}-retry-${Math.random().toString(36).slice(2)}`;
+    updateImages((imgs) => imgs.map((img, idx) =>
+      idx === index
+        ? { ...img, clientKey, error: undefined, uploading: true, uploadProgress: 0 }
+        : img
+    ));
+    await uploadSingleImage(image.file, clientKey);
+  }, [images, updateImages, supabase]);
 
   // ─── Drag & Drop Handlers ─────────────────────────
 
@@ -323,16 +316,18 @@ export function ImageUpload({
   // ─── Image Management ─────────────────────────────
 
   const removeImage = useCallback((index: number) => {
-    let updated = images.filter((_, i) => i !== index);
-    if (images[index]?.is_primary && updated.length > 0) {
-      updated = updated.map((img, i) => ({ ...img, is_primary: i === 0 }));
-    }
-    onChange(updated.map((img, i) => ({ ...img, sort_order: i })));
-  }, [images, onChange]);
+    updateImages((imgs) => {
+      let updated = imgs.filter((_, i) => i !== index);
+      if (imgs[index]?.is_primary && updated.length > 0) {
+        updated = updated.map((img, i) => ({ ...img, is_primary: i === 0 }));
+      }
+      return updated.map((img, i) => ({ ...img, sort_order: i }));
+    });
+  }, [updateImages]);
 
   const setPrimary = useCallback((index: number) => {
-    onChange(images.map((img, i) => ({ ...img, is_primary: i === index })));
-  }, [images, onChange]);
+    updateImages((imgs) => imgs.map((img, i) => ({ ...img, is_primary: i === index })));
+  }, [updateImages]);
 
   const atLimit = images.length >= maxImages;
   const uploadingCount = images.filter(i => i.uploading || i.compressing).length;
@@ -423,7 +418,7 @@ export function ImageUpload({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {images.map((image, index) => (
             <div
-              key={image.id || image.url}
+              key={image.clientKey || image.id || image.url}
               className={`
                 relative aspect-[4/3] rounded-lg overflow-hidden bg-muted group
                 ${image.is_primary ? 'ring-2 ring-primary' : ''}

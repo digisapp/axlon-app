@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -417,9 +418,13 @@ export default function AdminDirectoryPage() {
         setSelectedIds(new Set());
         setSelectAll(false);
         fetchData();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Failed to categorize');
       }
     } catch (error) {
       logger.error('Bulk categorize error', { error });
+      toast.error('Failed to categorize');
     }
     setIsSaving(false);
   };
@@ -957,13 +962,18 @@ export default function AdminDirectoryPage() {
                     <button
                       key={cat.value}
                       onClick={async () => {
-                        await csrfFetch('/api/admin/directory', {
+                        const res = await csrfFetch('/api/admin/directory', {
                           method: 'PATCH',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ ids: [detailBusiness.id], category: cat.value }),
                         });
-                        setDetailBusiness({ ...detailBusiness, category: cat.value });
-                        fetchData();
+                        if (res.ok) {
+                          setDetailBusiness({ ...detailBusiness, category: cat.value });
+                          fetchData();
+                        } else {
+                          const data = await res.json().catch(() => ({}));
+                          toast.error(data.error || 'Failed to update category');
+                        }
                       }}
                       className={`px-2 py-1 rounded-full text-[10px] font-medium transition-all ${
                         detailBusiness.category === cat.value

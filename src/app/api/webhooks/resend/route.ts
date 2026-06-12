@@ -281,7 +281,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch full email body via Resend API
-    const resend = getResend();
     let htmlBody: string | null = null;
     let textBody: string | null = null;
 
@@ -289,7 +288,7 @@ export async function POST(request: NextRequest) {
       const emailDetail = await resend.emails.get(data.email_id);
       if (emailDetail.data) {
         // Resend SDK types don't expose html/text on GetEmailResponse — cast via record
-        const emailData = emailDetail.data as Record<string, unknown>;
+        const emailData = emailDetail.data as unknown as Record<string, unknown>;
         htmlBody = typeof emailData.html === 'string' ? emailData.html : null;
         textBody = typeof emailData.text === 'string' ? emailData.text : null;
       }

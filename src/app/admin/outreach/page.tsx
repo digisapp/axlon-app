@@ -84,6 +84,7 @@ export default function OutreachPage() {
 
   // Filters
   const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [stateFilter, setStateFilter] = useState('');
@@ -139,9 +140,17 @@ export default function OutreachPage() {
   };
 
   const debouncedSearch = (value: string) => {
+    setSearchInput(value);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => handleSearch(value), 300);
   };
+
+  // Clear any pending debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    };
+  }, []);
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     try {
@@ -219,6 +228,7 @@ export default function OutreachPage() {
 
   const clearFilters = () => {
     setSearch('');
+    setSearchInput('');
     setSourceFilter('');
     setStatusFilter('');
     setStateFilter('');
@@ -229,7 +239,9 @@ export default function OutreachPage() {
 
   const totalPages = Math.ceil(total / LIMIT);
 
-  if (loading) return <OutreachSkeleton />;
+  // Full skeleton only before the first load — remounting the page on every
+  // refetch would blow away the search input's focus while typing
+  if (loading && !stats) return <OutreachSkeleton />;
 
   return (
     <div className="space-y-6">
@@ -320,7 +332,7 @@ export default function OutreachPage() {
           <Input
             placeholder="Search by name, email, city, state, phone..."
             className="pl-10"
-            defaultValue={search}
+            value={searchInput}
             onChange={(e) => debouncedSearch(e.target.value)}
           />
         </div>

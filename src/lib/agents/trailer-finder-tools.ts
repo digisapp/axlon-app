@@ -1,5 +1,6 @@
 import { logger } from '@/lib/logger';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 
 function getSupabase() {
   return createAdminClient();
@@ -45,16 +46,19 @@ export async function searchListings(params: {
     .select('id, title, price, year, make, model, condition, city, state, mileage, hours, description, ai_price_estimate', { count: 'exact' })
     .eq('status', 'active');
 
-  if (params.make) query = query.ilike('make', `%${params.make}%`);
-  if (params.model) query = query.ilike('model', `%${params.model}%`);
+  if (params.make) query = query.ilike('make', `%${sanitizeSearchFilter(params.make)}%`);
+  if (params.model) query = query.ilike('model', `%${sanitizeSearchFilter(params.model)}%`);
   if (params.minPrice) query = query.gte('price', params.minPrice);
   if (params.maxPrice) query = query.lte('price', params.maxPrice);
   if (params.minYear) query = query.gte('year', params.minYear);
   if (params.maxYear) query = query.lte('year', params.maxYear);
-  if (params.condition) query = query.eq('condition', params.condition);
-  if (params.state) query = query.ilike('state', `%${params.state}%`);
+  if (params.condition) query = query.eq('condition', sanitizeSearchFilter(params.condition));
+  if (params.state) query = query.ilike('state', `%${sanitizeSearchFilter(params.state)}%`);
   if (params.query) {
-    query = query.or(`title.ilike.%${params.query}%,description.ilike.%${params.query}%`);
+    const q = sanitizeSearchFilter(params.query);
+    if (q) {
+      query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
+    }
   }
 
   const { data, error, count } = await query.order('created_at', { ascending: false }).limit(limit);
@@ -102,13 +106,16 @@ export async function searchNewTrailers(params: {
     `)
     .eq('is_active', true);
 
-  if (params.manufacturer) query = query.ilike('manufacturer_name', `%${params.manufacturer}%`);
-  if (params.category) query = query.ilike('category', `%${params.category}%`);
+  if (params.manufacturer) query = query.ilike('manufacturer_name', `%${sanitizeSearchFilter(params.manufacturer)}%`);
+  if (params.category) query = query.ilike('category', `%${sanitizeSearchFilter(params.category)}%`);
   if (params.minTonnage) query = query.gte('tonnage_max', params.minTonnage);
   if (params.maxTonnage) query = query.lte('tonnage_min', params.maxTonnage);
-  if (params.gooseneckType) query = query.eq('gooseneck_type', params.gooseneckType);
+  if (params.gooseneckType) query = query.eq('gooseneck_type', sanitizeSearchFilter(params.gooseneckType));
   if (params.query) {
-    query = query.or(`name.ilike.%${params.query}%,description.ilike.%${params.query}%,category.ilike.%${params.query}%`);
+    const q = sanitizeSearchFilter(params.query);
+    if (q) {
+      query = query.or(`name.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%`);
+    }
   }
 
   const { data, error } = await query.limit(limit);
@@ -155,8 +162,8 @@ export async function getProductSpecs(params: {
       name, manufacturer_name, category, description,
       specs:manufacturer_product_specs(spec_key, spec_value)
     `)
-    .ilike('manufacturer_slug', `%${params.manufacturer}%`)
-    .ilike('product_slug', `%${params.product}%`)
+    .ilike('manufacturer_slug', `%${sanitizeSearchFilter(params.manufacturer)}%`)
+    .ilike('product_slug', `%${sanitizeSearchFilter(params.product)}%`)
     .single();
 
   if (error || !data) {

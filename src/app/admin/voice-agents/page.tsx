@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -157,9 +158,13 @@ export default function AdminVoiceAgentsPage() {
         setIsEditing(false);
         setSelectedAgent(null);
         fetchAgents();
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast.error(data.error || 'Failed to save voice agent');
       }
     } catch (error) {
       logger.error('Error updating voice agent', { error });
+      toast.error('Failed to save voice agent');
     }
     setIsSubmitting(false);
   };
@@ -176,9 +181,13 @@ export default function AdminVoiceAgentsPage() {
 
       if (response.ok) {
         fetchAgents();
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast.error(data.error || 'Failed to delete voice agent');
       }
     } catch (error) {
       logger.error('Error deleting voice agent', { error });
+      toast.error('Failed to delete voice agent');
     }
   };
 
@@ -192,9 +201,13 @@ export default function AdminVoiceAgentsPage() {
 
       if (response.ok) {
         fetchAgents();
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast.error(data.error || 'Failed to update voice agent');
       }
     } catch (error) {
       logger.error('Error toggling voice agent', { error });
+      toast.error('Failed to update voice agent');
     }
   };
 

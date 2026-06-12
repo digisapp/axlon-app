@@ -94,6 +94,8 @@ export function AISearchBar({
   const containerRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const autocompleteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Monotonic id so a slow autocomplete response can't overwrite a newer one
+  const autocompleteRequestIdRef = useRef(0);
 
   // Check for speech recognition support
   useEffect(() => {
@@ -114,6 +116,7 @@ export function AISearchBar({
 
     // For empty query, show recent searches + popular
     if (!searchQuery.trim()) {
+      autocompleteRequestIdRef.current++; // invalidate any in-flight request
       const recent = getRecentSearches();
       const recentSuggestions: AutocompleteSuggestion[] = recent.map(text => ({
         type: 'recent' as const,
@@ -127,9 +130,11 @@ export function AISearchBar({
 
     // Debounce API calls
     autocompleteTimeoutRef.current = setTimeout(async () => {
+      const requestId = ++autocompleteRequestIdRef.current;
       setIsLoadingSuggestions(true);
       try {
         const response = await csrfFetch(`/api/search/autocomplete?q=${encodeURIComponent(searchQuery)}`);
+        if (requestId !== autocompleteRequestIdRef.current) return; // stale response
         if (response.ok) {
           const data = await response.json();
 
@@ -154,6 +159,7 @@ export function AISearchBar({
           setSuggestions(unique);
         }
       } catch (error) {
+        if (requestId !== autocompleteRequestIdRef.current) return;
         logger.error('Autocomplete error', { error });
         // Fall back to example searches
         const filtered = t.exampleSearches
@@ -162,7 +168,9 @@ export function AISearchBar({
           .map(text => ({ type: 'popular' as const, text }));
         setSuggestions(filtered);
       } finally {
-        setIsLoadingSuggestions(false);
+        if (requestId === autocompleteRequestIdRef.current) {
+          setIsLoadingSuggestions(false);
+        }
       }
     }, 150); // 150ms debounce
   }, [t.exampleSearches]);
@@ -246,9 +254,10 @@ export function AISearchBar({
     // Ends with question mark (universal)
     if (q.endsWith('?')) return true;
 
-    // Check against translated question starters
+    // Check against translated question starters (word boundary required —
+    // a bare startsWith would match e.g. "can" in "canadian flatbed")
     for (const starter of t.questionStarters) {
-      if (q.startsWith(starter + ' ') || q.startsWith(starter + ',') || q.startsWith(starter)) {
+      if (q.startsWith(starter + ' ') || q.startsWith(starter + ',') || q === starter) {
         return true;
       }
     }
@@ -324,6 +333,15 @@ export function AISearchBar({
 
       if (response.ok) {
         const data = await response.json();
+
+        // Server decided this is a search, not a question — it returns
+        // { type: 'search', query } with no chat response to render
+        if (data.type === 'search' || !data.response) {
+          setIsLoading(false);
+          router.push(`/search?q=${encodeURIComponent((data.query || q).trim())}`);
+          return;
+        }
+
         setChatResponse({
           response: data.response,
           suggestedCategory: data.suggestedCategory,

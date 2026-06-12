@@ -31,8 +31,8 @@ export async function POST(
     // Rate limit: max 30 view pings per minute per IP (prevents count inflation)
     const identifier = getClientIdentifier(request);
     const rl = await checkRateLimit(identifier, {
-      requests: 30,
-      window: 60,
+      limit: 30,
+      windowSeconds: 60,
       prefix: 'ratelimit:listing-view',
     });
     if (!rl.success) {

@@ -74,22 +74,21 @@ export default async function ManufacturersPage({ searchParams }: PageProps) {
 
   const { data: manufacturers } = await query;
 
-  // Get listing counts for each manufacturer
-  const updatedManufacturers: Manufacturer[] = [];
-  if (manufacturers) {
-    for (const mfr of manufacturers) {
-      const { count } = await supabase
-        .from('listings')
-        .select('*', { count: 'exact', head: true })
-        .ilike('make', mfr.canonical_name)
-        .eq('status', 'active');
+  // Get listing counts for each manufacturer (in parallel — doing these
+  // serially added one DB round-trip per manufacturer to every page view)
+  const updatedManufacturers: Manufacturer[] = manufacturers
+    ? await Promise.all(
+        manufacturers.map(async (mfr) => {
+          const { count } = await supabase
+            .from('listings')
+            .select('*', { count: 'exact', head: true })
+            .ilike('make', mfr.canonical_name)
+            .eq('status', 'active');
 
-      updatedManufacturers.push({
-        ...mfr,
-        listing_count: count || 0,
-      });
-    }
-  }
+          return { ...mfr, listing_count: count || 0 };
+        })
+      )
+    : [];
 
   // Separate featured and regular manufacturers
   const featuredManufacturers = updatedManufacturers.filter(m => m.is_featured);

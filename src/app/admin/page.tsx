@@ -42,14 +42,14 @@ export default async function AdminDashboardPage() {
     supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('business_status', 'pending'),
     supabase.from('leads').select('*', { count: 'exact', head: true }).eq('status', 'new'),
     supabase.from('trade_in_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-    supabase.from('listings').select('views_count'),
+    supabase.rpc('get_total_views_count'),
     supabase.from('profiles').select('id, email, company_name, is_business, created_at').order('created_at', { ascending: false }).limit(5),
     supabase.from('listings').select('id, title, status, created_at, user_id').order('created_at', { ascending: false }).limit(5),
     supabase.from('leads').select('*', { count: 'exact', head: true }).gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
     supabase.from('call_logs').select('*', { count: 'exact', head: true }).gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
   ]);
 
-  const totalViews = viewsData?.reduce((sum, l) => sum + (l.views_count || 0), 0) || 0;
+  const totalViews = Number(viewsData) || 0;
 
   // Get profiles for listings
   const listingUserIds = [...new Set(recentListings?.map((l) => l.user_id) || [])];
@@ -63,10 +63,11 @@ export default async function AdminDashboardPage() {
   }, {} as Record<string, { id: string; company_name: string; email: string }>);
 
   // Action items that need attention
+  // Static class strings — Tailwind can't generate interpolated `bg-${color}-100`
   const actionItems = [
-    { label: 'Pending Businesses', count: pendingBusinesses || 0, href: '/admin/dealers', color: 'yellow', icon: <Building2 className="w-5 h-5" /> },
-    { label: 'New Leads', count: newLeads || 0, href: '/admin/leads', color: 'green', icon: <PhoneCall className="w-5 h-5" /> },
-    { label: 'Pending Trade-Ins', count: pendingTradeIns || 0, href: '/admin/trade-ins', color: 'amber', icon: <ArrowUpRight className="w-5 h-5" /> },
+    { label: 'Pending Businesses', count: pendingBusinesses || 0, href: '/admin/dealers', colorClass: 'bg-yellow-100', icon: <Building2 className="w-5 h-5" /> },
+    { label: 'New Leads', count: newLeads || 0, href: '/admin/leads', colorClass: 'bg-green-100', icon: <PhoneCall className="w-5 h-5" /> },
+    { label: 'Pending Trade-Ins', count: pendingTradeIns || 0, href: '/admin/trade-ins', colorClass: 'bg-amber-100', icon: <ArrowUpRight className="w-5 h-5" /> },
   ].filter((item) => item.count > 0);
 
   return (
@@ -79,7 +80,7 @@ export default async function AdminDashboardPage() {
               <Card className="border-l-4 border-l-red-500 hover:bg-muted/50 transition-colors cursor-pointer">
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg bg-${item.color}-100`}>
+                    <div className={`p-2 rounded-lg ${item.colorClass}`}>
                       {item.icon}
                     </div>
                     <div>

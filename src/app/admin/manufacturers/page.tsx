@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -189,9 +190,13 @@ export default function AdminManufacturersPage() {
 
       if (response.ok) {
         fetchManufacturers();
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast.error(data.error || 'Failed to update manufacturer');
       }
     } catch (error) {
       logger.error('Error toggling manufacturer', { error });
+      toast.error('Failed to update manufacturer');
     }
   };
 
@@ -204,9 +209,13 @@ export default function AdminManufacturersPage() {
       if (response.ok) {
         setDeleteConfirmId(null);
         fetchManufacturers();
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast.error(data.error || 'Failed to delete manufacturer');
       }
     } catch (error) {
       logger.error('Error deleting manufacturer', { error });
+      toast.error('Failed to delete manufacturer');
     }
   };
 

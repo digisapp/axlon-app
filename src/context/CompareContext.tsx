@@ -34,7 +34,9 @@ function loadFromStorage(): CompareListing[] {
   try {
     const saved = localStorage.getItem('compare-listings');
     if (saved) {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return parsed;
+      localStorage.removeItem('compare-listings');
     }
   } catch {
     localStorage.removeItem('compare-listings');
@@ -43,12 +45,24 @@ function loadFromStorage(): CompareListing[] {
 }
 
 export function CompareProvider({ children }: { children: ReactNode }) {
-  const [listings, setListings] = useState<CompareListing[]>(loadFromStorage);
+  // Start empty and load from localStorage after mount — reading storage
+  // during the hydration render makes the client's first render differ from
+  // the server HTML and triggers a hydration error on every page
+  const [listings, setListings] = useState<CompareListing[]>([]);
+  const [hydrated, setHydrated] = useState(false);
 
-  // Save to localStorage on change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage can only be read after mount; reading it during render causes a hydration mismatch
+    setListings(loadFromStorage());
+    setHydrated(true);
+  }, []);
+
+  // Save to localStorage on change (skip until the stored value is loaded,
+  // otherwise the initial empty state would wipe it)
+  useEffect(() => {
+    if (!hydrated) return;
     localStorage.setItem('compare-listings', JSON.stringify(listings));
-  }, [listings]);
+  }, [listings, hydrated]);
 
   const addListing = useCallback((listing: CompareListing) => {
     setListings((prev) => {

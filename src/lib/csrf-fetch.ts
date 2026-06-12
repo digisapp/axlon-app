@@ -53,18 +53,23 @@ export async function csrfFetch(
     return fetch(input, init);
   }
 
-  const token = await getCsrfToken();
+  const send = async (): Promise<Response> => {
+    const token = await getCsrfToken();
+    const headers = new Headers(init.headers);
+    headers.set(CSRF_HEADER, token);
+    return fetch(input, { ...init, headers });
+  };
 
-  const headers = new Headers(init.headers);
-  headers.set(CSRF_HEADER, token);
+  const res = await send();
 
-  const res = await fetch(input, { ...init, headers });
-
-  // If server rejects the token, reset so we fetch a fresh one next time
+  // If the server rejects the token (rotated cookie, expiry), fetch a fresh
+  // one and replay the request once — otherwise the user's first mutation
+  // after invalidation always fails
   if (res.status === 403) {
     const body = await res.clone().json().catch(() => ({}));
-    if (body?.error?.toLowerCase().includes('csrf')) {
+    if (typeof body?.error === 'string' && body.error.toLowerCase().includes('csrf')) {
       resetCsrfToken();
+      return send();
     }
   }
 

@@ -113,6 +113,10 @@ export function useSearchListings(
   // Refs to prevent race conditions and duplicate fetches
   const fetchIdRef = useRef(0);
   const lastFetchParamsRef = useRef<string>('');
+  // AI filters resolved by the last main fetch — reused by handleLoadMore so
+  // subsequent pages query the same result set as page 1
+  const aiFiltersRef = useRef<AISearchResult['filters'] | null>(null);
+  const detectedCategoryRef = useRef<string | undefined>(undefined);
 
   // Main fetch effect
   useEffect(() => {
@@ -157,6 +161,9 @@ export function useSearchListings(
 
         if (currentFetchId !== fetchIdRef.current) return;
 
+        aiFiltersRef.current = currentAiFilters;
+        detectedCategoryRef.current = detectedCategory;
+
         const params = buildSearchParams({
           page,
           sortBy,
@@ -168,6 +175,9 @@ export function useSearchListings(
         });
 
         const response = await csrfFetch(`/api/listings?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error(`Listings request failed (${response.status})`);
+        }
         const data = await response.json();
 
         // If 0 results with AI price filters, retry without price constraints
@@ -180,6 +190,9 @@ export function useSearchListings(
           fallbackParams.delete('max_price');
 
           const fallbackResponse = await csrfFetch(`/api/listings?${fallbackParams.toString()}`);
+          if (!fallbackResponse.ok) {
+            throw new Error(`Listings request failed (${fallbackResponse.status})`);
+          }
           const fallbackData = await fallbackResponse.json();
 
           if (currentFetchId === fetchIdRef.current) {
@@ -205,6 +218,11 @@ export function useSearchListings(
         }
       } catch (error) {
         logger.error('Search error', { error });
+        // Allow a retry on the next render — the failed params were committed
+        // to lastFetchParamsRef before the fetch ran
+        if (currentFetchId === fetchIdRef.current) {
+          lastFetchParamsRef.current = '';
+        }
       } finally {
         if (currentFetchId === fetchIdRef.current) {
           setIsLoading(false);
@@ -223,18 +241,30 @@ export function useSearchListings(
 
     try {
       const nextPage = page + 1;
+      // Use the same query/AI filters as the main fetch so the next page comes
+      // from the same result set
       const params = buildSearchParams({
         page: nextPage,
         sortBy,
         category,
         advancedFilters,
+        aiFilters: aiFiltersRef.current,
+        query,
+        detectedCategory: detectedCategoryRef.current,
       });
 
       const response = await csrfFetch(`/api/listings?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error(`Load more failed (${response.status})`);
+      }
       const data = await response.json();
 
       if (data.data?.length > 0) {
         setListings((prev) => [...prev, ...data.data]);
+        // Pre-commit the dedupe key for the new page so the URL update below
+        // (which flows back in as the `page` prop) doesn't trigger a full
+        // refetch that would replace the appended list
+        lastFetchParamsRef.current = `${query}|${category}|${nextPage}|${sortBy}|${JSON.stringify(advancedFilters)}`;
         const urlParams = new URLSearchParams(searchParamsString);
         urlParams.set('page', nextPage.toString());
         window.history.replaceState(null, '', `/search?${urlParams.toString()}`);
@@ -244,7 +274,7 @@ export function useSearchListings(
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, page, totalPages, sortBy, category, advancedFilters, searchParamsString]);
+  }, [isLoadingMore, page, totalPages, sortBy, category, advancedFilters, query, searchParamsString]);
 
   return {
     listings,

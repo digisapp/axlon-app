@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyInternalRequest } from '@/lib/security/internal-auth';
 
 const CSRF_COOKIE_NAME = '__csrf_token';
 const CSRF_HEADER_NAME = 'x-csrf-token';
@@ -68,9 +69,12 @@ export async function requireCsrf(request: NextRequest): Promise<NextResponse | 
     return null;
   }
 
-  // Skip CSRF for API routes that use other auth (e.g., webhook signatures, internal auth)
+  // Skip CSRF for API routes that use other auth (e.g., webhook signatures, internal auth).
+  // The internal signature must actually verify — skipping on mere header
+  // presence would let any request bypass CSRF with a forged header.
   const isWebhook = request.nextUrl.pathname.includes('/webhook');
-  const isInternal = request.headers.get('x-internal-signature');
+  const isInternal =
+    request.headers.get('x-internal-signature') && verifyInternalRequest(request);
 
   if (isWebhook || isInternal) {
     return null; // Skip CSRF for these

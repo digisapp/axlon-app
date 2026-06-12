@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   try {
     // Rate limit: max 5 unsubscribe attempts per IP per minute to prevent bulk attacks
     const identifier = getClientIdentifier(request);
-    const rl = await checkRateLimit(identifier, { requests: 5, window: 60, prefix: 'ratelimit:unsubscribe' });
+    const rl = await checkRateLimit(identifier, { limit: 5, windowSeconds: 60, prefix: 'ratelimit:unsubscribe' });
     if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
 
     const csrfError = await requireCsrf(request);

@@ -164,18 +164,21 @@ export function AdvancedFilters({
   };
 
   const handleYearChange = (field: 'yearMin' | 'yearMax', value: string) => {
+    // The "Any" option has value "any" — parseInt('any') would store NaN
+    const parsed = value && value !== 'any' ? parseInt(value) : undefined;
     const newFilters = {
       ...localFilters,
-      [field]: value ? parseInt(value) : undefined,
+      [field]: Number.isNaN(parsed) ? undefined : parsed,
     };
     setLocalFilters(newFilters);
     onFiltersChange(newFilters);
   };
 
   const handleMileageChange = (value: string) => {
+    const parsed = value && value !== 'any' ? parseInt(value) : undefined;
     const newFilters = {
       ...localFilters,
-      mileageMax: value ? parseInt(value) : undefined,
+      mileageMax: Number.isNaN(parsed) ? undefined : parsed,
     };
     setLocalFilters(newFilters);
     onFiltersChange(newFilters);

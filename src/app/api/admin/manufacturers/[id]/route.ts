@@ -26,10 +26,7 @@ export async function GET(
     const { isAdmin } = await checkIsAdmin();
 
     if (!isAdmin) {
-      return NextResponse.json({ error: 'Unauthorized' }
-
-    const csrfError = await requireCsrf(request);
-    if (csrfError) return csrfError;, { status: 403 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     const supabase = await createClient();
@@ -83,6 +80,9 @@ export async function PATCH(
     if (!isAdmin || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
 
     const body = await request.json();
     let validatedData;
@@ -187,6 +187,9 @@ export async function DELETE(
     if (!isAdmin || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
 
     const supabase = await createClient();
 

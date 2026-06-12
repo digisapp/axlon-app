@@ -37,12 +37,11 @@ export async function POST(
       .single();
 
     if (!profile?.is_admin) {
-      return NextResponse.json({ error: 'Forbidden' }
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const csrfError = await requireCsrf(request);
     if (csrfError) return csrfError;
-, { status: 403 });
-    }
 
     let validatedData;
     try {

@@ -21,11 +21,11 @@ export async function PATCH(
 
     const { isAdmin } = await checkIsAdmin();
     if (!isAdmin) {
-      return NextResponse.json({ error: 'Forbidden' }
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const csrfError = await requireCsrf(request);
-    if (csrfError) return csrfError;, { status: 403 });
-    }
+    if (csrfError) return csrfError;
 
     const supabase = await createClient();
     const { id } = await params;
