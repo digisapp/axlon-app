@@ -95,7 +95,7 @@ export function ImageUpload({
 
   // ─── AI Analysis ────────────────────────────────────
 
-  const analyzeImageWithAI = async (imageUrl: string, clientKey: string) => {
+  const analyzeImageWithAI = useCallback(async (imageUrl: string, clientKey: string) => {
     try {
       const response = await csrfFetch('/api/ai/analyze', {
         method: 'POST',
@@ -133,11 +133,11 @@ export function ImageUpload({
         img.clientKey === clientKey ? { ...img, analyzing: false } : img
       ));
     }
-  };
+  }, [updateImages, onAIDetection]);
 
   // ─── Upload Single Image with XHR Progress ─────────
 
-  const uploadSingleImage = async (file: File, clientKey: string): Promise<void> => {
+  const uploadSingleImage = useCallback(async (file: File, clientKey: string): Promise<void> => {
     const patch = (changes: Partial<UploadedImage>) =>
       updateImages((imgs) => imgs.map((img) =>
         img.clientKey === clientKey ? { ...img, ...changes } : img
@@ -226,7 +226,7 @@ export function ImageUpload({
       logger.error('Upload error', { error: err });
       patch({ uploading: false, compressing: false, error: msg });
     }
-  };
+  }, [updateImages, supabase, analyzeImageWithAI]);
 
   // ─── Handle Files (batch with concurrency) ─────────
 
@@ -272,7 +272,7 @@ export function ImageUpload({
     if (successCount > 0) {
       toast.success(`${successCount} photo${successCount > 1 ? 's' : ''} uploaded`);
     }
-  }, [maxImages, updateImages, supabase]);
+  }, [maxImages, updateImages, uploadSingleImage]);
 
   // ─── Retry Failed Upload ───────────────────────────
 
@@ -287,7 +287,7 @@ export function ImageUpload({
         : img
     ));
     await uploadSingleImage(image.file, clientKey);
-  }, [images, updateImages, supabase]);
+  }, [images, updateImages, uploadSingleImage]);
 
   // ─── Drag & Drop Handlers ─────────────────────────
 

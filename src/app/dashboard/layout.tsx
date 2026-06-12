@@ -72,6 +72,7 @@ export default async function DashboardLayout({
   const trialStart = profile?.created_at ? new Date(profile.created_at) : new Date();
   const trialEnd = new Date(trialStart.getTime() + 30 * 24 * 60 * 60 * 1000);
   const trialDaysRemaining = !profile?.subscription_tier || profile.subscription_tier === 'free'
+    // eslint-disable-next-line react-hooks/purity -- server component: renders once per request
     ? Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : null;
 

@@ -87,11 +87,7 @@ export default function AdminManufacturersPage() {
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchManufacturers();
-  }, [statusFilter, searchQuery]);
-
-  const fetchManufacturers = async () => {
+  async function fetchManufacturers() {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -109,6 +105,11 @@ export default function AdminManufacturersPage() {
     }
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchManufacturers flips isLoading synchronously before awaiting; standard fetch-on-change pattern
+    fetchManufacturers();
+  }, [statusFilter, searchQuery]);
 
   const openAddDialog = () => {
     setFormData(emptyManufacturer);

@@ -376,15 +376,14 @@ async function getAnalyticsData(supabase: Awaited<ReturnType<typeof createClient
   return { viewsData, leadsData, viewsTrend, leadsTrend };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function fillMissingDates(
-  data: Array<Record<string, any>>,
+  data: Array<Record<string, unknown>>,
   days: number,
   dateField: string,
   countField: string,
   outputField: string
-): Array<Record<string, any>> {
-  const result: Array<Record<string, any>> = [];
+): Array<Record<string, string | number>> {
+  const result: Array<Record<string, string | number>> = [];
   const dataMap = new Map<string, number>();
 
   data.forEach((item) => {
@@ -406,8 +405,8 @@ function fillMissingDates(
   return result;
 }
 
-function generateEmptyDates(days: number, field: string): Array<Record<string, any>> {
-  const result: Array<Record<string, any>> = [];
+function generateEmptyDates(days: number, field: string): Array<Record<string, string | number>> {
+  const result: Array<Record<string, string | number>> = [];
   const now = new Date();
 
   for (let i = days - 1; i >= 0; i--) {

@@ -247,7 +247,8 @@ export default async function ListingPage({ params }: PageProps) {
     notFound();
   }
 
-  // Capture current time once to avoid impure Date.now() calls during render
+  // Capture current time once to avoid impure Date.now() calls during render.
+  // eslint-disable-next-line react-hooks/purity -- server component: renders once per request
   const now = Date.now();
 
   // View counting is owned by TrackViewClient → /api/listings/[id]/view

@@ -146,6 +146,7 @@ export function RecentlyViewed({
     const recent = getRecentlyViewed().filter(
       (item) => item.id !== currentListingId
     );
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage can only be read after mount (hydration safety)
     setRecentListings(recent.slice(0, maxItems));
   }, [currentListingId, maxItems]);
 

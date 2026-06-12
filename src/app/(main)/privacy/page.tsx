@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — AXLON AI',
@@ -138,7 +139,7 @@ export default function PrivacyPage() {
           <p>
             If you have questions about this Privacy Policy, please contact us at{' '}
             <a href="mailto:privacy@axlon.ai">privacy@axlon.ai</a> or visit our{' '}
-            <a href="/contact">contact page</a>.
+            <Link href="/contact">contact page</Link>.
           </p>
         </div>
       </div>

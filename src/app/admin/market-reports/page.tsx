@@ -72,11 +72,7 @@ export default function AdminMarketReportsPage() {
   const [activeTab, setActiveTab] = useState<'reports' | 'subscribers'>('reports');
   const [previewReport, setPreviewReport] = useState<MarketReport | null>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  async function fetchData() {
     setIsLoading(true);
     try {
       const res = await fetch('/api/admin/market-reports');
@@ -90,6 +86,11 @@ export default function AdminMarketReportsPage() {
     }
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchData flips isLoading synchronously before awaiting; standard fetch-on-change pattern
+    fetchData();
+  }, []);
 
   const totalReports = reports.length;
   const totalSubscribers = subscribers.filter(s => s.market_reports_enabled).length;

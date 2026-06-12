@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, memo } from 'react';
+import { useState, memo } from 'react';
 import Link from 'next/link';
 import {
   Table,
@@ -62,8 +62,9 @@ export const InventoryTable = memo(function InventoryTable({ listings }: Invento
   const [sortBy, setSortBy] = useState<string>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // Capture current time once to avoid impure Date.now() calls during render
-  const now = useMemo(() => Date.now(), []);
+  // Capture time-at-mount once — a lazy useState initializer runs exactly
+  // once, which satisfies the purity rule (useMemo may re-run)
+  const [now] = useState(() => Date.now());
 
   // Filter listings
   const filteredListings = listings.filter(listing => {

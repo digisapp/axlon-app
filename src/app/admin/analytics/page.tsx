@@ -78,11 +78,7 @@ export default function AdminAnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [range, setRange] = useState('30');
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [range]);
-
-  const fetchAnalytics = async () => {
+  async function fetchAnalytics() {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/admin/stats?range=${range}`);
@@ -95,6 +91,11 @@ export default function AdminAnalyticsPage() {
     }
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchAnalytics flips isLoading synchronously before awaiting; standard fetch-on-change pattern
+    fetchAnalytics();
+  }, [range]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);

@@ -87,6 +87,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
   // Reset pan when zoom changes to 1 or image changes
   useEffect(() => {
     if (zoom === 1) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- zoom is mutated from many gesture/keyboard handlers; centralizing the pan reset here is simpler than chasing each one
       setPan({ x: 0, y: 0 });
     }
   }, [zoom, selectedIndex]);

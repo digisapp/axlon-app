@@ -430,7 +430,7 @@ export default function AIInboxPage() {
                         onClick={() => act('reject', selected)}
                         disabled={acting}
                       >
-                        <X className="w-4 h-4" /> Reject — don't send
+                        <X className="w-4 h-4" /> Reject — don&apos;t send
                       </Button>
                     )}
                   </div>

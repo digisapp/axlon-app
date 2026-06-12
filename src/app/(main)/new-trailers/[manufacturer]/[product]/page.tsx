@@ -28,6 +28,41 @@ interface PageProps {
   params: Promise<{ manufacturer: string; product: string }>;
 }
 
+interface ProductImage {
+  id: string;
+  url: string;
+  alt_text: string | null;
+  is_primary: boolean | null;
+  sort_order: number | null;
+}
+
+interface ProductSpec {
+  id: string;
+  spec_category: string;
+  spec_key: string;
+  spec_value: string;
+  spec_unit: string | null;
+  sort_order: number | null;
+}
+
+interface RelatedProductImage {
+  url: string;
+  alt_text: string | null;
+  is_primary: boolean | null;
+}
+
+interface RelatedProduct {
+  id: string;
+  name: string;
+  slug: string;
+  series: string | null;
+  product_type: string | null;
+  tonnage_max: number | null;
+  deck_height_inches: number | null;
+  axle_count: number | null;
+  images: RelatedProductImage[] | null;
+}
+
 async function getProduct(manufacturerSlug: string, productSlug: string) {
   const supabase = createSupabase();
 
@@ -72,7 +107,7 @@ async function getProduct(manufacturerSlug: string, productSlug: string) {
   return {
     ...product,
     manufacturer,
-    relatedProducts: (relatedProducts || []).map((rp: any) => ({
+    relatedProducts: (relatedProducts || []).map((rp: RelatedProduct) => ({
       ...rp,
       manufacturer,
     })),
@@ -115,11 +150,11 @@ export default async function ProductDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const primaryImage = product.images?.find((img: any) => img.is_primary) || product.images?.[0];
-  const sortedImages = [...(product.images || [])].sort((a: any, b: any) => a.sort_order - b.sort_order);
+  const primaryImage = product.images?.find((img: ProductImage) => img.is_primary) || product.images?.[0];
+  const sortedImages = [...(product.images || [])].sort((a: ProductImage, b: ProductImage) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
   // Group specs by category
-  const specsByCategory: Record<string, any[]> = {};
+  const specsByCategory: Record<string, ProductSpec[]> = {};
   if (product.specs) {
     for (const spec of product.specs) {
       if (!specsByCategory[spec.spec_category]) {
@@ -128,7 +163,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
       specsByCategory[spec.spec_category].push(spec);
     }
     for (const cat of Object.keys(specsByCategory)) {
-      specsByCategory[cat].sort((a: any, b: any) => a.sort_order - b.sort_order);
+      specsByCategory[cat].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
     }
   }
 
@@ -148,7 +183,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
     '@type': 'Product',
     name: `${product.manufacturer.name} ${product.name}`,
     description: product.short_description || product.description || `${product.name} by ${product.manufacturer.name}`,
-    image: sortedImages.map((img: any) => img.url),
+    image: sortedImages.map((img: ProductImage) => img.url),
     brand: {
       '@type': 'Brand',
       name: product.manufacturer.name,
@@ -220,7 +255,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
             {/* Thumbnail Gallery */}
             {sortedImages.length > 1 && (
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                {sortedImages.map((img: any) => (
+                {sortedImages.map((img: ProductImage) => (
                   <div key={img.id} className="aspect-[4/3] relative rounded-lg overflow-hidden bg-muted">
                     <Image
                       src={img.url}
@@ -366,7 +401,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      {specs.map((spec: any) => (
+                      {specs.map((spec: ProductSpec) => (
                         <div key={spec.id} className="flex justify-between py-1.5 border-b border-border/50 last:border-0">
                           <span className="text-sm text-muted-foreground">{spec.spec_key}</span>
                           <span className="text-sm font-medium text-right">
@@ -427,8 +462,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
           <div className="mt-12">
             <h2 className="text-xl font-bold mb-6">More from {product.manufacturer.name}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {product.relatedProducts.map((rp: any) => {
-                const rpImage = rp.images?.find((i: any) => i.is_primary) || rp.images?.[0];
+              {product.relatedProducts.map((rp: RelatedProduct) => {
+                const rpImage = rp.images?.find((i: RelatedProductImage) => i.is_primary) || rp.images?.[0];
                 return (
                   <Link key={rp.id} href={`/new-trailers/${product.manufacturer.slug}/${rp.slug}`}>
                     <Card className="h-full overflow-hidden hover:shadow-md transition-shadow cursor-pointer group">

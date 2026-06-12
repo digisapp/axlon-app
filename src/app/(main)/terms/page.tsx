@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Terms of Service — AXLON AI',
@@ -156,7 +157,7 @@ export default function TermsPage() {
           <p>
             Questions about these Terms? Contact us at{' '}
             <a href="mailto:legal@axlon.ai">legal@axlon.ai</a> or visit our{' '}
-            <a href="/contact">contact page</a>.
+            <Link href="/contact">contact page</Link>.
           </p>
         </div>
       </div>

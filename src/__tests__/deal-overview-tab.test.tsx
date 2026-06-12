@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DealOverviewTab } from '@/components/dashboard/deal-desk/DealOverviewTab';
@@ -29,7 +30,7 @@ const mockDeal = {
     make: 'Freightliner',
     model: 'Cascadia',
   },
-} as any;
+} as unknown as ComponentProps<typeof DealOverviewTab>['deal'];
 
 describe('DealOverviewTab', () => {
   it('renders financial summary cards', () => {

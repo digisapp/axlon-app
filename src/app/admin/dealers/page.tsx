@@ -69,11 +69,7 @@ export default function AdminDealersPage() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchDealers();
-  }, [statusFilter]);
-
-  const fetchDealers = async () => {
+  async function fetchDealers() {
     setIsLoading(true);
     try {
       const response = await csrfFetch(`/api/admin/dealers?status=${statusFilter}&limit=100`);
@@ -87,6 +83,11 @@ export default function AdminDealersPage() {
     }
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchDealers flips isLoading synchronously before awaiting; standard fetch-on-change pattern
+    fetchDealers();
+  }, [statusFilter]);
 
   const handleAction = async () => {
     if (!selectedDealer || !actionType) return;

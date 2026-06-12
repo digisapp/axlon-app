@@ -70,7 +70,8 @@ export default async function InventoryPage() {
   // Calculate potential profit
   const potentialProfit = stats.totalValue - stats.totalCost;
 
-  // Capture current time once to avoid impure Date.now() calls during render
+  // Capture current time once to avoid impure Date.now() calls during render.
+  // eslint-disable-next-line react-hooks/purity -- server component: renders once per request
   const now = Date.now();
 
   // Find listings with long days on lot (over 90 days)

@@ -83,11 +83,7 @@ export default function AdminUsersPage() {
   const [suspendReason, setSuspendReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [search, typeFilter, statusFilter, page]);
-
-  const fetchUsers = async () => {
+  async function fetchUsers() {
     setIsLoading(true);
     try {
       const params = new URLSearchParams({
@@ -108,6 +104,11 @@ export default function AdminUsersPage() {
     }
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchUsers flips isLoading synchronously before awaiting; standard fetch-on-change pattern
+    fetchUsers();
+  }, [search, typeFilter, statusFilter, page]);
 
   const handleAction = async () => {
     if (!selectedUser || !actionType) return;

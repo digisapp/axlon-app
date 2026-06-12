@@ -96,11 +96,7 @@ export default function AdminVoiceAgentsPage() {
     is_active: false,
   });
 
-  useEffect(() => {
-    fetchAgents();
-  }, [statusFilter, searchQuery]);
-
-  const fetchAgents = async () => {
+  async function fetchAgents() {
     setIsLoading(true);
     try {
       let url = `/api/admin/dealer-voice-agents?status=${statusFilter}`;
@@ -125,6 +121,11 @@ export default function AdminVoiceAgentsPage() {
     }
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchAgents flips isLoading synchronously before awaiting; standard fetch-on-change pattern
+    fetchAgents();
+  }, [statusFilter, searchQuery]);
 
   const openEditDialog = (agent: DealerWithAgent) => {
     setSelectedAgent(agent);

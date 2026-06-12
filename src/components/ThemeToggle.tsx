@@ -11,6 +11,7 @@ export function ThemeToggle({ size = 'default' }: { size?: 'default' | 'sm' }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration gate: theme is unknown until mount
     setMounted(true);
   }, []);
 

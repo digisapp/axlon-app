@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,28 +24,20 @@ export function FinancingCalculator({ listingPrice, className }: FinancingCalcul
   const [downPaymentPercent, setDownPaymentPercent] = useState(10);
   const [interestRate, setInterestRate] = useState(7.5);
   const [loanTerm, setLoanTerm] = useState(60); // months
-  const [monthlyPayment, setMonthlyPayment] = useState(0);
-  const [totalInterest, setTotalInterest] = useState(0);
-  const [totalCost, setTotalCost] = useState(0);
 
-  const calculatePayment = useCallback(() => {
+  // Pure derivation of the inputs — no state/effect needed
+  const { monthlyPayment, totalInterest, totalCost } = useMemo(() => {
     const principal = listingPrice - downPayment;
 
     if (principal <= 0) {
-      setMonthlyPayment(0);
-      setTotalInterest(0);
-      setTotalCost(downPayment);
-      return;
+      return { monthlyPayment: 0, totalInterest: 0, totalCost: downPayment };
     }
 
     const monthlyRate = interestRate / 100 / 12;
     const numPayments = loanTerm;
 
     if (monthlyRate === 0) {
-      setMonthlyPayment(principal / numPayments);
-      setTotalInterest(0);
-      setTotalCost(listingPrice);
-      return;
+      return { monthlyPayment: principal / numPayments, totalInterest: 0, totalCost: listingPrice };
     }
 
     // Monthly payment formula: M = P * [r(1+r)^n] / [(1+r)^n - 1]
@@ -54,16 +46,13 @@ export function FinancingCalculator({ listingPrice, className }: FinancingCalcul
       (Math.pow(1 + monthlyRate, numPayments) - 1);
 
     const totalPaid = payment * numPayments;
-    const interest = totalPaid - principal;
 
-    setMonthlyPayment(payment);
-    setTotalInterest(interest);
-    setTotalCost(totalPaid + downPayment);
+    return {
+      monthlyPayment: payment,
+      totalInterest: totalPaid - principal,
+      totalCost: totalPaid + downPayment,
+    };
   }, [downPayment, interestRate, loanTerm, listingPrice]);
-
-  useEffect(() => {
-    calculatePayment();
-  }, [calculatePayment]);
 
   const handleDownPaymentChange = (value: number) => {
     if (isNaN(value)) return;

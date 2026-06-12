@@ -29,6 +29,11 @@ function createSupabase() {
   );
 }
 
+type ProductRow = ManufacturerProduct & {
+  manufacturer: { id: string; name: string; slug: string; logo_url: string | null } | null;
+  images: { id: string; url: string; alt_text: string | null; is_primary: boolean | null; sort_order: number | null }[] | null;
+};
+
 interface ManufacturerWithProducts {
   id: string;
   name: string;
@@ -67,7 +72,7 @@ export default async function NewTrailersPage() {
   if (manufacturers && products) {
     for (const mfr of manufacturers) {
       const mfrProducts = products.filter(
-        (p: any) => p.manufacturer?.id === mfr.id
+        (p: ProductRow) => p.manufacturer?.id === mfr.id
       );
       if (mfrProducts.length > 0) {
         groupedByManufacturer.push({
@@ -96,7 +101,7 @@ export default async function NewTrailersPage() {
           name: `${mfr.name} ${p.name}`,
           url: `https://axlon.ai/new-trailers/${mfr.slug}/${p.slug}`,
           brand: { '@type': 'Brand', name: mfr.name },
-          image: p.images?.find((i: any) => i.is_primary)?.url || p.images?.[0]?.url || undefined,
+          image: p.images?.find((i) => i.is_primary)?.url || p.images?.[0]?.url || undefined,
         },
       }))
     ),

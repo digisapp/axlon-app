@@ -1,6 +1,9 @@
+import type { ComponentProps } from 'react';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { DealActivityTab } from '@/components/dashboard/deal-desk/DealActivityTab';
+
+type Activities = ComponentProps<typeof DealActivityTab>['activities'];
 
 describe('DealActivityTab', () => {
   it('renders activities', () => {
@@ -16,7 +19,7 @@ describe('DealActivityTab', () => {
       },
     ];
 
-    render(<DealActivityTab activities={activities as any} />);
+    render(<DealActivityTab activities={activities as Activities} />);
     expect(screen.getByText('Deal created')).toBeInTheDocument();
     expect(screen.getByText('Initial quote sent')).toBeInTheDocument();
   });

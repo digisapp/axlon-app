@@ -363,9 +363,11 @@ export default function AdminDirectoryPage() {
     setIsLoading(false);
   }, [page, limit, search, sourceFilter, categoryFilter, stateFilter, contactFilter, activeTab]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchData flips isLoading synchronously before awaiting; standard fetch-on-change pattern
   useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset pagination/selection whenever any filter changes; filters are mutated from many handlers
     setPage(1);
     setSelectedIds(new Set());
     setSelectAll(false);

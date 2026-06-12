@@ -124,6 +124,7 @@ export function MapView({ listings, isLoading, onClose }: MapViewProps) {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration gate: Leaflet can only render client-side
     setIsMounted(true);
   }, []);
 

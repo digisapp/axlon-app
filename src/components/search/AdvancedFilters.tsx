@@ -145,6 +145,7 @@ export function AdvancedFilters({
 
   // Update local state when filters prop changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional controlled-prop sync: parent can reset filters (e.g. Clear All) while this panel holds local edits
     setLocalFilters(filters);
     setPriceRange([filters.priceMin || 0, filters.priceMax || 500000]);
   }, [filters]);
