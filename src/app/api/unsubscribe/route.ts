@@ -36,6 +36,12 @@ export async function POST(request: NextRequest) {
         .update({ market_reports_enabled: false })
         .eq('dealer_id', profile.id);
 
+      // Turn off saved-search alert emails
+      await supabase
+        .from('saved_searches')
+        .update({ notify_email: false })
+        .eq('user_id', profile.id);
+
       // Cancel any pending follow-up emails for leads associated with this email
       const { data: leads } = await supabase
         .from('dealer_ai_leads')

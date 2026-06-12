@@ -2,9 +2,23 @@ import { NextRequest } from 'next/server';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 
+function timingSafeMatch(signature: string, expected: string): boolean {
+  try {
+    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Verify that a request is from an internal service
- * Uses HMAC signature verification with a shared secret
+ * Verify that a request is from an internal service.
+ * Uses HMAC signature verification with a shared secret.
+ *
+ * Preferred (v2) signature covers `timestamp.METHOD.path`, so a captured
+ * signature is only replayable against the same endpoint+method within the
+ * timestamp window. The legacy timestamp-only format is still accepted for
+ * external callers that haven't migrated — remove that fallback once all
+ * callers send v2.
  */
 export function verifyInternalRequest(request: NextRequest): boolean {
   const internalSecret = process.env.INTERNAL_API_SECRET;
@@ -30,28 +44,40 @@ export function verifyInternalRequest(request: NextRequest): boolean {
     return false;
   }
 
-  // Verify HMAC signature
-  const expectedSignature = crypto
+  // v2: signature bound to method + path
+  const v2Payload = `${timestamp}.${request.method.toUpperCase()}.${request.nextUrl.pathname}`;
+  const expectedV2 = crypto
+    .createHmac('sha256', internalSecret)
+    .update(v2Payload)
+    .digest('hex');
+
+  if (timingSafeMatch(signature, expectedV2)) {
+    return true;
+  }
+
+  // Legacy: timestamp-only signature (replayable across endpoints — migrate
+  // callers to v2 and delete this)
+  const expectedLegacy = crypto
     .createHmac('sha256', internalSecret)
     .update(`${timestamp}`)
     .digest('hex');
 
-  // Use timing-safe comparison to prevent timing attacks
-  try {
-    return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature)
-    );
-  } catch {
-    return false;
+  if (timingSafeMatch(signature, expectedLegacy)) {
+    logger.warn('Internal request used legacy timestamp-only signature', {
+      path: request.nextUrl.pathname,
+    });
+    return true;
   }
+
+  return false;
 }
 
 /**
- * Generate headers for internal API calls
- * Use this when calling internal endpoints from other services
+ * Generate headers for internal API calls.
+ * Pass the method and path of the request being made so the signature is
+ * bound to that endpoint (v2 format).
  */
-export function generateInternalHeaders(): Record<string, string> {
+export function generateInternalHeaders(method: string, path: string): Record<string, string> {
   const internalSecret = process.env.INTERNAL_API_SECRET;
 
   if (!internalSecret) {
@@ -61,7 +87,7 @@ export function generateInternalHeaders(): Record<string, string> {
   const timestamp = Date.now().toString();
   const signature = crypto
     .createHmac('sha256', internalSecret)
-    .update(timestamp)
+    .update(`${timestamp}.${method.toUpperCase()}.${path}`)
     .digest('hex');
 
   return {
