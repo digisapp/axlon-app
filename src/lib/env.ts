@@ -6,37 +6,45 @@
 
 type EnvVar = {
   key: string;
-  required: boolean;
+  /**
+   * critical — every server route depends on it; missing means nothing works,
+   *   so throw at module load.
+   * required — a feature depends on it; missing means that feature fails, but
+   *   throwing here would take down unrelated routes (env.ts is imported via
+   *   supabase/server.ts by nearly every API route). Log loudly instead and
+   *   let the feature fail at point of use.
+   */
+  level: 'critical' | 'required' | 'optional';
   description: string;
 };
 
 const ENV_VARS: EnvVar[] = [
-  // Supabase
-  { key: 'NEXT_PUBLIC_SUPABASE_URL', required: true, description: 'Supabase project URL' },
-  { key: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', required: true, description: 'Supabase anon key' },
-  { key: 'SUPABASE_SERVICE_ROLE_KEY', required: true, description: 'Supabase service role key (server-only)' },
+  // Supabase — used by virtually every route
+  { key: 'NEXT_PUBLIC_SUPABASE_URL', level: 'critical', description: 'Supabase project URL' },
+  { key: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', level: 'critical', description: 'Supabase anon key' },
+  { key: 'SUPABASE_SERVICE_ROLE_KEY', level: 'critical', description: 'Supabase service role key (server-only)' },
 
   // App
-  { key: 'NEXT_PUBLIC_APP_URL', required: true, description: 'Public app URL (e.g. https://axlon.ai)' },
+  { key: 'NEXT_PUBLIC_APP_URL', level: 'critical', description: 'Public app URL (e.g. https://axlon.ai)' },
 
   // Stripe
-  { key: 'STRIPE_SECRET_KEY', required: true, description: 'Stripe secret key' },
-  { key: 'STRIPE_WEBHOOK_SECRET', required: true, description: 'Stripe webhook signing secret' },
+  { key: 'STRIPE_SECRET_KEY', level: 'required', description: 'Stripe secret key' },
+  { key: 'STRIPE_WEBHOOK_SECRET', level: 'required', description: 'Stripe webhook signing secret' },
 
   // Email
-  { key: 'RESEND_API_KEY', required: true, description: 'Resend API key for transactional email' },
-  { key: 'RESEND_WEBHOOK_SECRET', required: true, description: 'Resend webhook signing secret (svix)' },
+  { key: 'RESEND_API_KEY', level: 'required', description: 'Resend API key for transactional email' },
+  { key: 'RESEND_WEBHOOK_SECRET', level: 'required', description: 'Resend webhook signing secret (svix)' },
 
   // AI
-  { key: 'XAI_API_KEY', required: true, description: 'xAI API key for AXLON AI assistant' },
+  { key: 'XAI_API_KEY', level: 'required', description: 'xAI API key for AXLON AI assistant' },
 
   // Security
-  { key: 'CRON_SECRET', required: true, description: 'Secret for authenticating cron job requests' },
-  { key: 'INTERNAL_API_SECRET', required: true, description: 'Secret for internal service-to-service calls' },
+  { key: 'CRON_SECRET', level: 'required', description: 'Secret for authenticating cron job requests' },
+  { key: 'INTERNAL_API_SECRET', level: 'required', description: 'Secret for internal service-to-service calls' },
 
   // Optional but warned
-  { key: 'UPSTASH_REDIS_REST_URL', required: false, description: 'Upstash Redis URL (caching/view batching disabled without this)' },
-  { key: 'UPSTASH_REDIS_REST_TOKEN', required: false, description: 'Upstash Redis token' },
+  { key: 'UPSTASH_REDIS_REST_URL', level: 'optional', description: 'Upstash Redis URL (caching/view batching disabled without this)' },
+  { key: 'UPSTASH_REDIS_REST_TOKEN', level: 'optional', description: 'Upstash Redis token' },
 ];
 
 function validateEnv(): void {
@@ -45,13 +53,16 @@ function validateEnv(): void {
   // Skip during Next.js build phase
   if (process.env.NEXT_PHASE === 'phase-production-build') return;
 
+  const critical: string[] = [];
   const missing: string[] = [];
   const warnings: string[] = [];
 
-  for (const { key, required, description } of ENV_VARS) {
+  for (const { key, level, description } of ENV_VARS) {
     const value = process.env[key];
     if (!value || value.trim() === '') {
-      if (required) {
+      if (level === 'critical') {
+        critical.push(`  ✗ ${key} — ${description}`);
+      } else if (level === 'required') {
         missing.push(`  ✗ ${key} — ${description}`);
       } else {
         warnings.push(`  ⚠ ${key} — ${description}`);
@@ -65,9 +76,19 @@ function validateEnv(): void {
     );
   }
 
-  if (missing.length > 0) {
+  // Feature-specific vars: log an error but DON'T throw — throwing at module
+  // load would 500 every route that imports the Supabase server client, even
+  // ones that never touch the missing feature
+  if (missing.length > 0 && process.env.NODE_ENV !== 'test') {
+    console.error(
+      `[env] Missing required environment variables (dependent features WILL fail):\n${missing.join('\n')}\n\n` +
+      'Check your .env.local file or deployment environment settings.'
+    );
+  }
+
+  if (critical.length > 0) {
     throw new Error(
-      `[env] Missing required environment variables:\n${missing.join('\n')}\n\n` +
+      `[env] Missing critical environment variables:\n${critical.join('\n')}\n\n` +
       'Check your .env.local file or deployment environment settings.'
     );
   }
