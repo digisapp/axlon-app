@@ -222,56 +222,10 @@ IMPORTANT: Return ONLY valid JSON, no markdown, no explanation.`;
 
 // ─── Image Pipeline ────────────────────────────────────────────────────────
 
-/**
- * Download an image from a URL and upload to Supabase Storage.
- * Returns the public URL of the stored image.
- */
-export async function downloadAndStoreImage(supabase, imageUrl, listingId, index = 0) {
-  try {
-    const resp = await fetch(imageUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-        'Referer': new URL(imageUrl).origin,
-      },
-    });
-
-    if (!resp.ok) {
-      console.warn(`  ⚠ Failed to download image: ${imageUrl} (${resp.status})`);
-      return null;
-    }
-
-    const contentType = resp.headers.get('content-type') || 'image/jpeg';
-    const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
-    const buffer = Buffer.from(await resp.arrayBuffer());
-
-    // Skip tiny images (likely tracking pixels)
-    if (buffer.length < 5000) return null;
-
-    const hash = crypto.createHash('md5').update(buffer).digest('hex').substring(0, 8);
-    const path = `dealer-imports/${listingId}/${index}-${hash}.${ext}`;
-
-    const { error } = await supabase.storage
-      .from('listing-images')
-      .upload(path, buffer, {
-        contentType,
-        upsert: true,
-      });
-
-    if (error) {
-      console.warn(`  ⚠ Failed to upload image: ${error.message}`);
-      return null;
-    }
-
-    const { data: urlData } = supabase.storage
-      .from('listing-images')
-      .getPublicUrl(path);
-
-    return urlData?.publicUrl || null;
-  } catch (err) {
-    console.warn(`  ⚠ Image pipeline error: ${err.message}`);
-    return null;
-  }
-}
+// downloadAndStoreImage lives in rehost-images.mjs (shared with lightweight
+// scrapers that must not pull in puppeteer); re-exported for back-compat.
+import { downloadAndStoreImage, insertRehostedImages } from './rehost-images.mjs';
+export { downloadAndStoreImage, insertRehostedImages };
 
 // ─── Listing Upsert ────────────────────────────────────────────────────────
 

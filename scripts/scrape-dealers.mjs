@@ -12,6 +12,7 @@ import * as fs from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import 'dotenv/config';
+import { insertRehostedImages } from './lib/rehost-images.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -456,16 +457,7 @@ async function importListing(listing, dealerId) {
   }
 
   // Add images
-  if (listing.images.length > 0) {
-    const imageInserts = listing.images.map((url, idx) => ({
-      listing_id: newListing.id,
-      url,
-      thumbnail_url: url,
-      sort_order: idx,
-      is_primary: idx === 0,
-    }));
-    await supabase.from('listing_images').insert(imageInserts);
-  }
+  await insertRehostedImages(supabase, newListing.id, listing.images);
 
   return true;
 }

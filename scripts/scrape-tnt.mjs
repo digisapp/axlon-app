@@ -8,6 +8,7 @@ import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
+import { insertRehostedImages } from './lib/rehost-images.mjs';
 
 puppeteer.use(StealthPlugin());
 
@@ -291,14 +292,7 @@ async function main() {
         continue;
       }
 
-      for (let j = 0; j < Math.min(listing.images.length, 10); j++) {
-        await supabase.from('listing_images').insert({
-          listing_id: newListing.id,
-          url: listing.images[j],
-          is_primary: j === 0,
-          sort_order: j,
-        });
-      }
+      await insertRehostedImages(supabase, newListing.id, listing.images);
 
       imported++;
       console.log('OK ' + listing.images.length + ' imgs');

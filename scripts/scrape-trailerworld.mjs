@@ -9,6 +9,7 @@
 import * as cheerio from 'cheerio';
 import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
+import { insertRehostedImages } from './lib/rehost-images.mjs';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -249,16 +250,7 @@ async function importListing(dealerId, product, typeName) {
   }
 
   // Import images
-  const images = product.images?.length ? product.images : (product.imageUrl ? [product.imageUrl] : []);
-  for (let i = 0; i < Math.min(images.length, 10); i++) {
-    await supabase.from('listing_images').insert({
-      listing_id: listing.id,
-      url: images[i],
-      thumbnail_url: images[i],
-      is_primary: i === 0,
-      sort_order: i,
-    });
-  }
+  await insertRehostedImages(supabase, listing.id, images);
 
   return { action: 'imported', id: listing.id };
 }

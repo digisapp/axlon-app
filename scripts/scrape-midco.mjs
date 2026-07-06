@@ -7,6 +7,7 @@
 import puppeteer from 'puppeteer';
 import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
+import { insertRehostedImages } from './lib/rehost-images.mjs';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -342,14 +343,7 @@ async function main() {
         continue;
       }
 
-      for (let j = 0; j < Math.min(product.images.length, 10); j++) {
-        await supabase.from('listing_images').insert({
-          listing_id: newListing.id,
-          url: product.images[j],
-          is_primary: j === 0,
-          sort_order: j,
-        });
-      }
+      await insertRehostedImages(supabase, newListing.id, product.images);
 
       imported++;
       console.log('OK ' + product.images.length + ' imgs');
