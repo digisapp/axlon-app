@@ -127,7 +127,7 @@ export function TrailerFinderChat({ variant = 'inline', className = '' }: Traile
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 bg-primary text-primary-foreground rounded-full p-4 shadow-lg hover:shadow-xl transition-all hover:scale-105"
+        className="fixed bottom-[calc(8.5rem+env(safe-area-inset-bottom))] right-4 md:bottom-24 md:right-6 z-50 bg-primary text-primary-foreground rounded-full p-3 md:p-4 shadow-lg hover:shadow-xl transition-all hover:scale-105"
         aria-label="Open Trailer Finder"
       >
         <Search className="w-6 h-6" />
@@ -138,8 +138,8 @@ export function TrailerFinderChat({ variant = 'inline', className = '' }: Traile
   const containerClasses = variant === 'floating'
     ? `fixed z-50 shadow-2xl rounded-xl border bg-background transition-all ${
         isExpanded
-          ? 'inset-4'
-          : 'bottom-6 right-6 w-[420px] h-[600px]'
+          ? 'inset-2 sm:inset-4'
+          : 'inset-x-2 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] h-[70dvh] sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[420px] sm:h-[600px]'
       }`
     : `w-full rounded-xl border bg-background ${className}`;
 

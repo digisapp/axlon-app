@@ -1,6 +1,6 @@
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { TrailerFinderChat } from '@/components/agents/TrailerFinderChat';
+import { TrailerFinderChatLazy } from '@/components/agents/TrailerFinderChatLazy';
 
 export default function MainLayout({
   children,
@@ -12,7 +12,7 @@ export default function MainLayout({
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />
-      <TrailerFinderChat variant="floating" />
+      <TrailerFinderChatLazy variant="floating" />
     </div>
   );
 }

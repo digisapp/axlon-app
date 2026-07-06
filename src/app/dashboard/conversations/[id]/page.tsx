@@ -211,7 +211,7 @@ export default function ConversationDetailPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)]">
+    <div className="flex flex-col h-[calc(100dvh-120px)]">
       {/* Header */}
       <div className="flex items-center justify-between pb-4 border-b">
         <div className="flex items-center gap-4">

@@ -199,6 +199,7 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
                 }`}
               >
                 {step.icon}
+                <span className="sm:hidden text-sm font-medium">{index + 1}</span>
                 <span className="hidden sm:inline text-sm font-medium">{step.title}</span>
               </div>
               {index < steps.length - 1 && (
@@ -224,6 +225,8 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
                 <Input
                   id="year"
                   type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   placeholder="2020"
                   value={formData.equipment_year}
                   onChange={(e) => setFormData({ ...formData, equipment_year: e.target.value })}
@@ -266,6 +269,8 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
                 <Input
                   id="mileage"
                   type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   placeholder="450000"
                   value={formData.equipment_mileage}
                   onChange={(e) => setFormData({ ...formData, equipment_mileage: e.target.value })}
@@ -276,6 +281,8 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
                 <Input
                   id="hours"
                   type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   placeholder="5000"
                   value={formData.equipment_hours}
                   onChange={(e) => setFormData({ ...formData, equipment_hours: e.target.value })}
@@ -335,6 +342,7 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
               <Label htmlFor="name">Name *</Label>
               <Input
                 id="name"
+                autoComplete="name"
                 placeholder="John Smith"
                 value={formData.contact_name}
                 onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
@@ -348,6 +356,8 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="email"
+                  inputMode="email"
                   placeholder="john@example.com"
                   value={formData.contact_email}
                   onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
@@ -359,6 +369,8 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
                 <Input
                   id="phone"
                   type="tel"
+                  autoComplete="tel"
+                  inputMode="tel"
                   placeholder="(555) 123-4567"
                   value={formData.contact_phone}
                   onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}

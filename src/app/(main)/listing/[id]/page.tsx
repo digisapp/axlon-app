@@ -32,6 +32,7 @@ import { VideoPlayer } from '@/components/listings/VideoPlayer';
 import { TranslatableTitle, TranslatableDescription } from '@/components/listings/TranslatableContent';
 import { SimilarListingCard } from '@/components/listings/SimilarListingCard';
 import { DealerAIChat } from '@/components/listings/DealerAIChat';
+import { MobileContactCTA } from '@/components/listings/MobileContactCTA';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -328,7 +329,7 @@ export default async function ListingPage({ params }: PageProps) {
       {/* Track view client-side */}
       <TrackViewClient listing={trackingData} />
 
-      <div className="max-w-7xl mx-auto px-4 py-4 md:py-6">
+      <div className="max-w-7xl mx-auto px-4 py-4 md:py-6 pb-24 md:pb-24 lg:pb-6">
         {/* Breadcrumb + Actions - Mobile */}
         <div className="flex items-center justify-between mb-4 md:hidden">
           <Link
@@ -575,11 +576,13 @@ export default async function ListingPage({ params }: PageProps) {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Contact Form - Routes to AXLON AI */}
-            <ContactSeller
-              listingId={id}
-              sellerId={listing.user?.id || ''}
-              listingTitle={listing.title}
-            />
+            <div id="contact-seller" className="scroll-mt-20">
+              <ContactSeller
+                listingId={id}
+                sellerId={listing.user?.id || ''}
+                listingTitle={listing.title}
+              />
+            </div>
 
             {/* AI Chat Widget */}
             {listing.user?.id && listing.user?.is_business && (
@@ -635,6 +638,9 @@ export default async function ListingPage({ params }: PageProps) {
         </div>
 
       </div>
+
+      {/* Fixed bottom contact bar - mobile/tablet only */}
+      <MobileContactCTA phone={listing.user?.phone || null} />
     </div>
   );
 }

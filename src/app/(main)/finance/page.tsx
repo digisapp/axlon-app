@@ -114,6 +114,7 @@ export default function FinancePage() {
                 </Label>
                 <Input
                   type="number"
+                  inputMode="decimal"
                   value={price}
                   onChange={(e) => handlePriceChange(Number(e.target.value))}
                   className="text-lg"
@@ -139,6 +140,7 @@ export default function FinancePage() {
                 />
                 <Input
                   type="number"
+                  inputMode="decimal"
                   value={downPayment}
                   onChange={(e) => {
                     const val = Number(e.target.value);

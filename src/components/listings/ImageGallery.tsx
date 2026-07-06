@@ -294,7 +294,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity h-12 w-12 md:h-10 md:w-10 touch-manipulation"
+                className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity h-12 w-12 md:h-10 md:w-10 touch-manipulation"
                 onClick={(e) => {
                   e.stopPropagation();
                   handlePrevious();
@@ -306,7 +306,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity h-12 w-12 md:h-10 md:w-10 touch-manipulation"
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity h-12 w-12 md:h-10 md:w-10 touch-manipulation"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleNext();
@@ -322,7 +322,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
           <Button
             variant="ghost"
             size="icon"
-            className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity h-11 w-11 md:h-9 md:w-9 touch-manipulation"
+            className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity h-11 w-11 md:h-9 md:w-9 touch-manipulation"
             onClick={() => setIsLightboxOpen(true)}
             aria-label="Open fullscreen view"
           >
@@ -552,7 +552,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
                   width={1200}
                   height={800}
                   sizes="100vw"
-                  className="max-h-[calc(100vh-160px)] w-auto object-contain pointer-events-none"
+                  className="max-h-[calc(100dvh-160px)] w-auto object-contain pointer-events-none"
                   draggable={false}
                   onError={() => setErroredImages(prev => new Set(prev).add(selectedImage.url))}
                 />

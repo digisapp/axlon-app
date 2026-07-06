@@ -120,7 +120,75 @@ export default function ComparePage() {
             </Link>
           </Card>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Mobile: stacked cards */}
+          <div className="md:hidden space-y-4">
+            {listings.map((listing) => {
+              const prices = listings.map(l => l.price).filter(Boolean) as number[];
+              const lowestPrice = prices.length ? Math.min(...prices) : null;
+
+              return (
+                <Card key={listing.id} className="overflow-hidden">
+                  <div className="relative">
+                    {listing.image_url && !erroredImages.has(listing.id) ? (
+                      <div className="aspect-[4/3] relative">
+                        <Image
+                          src={listing.image_url}
+                          alt={listing.title}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 200px"
+                          onError={() => setErroredImages(prev => new Set(prev).add(listing.id))}
+                        />
+                      </div>
+                    ) : (
+                      <div className="aspect-[4/3] bg-muted flex items-center justify-center">
+                        <span className="text-muted-foreground text-sm">No Image</span>
+                      </div>
+                    )}
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-7 w-7"
+                      onClick={() => removeListing(listing.id)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-sm line-clamp-2 mb-3">
+                      {listing.title}
+                    </h3>
+                    <dl className="divide-y">
+                      {specs.map((spec) => {
+                        const value = listing[spec.key as keyof typeof listing];
+                        const formatted = spec.format(value as never);
+                        const isBest = spec.key === 'price' && !!listing.price && listing.price === lowestPrice;
+
+                        return (
+                          <div key={spec.key} className="flex items-center justify-between py-2 text-sm">
+                            <dt className="font-medium text-muted-foreground">{spec.label}</dt>
+                            <dd className={isBest ? 'text-green-600 font-semibold' : ''}>
+                              {formatted}
+                            </dd>
+                          </div>
+                        );
+                      })}
+                    </dl>
+                    <Link href={`/listing/${listing.id}`} target="_blank">
+                      <Button variant="outline" size="sm" className="w-full mt-3">
+                        <ExternalLink className="w-3 h-3 mr-2" />
+                        View Listing
+                      </Button>
+                    </Link>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Desktop: side-by-side table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full border-collapse">
               {/* Listing Headers */}
               <thead>
@@ -139,7 +207,7 @@ export default function ComparePage() {
                                 alt={listing.title}
                                 fill
                                 className="object-cover"
-                                unoptimized
+                                sizes="(max-width: 768px) 100vw, 200px"
                                 onError={() => setErroredImages(prev => new Set(prev).add(listing.id))}
                               />
                             </div>
@@ -206,6 +274,7 @@ export default function ComparePage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         {/* Add More */}

@@ -167,7 +167,7 @@ export default function ConversationsPage() {
 
       {/* Filter Tabs */}
       <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-        <TabsList>
+        <TabsList className="w-full sm:w-auto grid grid-cols-4 sm:inline-flex">
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="active">Active</TabsTrigger>
           <TabsTrigger value="converted">Leads</TabsTrigger>

@@ -320,6 +320,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
               alt={dealer.company_name}
               fill
               className="object-cover"
+              sizes="100vw"
               priority
             />
           ) : (
@@ -611,6 +612,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                           src={getImageSrc(primaryImage)!}
                           alt={listing.title}
                           fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (

@@ -18,7 +18,7 @@ export function MobileContactBar({ phone, email, dealerName }: MobileContactBarP
       <div className="h-6 bg-gradient-to-t from-white to-transparent" />
 
       {/* Contact Bar */}
-      <div className="bg-white border-t border-slate-200 px-4 py-3 flex gap-2 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+      <div className="bg-white border-t border-slate-200 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex gap-2 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         {phone && (
           <Button size="lg" className="flex-1 gap-2 shadow-md" asChild>
             <a href={`tel:${phone}`}>

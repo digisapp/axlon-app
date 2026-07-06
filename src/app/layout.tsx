@@ -8,6 +8,7 @@ import { NotificationProvider } from "@/components/notifications/NotificationPro
 import { CompareProvider } from "@/context/CompareContext";
 import { CompareBar } from "@/components/listings/CompareBar";
 import { FloatingCallButton } from "@/components/FloatingCallButton";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { PWACleanup } from "@/components/PWAInstallPrompt";
 import { QueryProvider } from "@/components/providers/QueryProvider";
@@ -140,12 +141,18 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "AXLON",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
@@ -179,6 +186,7 @@ export default async function RootLayout({
             <NotificationProvider>
               <CompareProvider>
                   {children}
+                  <MobileBottomNav />
                   <CompareBar />
                   <FloatingCallButton />
                   <KeyboardShortcuts />

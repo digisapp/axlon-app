@@ -140,27 +140,27 @@ export default function HomePage() {
 
         {/* 3 Ways AXLON Helps */}
         <section className="w-full max-w-4xl mx-auto mb-6 md:mb-16 px-4">
-          <div className="grid grid-cols-3 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-4 md:gap-6">
             <div className="text-center">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
                 <TrendingUp className="w-5 h-5 text-primary" />
               </div>
               <h3 className="font-semibold text-sm md:text-base mb-1">Sell more equipment</h3>
-              <p className="text-xs text-muted-foreground dark:text-foreground/60 hidden sm:block">AI captures every lead, day and night</p>
+              <p className="text-xs text-muted-foreground dark:text-foreground/60">AI captures every lead, day and night</p>
             </div>
             <div className="text-center">
               <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center mx-auto mb-3">
                 <UserCheck className="w-5 h-5 text-cyan-600" />
               </div>
               <h3 className="font-semibold text-sm md:text-base mb-1">Never miss a lead</h3>
-              <p className="text-xs text-muted-foreground dark:text-foreground/60 hidden sm:block">AI answers calls and chats 24/7</p>
+              <p className="text-xs text-muted-foreground dark:text-foreground/60">AI answers calls and chats 24/7</p>
             </div>
             <div className="text-center">
               <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-3">
                 <Settings className="w-5 h-5 text-emerald-600" />
               </div>
               <h3 className="font-semibold text-sm md:text-base mb-1">Run your business with AI</h3>
-              <p className="text-xs text-muted-foreground dark:text-foreground/60 hidden sm:block">Inventory, CRM, deals — one platform</p>
+              <p className="text-xs text-muted-foreground dark:text-foreground/60">Inventory, CRM, deals — one platform</p>
             </div>
           </div>
         </section>
@@ -269,13 +269,13 @@ export default function HomePage() {
             One AI platform replaces the tools you&apos;re juggling today.
           </p>
           <div className="rounded-xl border bg-white/80 dark:bg-white/[0.08] overflow-x-auto">
-            <table className="w-full text-sm min-w-[480px]">
+            <table className="w-full text-xs sm:text-sm">
               <thead>
                 <tr className="border-b bg-muted/30">
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Feature</th>
-                  <th className="text-center py-3 px-4 font-bold text-primary">AXLON AI</th>
-                  <th className="text-center py-3 px-4 font-medium text-muted-foreground">TruckPaper</th>
-                  <th className="text-center py-3 px-4 font-medium text-muted-foreground">Salesforce</th>
+                  <th className="text-left py-3 px-2 sm:px-4 font-medium text-muted-foreground">Feature</th>
+                  <th className="text-center py-3 px-2 sm:px-4 font-bold text-primary">AXLON AI</th>
+                  <th className="text-center py-3 px-2 sm:px-4 font-medium text-muted-foreground">TruckPaper</th>
+                  <th className="text-center py-3 px-2 sm:px-4 font-medium text-muted-foreground">Salesforce</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -291,11 +291,11 @@ export default function HomePage() {
                   { feature: 'No per-seat pricing', axlon: true, tp: true, sf: false },
                 ] as { feature: string; axlon: boolean | string; tp: boolean | string; sf: boolean | string }[]).map((row) => (
                   <tr key={row.feature}>
-                    <td className="py-2.5 px-4 text-foreground/80 dark:text-foreground/70">{row.feature}</td>
-                    <td className="py-2.5 px-4 text-center">
+                    <td className="py-2.5 px-2 sm:px-4 text-foreground/80 dark:text-foreground/70 break-words">{row.feature}</td>
+                    <td className="py-2.5 px-2 sm:px-4 text-center">
                       <Check className="w-4.5 h-4.5 text-primary mx-auto" />
                     </td>
-                    <td className="py-2.5 px-4 text-center">
+                    <td className="py-2.5 px-2 sm:px-4 text-center">
                       {row.tp === true ? (
                         <Check className="w-4 h-4 text-muted-foreground/50 mx-auto" />
                       ) : row.tp === 'add-on' ? (
@@ -304,7 +304,7 @@ export default function HomePage() {
                         <X className="w-4 h-4 text-muted-foreground/30 mx-auto" />
                       )}
                     </td>
-                    <td className="py-2.5 px-4 text-center">
+                    <td className="py-2.5 px-2 sm:px-4 text-center">
                       {row.sf === true ? (
                         <Check className="w-4 h-4 text-muted-foreground/50 mx-auto" />
                       ) : row.sf === 'add-on' ? (

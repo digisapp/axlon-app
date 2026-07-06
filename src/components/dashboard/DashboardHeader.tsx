@@ -67,10 +67,10 @@ export function DashboardHeader({
         {/* Right Side Actions */}
         <div className="flex items-center gap-2 ml-auto">
           {/* Primary Action Button */}
-          <Button size="sm" className="hidden sm:flex gap-2" asChild>
-            <Link href="/dashboard/listings/new">
+          <Button size="sm" className="gap-2" asChild>
+            <Link href="/dashboard/listings/new" aria-label="New listing">
               <Plus className="w-4 h-4" />
-              <span className="hidden md:inline">New Listing</span>
+              <span className="hidden sm:inline">New Listing</span>
             </Link>
           </Button>
 

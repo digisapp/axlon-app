@@ -323,6 +323,12 @@ export function Header() {
 
           {/* Mobile Menu */}
           <div className="flex md:hidden items-center gap-2">
+            <Link href="/search" aria-label="Search listings">
+              <Button variant="ghost" size="icon">
+                <Search className="w-5 h-5" />
+              </Button>
+            </Link>
+
             {user && (
               <Link href="/dashboard/messages" className="relative">
                 <Button variant="ghost" size="icon">
@@ -527,6 +533,10 @@ export function Header() {
 
                   {/* Actions */}
                   <div className="mt-auto pt-4 border-t flex flex-col gap-2">
+                    <div className="flex items-center justify-between px-3">
+                      <span className="text-sm text-muted-foreground">Theme</span>
+                      <ThemeToggle />
+                    </div>
                     {user ? (
                       <>
                         <Button asChild className="w-full">

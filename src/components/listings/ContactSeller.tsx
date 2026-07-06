@@ -138,12 +138,6 @@ export function ContactSeller({ listingId, sellerId, listingTitle }: ContactSell
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
-              {error}
-            </div>
-          )}
-
           <div className="grid gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name *</Label>
@@ -152,6 +146,7 @@ export function ContactSeller({ listingId, sellerId, listingTitle }: ContactSell
                 <Input
                   id="name"
                   name="name"
+                  autoComplete="name"
                   placeholder="Your name"
                   value={formData.name}
                   onChange={handleChange}
@@ -169,6 +164,8 @@ export function ContactSeller({ listingId, sellerId, listingTitle }: ContactSell
                   id="email"
                   name="email"
                   type="email"
+                  autoComplete="email"
+                  inputMode="email"
                   placeholder="your@email.com"
                   value={formData.email}
                   onChange={handleChange}
@@ -186,6 +183,8 @@ export function ContactSeller({ listingId, sellerId, listingTitle }: ContactSell
                   id="phone"
                   name="phone"
                   type="tel"
+                  autoComplete="tel"
+                  inputMode="tel"
                   placeholder="(555) 123-4567"
                   value={formData.phone}
                   onChange={handleChange}
@@ -207,6 +206,12 @@ export function ContactSeller({ listingId, sellerId, listingTitle }: ContactSell
               className="resize-none"
             />
           </div>
+
+          {error && (
+            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
+              {error}
+            </div>
+          )}
 
           <Button type="submit" className="w-full" disabled={isSending}>
             {isSending ? (

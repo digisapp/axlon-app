@@ -291,7 +291,7 @@ function SearchPageContent() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 [&>*]:shrink-0">
             {(query || activeFilterCount > 0) && (
               <SaveSearchButton
                 query={query}

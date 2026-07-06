@@ -517,7 +517,7 @@ export default function CRMPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {PIPELINE_STAGES.map((stage) => {
               const count = pipeline[stage.key] || 0;
               const value = pipelineValues[stage.key] || 0;

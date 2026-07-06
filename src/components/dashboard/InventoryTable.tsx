@@ -171,7 +171,7 @@ export const InventoryTable = memo(function InventoryTable({ listings }: Invento
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[300px]" aria-sort={sortBy === 'title' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <TableHead className="w-[200px] md:w-[300px]" aria-sort={sortBy === 'title' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -197,8 +197,8 @@ export const InventoryTable = memo(function InventoryTable({ listings }: Invento
                     <ArrowUpDown className="w-4 h-4 ml-2" />
                   </Button>
                 </TableHead>
-                <TableHead className="text-right">Cost</TableHead>
-                <TableHead className="text-right">Margin</TableHead>
+                <TableHead className="hidden sm:table-cell text-right">Cost</TableHead>
+                <TableHead className="hidden sm:table-cell text-right">Margin</TableHead>
                 <TableHead className="text-center" aria-sort={sortBy === 'days_on_lot' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}>
                   <Button
                     variant="ghost"
@@ -210,7 +210,7 @@ export const InventoryTable = memo(function InventoryTable({ listings }: Invento
                     <ArrowUpDown className="w-4 h-4 ml-2" />
                   </Button>
                 </TableHead>
-                <TableHead className="text-center" aria-sort={sortBy === 'views' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <TableHead className="hidden sm:table-cell text-center" aria-sort={sortBy === 'views' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -266,12 +266,12 @@ export const InventoryTable = memo(function InventoryTable({ listings }: Invento
                           ? `$${listing.price.toLocaleString()}`
                           : '—'}
                       </TableCell>
-                      <TableCell className="text-right text-muted-foreground">
+                      <TableCell className="hidden sm:table-cell text-right text-muted-foreground">
                         {listing.acquisition_cost
                           ? `$${listing.acquisition_cost.toLocaleString()}`
                           : '—'}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="hidden sm:table-cell text-right">
                         {margin !== null ? (
                           <span
                             className={
@@ -302,7 +302,7 @@ export const InventoryTable = memo(function InventoryTable({ listings }: Invento
                           {daysOnLot}
                         </span>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="hidden sm:table-cell text-center">
                         {listing.views_count || 0}
                       </TableCell>
                       <TableCell>

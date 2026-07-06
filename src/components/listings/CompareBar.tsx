@@ -56,7 +56,7 @@ export function CompareBar() {
   if (listings.length === 0) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-50 pb-[env(safe-area-inset-bottom)]">
       <div className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
