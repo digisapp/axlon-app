@@ -20,6 +20,8 @@ interface Message {
 interface TrailerFinderChatProps {
   variant?: 'inline' | 'floating';
   className?: string;
+  /** Start the floating variant open (e.g. launched from a "try it live" CTA). */
+  initialOpen?: boolean;
 }
 
 const EXAMPLE_QUERIES = [
@@ -39,11 +41,11 @@ const TOOL_LABELS: Record<string, string> = {
   lookup_equipment_weight: 'Looking up equipment weight',
 };
 
-export function TrailerFinderChat({ variant = 'inline', className = '' }: TrailerFinderChatProps) {
+export function TrailerFinderChat({ variant = 'inline', className = '', initialOpen = false }: TrailerFinderChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(variant === 'inline');
+  const [isOpen, setIsOpen] = useState(variant === 'inline' || initialOpen);
   const [isExpanded, setIsExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);

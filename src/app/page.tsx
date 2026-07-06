@@ -2,16 +2,39 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Zap, ArrowRight, Search, MessageSquare, Phone, Brain, TrendingUp, UserCheck, Settings, Check, X } from 'lucide-react';
+import { Zap, ArrowRight, Search, MessageSquare, Phone, Brain, TrendingUp, UserCheck, Settings, Check, X, Container, Truck, Caravan, CarFront, Forklift, LayoutGrid } from 'lucide-react';
 import { HomeHeader } from '@/components/home/HomeHeader';
 import { HomeSearchSection } from '@/components/home/HomeSearchSection';
 import { HomeDeals } from '@/components/home/HomeDeals';
+import { TryAxlonLive } from '@/components/home/TryAxlonLive';
+import { getHomeDeals, getHomeStats, roundStat } from '@/lib/home-data';
 
 export const metadata: Metadata = {
   alternates: {
     canonical: '/',
   },
 };
+
+// The root layout's headers() call keeps this route dynamic, so freshness is
+// enforced by the TTL cache in home-data.ts; this export documents intent and
+// takes effect if the route ever becomes cacheable.
+export const revalidate = 300;
+
+const CATEGORY_TILES = [
+  { name: 'Lowboy Trailers', href: '/search?category=lowboy-trailers', icon: Container },
+  { name: 'Flatbed Trailers', href: '/search?category=flatbed-trailers', icon: Caravan },
+  { name: 'Sleeper Trucks', href: '/search?category=sleeper-trucks', icon: Truck },
+  { name: 'Day Cab Trucks', href: '/search?category=day-cab-trucks', icon: CarFront },
+  { name: 'Heavy Equipment', href: '/search?category=heavy-equipment', icon: Forklift },
+  { name: 'All Categories', href: '/categories', icon: LayoutGrid },
+];
+
+const SERVICE_LINKS = [
+  { name: 'Financing', href: '/finance' },
+  { name: 'Trade-In', href: '/trade-in' },
+  { name: 'New Trailer Catalog', href: '/new-trailers' },
+  { name: 'Below-Market Deals', href: '/deals' },
+];
 
 function HomePageJsonLd() {
   const schema = {
@@ -44,7 +67,9 @@ function HomePageJsonLd() {
   );
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [deals, stats] = await Promise.all([getHomeDeals(), getHomeStats()]);
+
   return (
     <div className="min-h-screen flex flex-col gradient-bg relative overflow-hidden">
       <HomePageJsonLd />
@@ -118,13 +143,62 @@ export default function HomePage() {
           </Button>
         </div>
 
+        {/* Browse by Category */}
+        <section className="w-full max-w-4xl mx-auto mb-8 md:mb-10 px-4">
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-3">
+            {CATEGORY_TILES.map(({ name, href, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className="flex flex-col items-center gap-2 rounded-xl border bg-white/80 dark:bg-white/[0.08] p-3 md:p-4 hover:border-primary/50 hover:shadow-md transition-all"
+              >
+                <Icon className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+                <span className="text-[11px] md:text-xs font-medium text-center leading-tight">{name}</span>
+              </Link>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
+            {SERVICE_LINKS.map(({ name, href }) => (
+              <Link
+                key={href}
+                href={href}
+                className="text-xs text-muted-foreground hover:text-primary rounded-full border px-3 py-1.5 bg-white/60 dark:bg-white/[0.05] transition-colors"
+              >
+                {name}
+              </Link>
+            ))}
+          </div>
+        </section>
+
         {/* Hot Deals */}
-        <HomeDeals />
+        <HomeDeals deals={deals} />
+
+        {/* Marketplace stats */}
+        {(stats.activeListings ?? 0) >= 100 && (
+          <section className="w-full max-w-3xl mx-auto mb-8 md:mb-12 px-4">
+            <div className="flex flex-wrap items-start justify-center gap-x-10 gap-y-4 text-center">
+              <div>
+                <p className="text-xl md:text-2xl font-bold">{roundStat(stats.activeListings!)}+</p>
+                <p className="text-xs text-muted-foreground dark:text-foreground/50">machines for sale</p>
+              </div>
+              {(stats.sellers ?? 0) >= 20 && (
+                <div>
+                  <p className="text-xl md:text-2xl font-bold">{roundStat(stats.sellers!)}+</p>
+                  <p className="text-xs text-muted-foreground dark:text-foreground/50">dealers &amp; sellers</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xl md:text-2xl font-bold">24/7</p>
+                <p className="text-xs text-muted-foreground dark:text-foreground/50">AI answering calls &amp; chats</p>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Trusted Brands */}
         <section className="w-full max-w-4xl mx-auto mb-8 md:mb-12 px-4">
           <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center mb-4 uppercase tracking-widest font-medium">
-            Trusted brands on AXLON
+            Equipment from the brands you know
           </p>
           <div className="flex items-center justify-center gap-6 md:gap-10 flex-wrap opacity-60 dark:opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
             <Image src="/images/brands/peterbilt.svg" alt="Peterbilt" width={90} height={36} className="h-7 md:h-8 w-auto dark:invert" />
@@ -140,6 +214,19 @@ export default function HomePage() {
 
         {/* 3 Ways AXLON Helps */}
         <section className="w-full max-w-4xl mx-auto mb-6 md:mb-16 px-4">
+          <div className="text-center mb-8 md:mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-3">
+              <Zap className="w-3 h-3" />
+              For Dealers &amp; Sellers
+            </div>
+            <h2 className="text-xl md:text-2xl font-bold mb-2">Your AI-powered sales team</h2>
+            <p className="text-sm text-muted-foreground dark:text-foreground/60 max-w-lg mx-auto">
+              List free, get a branded storefront, and let AI handle the leads.{' '}
+              <Link href="/for-business" className="text-primary hover:underline whitespace-nowrap">
+                See all business tools &rarr;
+              </Link>
+            </p>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-4 md:gap-6">
             <div className="text-center">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
@@ -260,6 +347,9 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+
+          {/* Live demo: real chat + real phone line */}
+          <TryAxlonLive />
         </section>
 
         {/* What Makes AXLON Different */}
@@ -342,38 +432,12 @@ export default function HomePage() {
               </Link>
             </Button>
           </div>
-        </section>
-
-        {/* SEO: Hidden crawlable content */}
-        <section className="sr-only" aria-label="About AXLON AI">
-          <h1>AXLON AI — AI Platform for Equipment Businesses</h1>
-          <p>
-            Find and buy trucks, trailers, and heavy equipment with AI-powered search.
-            Browse lowboy trailers, semi trucks, flatbed trailers, sleeper trucks, dump trucks,
-            and more from businesses and private sellers across the United States.
+          <p className="text-xs text-muted-foreground dark:text-foreground/50 mt-4">
+            Just browsing?{' '}
+            <Link href="/search" className="text-primary hover:underline">
+              Explore all listings &rarr;
+            </Link>
           </p>
-          <h2>Popular Categories</h2>
-          <ul>
-            <li><Link href="/search?category=lowboy-trailers">Lowboy Trailers</Link></li>
-            <li><Link href="/search?category=sleeper-trucks">Sleeper Trucks</Link></li>
-            <li><Link href="/search?category=flatbed-trailers">Flatbed Trailers</Link></li>
-            <li><Link href="/search?category=day-cab-trucks">Day Cab Trucks</Link></li>
-            <li><Link href="/search?category=heavy-equipment">Heavy Equipment</Link></li>
-            <li><Link href="/categories">All Categories</Link></li>
-          </ul>
-          <h2>For Business</h2>
-          <ul>
-            <li><Link href="/transform">AI Transformation Program</Link></li>
-            <li><Link href="/contact?plan=demo">Book a Demo</Link></li>
-            <li><Link href="/dashboard/listings/new">List Equipment</Link></li>
-          </ul>
-          <h2>Services</h2>
-          <ul>
-            <li><Link href="/finance">Commercial Truck & Trailer Financing</Link></li>
-            <li><Link href="/trade-in">Trade-In Your Equipment</Link></li>
-            <li><Link href="/new-trailers">New Trailer Catalog</Link></li>
-            <li><Link href="/deals">Below Market Deals</Link></li>
-          </ul>
         </section>
       </main>
 

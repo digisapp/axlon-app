@@ -1,81 +1,14 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Flame, TrendingDown } from 'lucide-react';
+import type { HomeDeal } from '@/lib/home-data';
 
-interface DealListing {
-  id: string;
-  title: string;
-  price: number;
-  ai_price_estimate: number;
-  discount_percent: number;
-  savings: number;
-  year?: number;
-  make?: string;
-  model?: string;
-  images?: { url: string; thumbnail_url?: string; is_primary?: boolean }[];
-  category?: { name: string; slug: string };
-}
-
-export function HomeDeals() {
-  const [deals, setDeals] = useState<DealListing[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    const fetchDeals = async () => {
-      try {
-        const response = await fetch('/api/deals?limit=4&min_discount=5&shuffle=true', {
-          signal: controller.signal,
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setDeals(data.data || []);
-        }
-      } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-          // silently handle fetch errors
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchDeals();
-
-    return () => controller.abort();
-  }, []);
-
-  if (!isLoading && deals.length === 0) return null;
-
-  if (isLoading) {
-    return (
-      <div className="w-full max-w-4xl px-4 mb-8 md:mb-10">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg md:text-xl font-bold flex items-center gap-2">
-            <Flame className="w-5 h-5 text-orange-500" />
-            Hot Deals
-          </h2>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i} className="overflow-hidden bg-white/90 dark:bg-zinc-900/90 backdrop-blur">
-              <div className="aspect-[4/3] bg-muted animate-pulse" />
-              <div className="p-2 md:p-3 space-y-2">
-                <div className="h-4 bg-muted animate-pulse rounded" />
-                <div className="h-5 w-20 bg-muted animate-pulse rounded" />
-              </div>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
+// Server-rendered: deals arrive in the initial HTML (no client fetch, no
+// skeleton, no layout jump when the section is empty).
+export function HomeDeals({ deals }: { deals: HomeDeal[] }) {
+  if (deals.length === 0) return null;
 
   return (
     <div className="w-full max-w-4xl px-4 mb-8 md:mb-10">
@@ -100,7 +33,7 @@ export function HomeDeals() {
   );
 }
 
-function DealCard({ deal }: { deal: DealListing }) {
+function DealCard({ deal }: { deal: HomeDeal }) {
   const primaryImage = deal.images?.find((img) => img.is_primary) || deal.images?.[0];
 
   return (
