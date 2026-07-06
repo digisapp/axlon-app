@@ -23,11 +23,15 @@ import {
   Inbox,
 } from 'lucide-react';
 
+import type { FeatureKey } from '@/lib/plans';
+
 export interface NavItem {
   href: string;
   label: string;
   icon: React.ReactNode;
   badge?: number;
+  /** Plan-gated feature this item belongs to — Sidebar shows a lock when unavailable */
+  feature?: FeatureKey;
 }
 
 export interface NavSection {
@@ -66,11 +70,13 @@ export const dashboardNavSections: NavSection[] = [
       },
       {
         href: '/dashboard/bulk',
+        feature: 'bulkImport',
         label: 'Bulk Import',
         icon: <Upload className="w-5 h-5" />,
       },
       {
         href: '/dashboard/floor-plan',
+        feature: 'floorPlan',
         label: 'Floor Plan',
         icon: <DollarSign className="w-5 h-5" />,
       },
@@ -86,11 +92,13 @@ export const dashboardNavSections: NavSection[] = [
       },
       {
         href: '/dashboard/crm',
+        feature: 'crm',
         label: 'CRM',
         icon: <Contact className="w-5 h-5" />,
       },
       {
         href: '/dashboard/deal-desk',
+        feature: 'dealDesk',
         label: 'Deal Desk',
         icon: <Handshake className="w-5 h-5" />,
       },
@@ -106,41 +114,49 @@ export const dashboardNavSections: NavSection[] = [
     items: [
       {
         href: '/dashboard/ai-inbox',
+        feature: 'aiInbox',
         label: 'AI Inbox',
         icon: <Inbox className="w-5 h-5" />,
       },
       {
         href: '/dashboard/ai-performance',
+        feature: 'aiAssistant',
         label: 'AI Performance',
         icon: <Bot className="w-5 h-5" />,
       },
       {
         href: '/dashboard/ai-assistant',
+        feature: 'aiAssistant',
         label: 'AI Assistant',
         icon: <Brain className="w-5 h-5" />,
       },
       {
         href: '/dashboard/voice-agent',
+        feature: 'voiceAgent',
         label: 'Voice Agent',
         icon: <Phone className="w-5 h-5" />,
       },
       {
         href: '/dashboard/calls',
+        feature: 'voiceAgent',
         label: 'Call Log',
         icon: <PhoneIncoming className="w-5 h-5" />,
       },
       {
         href: '/dashboard/conversations',
+        feature: 'aiAssistant',
         label: 'AI Chats',
         icon: <BotMessageSquare className="w-5 h-5" />,
       },
       {
         href: '/dashboard/ai-leads',
+        feature: 'aiAssistant',
         label: 'AI Leads',
         icon: <Sparkles className="w-5 h-5" />,
       },
       {
         href: '/dashboard/market-intel',
+        feature: 'marketIntel',
         label: 'Market Intel',
         icon: <TrendingUp className="w-5 h-5" />,
       },

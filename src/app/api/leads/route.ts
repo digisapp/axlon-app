@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { calculateLeadScoreWithAI } from '@/lib/leads/scoring';
 import { generateLeadAutoReply } from '@/lib/ai/lead-auto-reply';
@@ -68,15 +69,19 @@ export async function POST(request: NextRequest) {
     // Get listing info for scoring
     let listingState: string | null = null;
     let listingTitle: string | null = null;
+    let listingPrice: number | null = null;
+    let sourceDealerId: string | null = null;
     if (listing_id) {
       const { data: listing } = await supabase
         .from('listings')
-        .select('title, state')
+        .select('title, state, price, source_dealer_id')
         .eq('id', listing_id)
         .single();
       if (listing) {
         listingState = listing.state;
         listingTitle = listing.title;
+        listingPrice = listing.price;
+        sourceDealerId = listing.source_dealer_id;
       }
     }
 
@@ -111,6 +116,18 @@ export async function POST(request: NextRequest) {
     if (error) {
       logger.error('Error creating lead', { error });
       return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
+    }
+
+    // Claim-your-storefront trigger: a buyer inquiring about scraped inventory
+    // is warm outreach ammo — record the demand against the dealer source so
+    // /admin/outreach surfaces "we have a buyer for your equipment" dealers.
+    if (sourceDealerId) {
+      await recordBuyerDemandForDealerSource({
+        sourceDealerId,
+        listingTitle: listingTitle || 'a listing',
+        listingPrice,
+        buyerMessage: message || null,
+      });
     }
 
     // Use listing title from earlier fetch, or fallback
@@ -269,5 +286,71 @@ export async function POST(request: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * Records buyer demand against a scraped dealer source in outreach_contacts.
+ * Uses the service-role client (outreach tables are admin-only under RLS).
+ * Never throws — outreach tracking must not break lead creation.
+ */
+async function recordBuyerDemandForDealerSource({
+  sourceDealerId,
+  listingTitle,
+  listingPrice,
+  buyerMessage,
+}: {
+  sourceDealerId: string;
+  listingTitle: string;
+  listingPrice: number | null;
+  buyerMessage: string | null;
+}) {
+  try {
+    const admin = createAdminClient();
+
+    const { data: source } = await admin
+      .from('dealer_sources')
+      .select('id, name, website, contact_name, contact_phone, contact_email, location_city, location_state')
+      .eq('id', sourceDealerId)
+      .single();
+
+    if (!source) return;
+
+    const priceLabel = listingPrice ? ` ($${Math.round(listingPrice).toLocaleString()})` : '';
+    const demandNote = `[${new Date().toISOString().slice(0, 10)}] Buyer inquiry on "${listingTitle}"${priceLabel}${
+      buyerMessage ? ` — "${buyerMessage.slice(0, 200)}"` : ''
+    }`;
+
+    const { data: existing } = await admin
+      .from('outreach_contacts')
+      .select('id, notes')
+      .eq('source', 'buyer_demand')
+      .eq('source_id', source.id)
+      .maybeSingle();
+
+    if (existing) {
+      // Append the new demand signal, keeping the most recent ~4000 chars
+      const notes = `${demandNote}\n${existing.notes || ''}`.slice(0, 4000);
+      await admin
+        .from('outreach_contacts')
+        .update({ notes })
+        .eq('id', existing.id);
+    } else {
+      await admin.from('outreach_contacts').insert({
+        name: source.name,
+        website: source.website,
+        email: source.contact_email,
+        phone: source.contact_phone,
+        city: source.location_city,
+        state: source.location_state,
+        source: 'buyer_demand',
+        source_id: source.id,
+        status: 'new',
+        personnel: source.contact_name ? [{ name: source.contact_name }] : [],
+        notes: demandNote,
+      });
+    }
+  } catch (err) {
+    logger.error('Failed to record buyer demand for dealer source', { error: err, sourceDealerId });
   }
 }

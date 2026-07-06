@@ -229,7 +229,7 @@ export default async function HomePage() {
             </div>
             <h2 className="text-xl md:text-2xl font-bold mb-2">Your AI-powered sales team</h2>
             <p className="text-sm text-muted-foreground dark:text-foreground/60 max-w-lg mx-auto">
-              List free, get a branded storefront, and let AI handle the leads.{' '}
+              AXLON answers every call, chat, and lead for your dealership — 24/7 — and turns them into pipeline.{' '}
               <Link href="/for-business" className="text-primary hover:underline whitespace-nowrap">
                 See all business tools &rarr;
               </Link>

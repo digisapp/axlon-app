@@ -108,8 +108,7 @@ export function Header() {
   ];
 
   const isMarketplaceActive = pathname.startsWith('/search') || pathname.startsWith('/new-trailers') || pathname.startsWith('/dealers') || pathname.startsWith('/categories');
-  const isPlatformActive = pathname === '/how-it-works' || pathname === '/voice';
-  const isForBusinessActive = pathname === '/get-started';
+  const isForDealersActive = pathname === '/how-it-works' || pathname === '/voice' || pathname === '/pricing' || pathname === '/transform' || pathname === '/get-started';
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -180,21 +179,21 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Platform Dropdown */}
+            {/* For Dealers Dropdown — the single business journey */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                    isPlatformActive
+                    isForDealersActive
                       ? 'bg-primary/10 text-primary'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   }`}
                 >
-                  Platform
+                  For Dealers
                   <ChevronDown className="w-3.5 h-3.5" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-60">
+              <DropdownMenuContent align="start" className="w-64">
                 <DropdownMenuItem asChild>
                   <Link href="/how-it-works" className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -216,33 +215,40 @@ export function Header() {
                         Voice Agent
                         <span className="text-[10px] font-semibold bg-cyan-600 text-white px-1.5 py-0.5 rounded-full leading-none">24/7</span>
                       </p>
-                      <p className="text-xs text-muted-foreground">Your company&apos;s voice and brain</p>
+                      <p className="text-xs text-muted-foreground">AI answers every call, day or night</p>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/pricing" className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <DollarSign className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Pricing</p>
+                      <p className="text-xs text-muted-foreground">Free to list — Platform from $499/mo</p>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/transform" className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <Store className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Done-For-You</p>
+                      <p className="text-xs text-muted-foreground">We build & run it all for you</p>
                     </div>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/transform" className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                      <DollarSign className="w-4 h-4" />
-                    </div>
-                    AI Transformation
+                  <Link href="/get-started" className="flex items-center gap-3 font-medium text-primary">
+                    Get Started Free
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {/* For Business Link */}
-            <Link
-              href="/get-started"
-              className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                isForBusinessActive
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
-            >
-              For Business
-            </Link>
           </nav>
 
           {/* Desktop Actions */}
@@ -422,9 +428,9 @@ export function Header() {
                   <div className="h-px bg-border" />
 
                   <nav className="flex flex-col gap-1">
-                    {/* Platform Section */}
+                    {/* For Dealers Section */}
                     <p className="px-3 pt-1 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Platform
+                      For Dealers
                     </p>
                     <Link
                       href="/how-it-works"
@@ -454,33 +460,36 @@ export function Header() {
                       </span>
                     </Link>
                     <Link
-                      href="/transform"
-                      onClick={() => setIsOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-muted"
-                    >
-                      <DollarSign className="w-5 h-5" />
-                      AI Transformation
-                    </Link>
-                  </nav>
-
-                  <div className="h-px bg-border" />
-
-                  <nav className="flex flex-col gap-1">
-                    {/* For Business Section */}
-                    <p className="px-3 pt-1 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      For Business
-                    </p>
-                    <Link
-                      href="/get-started"
+                      href="/pricing"
                       onClick={() => setIsOpen(false)}
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                        pathname === '/get-started'
+                        pathname === '/pricing'
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-muted'
                       }`}
                     >
+                      <DollarSign className="w-5 h-5" />
+                      Pricing
+                    </Link>
+                    <Link
+                      href="/transform"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-muted"
+                    >
                       <Store className="w-5 h-5" />
-                      Get Started
+                      Done-For-You
+                    </Link>
+                    <Link
+                      href="/get-started"
+                      onClick={() => setIsOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors ${
+                        pathname === '/get-started'
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-primary hover:bg-muted'
+                      }`}
+                    >
+                      <Bot className="w-5 h-5" />
+                      Get Started Free
                     </Link>
                   </nav>
 

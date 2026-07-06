@@ -140,11 +140,12 @@ export async function POST(request: NextRequest) {
         }
 
         if (product?.startsWith('dealer_pro') && user_id) {
-          // Update user to business status
+          // Grant business status AND the paid tier — feature gates key off subscription_tier
           await supabase
             .from('profiles')
             .update({
               is_business: true,
+              subscription_tier: 'pro',
             })
             .eq('id', user_id);
         }
@@ -166,7 +167,7 @@ export async function POST(request: NextRequest) {
         if (profile) {
           await supabase
             .from('profiles')
-            .update({ is_business: false })
+            .update({ is_business: false, subscription_tier: 'free' })
             .eq('id', profile.id);
         }
 

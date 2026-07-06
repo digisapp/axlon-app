@@ -19,6 +19,7 @@ import { LeadsPipeline } from '@/components/dashboard/LeadsPipeline';
 import { ActivityFeed, type ActivityItem } from '@/components/dashboard/ActivityFeed';
 import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist';
 import { TrialBanner } from '@/components/dashboard/TrialBanner';
+import { RoiSnapshot } from '@/components/dashboard/RoiSnapshot';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -41,6 +42,7 @@ export default async function DashboardPage() {
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
   const fortyFiveDaysAgo = new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
   // Get user's listing IDs first (needed for views queries)
   const { data: userListingIds } = await supabase
@@ -70,6 +72,12 @@ export default async function DashboardPage() {
     { count: pipelineLost },
     { data: recentLeads },
     { data: recentMessages },
+    { count: leadsThisMonth },
+    { count: aiLeadsThisMonth },
+    { count: callsThisMonth },
+    { count: aiDraftsThisMonth },
+    { data: openLeadListings },
+    { data: openDeals },
   ] = await Promise.all([
     // Unread messages
     supabase
@@ -193,6 +201,44 @@ export default async function DashboardPage() {
       .eq('recipient_id', user.id)
       .order('created_at', { ascending: false })
       .limit(3),
+    // ROI: form leads this month
+    supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', monthStart),
+    // ROI: AI chat leads this month
+    supabase
+      .from('dealer_ai_leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('dealer_id', user.id)
+      .gte('created_at', monthStart),
+    // ROI: calls answered this month
+    supabase
+      .from('call_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('dealer_id', user.id)
+      .gte('started_at', monthStart),
+    // ROI: AI-drafted responses this month
+    supabase
+      .from('ai_inbox_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('dealer_id', user.id)
+      .gte('created_at', monthStart),
+    // ROI: open leads with attached listing prices (pipeline value)
+    supabase
+      .from('leads')
+      .select('id, listings(price)')
+      .eq('user_id', user.id)
+      .in('status', ['new', 'contacted', 'qualified'])
+      .limit(500),
+    // ROI: open deals (pipeline value)
+    supabase
+      .from('deals')
+      .select('sale_price')
+      .eq('dealer_id', user.id)
+      .in('status', ['quote', 'negotiation', 'pending_approval'])
+      .limit(500),
   ]);
 
   // Trial status
@@ -208,6 +254,18 @@ export default async function DashboardPage() {
   const totalViews = viewsData?.reduce((sum, l) => sum + (l.views_count || 0), 0) || 0;
   const newLeads = leads || 0;
   const recentListings = listings || [];
+
+  // ROI snapshot numbers
+  const roiLeadsCaptured = (leadsThisMonth || 0) + (aiLeadsThisMonth || 0);
+  const leadPipelineValue = (openLeadListings || []).reduce((sum, lead) => {
+    const listing = lead.listings as { price: number | null } | { price: number | null }[] | null;
+    const price = Array.isArray(listing) ? listing[0]?.price : listing?.price;
+    return sum + (price || 0);
+  }, 0);
+  const dealPipelineValue = (openDeals || []).reduce((sum, d) => sum + (Number(d.sale_price) || 0), 0);
+  const pipelineValue = leadPipelineValue + dealPipelineValue;
+  const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const hasRoiActivity = roiLeadsCaptured > 0 || pipelineValue > 0 || (callsThisMonth || 0) > 0 || (aiDraftsThisMonth || 0) > 0;
 
   const leadsTrend = leadsPrev7 && leadsPrev7 > 0
     ? Math.round(((leadsLast7 || 0) - leadsPrev7) / leadsPrev7 * 100)
@@ -311,7 +369,16 @@ export default async function DashboardPage() {
         />
       )}
 
-      {/* Welcome Header */}
+      {/* AXLON Impact — proof of value, front and center */}
+      {hasRoiActivity && (
+        <RoiSnapshot
+          monthLabel={monthLabel}
+          leadsCaptured={roiLeadsCaptured}
+          pipelineValue={pipelineValue}
+          callsAnswered={callsThisMonth || 0}
+          aiDrafts={aiDraftsThisMonth || 0}
+        />
+      )}
 
       {/* Onboarding Checklist */}
       <OnboardingChecklist

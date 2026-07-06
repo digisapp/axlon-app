@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { getEffectiveTier } from '@/lib/plans';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,6 +86,7 @@ export default async function DashboardLayout({
           newLeads={newLeads || 0}
           pendingAiInbox={pendingAiInbox || 0}
           subscriptionTier={profile?.subscription_tier || 'free'}
+          effectiveTier={getEffectiveTier(profile?.subscription_tier, profile?.created_at)}
         />
       </div>
 

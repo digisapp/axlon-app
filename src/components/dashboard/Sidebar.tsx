@@ -12,17 +12,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 import { dashboardNavSections, getNavSectionsWithBadges } from '@/lib/dashboard-nav';
+import { isFeatureUnlocked, type PlanTier } from '@/lib/plans';
 
 interface SidebarProps {
   unreadMessages?: number;
   newLeads?: number;
   pendingAiInbox?: number;
   subscriptionTier?: string;
+  /** Trial-aware tier — free accounts in trial see everything unlocked */
+  effectiveTier?: PlanTier;
 }
 
-export function Sidebar({ unreadMessages = 0, newLeads = 0, pendingAiInbox = 0, subscriptionTier = 'free' }: SidebarProps) {
+export function Sidebar({ unreadMessages = 0, newLeads = 0, pendingAiInbox = 0, subscriptionTier = 'free', effectiveTier = 'free' }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
 
@@ -70,6 +73,7 @@ export function Sidebar({ unreadMessages = 0, newLeads = 0, pendingAiInbox = 0, 
                     item.href === '/dashboard'
                       ? pathname === '/dashboard'
                       : pathname.startsWith(item.href);
+                  const isLocked = !!item.feature && !isFeatureUnlocked(item.feature, effectiveTier);
 
                   const linkContent = (
                     <Link
@@ -87,6 +91,9 @@ export function Sidebar({ unreadMessages = 0, newLeads = 0, pendingAiInbox = 0, 
                       {!collapsed && (
                         <>
                           <span className="flex-1">{item.label}</span>
+                          {isLocked && (
+                            <Lock className="w-3.5 h-3.5 text-muted-foreground/60" />
+                          )}
                           {item.badge && item.badge > 0 && (
                             <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
                               {item.badge}
