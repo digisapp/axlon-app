@@ -2,7 +2,15 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Zap, ArrowRight, Search, MessageSquare, Phone, Brain, TrendingUp, UserCheck, Settings, Check, X, Container, Truck, Caravan, CarFront, Forklift, LayoutGrid } from 'lucide-react';
+import { Zap, ArrowRight, Search, MessageSquare, Phone, Brain, TrendingUp, UserCheck, Settings, Check, X } from 'lucide-react';
+import {
+  LowboyTrailerIcon,
+  FlatbedTrailerIcon,
+  SleeperTruckIcon,
+  DayCabTruckIcon,
+  HeavyEquipmentIcon,
+  AllCategoriesIcon,
+} from '@/components/home/CategoryIcons';
 import { HomeHeader } from '@/components/home/HomeHeader';
 import { HomeSearchSection } from '@/components/home/HomeSearchSection';
 import { HomeDeals } from '@/components/home/HomeDeals';
@@ -21,12 +29,12 @@ export const metadata: Metadata = {
 export const revalidate = 300;
 
 const CATEGORY_TILES = [
-  { name: 'Lowboy Trailers', href: '/search?category=lowboy-trailers', icon: Container },
-  { name: 'Flatbed Trailers', href: '/search?category=flatbed-trailers', icon: Caravan },
-  { name: 'Sleeper Trucks', href: '/search?category=sleeper-trucks', icon: Truck },
-  { name: 'Day Cab Trucks', href: '/search?category=day-cab-trucks', icon: CarFront },
-  { name: 'Heavy Equipment', href: '/search?category=heavy-equipment', icon: Forklift },
-  { name: 'All Categories', href: '/categories', icon: LayoutGrid },
+  { name: 'Lowboy Trailers', href: '/search?category=lowboy-trailers', icon: LowboyTrailerIcon },
+  { name: 'Flatbed Trailers', href: '/search?category=flatbed-trailers', icon: FlatbedTrailerIcon },
+  { name: 'Sleeper Trucks', href: '/search?category=sleeper-trucks', icon: SleeperTruckIcon },
+  { name: 'Day Cab Trucks', href: '/search?category=day-cab-trucks', icon: DayCabTruckIcon },
+  { name: 'Heavy Equipment', href: '/search?category=heavy-equipment', icon: HeavyEquipmentIcon },
+  { name: 'All Categories', href: '/categories', icon: AllCategoriesIcon },
 ];
 
 const SERVICE_LINKS = [
@@ -152,7 +160,7 @@ export default async function HomePage() {
                 href={href}
                 className="flex flex-col items-center gap-2 rounded-xl border bg-white/80 dark:bg-white/[0.08] p-3 md:p-4 hover:border-primary/50 hover:shadow-md transition-all"
               >
-                <Icon className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+                <Icon className="h-6 w-auto md:h-7 text-primary" />
                 <span className="text-[11px] md:text-xs font-medium text-center leading-tight">{name}</span>
               </Link>
             ))}
