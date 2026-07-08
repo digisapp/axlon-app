@@ -7,8 +7,8 @@ const securityHeaders = [
     value: 'on',
   },
   {
-    key: 'X-XSS-Protection',
-    value: '1; mode=block',
+    key: 'Strict-Transport-Security',
+    value: 'max-age=63072000; includeSubDomains; preload',
   },
   {
     key: 'X-Frame-Options',
@@ -42,32 +42,12 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      // Supabase storage
+      // Supabase storage (all listing images are re-hosted here)
       { protocol: 'https', hostname: '*.supabase.co' },
-      // CDN providers
-      { protocol: 'https', hostname: '*.cloudfront.net' },
-      { protocol: 'https', hostname: '*.azureedge.net' },
-      { protocol: 'https', hostname: '*.bigcommerce.com' },
+      // Webflow CDN — used by manufacturer product images (not yet re-hosted)
       { protocol: 'https', hostname: '*.website-files.com' },
-      { protocol: 'https', hostname: '*.azurewebsites.net' },
-      // Dealer & listing image platforms (covers SandHills, MyLittleSalesman, Soarr, etc.)
-      { protocol: 'https', hostname: '*.soarr.com' },
-      { protocol: 'https', hostname: '*.truckpaper.com' },
-      { protocol: 'https', hostname: '*.sandhills.com' },
-      { protocol: 'https', hostname: '*.imanpro.net' },
-      { protocol: 'https', hostname: '*.mylittlesalesman.com' },
-      // Dealer direct image sources
+      // Hale Trailer WordPress media — used by manufacturer product images
       { protocol: 'https', hostname: '*.haletrailer.com' },
-      { protocol: 'https', hostname: '*.pinnacletrailers.com' },
-      { protocol: 'https', hostname: '*.tecequipment.com' },
-      { protocol: 'https', hostname: '*.lumbermenonline.com' },
-      { protocol: 'https', hostname: '*.renostrailer.com' },
-      { protocol: 'https', hostname: '*.semitrailers.net' },
-      { protocol: 'https', hostname: 'semitrailers.net' },
-      { protocol: 'https', hostname: 'royaltrailersales.com' },
-      { protocol: 'https', hostname: 'midcosales.com' },
-      { protocol: 'https', hostname: 'jhtt.com' },
-      { protocol: 'https', hostname: '*.jhtt.com' },
       // Manufacturer product catalog images
       { protocol: 'https', hostname: '*.trailking.com' },
       { protocol: 'https', hostname: '*.fontainespecialized.com' },

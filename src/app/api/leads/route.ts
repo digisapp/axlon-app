@@ -211,18 +211,26 @@ export async function POST(request: NextRequest) {
       `;
 
       try {
-        const emailPromises: Promise<unknown>[] = [];
+        // The Resend SDK resolves with { error } instead of throwing, so each
+        // send is tracked with its recipient and inspected after settling.
+        const emailTasks: Array<{
+          kind: string;
+          recipient: string;
+          promise: Promise<{ error: unknown }>;
+        }> = [];
 
         // 1. Dealer notification
         if (notificationEmail) {
-          emailPromises.push(
-            getResend().emails.send({
+          emailTasks.push({
+            kind: 'dealer_notification',
+            recipient: notificationEmail,
+            promise: getResend().emails.send({
               from: 'AXLON AI <leads@axlon.ai>',
               to: notificationEmail,
               subject: `New ${priority} lead: ${escapeHtml(buyer_name)} — ${escapeHtml(emailListingTitle)}`,
               html: dealerNotificationHtml,
-            })
-          );
+            }),
+          });
         }
 
         // 2. AI auto-reply to buyer — confidence-gated
@@ -260,22 +268,42 @@ export async function POST(request: NextRequest) {
 
           if (autoReply.autoSend) {
             // High confidence — send immediately
-            emailPromises.push(
-              getResend().emails.send({
+            emailTasks.push({
+              kind: 'buyer_auto_reply',
+              recipient: buyer_email,
+              promise: getResend().emails.send({
                 from: `${sellerCompanyName} via AXLON <leads@axlon.ai>`,
                 to: buyer_email,
                 replyTo: sellerEmail,
                 subject: autoReply.subject,
                 html: autoReply.html,
-              })
-            );
+              }),
+            });
           }
           // else: queued in ai_inbox_items with status='pending' for dealer approval
         }
 
-        await Promise.allSettled(emailPromises);
+        const results = await Promise.allSettled(emailTasks.map(t => t.promise));
+        results.forEach((result, i) => {
+          const { kind, recipient } = emailTasks[i];
+          if (result.status === 'rejected') {
+            logger.error('Lead email send threw', {
+              leadId: lead.id,
+              kind,
+              recipient,
+              error: result.reason,
+            });
+          } else if (result.value?.error) {
+            logger.error('Lead email send failed', {
+              leadId: lead.id,
+              kind,
+              recipient,
+              error: result.value.error,
+            });
+          }
+        });
       } catch (emailError) {
-        logger.error('Failed to send lead emails', { error: emailError });
+        logger.error('Failed to send lead emails', { error: emailError, leadId: lead.id });
       }
     }
 

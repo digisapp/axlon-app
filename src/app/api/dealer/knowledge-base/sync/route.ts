@@ -3,9 +3,13 @@ import { withAuth } from '@/lib/auth/with-auth';
 import { syncAllListings, syncListingToCollection } from '@/lib/ai/listing-sync';
 import { kbSyncSchema, validateBody, ValidationError } from '@/lib/validations/api';
 import { logger } from '@/lib/logger';
+import { enforceFeature } from '@/lib/entitlements';
 
 // POST - Manual sync (full or single listing)
 export const POST = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'aiAssistant');
+  if (gateError) return gateError;
+
   // Verify KB is active
   const { data: settings } = await supabase
     .from('dealer_ai_settings')

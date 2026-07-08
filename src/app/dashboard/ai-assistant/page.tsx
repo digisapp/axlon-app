@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -188,6 +188,9 @@ export default function AIAssistantPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const kbSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [subscriptionTier, setSubscriptionTier] = useState<string>('free');
   const [dealerName, setDealerName] = useState<string>('');
   const [settings, setSettings] = useState<AISettings>(defaultSettings);
@@ -281,6 +284,20 @@ export default function AIAssistantPage() {
     fetchData();
   }, [router, supabase]);
 
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      if (kbSyncTimeoutRef.current) clearTimeout(kbSyncTimeoutRef.current);
+    };
+  }, []);
+
+  const showErrorToast = (message: string) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setShowSuccess(false);
+    setErrorMessage(message);
+    toastTimeoutRef.current = setTimeout(() => setErrorMessage(''), 5000);
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
 
@@ -320,11 +337,17 @@ export default function AIAssistantPage() {
         });
 
       if (!error) {
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        setErrorMessage('');
         setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 3000);
+        toastTimeoutRef.current = setTimeout(() => setShowSuccess(false), 3000);
+      } else {
+        logger.error('AI settings save error', { error });
+        showErrorToast('Failed to save AI settings. Please try again.');
       }
     } catch (error) {
       logger.error('Save error', { error });
+      showErrorToast('Failed to save AI settings. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -450,7 +473,8 @@ export default function AIAssistantPage() {
         body: JSON.stringify({}),
       });
       // Refresh status after a short delay to let sync start
-      setTimeout(() => fetchKBStatus(), 2000);
+      if (kbSyncTimeoutRef.current) clearTimeout(kbSyncTimeoutRef.current);
+      kbSyncTimeoutRef.current = setTimeout(() => fetchKBStatus(), 2000);
     } catch (e) {
       logger.error('Failed to trigger KB sync', { error: e });
     } finally {
@@ -486,6 +510,7 @@ export default function AIAssistantPage() {
   };
 
   const deleteKBDocument = async (docId: string) => {
+    if (!confirm('Are you sure you want to delete this document from your knowledge base?')) return;
     try {
       const res = await csrfFetch(`/api/dealer/knowledge-base/documents/${docId}`, {
         method: 'DELETE',
@@ -493,9 +518,12 @@ export default function AIAssistantPage() {
       if (res.ok) {
         setKbDocuments(prev => prev.filter(d => d.id !== docId));
         await fetchKBStatus();
+      } else {
+        showErrorToast('Failed to delete document. Please try again.');
       }
     } catch (e) {
       logger.error('Failed to delete KB document', { error: e });
+      showErrorToast('Failed to delete document. Please try again.');
     }
   };
 
@@ -593,6 +621,14 @@ export default function AIAssistantPage() {
         <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg">
           <CheckCircle className="w-5 h-5" />
           <span>AI Assistant settings saved!</span>
+        </div>
+      )}
+
+      {/* Error Toast */}
+      {errorMessage && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-destructive text-destructive-foreground px-4 py-3 rounded-lg shadow-lg">
+          <AlertCircle className="w-5 h-5" />
+          <span>{errorMessage}</span>
         </div>
       )}
 
@@ -1303,31 +1339,6 @@ export default function AIAssistantPage() {
           </Button>
         </div>
 
-        {/* Upgrade Banner for Free Users */}
-        {!isPro && (
-          <Card className="mt-8 bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="py-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-primary rounded-full">
-                    <Crown className="w-6 h-6 text-primary-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-lg">Upgrade to Pro</p>
-                    <p className="text-sm text-muted-foreground">
-                      Get unlimited conversations, advanced analytics, and priority support
-                    </p>
-                  </div>
-                </div>
-                <Link href="/dashboard/billing">
-                  <Button>
-                    Upgrade Now - $49/mo
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </main>
     </div>
   );

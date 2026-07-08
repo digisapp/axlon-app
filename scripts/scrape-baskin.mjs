@@ -5,6 +5,7 @@
 
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
 import { insertRehostedImages } from './lib/rehost-images.mjs';
@@ -85,7 +86,7 @@ async function getOrCreateDealer() {
     return existing.id;
   }
 
-  const password = 'Baskin2024!';
+  const password = crypto.randomBytes(24).toString('base64url'); // random placeholder; account is managed via Supabase admin API
   const { data: authUser, error } = await supabase.auth.admin.createUser({
     email: DEALER_INFO.email,
     email_confirm: true,

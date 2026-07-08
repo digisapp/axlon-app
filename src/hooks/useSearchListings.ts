@@ -29,16 +29,19 @@ export function buildSearchParams(opts: {
 
   params.set('page', page.toString());
 
-  // Map client sort values to API sort + order params
-  if (sortBy === 'price_desc') {
-    params.set('sort', 'price');
-    params.set('order', 'desc');
-  } else if (sortBy === 'price') {
-    params.set('sort', 'price');
-    params.set('order', 'asc');
-  } else {
-    params.set('sort', sortBy);
-  }
+  // Map client sort values to API sort + order params. Every option sets an
+  // explicit order — the API defaults to 'desc', which is wrong for the
+  // "lowest first" options (price low-to-high, mileage lowest).
+  const SORT_TO_API: Record<string, { sort: string; order: 'asc' | 'desc' }> = {
+    created_at: { sort: 'created_at', order: 'desc' }, // Newest First
+    price: { sort: 'price', order: 'asc' }, // Price: Low to High
+    price_desc: { sort: 'price', order: 'desc' }, // Price: High to Low
+    year: { sort: 'year', order: 'desc' }, // Year: Newest
+    mileage: { sort: 'mileage', order: 'asc' }, // Mileage: Lowest
+  };
+  const apiSort = SORT_TO_API[sortBy] ?? { sort: sortBy, order: 'desc' };
+  params.set('sort', apiSort.sort);
+  params.set('order', apiSort.order);
 
   if (category) params.set('category', category);
 
@@ -67,15 +70,14 @@ export function buildSearchParams(opts: {
     if (!advancedFilters.conditions?.length && f.condition) params.set('condition', f.condition.join(','));
   }
 
-  // Only add text search if NO category filter exists
-  const hasCategory =
-    params.has('category') ||
-    !!advancedFilters.category ||
-    !!category ||
-    !!aiFilters?.category_slug ||
-    !!detectedCategory;
-
-  if (query && !hasCategory) {
+  // Always pass the text query alongside category filters — /api/listings
+  // applies q and category together, and dropping q made natural-language
+  // searches ("lowboy trailer under 50k") skip full-text search whenever a
+  // category was detected. The one exception: `detectedCategory` is only set
+  // when the ENTIRE query is a category keyword ("trailers", "truck"), so the
+  // category filter fully captures the query and full-text search on that
+  // word would only over-narrow results.
+  if (query && !detectedCategory) {
     params.set('q', query);
   } else {
     params.delete('q');

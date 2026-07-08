@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { verifyCronRequest } from '@/lib/security/cron-auth';
 import { logger } from '@/lib/logger';
 
 const RETENTION_DAYS = 30;
 
-function verifyRequest(request: NextRequest): boolean {
-  const authHeader = request.headers.get('authorization');
-  if (authHeader === `Bearer ${process.env.CRON_SECRET}`) return true;
-  return false;
-}
-
 export async function GET(request: NextRequest) {
-  if (!verifyRequest(request)) {
+  if (!verifyCronRequest(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

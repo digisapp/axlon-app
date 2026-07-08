@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { toast } from 'sonner';
 
 type InboxItem = {
   id: string;
@@ -81,6 +82,7 @@ export default function AIInboxPage() {
   const [editSubject, setEditSubject] = useState('');
   const [editDraft, setEditDraft] = useState('');
   const [acting, setActing] = useState(false);
+  const [sendingFeedback, setSendingFeedback] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -125,21 +127,37 @@ export default function AIInboxPage() {
         setSelected(null);
         setEditMode(false);
         await load();
+      } else {
+        toast.error(action === 'reject' ? 'Failed to reject the draft. Please try again.' : 'Failed to send the reply. Please try again.');
       }
     } catch (err) {
       logger.error('Action failed', { err });
+      toast.error(action === 'reject' ? 'Failed to reject the draft. Please try again.' : 'Failed to send the reply. Please try again.');
     } finally {
       setActing(false);
     }
   }
 
   async function sendFeedback(item: InboxItem, feedback: 'positive' | 'negative') {
-    await csrfFetch(`/api/dashboard/ai-inbox?id=${item.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'feedback', feedback }),
-    });
-    await load();
+    setSendingFeedback(true);
+    try {
+      const res = await csrfFetch(`/api/dashboard/ai-inbox?id=${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'feedback', feedback }),
+      });
+      if (res.ok) {
+        setSelected(prev => (prev && prev.id === item.id ? { ...prev, feedback } : prev));
+        await load();
+      } else {
+        toast.error('Failed to record feedback. Please try again.');
+      }
+    } catch (err) {
+      logger.error('Feedback failed', { err });
+      toast.error('Failed to record feedback. Please try again.');
+    } finally {
+      setSendingFeedback(false);
+    }
   }
 
   const pendingCount = summary['pending'] || 0;
@@ -441,10 +459,10 @@ export default function AIInboxPage() {
                   <div className="pt-2 border-t">
                     <p className="text-xs text-muted-foreground mb-2">Was this response good?</p>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="gap-1 flex-1 h-8" onClick={() => sendFeedback(selected, 'positive')}>
+                      <Button size="sm" variant="outline" className="gap-1 flex-1 h-8" onClick={() => sendFeedback(selected, 'positive')} disabled={sendingFeedback}>
                         <ThumbsUp className="w-3.5 h-3.5 text-emerald-500" /> Yes
                       </Button>
-                      <Button size="sm" variant="outline" className="gap-1 flex-1 h-8" onClick={() => sendFeedback(selected, 'negative')}>
+                      <Button size="sm" variant="outline" className="gap-1 flex-1 h-8" onClick={() => sendFeedback(selected, 'negative')} disabled={sendingFeedback}>
                         <ThumbsDown className="w-3.5 h-3.5 text-red-500" /> No
                       </Button>
                     </div>

@@ -29,6 +29,7 @@ import type {
 } from '@/types/floor-plan';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { toast } from 'sonner';
 
 export default function FloorPlanDashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -100,11 +101,17 @@ export default function FloorPlanDashboardPage() {
 
   const handleDismissAlert = async (alertId: string) => {
     try {
-      await csrfFetch(`/api/floor-plan/dashboard/alerts/${alertId}/dismiss`, {
+      const res = await csrfFetch(`/api/floor-plan/dashboard/alerts/${alertId}/dismiss`, {
         method: 'POST',
       });
+      if (res.ok) {
+        setAlerts((prev) => prev.filter((alert) => alert.id !== alertId));
+      } else {
+        toast.error('Failed to dismiss alert. Please try again.');
+      }
     } catch (error) {
       logger.error('Failed to dismiss alert', { error });
+      toast.error('Failed to dismiss alert. Please try again.');
     }
   };
 
@@ -195,13 +202,9 @@ export default function FloorPlanDashboardPage() {
                 <div className="text-center">
                   <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No floor plan accounts</h3>
-                  <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                  <p className="text-muted-foreground max-w-md mx-auto">
                     Add a floor plan account to start tracking your inventory financing.
                   </p>
-                  <Button>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Account
-                  </Button>
                 </div>
               </CardContent>
             </Card>

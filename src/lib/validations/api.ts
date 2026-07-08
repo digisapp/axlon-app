@@ -159,6 +159,17 @@ export const chatLeadSchema = z.object({
   phone: z.string().max(20).optional(),
 });
 
+// Dealer AI conversation create/update (PUT /api/ai/dealer-chat)
+export const dealerAiConversationSchema = z.object({
+  dealerId: z.string().uuid(),
+  conversationId: z.string().uuid().optional().nullable(),
+  visitorName: z.string().max(100).optional().nullable(),
+  visitorEmail: z.string().email().max(254).or(z.literal('')).optional().nullable(),
+  visitorPhone: z.string().max(20).optional().nullable(),
+  visitorIntent: z.string().max(1000).optional().nullable(),
+  listingId: z.string().uuid().optional().nullable(),
+});
+
 // Favorite validation
 export const favoriteSchema = z.object({
   listing_id: z.string().uuid(),

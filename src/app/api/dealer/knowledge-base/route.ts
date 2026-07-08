@@ -5,9 +5,13 @@ import { createCollection } from '@/lib/ai/collections';
 import { syncAllListings } from '@/lib/ai/listing-sync';
 import { kbActionSchema, validateBody, ValidationError } from '@/lib/validations/api';
 import { logger } from '@/lib/logger';
+import { enforceFeature } from '@/lib/entitlements';
 
 // GET - Knowledge base status
 export const GET = withAuth(async (_request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'aiAssistant');
+  if (gateError) return gateError;
+
   // Get KB settings
   const { data: settings } = await supabase
     .from('dealer_ai_settings')
@@ -46,6 +50,9 @@ export const GET = withAuth(async (_request, { user, supabase }) => {
 
 // POST - Enable or disable KB
 export const POST = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'aiAssistant');
+  if (gateError) return gateError;
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('company_name')

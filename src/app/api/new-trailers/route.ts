@@ -85,15 +85,14 @@ export async function GET(request: NextRequest) {
       query = query.eq('gooseneck_type', gooseneck);
     }
 
-    // Full-text search
+    // Full-text search — websearch type tolerates punctuation/operators in
+    // user input, unlike raw to_tsquery which 500s on it (matches /api/listings)
     if (q) {
-      const tsQuery = q
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean)
-        .join(' & ');
       query = query.not('search_vector', 'is', null);
-      query = query.textSearch('search_vector', tsQuery);
+      query = query.textSearch('search_vector', q.trim(), {
+        type: 'websearch',
+        config: 'english',
+      });
     }
 
     // Sorting

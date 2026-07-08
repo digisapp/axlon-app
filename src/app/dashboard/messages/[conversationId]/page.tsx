@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, use } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
@@ -59,9 +60,12 @@ export default function ConversationPage({ params }: PageProps) {
   const [otherUser, setOtherUser] = useState<OtherUser | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   const supabase = createClient();
 
   const scrollToBottom = () => {
@@ -70,23 +74,35 @@ export default function ConversationPage({ params }: PageProps) {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.push(`/login?redirect=/dashboard/messages/${conversationId}`);
+          return;
+        }
 
-      setUserId(user.id);
+        setUserId(user.id);
 
-      const response = await csrfFetch(`/api/messages/${conversationId}`);
-      if (response.ok) {
-        const { data } = await response.json();
-        setMessages(data.messages || []);
-        setListing(data.listing);
-        setOtherUser(data.otherUser);
+        const response = await csrfFetch(`/api/messages/${conversationId}`);
+        if (response.ok) {
+          const { data } = await response.json();
+          setMessages(data.messages || []);
+          setListing(data.listing);
+          setOtherUser(data.otherUser);
+          setLoadError(false);
+        } else {
+          setLoadError(true);
+        }
+      } catch (error) {
+        logger.error('Fetch conversation error', { error });
+        setLoadError(true);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     fetchData();
-  }, [conversationId, supabase]);
+  }, [conversationId, router, supabase]);
 
   // Real-time subscription for live chat
   useEffect(() => {
@@ -133,6 +149,7 @@ export default function ConversationPage({ params }: PageProps) {
     if (!newMessage.trim() || !listing || !otherUser) return;
 
     setIsSending(true);
+    setSendError('');
 
     try {
       const response = await csrfFetch('/api/messages', {
@@ -149,9 +166,12 @@ export default function ConversationPage({ params }: PageProps) {
         const { data } = await response.json();
         setMessages((prev) => [...prev, { ...data, sender: { id: userId } }]);
         setNewMessage('');
+      } else {
+        setSendError('Message failed to send. Please try again.');
       }
     } catch (error) {
       logger.error('Send error', { error });
+      setSendError('Message failed to send. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -203,6 +223,21 @@ export default function ConversationPage({ params }: PageProps) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-4 text-center">
+        <p className="text-lg font-semibold">Couldn&apos;t load this conversation</p>
+        <p className="text-muted-foreground">Something went wrong. Please try again.</p>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/messages">Back to Messages</Link>
+          </Button>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
       </div>
     );
   }
@@ -330,6 +365,9 @@ export default function ConversationPage({ params }: PageProps) {
       {/* Message Input */}
       <div className="bg-background border-t sticky bottom-0">
         <div className="max-w-4xl mx-auto px-4 py-3">
+          {sendError && (
+            <p className="text-sm text-destructive mb-2">{sendError}</p>
+          )}
           <form onSubmit={handleSend} className="flex gap-2">
             <Input
               placeholder="Type a message..."

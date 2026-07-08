@@ -4,6 +4,7 @@ import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } f
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, voiceAgentSchema } from '@/lib/validations/api';
 import { requireCsrf } from '@/lib/security/csrf';
+import { enforceFeature } from '@/lib/entitlements';
 
 /**
  * Validate and normalize phone number to E.164 format
@@ -50,6 +51,9 @@ export async function GET(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateError = await enforceFeature(supabase, user.id, 'voiceAgent');
+    if (gateError) return gateError;
     const csrfError = await requireCsrf(request);
     if (csrfError) return csrfError;
 
@@ -92,6 +96,9 @@ export async function POST(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateError = await enforceFeature(supabase, user.id, 'voiceAgent');
+    if (gateError) return gateError;
     const csrfError = await requireCsrf(request);
     if (csrfError) return csrfError;
 
@@ -178,6 +185,9 @@ export async function PATCH(request: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateError = await enforceFeature(supabase, user.id, 'voiceAgent');
+    if (gateError) return gateError;
     const csrfError = await requireCsrf(request);
     if (csrfError) return csrfError;
 

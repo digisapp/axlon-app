@@ -14,7 +14,14 @@ import { Loader2, Mail, Lock, ArrowLeft } from 'lucide-react';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/dashboard';
+  const rawRedirect = searchParams.get('redirect') || '/dashboard';
+  // Prevent open redirect: only allow relative paths starting with /
+  // (same validation as src/app/(auth)/auth/callback/route.ts)
+  const redirect =
+    rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
+      ? rawRedirect
+      : '/dashboard';
+  const authError = searchParams.get('error');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -50,7 +57,7 @@ function LoginForm() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?redirect=${redirect}`,
+        redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirect)}`,
       },
     });
   };
@@ -78,6 +85,12 @@ function LoginForm() {
           {error && (
             <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
               {error}
+            </div>
+          )}
+
+          {!error && authError === 'auth_failed' && (
+            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
+              Sign-in failed. Please try again.
             </div>
           )}
 

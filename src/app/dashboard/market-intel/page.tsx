@@ -95,7 +95,7 @@ export default async function MarketIntelPage() {
               <span className="text-xs font-medium">Avg Price</span>
             </div>
             <p className="text-2xl font-bold">
-              {latestReport ? `$${latestReport.inventory_stats.avgPrice.toLocaleString()}` : '—'}
+              {latestReport?.inventory_stats?.avgPrice != null ? `$${latestReport.inventory_stats.avgPrice.toLocaleString()}` : '—'}
             </p>
           </CardContent>
         </Card>
@@ -107,7 +107,7 @@ export default async function MarketIntelPage() {
               <span className="text-xs font-medium">Avg Days Listed</span>
             </div>
             <p className="text-2xl font-bold">
-              {latestReport ? latestReport.inventory_stats.avgDaysOnMarket : '—'}
+              {latestReport?.inventory_stats?.avgDaysOnMarket ?? '—'}
             </p>
           </CardContent>
         </Card>
@@ -115,14 +115,14 @@ export default async function MarketIntelPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              {latestReport && latestReport.market_trends.priceChangePercent >= 0
+              {latestReport && (latestReport.market_trends?.priceChangePercent ?? 0) >= 0
                 ? <TrendingUp className="w-4 h-4 text-green-600" />
                 : <TrendingDown className="w-4 h-4 text-red-600" />
               }
               <span className="text-xs font-medium">Market Trend</span>
             </div>
-            <p className={`text-2xl font-bold ${latestReport && latestReport.market_trends.priceChangePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {latestReport ? `${latestReport.market_trends.priceChangePercent >= 0 ? '+' : ''}${latestReport.market_trends.priceChangePercent}%` : '—'}
+            <p className={`text-2xl font-bold ${latestReport && (latestReport.market_trends?.priceChangePercent ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {latestReport?.market_trends?.priceChangePercent != null ? `${latestReport.market_trends.priceChangePercent >= 0 ? '+' : ''}${latestReport.market_trends.priceChangePercent}%` : '—'}
             </p>
           </CardContent>
         </Card>
@@ -161,11 +161,11 @@ export default async function MarketIntelPage() {
           <CardContent>
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-2xl font-bold">{latestReport?.market_trends.totalActiveListings.toLocaleString() || '—'}</p>
+                <p className="text-2xl font-bold">{latestReport?.market_trends?.totalActiveListings?.toLocaleString() || '—'}</p>
                 <p className="text-xs text-muted-foreground">Total marketplace listings</p>
               </div>
               <div>
-                <p className="text-2xl font-bold">{latestReport?.market_trends.newListingsThisWeek || '—'}</p>
+                <p className="text-2xl font-bold">{latestReport?.market_trends?.newListingsThisWeek || '—'}</p>
                 <p className="text-xs text-muted-foreground">New this week</p>
               </div>
             </div>
@@ -174,7 +174,7 @@ export default async function MarketIntelPage() {
       </div>
 
       {/* AI Insights */}
-      {latestReport && (
+      {latestReport?.ai_insights && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">AI Market Analysis</CardTitle>
@@ -193,7 +193,7 @@ export default async function MarketIntelPage() {
       )}
 
       {/* Pricing Alerts */}
-      {latestReport && latestReport.inventory_stats.overpriced.length > 0 && (
+      {latestReport && (latestReport.inventory_stats?.overpriced?.length ?? 0) > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -203,14 +203,14 @@ export default async function MarketIntelPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {latestReport.inventory_stats.overpriced.map((item) => (
+              {latestReport.inventory_stats?.overpriced?.map((item) => (
                 <div key={item.id} className="flex items-center justify-between py-2 border-b last:border-0">
                   <div>
                     <p className="text-sm font-medium">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">Market avg: ${item.marketAvg.toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">Market avg: ${item.marketAvg?.toLocaleString() ?? '—'}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold">${item.price.toLocaleString()}</p>
+                    <p className="text-sm font-bold">${item.price?.toLocaleString() ?? '—'}</p>
                     <Badge variant="destructive" className="text-[10px]">+{item.percentAbove}% above market</Badge>
                   </div>
                 </div>
@@ -221,14 +221,14 @@ export default async function MarketIntelPage() {
       )}
 
       {/* Recommendations */}
-      {latestReport && latestReport.recommendations.length > 0 && (
+      {latestReport && (latestReport.recommendations?.length ?? 0) > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Recommended Actions</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {latestReport.recommendations.map((rec: string, i: number) => (
+              {latestReport.recommendations?.map((rec: string, i: number) => (
                 <li key={i} className="flex items-start gap-3 text-sm">
                   <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">{i + 1}</span>
                   <span>{rec}</span>
@@ -267,7 +267,7 @@ export default async function MarketIntelPage() {
                     Week of {new Date(report.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </span>
                   <Badge variant="outline" className="text-xs">
-                    {(report.report_data as { inventory_stats: { totalListings: number } }).inventory_stats.totalListings} listings analyzed
+                    {(report.report_data as { inventory_stats?: { totalListings?: number } })?.inventory_stats?.totalListings ?? 0} listings analyzed
                   </Badge>
                 </div>
               ))}

@@ -4,6 +4,7 @@ import { createFloorPlanAccountSchema } from '@/lib/validations/floor-plan';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { requireCsrf } from '@/lib/security/csrf';
+import { enforceFeature } from '@/lib/entitlements';
 
 // GET - List dealer's floor plan accounts
 export async function GET(request: NextRequest) {
@@ -23,6 +24,9 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateError = await enforceFeature(supabase, user.id, 'floorPlan');
+    if (gateError) return gateError;
 
     const { data, error } = await supabase
       .from('floor_plan_accounts')
@@ -83,6 +87,9 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateError = await enforceFeature(supabase, user.id, 'floorPlan');
+    if (gateError) return gateError;
 
     // Rate limiting
     const identifier = getClientIdentifier(request);

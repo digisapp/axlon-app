@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Search,
 } from 'lucide-react';
+import { jsonLdString } from '@/lib/seo/json-ld';
 
 function createSupabase() {
   return createClient(
@@ -211,8 +212,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(breadcrumbJsonLd) }} />
       {/* Breadcrumbs */}
       <div className="border-b bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 py-3">

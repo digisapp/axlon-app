@@ -183,11 +183,22 @@ export default function SnapListPage() {
     }
 
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) {
+      toast.error('Your session has expired. Please sign in again.');
+      router.push('/login');
+      return;
+    }
 
     // Process each photo: compress → upload → AI analyze
+    let uploadedCount = 0;
     for (let i = 0; i < photos.length; i++) {
       const photo = photos[i];
+
+      // Skip photos that already uploaded successfully (e.g. on retry)
+      if (photo.status === 'done' && photo.uploadedUrl) {
+        uploadedCount++;
+        continue;
+      }
 
       // Compress
       setPhotos(prev => prev.map(p =>
@@ -242,6 +253,7 @@ export default function SnapListPage() {
         setPhotos(prev => prev.map(p =>
           p.id === photo.id ? { ...p, status: 'done', progress: 100, uploadedUrl: url } : p
         ));
+        uploadedCount++;
 
         // AI analyze first photo only (to get make/model/type)
         if (i === 0) {
@@ -270,6 +282,13 @@ export default function SnapListPage() {
           p.id === photo.id ? { ...p, status: 'error', error: msg } : p
         ));
       }
+    }
+
+    // Don't proceed if nothing uploaded
+    if (uploadedCount === 0) {
+      toast.error('Photo uploads failed. Please check your connection and try again.');
+      setStep('capture');
+      return;
     }
 
     // Move to details step
@@ -343,22 +362,33 @@ export default function SnapListPage() {
 
       // Save images
       const uploadedPhotos = photos.filter(p => p.uploadedUrl);
+      let imagesAttached = true;
       if (uploadedPhotos.length > 0) {
-        await csrfFetch(`/api/listings/${listing.id}/images`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            images: uploadedPhotos.map((p, i) => ({
-              url: p.uploadedUrl,
-              is_primary: i === 0,
-              sort_order: i,
-              ai_analysis: p.aiAnalysis || null,
-            })),
-          }),
-        });
+        try {
+          const imgRes = await csrfFetch(`/api/listings/${listing.id}/images`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              images: uploadedPhotos.map((p, i) => ({
+                url: p.uploadedUrl,
+                is_primary: i === 0,
+                sort_order: i,
+                ai_analysis: p.aiAnalysis || null,
+              })),
+            }),
+          });
+          imagesAttached = imgRes.ok;
+        } catch (error) {
+          logger.error('Snap & List image attach error', { error });
+          imagesAttached = false;
+        }
       }
 
-      toast.success(status === 'active' ? 'Listing published!' : 'Draft saved!');
+      if (!imagesAttached) {
+        toast.error('Listing was created, but the photos could not be attached. Please add them on the edit page.');
+      } else {
+        toast.success(status === 'active' ? 'Listing published!' : 'Draft saved!');
+      }
       router.push(`/dashboard/listings/${listing.id}/edit`);
     } catch (error) {
       logger.error('Snap & List publish error', { error });

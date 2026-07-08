@@ -23,6 +23,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Each listing triggers an xAI translation call — cap the batch so a single
+    // request can't multiply AI cost arbitrarily.
+    const MAX_LISTINGS = 50;
+    if (listings.length > MAX_LISTINGS) {
+      return NextResponse.json(
+        { error: `Too many listings; maximum ${MAX_LISTINGS} per request` },
+        { status: 400 }
+      );
+    }
+
     // Use provided language or detect from header
     const language = (targetLang as TranslationLanguage) ||
       detectLanguage(request.headers.get('accept-language') || undefined);

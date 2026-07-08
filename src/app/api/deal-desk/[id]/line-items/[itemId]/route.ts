@@ -4,6 +4,7 @@ import { updateLineItemSchema } from '@/lib/validations/deals';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { requireCsrf } from '@/lib/security/csrf';
+import { enforceFeature } from '@/lib/entitlements';
 
 interface RouteParams {
   params: Promise<{ id: string; itemId: string }>;
@@ -28,6 +29,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateError = await enforceFeature(supabase, user.id, 'dealDesk');
+    if (gateError) return gateError;
     const csrfError = await requireCsrf(request);
     if (csrfError) return csrfError;
 
@@ -130,6 +134,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateError = await enforceFeature(supabase, user.id, 'dealDesk');
+    if (gateError) return gateError;
     const csrfError = await requireCsrf(request);
     if (csrfError) return csrfError;
 

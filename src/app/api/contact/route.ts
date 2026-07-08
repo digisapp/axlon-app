@@ -76,7 +76,8 @@ export async function POST(request: NextRequest) {
 
     try {
       const resend = new Resend(process.env.RESEND_API_KEY);
-      await resend.emails.send({
+      // Resend resolves with { error } instead of throwing — inspect it
+      const { error: adminEmailError } = await resend.emails.send({
         from: 'AXLON AI <noreply@axlon.ai>',
         to: ADMIN_EMAIL,
         subject: `${subjectLine} from ${validatedData.name}`,
@@ -115,8 +116,15 @@ export async function POST(request: NextRequest) {
           </div>
         `,
       });
+      if (adminEmailError) {
+        logger.error('Failed to send contact admin notification', {
+          error: adminEmailError,
+          recipient: ADMIN_EMAIL,
+          submissionId: data?.id,
+        });
+      }
       // Send auto-reply to the submitter
-      await resend.emails.send({
+      const { error: autoReplyError } = await resend.emails.send({
         from: 'AXLON AI <noreply@axlon.ai>',
         to: validatedData.email,
         subject: `We received your message — AXLON AI`,
@@ -152,8 +160,19 @@ export async function POST(request: NextRequest) {
           </div>
         `,
       });
+      if (autoReplyError) {
+        logger.error('Failed to send contact auto-reply', {
+          error: autoReplyError,
+          recipient: validatedData.email,
+          submissionId: data?.id,
+        });
+      }
     } catch (emailError) {
-      logger.error('Failed to send contact notification email', { error: emailError });
+      logger.error('Failed to send contact notification email', {
+        error: emailError,
+        recipient: ADMIN_EMAIL,
+        submissionId: data?.id,
+      });
     }
 
     return NextResponse.json({ data, message: 'Message sent successfully' });

@@ -15,6 +15,7 @@ import { QueryProvider } from "@/components/providers/QueryProvider";
 import { CsrfProvider } from "@/context/CsrfContext";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { jsonLdString } from "@/lib/seo/json-ld";
 import "./globals.css";
 
 // Organization JSON-LD Schema for rich search results
@@ -46,7 +47,7 @@ function OrganizationJsonLd({ nonce }: { nonce?: string }) {
     <script
       nonce={nonce}
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdString(schema) }}
     />
   );
 }
@@ -72,7 +73,7 @@ function WebsiteJsonLd({ nonce }: { nonce?: string }) {
     <script
       nonce={nonce}
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdString(schema) }}
     />
   );
 }

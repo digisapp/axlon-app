@@ -1,33 +1,47 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { CheckCircle, Loader2, MailX } from 'lucide-react';
-import { csrfFetch } from '@/lib/csrf-fetch';
+import { AlertCircle, CheckCircle, Loader2, MailX } from 'lucide-react';
+
+type Status = 'initializing' | 'ready' | 'loading' | 'success' | 'invalid' | 'error';
 
 export default function UnsubscribePage() {
   const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [token, setToken] = useState('');
+  const [status, setStatus] = useState<Status>('initializing');
 
-  // Pre-fill from URL param
-  if (typeof window !== 'undefined' && !email) {
+  // Unsubscribe links carry email + HMAC token in the query string
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const emailParam = params.get('email');
-    if (emailParam) setEmail(emailParam);
-  }
+    const tokenParam = params.get('token');
+    if (emailParam && tokenParam) {
+      setEmail(emailParam);
+      setToken(tokenParam);
+      setStatus('ready');
+    } else {
+      setStatus('invalid');
+    }
+  }, []);
 
   const handleUnsubscribe = async () => {
-    if (!email) return;
+    if (!email || !token) return;
     setStatus('loading');
     try {
-      const res = await csrfFetch('/api/unsubscribe', {
+      const res = await fetch('/api/unsubscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, token }),
       });
-      setStatus(res.ok ? 'success' : 'error');
+      if (res.ok) {
+        setStatus('success');
+      } else if (res.status === 403) {
+        setStatus('invalid');
+      } else {
+        setStatus('error');
+      }
     } catch {
       setStatus('error');
     }
@@ -39,34 +53,48 @@ export default function UnsubscribePage() {
         <CardHeader className="text-center">
           {status === 'success' ? (
             <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+          ) : status === 'invalid' ? (
+            <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
           ) : (
             <MailX className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           )}
           <CardTitle>
-            {status === 'success' ? 'Unsubscribed' : 'Unsubscribe from emails'}
+            {status === 'success'
+              ? 'Unsubscribed'
+              : status === 'invalid'
+                ? 'Invalid unsubscribe link'
+                : 'Unsubscribe from emails'}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {status === 'success' ? (
+          {status === 'initializing' ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : status === 'success' ? (
             <p className="text-center text-muted-foreground">
               You have been unsubscribed. You will no longer receive market reports
               or follow-up emails from AXLON.
             </p>
+          ) : status === 'invalid' ? (
+            <p className="text-center text-sm text-muted-foreground">
+              This unsubscribe link is missing or has an invalid token. Please use
+              the unsubscribe link from a recent AXLON email, or contact{' '}
+              <a href="mailto:sales@axlon.ai" className="underline">
+                sales@axlon.ai
+              </a>{' '}
+              and we&apos;ll remove you manually.
+            </p>
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground text-center">
-                Enter your email to unsubscribe from all AXLON automated emails.
+                Unsubscribe <span className="font-medium text-foreground">{email}</span>{' '}
+                from all AXLON automated emails?
               </p>
-              <Input
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
               <Button
                 className="w-full"
                 onClick={handleUnsubscribe}
-                disabled={!email || status === 'loading'}
+                disabled={status === 'loading'}
               >
                 {status === 'loading' && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Unsubscribe

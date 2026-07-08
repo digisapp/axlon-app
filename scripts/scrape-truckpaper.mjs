@@ -23,6 +23,7 @@
 
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { writeFileSync, readFileSync, existsSync } from 'fs';
 import 'dotenv/config';
@@ -200,7 +201,7 @@ async function getOrCreateFallbackDealer() {
   const { data: authUser } = await supabase.auth.admin.createUser({
     email: 'truckpaper@dealers.axlon.ai',
     email_confirm: true,
-    password: 'TruckPaper2024!',
+    password: crypto.randomBytes(24).toString('base64url'), // random placeholder; account is managed via Supabase admin API
   });
 
   if (authUser?.user?.id) {

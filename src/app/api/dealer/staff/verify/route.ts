@@ -6,6 +6,10 @@ import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 
+// Lockout policy (matches verify_staff_pin in migration 024_dealer_staff_pins.sql)
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_MINUTES = 15;
+
 /**
  * Hash a PIN using SHA-256 with salt (matches admin route)
  */
@@ -119,6 +123,28 @@ export async function POST(request: NextRequest) {
     const staff = staffMembers?.find(s => verifyPin(pin, s));
 
     if (error || !staff) {
+      // Increment failed_attempts on every candidate the PIN was tested
+      // against, locking the account for LOCKOUT_MINUTES once the counter
+      // reaches MAX_FAILED_ATTEMPTS.
+      if (!error && staffMembers && staffMembers.length > 0) {
+        await Promise.all(
+          staffMembers.map((candidate) => {
+            const newFailedAttempts = (candidate.failed_attempts || 0) + 1;
+            const lockedUntil =
+              newFailedAttempts >= MAX_FAILED_ATTEMPTS
+                ? new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000).toISOString()
+                : null;
+            return supabase
+              .from('dealer_staff')
+              .update({
+                failed_attempts: newFailedAttempts,
+                locked_until: lockedUntil,
+              })
+              .eq('id', candidate.id);
+          })
+        );
+      }
+
       // Log failed attempt
       await supabase.from('dealer_staff_access_logs').insert({
         dealer_id,
@@ -152,6 +178,7 @@ export async function POST(request: NextRequest) {
         last_access_at: new Date().toISOString(),
         access_count: (staff.access_count || 0) + 1,
         failed_attempts: 0,
+        locked_until: null,
       })
       .eq('id', staff.id);
 

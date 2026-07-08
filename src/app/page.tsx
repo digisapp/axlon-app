@@ -16,6 +16,7 @@ import { HomeSearchSection } from '@/components/home/HomeSearchSection';
 import { HomeDeals } from '@/components/home/HomeDeals';
 import { TryAxlonLive } from '@/components/home/TryAxlonLive';
 import { getHomeDeals, getHomeStats, roundStat } from '@/lib/home-data';
+import { jsonLdString } from '@/lib/seo/json-ld';
 
 export const metadata: Metadata = {
   alternates: {
@@ -70,7 +71,7 @@ function HomePageJsonLd() {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdString(schema) }}
     />
   );
 }

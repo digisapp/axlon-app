@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
+import { jsonLdString } from '@/lib/seo/json-ld';
 
 export const metadata: Metadata = {
   title: 'Deals - Below Market Price Trucks & Trailers',
@@ -27,7 +28,7 @@ export default async function DealsLayout({ children }: { children: React.ReactN
         nonce={nonce}
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: jsonLdString({
             '@context': 'https://schema.org',
             '@type': 'CollectionPage',
             name: 'Deals - Below Market Price Trucks & Trailers',

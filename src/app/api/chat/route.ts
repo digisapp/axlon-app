@@ -1,12 +1,26 @@
-import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID, timingSafeEqual } from 'crypto';
 import { createXai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email/resend';
 import { newChatConversationEmail } from '@/lib/email/templates';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, chatMessageSchema } from '@/lib/validations/api';
+
+// httpOnly cookie that binds an anonymous visitor to the conversations they
+// created (stored as chat_conversations.visitor_fingerprint). Same name /
+// attributes / TTL as POST/PUT /api/ai/dealer-chat for consistency.
+const VISITOR_COOKIE = 'axlon_chat_visitor';
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function tokensMatch(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
 
 function getXai() {
   if (!process.env.XAI_API_KEY) {
@@ -66,7 +80,16 @@ export async function POST(request: NextRequest) {
     }
     const { dealerId, conversationId, message, chatSettings } = validatedData;
 
-    const supabase = await createClient();
+    // Use the service-role admin client: chat_conversations / chat_messages RLS
+    // is locked down to dealer-owner + service_role (migration 057), so visitor
+    // reads/writes must go through the admin client, gated by the explicit
+    // fingerprint check below.
+    const supabase = createAdminClient();
+
+    // Visitor identity: httpOnly cookie token, also stored as the conversation's
+    // visitor_fingerprint. Absent on the anonymous first message.
+    const cookieToken = request.cookies.get(VISITOR_COOKIE)?.value;
+    const visitorToken = cookieToken && UUID_REGEX.test(cookieToken) ? cookieToken : null;
 
     // Verify dealer exists and is a valid dealer account
     const { data: dealer } = await supabase
@@ -109,23 +132,52 @@ export async function POST(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    // Create or get conversation
-    let activeConversationId = conversationId;
-    let isNewConversation = false;
+    // Create or get conversation.
+    // If a conversationId is supplied, it must be a UUID that the caller owns
+    // (their fingerprint cookie matches the stored visitor_fingerprint).
+    // Anything else (missing/invalid/mismatched) falls back to starting a fresh
+    // conversation so the anonymous ChatWidget flow keeps working — it can't
+    // read or write into a conversation it doesn't own.
+    let activeConversationId: string | undefined;
+    // The fingerprint bound to the active conversation. Reused across a visitor's
+    // conversations; minted here when they have no cookie yet (first message).
+    const fingerprint = visitorToken || randomUUID();
+
+    if (conversationId && UUID_REGEX.test(conversationId)) {
+      const { data: conversation } = await supabase
+        .from('chat_conversations')
+        .select('id, dealer_id, visitor_fingerprint')
+        .eq('id', conversationId)
+        .single();
+
+      if (
+        conversation &&
+        conversation.dealer_id === dealerId &&
+        visitorToken &&
+        conversation.visitor_fingerprint &&
+        tokensMatch(conversation.visitor_fingerprint, visitorToken)
+      ) {
+        activeConversationId = conversation.id;
+      } else {
+        logger.warn('Chat: rejected conversationId (ownership mismatch), starting fresh', {
+          conversationId,
+          dealerId,
+        });
+      }
+    }
 
     if (!activeConversationId) {
-      // Create new conversation
+      // Create new conversation, binding it to the visitor's cookie token.
       const { data: newConversation } = await supabase
         .from('chat_conversations')
         .insert({
           dealer_id: dealerId,
-          visitor_fingerprint: `visitor-${Date.now()}`, // In production, use a proper fingerprint
+          visitor_fingerprint: fingerprint,
         })
         .select('id')
         .single();
 
       activeConversationId = newConversation?.id;
-      isNewConversation = true;
 
       // Send notification for new conversation (non-blocking)
       if (shouldNotifyNewChat && dealer.email && activeConversationId) {
@@ -218,10 +270,22 @@ Respond naturally as the dealer's AI assistant:`,
       });
     }
 
-    return NextResponse.json({
+    const jsonResponse = NextResponse.json({
       response,
       conversationId: activeConversationId,
     });
+
+    // Bind this visitor to their conversations for future messages/leads.
+    // Same-origin fetch from ChatWidget carries this httpOnly cookie back.
+    jsonResponse.cookies.set(VISITOR_COOKIE, fingerprint, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+    });
+
+    return jsonResponse;
   } catch (error) {
     logger.error('Chat API error', { error });
     return NextResponse.json(

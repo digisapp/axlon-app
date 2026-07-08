@@ -1,10 +1,23 @@
-import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email/resend';
 import { chatLeadCapturedEmail } from '@/lib/email/templates';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, chatLeadSchema } from '@/lib/validations/api';
+
+// Same visitor-fingerprint cookie the /api/chat route sets when a conversation
+// is created, used here to prove ownership before touching a conversation row.
+const VISITOR_COOKIE = 'axlon_chat_visitor';
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function tokensMatch(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,7 +45,39 @@ export async function POST(request: NextRequest) {
     }
     const { dealerId, conversationId, name, email, phone } = validatedData;
 
-    const supabase = await createClient();
+    // Service-role client: chat_conversations RLS is dealer-owner + service_role
+    // only (migration 057). Visitor writes go through admin, gated by the
+    // fingerprint check below.
+    const supabase = createAdminClient();
+
+    // Only touch a conversation the caller proves they own (UUID + matching
+    // fingerprint cookie). Pure lead capture with no conversationId still works.
+    const cookieToken = request.cookies.get(VISITOR_COOKIE)?.value;
+    const visitorToken = cookieToken && UUID_REGEX.test(cookieToken) ? cookieToken : null;
+    let ownedConversationId: string | null = null;
+
+    if (conversationId && UUID_REGEX.test(conversationId)) {
+      const { data: conversation } = await supabase
+        .from('chat_conversations')
+        .select('id, dealer_id, visitor_fingerprint')
+        .eq('id', conversationId)
+        .single();
+
+      if (
+        conversation &&
+        conversation.dealer_id === dealerId &&
+        visitorToken &&
+        conversation.visitor_fingerprint &&
+        tokensMatch(conversation.visitor_fingerprint, visitorToken)
+      ) {
+        ownedConversationId = conversation.id;
+      } else {
+        logger.warn('Chat lead: ignoring conversationId (ownership mismatch)', {
+          conversationId,
+          dealerId,
+        });
+      }
+    }
 
     // Get dealer info for notification
     const { data: dealer } = await supabase
@@ -41,8 +86,8 @@ export async function POST(request: NextRequest) {
       .eq('id', dealerId)
       .single();
 
-    // Update conversation with visitor info
-    if (conversationId) {
+    // Update conversation with visitor info (only if owned)
+    if (ownedConversationId) {
       await supabase
         .from('chat_conversations')
         .update({
@@ -51,7 +96,7 @@ export async function POST(request: NextRequest) {
           visitor_phone: phone || null,
           status: 'converted',
         })
-        .eq('id', conversationId);
+        .eq('id', ownedConversationId);
     }
 
     // Create a lead record
@@ -71,16 +116,19 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (leadError) {
-      logger.error('Error creating lead', { leadError });
-      // Still return success - conversation was updated
+      logger.error('Error creating lead', { leadError, dealerId, conversationId });
+      return NextResponse.json(
+        { error: 'Failed to save your contact info. Please try again.' },
+        { status: 500 }
+      );
     }
 
-    // Link lead to conversation if both exist
-    if (lead && conversationId) {
+    // Link lead to conversation if both exist and the conversation is owned
+    if (lead && ownedConversationId) {
       await supabase
         .from('chat_conversations')
         .update({ lead_id: lead.id })
-        .eq('id', conversationId);
+        .eq('id', ownedConversationId);
     }
 
     // Send notification email to dealer
@@ -98,7 +146,7 @@ export async function POST(request: NextRequest) {
             visitorName: name,
             visitorEmail: email,
             visitorPhone: phone,
-            conversationUrl: `${baseUrl}/dashboard/conversations/${conversationId}`,
+            conversationUrl: `${baseUrl}/dashboard/conversations/${ownedConversationId ?? ''}`,
             leadsUrl: `${baseUrl}/dashboard/leads`,
           }),
         });

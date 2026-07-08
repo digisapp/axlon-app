@@ -4,13 +4,9 @@ import { logger } from '@/lib/logger';
 import { sendEmail } from '@/lib/email/resend';
 import { escapeHtml, escapeAttribute } from '@/lib/utils/html-escape';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
+import { verifyCronRequest } from '@/lib/security/cron-auth';
 
 export const maxDuration = 300;
-
-function verifyRequest(request: NextRequest): boolean {
-  const authHeader = request.headers.get('authorization');
-  return authHeader === `Bearer ${process.env.CRON_SECRET}`;
-}
 
 const BATCH_SIZE = 50; // Saved searches processed per run
 const MAX_LISTINGS_PER_EMAIL = 5;
@@ -218,7 +214,7 @@ function buildEmailHtml(
 }
 
 export async function GET(request: NextRequest) {
-  if (!verifyRequest(request)) {
+  if (!verifyCronRequest(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -4,19 +4,16 @@ import { logger } from '@/lib/logger';
 import { sendEmail } from '@/lib/email/resend';
 import { generateFollowUpEmail, type FollowUpContext } from '@/lib/ai/lead-nurture';
 import { escapeHtml, escapeAttribute } from '@/lib/utils/html-escape';
+import { verifyCronRequest } from '@/lib/security/cron-auth';
 
-function verifyRequest(request: NextRequest): boolean {
-  const authHeader = request.headers.get('authorization');
-  if (authHeader === `Bearer ${process.env.CRON_SECRET}`) {
-    return true;
-  }
-  return false;
-}
+// Slow per-run work (queries + xAI generate + Resend). Give it Vercel's max.
+export const maxDuration = 300;
 
 const BATCH_SIZE = 10; // Process up to 10 follow-ups per cron run
+const STALE_SENDING_MS = 15 * 60 * 1000; // recover rows stuck in 'sending' > 15 min
 
 export async function GET(request: NextRequest) {
-  if (!verifyRequest(request)) {
+  if (!verifyCronRequest(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -24,6 +21,16 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient();
 
     const now = new Date().toISOString();
+
+    // Recover rows a prior run stranded in 'sending' (e.g. function timeout).
+    // Without this the fetch below — which only picks 'pending' — would never
+    // see them again and the buyer would silently drop out of the sequence.
+    const staleCutoff = new Date(Date.now() - STALE_SENDING_MS).toISOString();
+    await supabase
+      .from('lead_followup_queue')
+      .update({ status: 'pending' })
+      .eq('status', 'sending')
+      .lt('updated_at', staleCutoff);
 
     // Fetch pending follow-ups that are due
     const { data: pendingFollowups, error: fetchError } = await supabase
@@ -53,11 +60,20 @@ export async function GET(request: NextRequest) {
 
     for (const followup of pendingFollowups) {
       try {
-        // Mark as sending
-        await supabase
+        // Atomically claim this row: only the run whose UPDATE actually flips
+        // 'pending'→'sending' may process it. A concurrent/overlapping run will
+        // get zero rows back and skip, preventing double-emailing the buyer.
+        const { data: claimed } = await supabase
           .from('lead_followup_queue')
           .update({ status: 'sending' })
-          .eq('id', followup.id);
+          .eq('id', followup.id)
+          .eq('status', 'pending')
+          .select('id');
+
+        if (!claimed || claimed.length === 0) {
+          // Another run already claimed it (or it changed status) — skip.
+          continue;
+        }
 
         // Check if the lead has been contacted/converted already
         const { data: lead } = await supabase

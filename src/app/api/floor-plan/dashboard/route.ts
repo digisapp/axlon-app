@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { enforceFeature } from '@/lib/entitlements';
 
 // GET - Get floor plan dashboard metrics
 export async function GET(request: NextRequest) {
@@ -21,6 +22,9 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateError = await enforceFeature(supabase, user.id, 'floorPlan');
+    if (gateError) return gateError;
 
     // Get metrics using the database function
     const { data: metricsData, error: metricsError } = await supabase

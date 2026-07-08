@@ -251,6 +251,16 @@ export async function POST(request: NextRequest) {
         product,
         listing_id: listingId || '',
       },
+      // Copy metadata onto the subscription itself so subscription lifecycle
+      // webhooks (updated/deleted) can tell platform plans from voice add-ons
+      ...(mode === 'subscription' && {
+        subscription_data: {
+          metadata: {
+            user_id: user.id,
+            product,
+          },
+        },
+      }),
     });
 
     return NextResponse.json({ url: session.url });

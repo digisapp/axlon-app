@@ -83,10 +83,26 @@ export default function AIPerformancePage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const s = data?.summary;
+  // Normalize the summary so a partial/malformed API response can't crash the page
+  const s: PerformanceData['summary'] = {
+    totalLeadsAllTime: data?.summary?.totalLeadsAllTime ?? 0,
+    leadsThisPeriod: data?.summary?.leadsThisPeriod ?? 0,
+    leadTrend: data?.summary?.leadTrend ?? 0,
+    highPriorityLeads: data?.summary?.highPriorityLeads ?? 0,
+    avgLeadScore: data?.summary?.avgLeadScore ?? 0,
+    autoRepliesSent: data?.summary?.autoRepliesSent ?? 0,
+    followUpEmailsSent: data?.summary?.followUpEmailsSent ?? 0,
+    chatConversations: data?.summary?.chatConversations ?? 0,
+    chatLeadsCaptured: data?.summary?.chatLeadsCaptured ?? 0,
+    totalAIActions: data?.summary?.totalAIActions ?? 0,
+    hoursSaved: data?.summary?.hoursSaved ?? 0,
+    conversionRate: data?.summary?.conversionRate ?? 0,
+    activeListings: data?.summary?.activeListings ?? 0,
+    totalMarketplaceViews: data?.summary?.totalMarketplaceViews ?? 0,
+  };
 
   // Estimated monthly value — $22/hr average admin wage
-  const dollarsSaved = s ? s.hoursSaved * 22 : 0;
+  const dollarsSaved = s.hoursSaved * 22;
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -138,7 +154,7 @@ export default function AIPerformancePage() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="w-4 h-4" />
               Last {period} days —{' '}
-              {new Date(data.period.since).toLocaleDateString([], {
+              {new Date(data.period?.since ?? Date.now()).toLocaleDateString([], {
                 month: 'short', day: 'numeric',
               })}{' '}
               to today
@@ -151,7 +167,7 @@ export default function AIPerformancePage() {
                 iconColor="text-primary"
                 iconBg="bg-primary/10"
                 label="Hours Saved by AI"
-                value={`${s!.hoursSaved}h`}
+                value={`${s.hoursSaved}h`}
                 subValue={`≈ $${dollarsSaved.toLocaleString()} in admin time`}
               />
               <HeroStat
@@ -159,7 +175,7 @@ export default function AIPerformancePage() {
                 iconColor="text-amber-500"
                 iconBg="bg-amber-500/10"
                 label="Total AI Actions"
-                value={s!.totalAIActions.toLocaleString()}
+                value={s.totalAIActions.toLocaleString()}
                 subValue="Replies, emails & chats"
               />
               <HeroStat
@@ -167,21 +183,21 @@ export default function AIPerformancePage() {
                 iconColor="text-emerald-500"
                 iconBg="bg-emerald-500/10"
                 label="Leads Received"
-                value={s!.leadsThisPeriod.toString()}
+                value={s.leadsThisPeriod.toString()}
                 subValue={
-                  s!.leadTrend !== 0
-                    ? `${s!.leadTrend > 0 ? '+' : ''}${s!.leadTrend}% vs prior period`
+                  s.leadTrend !== 0
+                    ? `${s.leadTrend > 0 ? '+' : ''}${s.leadTrend}% vs prior period`
                     : 'vs prior period'
                 }
-                trend={s!.leadTrend}
+                trend={s.leadTrend}
               />
               <HeroStat
                 icon={TrendingUp}
                 iconColor="text-cyan-500"
                 iconBg="bg-cyan-500/10"
                 label="Conversion Rate"
-                value={`${s!.conversionRate}%`}
-                subValue={`${data.pipeline.converted} deals closed`}
+                value={`${s.conversionRate}%`}
+                subValue={`${data.pipeline?.converted ?? 0} deals closed`}
               />
             </div>
 
@@ -195,7 +211,7 @@ export default function AIPerformancePage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold">{s!.autoRepliesSent}</p>
+                  <p className="text-3xl font-bold">{s.autoRepliesSent}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Every inbound inquiry got an instant, personalized reply
                   </p>
@@ -214,14 +230,14 @@ export default function AIPerformancePage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold">{s!.followUpEmailsSent}</p>
+                  <p className="text-3xl font-bold">{s.followUpEmailsSent}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Emails sent across 4-step nurture sequence
                   </p>
                   <div className="mt-3 space-y-1">
-                    {data.followUpsByStep.map(({ step, sent }) => (
+                    {(data.followUpsByStep ?? []).map(({ step, sent }) => (
                       <div key={step} className="flex justify-between items-center text-xs">
-                        <span className="text-muted-foreground">{STEP_LABELS[step]}</span>
+                        <span className="text-muted-foreground">{STEP_LABELS[step] ?? `Step ${step}`}</span>
                         <span className="font-semibold">{sent}</span>
                       </div>
                     ))}
@@ -237,13 +253,13 @@ export default function AIPerformancePage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold">{s!.chatConversations}</p>
+                  <p className="text-3xl font-bold">{s.chatConversations}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Buyer conversations handled 24/7
                   </p>
                   <div className="mt-3 flex items-center gap-2 text-xs text-emerald-600 font-medium">
                     <Users className="w-3.5 h-3.5" />
-                    {s!.chatLeadsCaptured} leads captured from chat
+                    {s.chatLeadsCaptured} leads captured from chat
                   </div>
                 </CardContent>
               </Card>
@@ -260,13 +276,13 @@ export default function AIPerformancePage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {[
-                    { label: 'New', count: data.pipeline.new, color: 'bg-blue-500' },
-                    { label: 'Contacted', count: data.pipeline.contacted, color: 'bg-yellow-500' },
-                    { label: 'Qualified', count: data.pipeline.qualified, color: 'bg-purple-500' },
-                    { label: 'Converted', count: data.pipeline.converted, color: 'bg-emerald-500' },
-                    { label: 'Lost', count: data.pipeline.lost, color: 'bg-slate-400' },
+                    { label: 'New', count: data.pipeline?.new ?? 0, color: 'bg-blue-500' },
+                    { label: 'Contacted', count: data.pipeline?.contacted ?? 0, color: 'bg-yellow-500' },
+                    { label: 'Qualified', count: data.pipeline?.qualified ?? 0, color: 'bg-purple-500' },
+                    { label: 'Converted', count: data.pipeline?.converted ?? 0, color: 'bg-emerald-500' },
+                    { label: 'Lost', count: data.pipeline?.lost ?? 0, color: 'bg-slate-400' },
                   ].map(({ label, count, color }) => {
-                    const total = s!.totalLeadsAllTime || 1;
+                    const total = s.totalLeadsAllTime || 1;
                     const pct = Math.round((count / total) * 100);
                     return (
                       <div key={label}>
@@ -284,7 +300,7 @@ export default function AIPerformancePage() {
                     );
                   })}
                   <p className="text-xs text-muted-foreground pt-1">
-                    All-time total: {s!.totalLeadsAllTime} leads
+                    All-time total: {s.totalLeadsAllTime} leads
                   </p>
                 </CardContent>
               </Card>
@@ -301,23 +317,23 @@ export default function AIPerformancePage() {
                     <span className="text-sm text-muted-foreground">Avg AI lead score</span>
                     <div className="flex items-center gap-2">
                       <div className={`text-sm font-bold px-2 py-0.5 rounded-full ${
-                        s!.avgLeadScore >= 70
+                        s.avgLeadScore >= 70
                           ? 'bg-emerald-100 text-emerald-700'
-                          : s!.avgLeadScore >= 50
+                          : s.avgLeadScore >= 50
                           ? 'bg-yellow-100 text-yellow-700'
                           : 'bg-slate-100 text-slate-700'
                       }`}>
-                        {s!.avgLeadScore}/100
+                        {s.avgLeadScore}/100
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">High-priority leads</span>
-                    <span className="font-semibold text-sm">{s!.highPriorityLeads}</span>
+                    <span className="font-semibold text-sm">{s.highPriorityLeads}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Conversion rate</span>
-                    <span className="font-semibold text-sm">{s!.conversionRate}%</span>
+                    <span className="font-semibold text-sm">{s.conversionRate}%</span>
                   </div>
                   <div className="pt-2 border-t">
                     <p className="text-xs text-muted-foreground">
@@ -340,38 +356,38 @@ export default function AIPerformancePage() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
                   <div>
-                    <p className="text-2xl font-bold">{s!.activeListings}</p>
+                    <p className="text-2xl font-bold">{s.activeListings}</p>
                     <p className="text-xs text-muted-foreground">Active listings</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{s!.totalMarketplaceViews.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">{s.totalMarketplaceViews.toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground">Total listing views</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold">
-                      {s!.activeListings > 0
-                        ? Math.round(s!.totalMarketplaceViews / s!.activeListings)
+                      {s.activeListings > 0
+                        ? Math.round(s.totalMarketplaceViews / s.activeListings)
                         : 0}
                     </p>
                     <p className="text-xs text-muted-foreground">Avg views per listing</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold">
-                      {s!.totalMarketplaceViews > 0 && s!.leadsThisPeriod > 0
-                        ? Math.round(s!.totalMarketplaceViews / s!.leadsThisPeriod)
+                      {s.totalMarketplaceViews > 0 && s.leadsThisPeriod > 0
+                        ? Math.round(s.totalMarketplaceViews / s.leadsThisPeriod)
                         : '—'}
                     </p>
                     <p className="text-xs text-muted-foreground">Views per lead</p>
                   </div>
                 </div>
 
-                {data.topListings.length > 0 && (
+                {(data.topListings?.length ?? 0) > 0 && (
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                       Top Performing Listings
                     </p>
                     <div className="space-y-2">
-                      {data.topListings.map((listing) => (
+                      {(data.topListings ?? []).map((listing) => (
                         <div key={listing.id} className="flex items-center justify-between py-2 border-b last:border-0">
                           <Link
                             href={`/listing/${listing.id}`}
@@ -404,9 +420,9 @@ export default function AIPerformancePage() {
                   </div>
                   <p className="text-slate-400 text-sm leading-relaxed">
                     In the last {period} days, your AI systems handled{' '}
-                    <strong className="text-white">{s!.totalAIActions.toLocaleString()} actions</strong>,
+                    <strong className="text-white">{s.totalAIActions.toLocaleString()} actions</strong>,
                     saving an estimated{' '}
-                    <strong className="text-white">{s!.hoursSaved} hours</strong> of manual work —
+                    <strong className="text-white">{s.hoursSaved} hours</strong> of manual work —
                     equivalent to{' '}
                     <strong className="text-white">${dollarsSaved.toLocaleString()}</strong> in admin time at $22/hr.
                     Your team focused on closing deals, not responding to emails.
@@ -415,7 +431,7 @@ export default function AIPerformancePage() {
                 <div className="space-y-3">
                   <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                     <p className="text-xs text-slate-400 mb-0.5">Hours saved</p>
-                    <p className="text-2xl font-bold text-white">{s!.hoursSaved}h</p>
+                    <p className="text-2xl font-bold text-white">{s.hoursSaved}h</p>
                   </div>
                   <div className="bg-primary/20 rounded-xl p-4 border border-primary/30">
                     <p className="text-xs text-slate-300 mb-0.5">Value delivered</p>

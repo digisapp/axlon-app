@@ -4,6 +4,7 @@ import { updateFloorPlanUnitSchema } from '@/lib/validations/floor-plan';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { requireCsrf } from '@/lib/security/csrf';
+import { enforceFeature } from '@/lib/entitlements';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -28,6 +29,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateError = await enforceFeature(supabase, user.id, 'floorPlan');
+    if (gateError) return gateError;
 
     const { data, error } = await supabase
       .from('listing_floor_plans')
@@ -77,6 +81,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateError = await enforceFeature(supabase, user.id, 'floorPlan');
+    if (gateError) return gateError;
 
     const csrfError = await requireCsrf(request);
     if (csrfError) return csrfError;

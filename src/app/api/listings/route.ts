@@ -139,10 +139,24 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  if (minPrice) query = query.gte('price', parseFloat(minPrice));
-  if (maxPrice) query = query.lte('price', parseFloat(maxPrice));
-  if (minYear) query = query.gte('year', parseInt(minYear));
-  if (maxYear) query = query.lte('year', parseInt(maxYear));
+  // Parse numeric filters defensively — non-numeric input (e.g.
+  // ?min_price=abc) would otherwise produce gte.NaN and a Postgres error
+  const toFiniteNumber = (value: string | null): number | null => {
+    if (!value) return null;
+    const n = parseFloat(value);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const minPriceNum = toFiniteNumber(minPrice);
+  const maxPriceNum = toFiniteNumber(maxPrice);
+  const minYearNum = toFiniteNumber(minYear);
+  const maxYearNum = toFiniteNumber(maxYear);
+  const maxMileageNum = toFiniteNumber(maxMileage);
+
+  if (minPriceNum !== null) query = query.gte('price', minPriceNum);
+  if (maxPriceNum !== null) query = query.lte('price', maxPriceNum);
+  if (minYearNum !== null) query = query.gte('year', minYearNum);
+  if (maxYearNum !== null) query = query.lte('year', maxYearNum);
   if (make) {
     // Support multiple makes (comma-separated) — sanitize to prevent filter injection
     const makes = make.split(',').map(m => sanitizeSearchFilter(m.trim())).filter(Boolean);
@@ -172,7 +186,7 @@ export async function GET(request: NextRequest) {
     }
   }
   if (city) query = query.ilike('city', `%${sanitizeSearchFilter(city)}%`);
-  if (maxMileage) query = query.lte('mileage', parseInt(maxMileage));
+  if (maxMileageNum !== null) query = query.lte('mileage', maxMileageNum);
   if (featured === 'true') query = query.eq('is_featured', true);
   if (listingType) {
     if (listingType === 'rent') {
@@ -195,9 +209,11 @@ export async function GET(request: NextRequest) {
   const sortField = validSortFields.includes(sort) ? sort : 'created_at';
   const sortOrder = order === 'asc' ? true : false;
 
-  // Featured listings first
-  query = query.order('is_featured', { ascending: false });
-  query = query.order(sortField, { ascending: sortOrder });
+  // Featured listings first. nullsFirst: false — Postgres puts NULLs first on
+  // descending order by default, which floated NULL-price rows to the top of
+  // "Price: High to Low" (price/mileage/year are nullable)
+  query = query.order('is_featured', { ascending: false, nullsFirst: false });
+  query = query.order(sortField, { ascending: sortOrder, nullsFirst: false });
 
   // Pagination
   const from = (page - 1) * perPage;

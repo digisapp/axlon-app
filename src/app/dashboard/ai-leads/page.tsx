@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { toast } from 'sonner';
 
 interface Lead {
   id: string;
@@ -78,6 +79,11 @@ const statusConfig = {
   converted: { label: 'Converted', color: 'bg-green-500', icon: TrendingUp },
   lost: { label: 'Lost', color: 'bg-gray-500', icon: X },
 };
+
+const defaultStatusConfig = { label: 'Unknown', color: 'bg-gray-500', icon: Clock };
+
+const getStatusConfig = (status: string) =>
+  statusConfig[status as keyof typeof statusConfig] ?? defaultStatusConfig;
 
 export default function AILeadsPage() {
   const router = useRouter();
@@ -137,9 +143,12 @@ export default function AILeadsPage() {
         }
         // Refresh stats
         fetchLeads();
+      } else {
+        toast.error('Failed to update lead status. Please try again.');
       }
     } catch (error) {
       logger.error('Update status error', { error });
+      toast.error('Failed to update lead status. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -160,9 +169,12 @@ export default function AILeadsPage() {
         if (selectedLead?.id === leadId) {
           setSelectedLead(prev => prev ? { ...prev, notes } : null);
         }
+      } else {
+        toast.error('Failed to save notes. Please try again.');
       }
     } catch (error) {
       logger.error('Update notes error', { error });
+      toast.error('Failed to save notes. Please try again.');
     }
   };
 
@@ -319,7 +331,7 @@ export default function AILeadsPage() {
             ) : (
               <div className="divide-y">
                 {leads.map((lead) => {
-                  const StatusIcon = statusConfig[lead.status].icon;
+                  const StatusIcon = getStatusConfig(lead.status).icon;
                   return (
                     <div
                       key={lead.id}
@@ -328,8 +340,8 @@ export default function AILeadsPage() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className={`p-2 rounded-full ${statusConfig[lead.status].color}/10`}>
-                            <StatusIcon className={`w-4 h-4 ${statusConfig[lead.status].color.replace('bg-', 'text-')}`} />
+                          <div className={`p-2 rounded-full ${getStatusConfig(lead.status).color}/10`}>
+                            <StatusIcon className={`w-4 h-4 ${getStatusConfig(lead.status).color.replace('bg-', 'text-')}`} />
                           </div>
                           <div>
                             <p className="font-medium">
@@ -385,8 +397,8 @@ export default function AILeadsPage() {
               <DialogHeader>
                 <DialogTitle className="flex items-center justify-between">
                   <span>{selectedLead.visitor_name || 'Lead Details'}</span>
-                  <Badge className={`${statusConfig[selectedLead.status].color} text-white`}>
-                    {statusConfig[selectedLead.status].label}
+                  <Badge className={`${getStatusConfig(selectedLead.status).color} text-white`}>
+                    {getStatusConfig(selectedLead.status).label}
                   </Badge>
                 </DialogTitle>
                 <DialogDescription>

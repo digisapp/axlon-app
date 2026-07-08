@@ -2,9 +2,13 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth/with-auth';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { enforceFeature } from '@/lib/entitlements';
 
 // GET - Get deal desk dashboard metrics
 export const GET = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'dealDesk');
+  if (gateError) return gateError;
+
   // Get metrics using the database function
   const { data: metrics, error: metricsError } = await supabase
     .rpc('get_deal_metrics', { p_dealer_id: user.id });

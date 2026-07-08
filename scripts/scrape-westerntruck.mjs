@@ -5,6 +5,7 @@
  * Salt Lake City, UT headquarters
  */
 
+import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
 import { insertRehostedImages } from './lib/rehost-images.mjs';
@@ -53,7 +54,7 @@ async function getOrCreateDealer() {
     return existing.id;
   }
 
-  const password = 'WesternTruck2024!';
+  const password = crypto.randomBytes(24).toString('base64url'); // random placeholder; account is managed via Supabase admin API
   const { data: authUser, error } = await supabase.auth.admin.createUser({
     email: DEALER_INFO.email,
     email_confirm: true,
@@ -76,7 +77,6 @@ async function getOrCreateDealer() {
 
   console.log('Created dealer:', DEALER_INFO.name);
   console.log('  Email:', DEALER_INFO.email);
-  console.log('  Password:', password);
   return authUser.user.id;
 }
 

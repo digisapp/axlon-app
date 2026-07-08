@@ -107,11 +107,12 @@ export default function CallsPage() {
     }
   };
 
-  const fetchCalls = async () => {
+  const fetchCalls = async (pageOverride?: number) => {
     setIsLoading(true);
     try {
+      const page = pageOverride ?? pagination.page;
       const params = new URLSearchParams({
-        page: pagination.page.toString(),
+        page: page.toString(),
         limit: pagination.limit.toString(),
       });
 
@@ -151,8 +152,14 @@ export default function CallsPage() {
   }, [pagination.page, statusFilter]);
 
   const handleSearch = () => {
-    setPagination(prev => ({ ...prev, page: 1 }));
-    fetchCalls();
+    // Reset to page 1 on a new search. If already on page 1 the [pagination.page]
+    // effect won't re-fire, so fetch directly; otherwise let the effect fetch the
+    // new page (passing an explicit page avoids reading a stale closure value).
+    if (pagination.page !== 1) {
+      setPagination(prev => ({ ...prev, page: 1 }));
+    } else {
+      fetchCalls(1);
+    }
   };
 
   const formatDuration = (seconds: number | null) => {

@@ -2,10 +2,15 @@ import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth/with-auth';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { createDealSchema, dealsQuerySchema } from '@/lib/validations/deals';
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import { logger } from '@/lib/logger';
+import { enforceFeature } from '@/lib/entitlements';
 
 // GET - List deals
 export const GET = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'dealDesk');
+  if (gateError) return gateError;
+
   const { searchParams } = new URL(request.url);
   const queryParams = Object.fromEntries(searchParams.entries());
   const parseResult = dealsQuerySchema.safeParse(queryParams);
@@ -53,7 +58,10 @@ export const GET = withAuth(async (request, { user, supabase }) => {
 
   // Search by deal number, buyer name, or buyer email
   if (search) {
-    query = query.or(`deal_number.ilike.%${search}%,buyer_name.ilike.%${search}%,buyer_email.ilike.%${search}%`);
+    const safeSearch = sanitizeSearchFilter(search);
+    if (safeSearch) {
+      query = query.or(`deal_number.ilike.%${safeSearch}%,buyer_name.ilike.%${safeSearch}%,buyer_email.ilike.%${safeSearch}%`);
+    }
   }
 
   // Sorting
@@ -81,6 +89,9 @@ export const GET = withAuth(async (request, { user, supabase }) => {
 
 // POST - Create a new deal
 export const POST = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'dealDesk');
+  if (gateError) return gateError;
+
   const body = await request.json();
   const parseResult = createDealSchema.safeParse(body);
 

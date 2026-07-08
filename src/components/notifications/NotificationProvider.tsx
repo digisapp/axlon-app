@@ -101,7 +101,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
             type: 'message',
             title: 'New Message',
             body: newMessage.content.substring(0, 50) + (newMessage.content.length > 50 ? '...' : ''),
-            link: `/dashboard/messages/${newMessage.sender_id}_${newMessage.listing_id}`,
+            // Canonical conversation ID format is `{listingId}-{otherUserId}`
+            // (see parseConversationId in src/lib/validations/api.ts)
+            link: `/dashboard/messages/${newMessage.listing_id}-${newMessage.sender_id}`,
             read: false,
             created_at: new Date().toISOString(),
           };
@@ -121,7 +123,31 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       )
       .subscribe();
 
-    // Subscribe to new favorites on user's listings
+    // Subscribe to new favorites on user's listings.
+    //
+    // NOTE: Supabase realtime filters only support column comparisons on the
+    // subscribed table, and "the favorited listing belongs to me" requires a
+    // join to `listings`, so this INSERT stream cannot be filtered
+    // server-side — every client receives every favorite event. To keep
+    // non-relevant events cheap, we prefetch the current user's listings
+    // once (id -> title) and do a synchronous in-memory ownership check
+    // before doing anything else; irrelevant events exit with zero queries.
+    // Tradeoff: listings created after this subscription starts won't
+    // trigger favorite notifications until the page reloads.
+    const ownListings = new Map<string, string>();
+    let ownListingsLoaded = false;
+
+    const loadOwnListings = supabase
+      .from('listings')
+      .select('id, title')
+      .eq('user_id', userId)
+      .then(({ data }) => {
+        for (const l of data ?? []) {
+          ownListings.set(l.id, l.title);
+        }
+        ownListingsLoaded = true;
+      });
+
     const favoritesChannel = supabase
       .channel('favorites-notifications')
       .on(
@@ -134,32 +160,32 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         async (payload) => {
           const newFavorite = payload.new as { user_id: string; listing_id: string };
 
-          // Check if this is for one of the user's listings
-          const { data: listing } = await supabase
-            .from('listings')
-            .select('id, title, user_id')
-            .eq('id', newFavorite.listing_id)
-            .eq('user_id', userId)
-            .single();
+          // Cheap early exits, no queries: ignore our own favorites, and
+          // ignore favorites on listings we don't own.
+          if (newFavorite.user_id === userId) return;
+          if (!ownListingsLoaded) await loadOwnListings;
+          const title = ownListings.get(newFavorite.listing_id);
+          if (title === undefined) return;
 
-          if (listing) {
-            const notification: Notification = {
-              id: `fav-${Date.now()}`,
-              type: 'favorite',
-              title: 'Listing Saved',
-              body: `Someone saved "${listing.title}"`,
-              link: `/listing/${listing.id}`,
-              read: false,
-              created_at: new Date().toISOString(),
-            };
+          const notification: Notification = {
+            // Composite favorite PK + timestamp keeps ids unique even when
+            // multiple events land in the same millisecond or a user
+            // re-favorites the same listing.
+            id: `fav-${newFavorite.listing_id}-${newFavorite.user_id}-${Date.now()}`,
+            type: 'favorite',
+            title: 'Listing Saved',
+            body: `Someone saved "${title}"`,
+            link: `/listing/${newFavorite.listing_id}`,
+            read: false,
+            created_at: new Date().toISOString(),
+          };
 
-            setNotifications((prev) => [notification, ...prev]);
+          setNotifications((prev) => [notification, ...prev]);
 
-            toast.success('Listing Saved', {
-              description: notification.body,
-              icon: <Heart className="w-4 h-4" />,
-            });
-          }
+          toast.success('Listing Saved', {
+            description: notification.body,
+            icon: <Heart className="w-4 h-4" />,
+          });
         }
       )
       .subscribe();

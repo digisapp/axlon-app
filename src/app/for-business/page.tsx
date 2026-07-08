@@ -22,6 +22,7 @@ import {
   Wrench,
   DollarSign,
 } from 'lucide-react';
+import { jsonLdString } from '@/lib/seo/json-ld';
 
 export const metadata: Metadata = {
   title: 'For Business — AI Transformation for Equipment Companies | AXLON AI',
@@ -161,7 +162,7 @@ function ForBusinessJsonLd() {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdString(schema) }}
     />
   );
 }

@@ -25,6 +25,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { Manufacturer } from '@/types';
+import { jsonLdString } from '@/lib/seo/json-ld';
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
 
@@ -100,7 +101,7 @@ function ManufacturerJsonLd({ manufacturer, slug }: { manufacturer: Manufacturer
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdString(schema) }}
     />
   );
 }
@@ -135,7 +136,7 @@ function BreadcrumbJsonLd({ manufacturerName, slug }: { manufacturerName: string
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdString(schema) }}
     />
   );
 }

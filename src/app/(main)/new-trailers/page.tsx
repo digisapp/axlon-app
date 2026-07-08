@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Truck, ChevronRight } from 'lucide-react';
 import { ProductCard } from '@/components/new-trailers/ProductCard';
 import type { ManufacturerProduct } from '@/types';
+import { jsonLdString } from '@/lib/seo/json-ld';
 
 export const metadata: Metadata = {
   title: 'New Trailers | Browse Lowboy & Heavy Haul Trailers by Manufacturer',
@@ -109,7 +110,7 @@ export default async function NewTrailersPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
       {/* Hero */}
       <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
         <div className="max-w-7xl mx-auto px-4 py-12 md:py-16">

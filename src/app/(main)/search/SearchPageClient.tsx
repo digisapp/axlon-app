@@ -75,10 +75,12 @@ function SearchPageContent() {
   const category = searchParams.get('category') || '';
   const pageParam = parseInt(searchParams.get('page') || '1');
   const page = Number.isNaN(pageParam) || pageParam < 1 ? 1 : pageParam;
-  const initialSort = SORT_MAP[searchParams.get('sort') || ''] || 'created_at';
+  // The URL is the source of truth for sort — deriving (rather than copying
+  // into state) keeps the select in sync with back/forward navigation and
+  // shared links, and avoids URL-update → state-update render loops
+  const sortBy = SORT_MAP[searchParams.get('sort') || ''] || 'created_at';
 
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('grid');
-  const [sortBy, setSortBy] = useState(initialSort);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<FilterValues>({});
   const [useInfiniteMode, setUseInfiniteMode] = useState(false);
@@ -94,9 +96,18 @@ function SearchPageContent() {
   }, [searchParams, router]);
 
   const handleSortChange = useCallback((value: string) => {
-    setSortBy(value);
-    resetToFirstPage();
-  }, [resetToFirstPage]);
+    // Write sort to the URL (keeping other params) so it's shareable and
+    // back-button-safe; drop the default to keep URLs clean, and reset page
+    // since a new sort restarts the result set
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === 'created_at') {
+      params.delete('sort');
+    } else {
+      params.set('sort', value);
+    }
+    params.delete('page');
+    router.replace(`/search?${params.toString()}`);
+  }, [searchParams, router]);
 
   const handleFiltersChange = useCallback((filters: FilterValues) => {
     setAdvancedFilters(filters);

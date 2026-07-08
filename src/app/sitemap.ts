@@ -9,7 +9,13 @@ function createStaticClient() {
   );
 }
 
+// Re-generate the sitemap at most once per hour (otherwise it is frozen at build time)
+export const revalidate = 3600;
+
 const LISTINGS_PER_PAGE = 5000;
+
+// Supabase caps un-ranged selects at 1,000 rows; page through to fetch everything.
+const SUPABASE_PAGE_SIZE = 1000;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
@@ -154,24 +160,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.6,
     },
-    {
-      url: `${baseUrl}/compare`,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/login`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.3,
-    },
-    {
-      url: `${baseUrl}/signup`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.3,
-    },
   ];
 
   // Dynamic listing pages - fetch ALL active listings (paginated to avoid Supabase row limits)
@@ -241,13 +229,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const supabase = createStaticClient();
 
-    const { data: manufacturers } = await supabase
-      .from('manufacturers')
-      .select('slug, updated_at')
-      .eq('is_active', true)
-      .order('name', { ascending: true });
+    // Fetch all manufacturers in batches (Supabase caps at 1,000 rows per query)
+    let manufacturers: { slug: string; updated_at: string | null }[] = [];
+    for (let i = 0; ; i++) {
+      const { data: batch } = await supabase
+        .from('manufacturers')
+        .select('slug, updated_at')
+        .eq('is_active', true)
+        .order('name', { ascending: true })
+        .range(i * SUPABASE_PAGE_SIZE, (i + 1) * SUPABASE_PAGE_SIZE - 1);
 
-    if (manufacturers) {
+      if (!batch || batch.length === 0) break;
+      manufacturers = manufacturers.concat(batch);
+      if (batch.length < SUPABASE_PAGE_SIZE) break;
+    }
+
+    if (manufacturers.length > 0) {
       manufacturerPages = manufacturers.map((mfr) => ({
         url: `${baseUrl}/manufacturers/${mfr.slug}`,
         lastModified: mfr.updated_at ? new Date(mfr.updated_at) : new Date(),
@@ -265,14 +262,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const supabase = createStaticClient();
 
-    const { data: dealers } = await supabase
-      .from('profiles')
-      .select('slug, updated_at')
-      .eq('is_business', true)
-      .not('slug', 'is', null)
-      .order('company_name', { ascending: true });
+    // Fetch all dealers in batches (Supabase caps at 1,000 rows per query)
+    let dealers: { slug: string; updated_at: string | null }[] = [];
+    for (let i = 0; ; i++) {
+      const { data: batch } = await supabase
+        .from('profiles')
+        .select('slug, updated_at')
+        .eq('is_business', true)
+        .not('slug', 'is', null)
+        .order('company_name', { ascending: true })
+        .range(i * SUPABASE_PAGE_SIZE, (i + 1) * SUPABASE_PAGE_SIZE - 1);
 
-    if (dealers) {
+      if (!batch || batch.length === 0) break;
+      dealers = dealers.concat(batch);
+      if (batch.length < SUPABASE_PAGE_SIZE) break;
+    }
+
+    if (dealers.length > 0) {
       dealerPages = dealers.map((dealer) => ({
         url: `${baseUrl}/${dealer.slug}`,
         lastModified: dealer.updated_at ? new Date(dealer.updated_at) : new Date(),
@@ -290,13 +296,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const supabase = createStaticClient();
 
-    const { data: products } = await supabase
-      .from('manufacturer_products')
-      .select('slug, updated_at, manufacturers!inner(slug)')
-      .eq('is_active', true)
-      .order('updated_at', { ascending: false });
+    // Fetch all products in batches (Supabase caps at 1,000 rows per query)
+    type ProductRow = {
+      slug: string;
+      updated_at: string | null;
+      manufacturers: { slug: string } | { slug: string }[];
+    };
+    let products: ProductRow[] = [];
+    for (let i = 0; ; i++) {
+      const { data: batch } = await supabase
+        .from('manufacturer_products')
+        .select('slug, updated_at, manufacturers!inner(slug)')
+        .eq('is_active', true)
+        .order('updated_at', { ascending: false })
+        .range(i * SUPABASE_PAGE_SIZE, (i + 1) * SUPABASE_PAGE_SIZE - 1);
 
-    if (products) {
+      if (!batch || batch.length === 0) break;
+      products = products.concat(batch as ProductRow[]);
+      if (batch.length < SUPABASE_PAGE_SIZE) break;
+    }
+
+    if (products.length > 0) {
       productPages = products.map((product) => ({
         url: `${baseUrl}/new-trailers/${(Array.isArray(product.manufacturers) ? product.manufacturers[0] : product.manufacturers).slug}/${product.slug}`,
         lastModified: product.updated_at ? new Date(product.updated_at) : new Date(),

@@ -3,9 +3,13 @@ import { withAuth } from '@/lib/auth/with-auth';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
+import { enforceFeature } from '@/lib/entitlements';
 
 // GET /api/dealer/call-logs - Get dealer's call logs
 export const GET = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'voiceAgent');
+  if (gateError) return gateError;
+
   // Parse query params
   const searchParams = request.nextUrl.searchParams;
   const page = parseInt(searchParams.get('page') || '1');

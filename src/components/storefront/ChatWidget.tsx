@@ -43,6 +43,8 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [leadInfo, setLeadInfo] = useState({ name: '', email: '', phone: '' });
   const [leadSubmitted, setLeadSubmitted] = useState(false);
+  const [leadError, setLeadError] = useState('');
+  const [leadSubmitting, setLeadSubmitting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const greeting = chatSettings?.greeting || `Hi! I'm the AI assistant for ${dealerName}. How can I help you find the right equipment today?`;
@@ -146,10 +148,18 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
   };
 
   const handleLeadSubmit = async () => {
-    if (!leadInfo.name || !leadInfo.email) return;
+    if (!leadInfo.name || !leadInfo.email || leadSubmitting) return;
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadInfo.email)) {
+      setLeadError('Please enter a valid email');
+      return;
+    }
+
+    setLeadError('');
+    setLeadSubmitting(true);
 
     try {
-      await csrfFetch('/api/chat/lead', {
+      const response = await csrfFetch('/api/chat/lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -158,6 +168,12 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
           ...leadInfo,
         }),
       });
+
+      if (!response.ok) {
+        // Keep the form visible so the visitor can retry
+        setLeadError("We couldn't save your info just now. Please try again.");
+        return;
+      }
 
       setLeadSubmitted(true);
       setShowLeadForm(false);
@@ -174,6 +190,9 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
       ]);
     } catch (error) {
       logger.error('Lead submit error', { error });
+      setLeadError("We couldn't save your info just now. Please try again.");
+    } finally {
+      setLeadSubmitting(false);
     }
   };
 
@@ -197,7 +216,7 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
   }
 
   return (
-    <Card className="fixed bottom-6 right-6 w-[360px] h-[500px] shadow-2xl z-50 flex flex-col overflow-hidden">
+    <Card className="fixed bottom-6 right-6 w-[360px] max-w-[calc(100vw-2rem)] h-[500px] shadow-2xl z-50 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="bg-primary text-primary-foreground p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -285,9 +304,18 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
               onChange={(e) => setLeadInfo({ ...leadInfo, phone: e.target.value })}
               className="h-9 text-sm"
             />
+            {leadError && (
+              <p className="text-xs text-destructive" role="alert">
+                {leadError}
+              </p>
+            )}
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleLeadSubmit} disabled={!leadInfo.name || !leadInfo.email}>
-                Submit
+              <Button
+                size="sm"
+                onClick={handleLeadSubmit}
+                disabled={!leadInfo.name || !leadInfo.email || leadSubmitting}
+              >
+                {leadSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Submit'}
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setShowLeadForm(false)}>
                 Maybe later

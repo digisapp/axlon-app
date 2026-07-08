@@ -4,6 +4,7 @@ import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, createStaffSchema } from '@/lib/validations/api';
 import crypto from 'crypto';
+import { enforceFeature } from '@/lib/entitlements';
 
 function hashPin(pin: string, salt: string): string {
   const data = `${salt}:${pin}`;
@@ -12,6 +13,9 @@ function hashPin(pin: string, salt: string): string {
 
 // GET - List dealer staff
 export const GET = withAuth(async (_request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'voiceAgent');
+  if (gateError) return gateError;
+
   // Get all staff for this dealer
   const { data: staff, error } = await supabase
     .from('dealer_staff')
@@ -33,6 +37,9 @@ export const GET = withAuth(async (_request, { user, supabase }) => {
 
 // POST - Add new staff member
 export const POST = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'voiceAgent');
+  if (gateError) return gateError;
+
   const body = await request.json();
 
   let validatedData;

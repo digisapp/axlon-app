@@ -6,6 +6,7 @@
  * Note: Site uses Imperva bot protection, so we seed from known inventory data
  */
 
+import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
 
@@ -77,7 +78,7 @@ async function getOrCreateDealer() {
     return existing.id;
   }
 
-  const password = 'Blackmon2024!';
+  const password = crypto.randomBytes(24).toString('base64url'); // random placeholder; account is managed via Supabase admin API
   const { data: authUser, error } = await supabase.auth.admin.createUser({
     email: DEALER_INFO.email,
     email_confirm: true,
@@ -103,7 +104,6 @@ async function getOrCreateDealer() {
 
   console.log('Created dealer:', DEALER_INFO.name);
   console.log('  Email:', DEALER_INFO.email);
-  console.log('  Password:', password);
   return authUser.user.id;
 }
 

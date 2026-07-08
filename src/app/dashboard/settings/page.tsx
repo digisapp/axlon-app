@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -48,6 +48,8 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('Settings saved successfully!');
+  const [errorMessage, setErrorMessage] = useState('');
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
@@ -123,10 +125,25 @@ export default function SettingsPage() {
   }, [router, supabase]);
 
   const showSuccessToast = (message: string) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setErrorMessage('');
     setSuccessMessage(message);
     setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+    toastTimeoutRef.current = setTimeout(() => setShowSuccess(false), 3000);
   };
+
+  const showErrorToast = (message: string) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setShowSuccess(false);
+    setErrorMessage(message);
+    toastTimeoutRef.current = setTimeout(() => setErrorMessage(''), 5000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
+  }, []);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -154,12 +171,16 @@ export default function SettingsPage() {
           .from('listing-images')
           .upload(fileName, avatarFile, { upsert: true });
 
-        if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage
-            .from('listing-images')
-            .getPublicUrl(fileName);
-          avatarUrl = publicUrl;
+        if (uploadError) {
+          logger.error('Avatar upload error', { error: uploadError });
+          showErrorToast('Failed to upload profile photo. Please try again.');
+          return;
         }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('listing-images')
+          .getPublicUrl(fileName);
+        avatarUrl = publicUrl;
       }
 
       // Update profile
@@ -181,9 +202,13 @@ export default function SettingsPage() {
         setAvatarFile(null);
         setAvatarPreview(null);
         showSuccessToast('Settings saved successfully!');
+      } else {
+        logger.error('Profile update error', { error });
+        showErrorToast('Failed to save settings. Please try again.');
       }
     } catch (error) {
       logger.error('Save error', { error });
+      showErrorToast('Failed to save settings. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -233,9 +258,12 @@ export default function SettingsPage() {
       if (res.ok) {
         await supabase.auth.signOut();
         router.push('/?deleted=true');
+      } else {
+        showErrorToast('Failed to delete account. Please try again or contact support.');
       }
     } catch (error) {
       logger.error('Delete account error', { error });
+      showErrorToast('Failed to delete account. Please try again or contact support.');
     } finally {
       setIsDeleting(false);
     }
@@ -262,6 +290,14 @@ export default function SettingsPage() {
         <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg">
           <CheckCircle className="w-5 h-5" />
           <span>{successMessage}</span>
+        </div>
+      )}
+
+      {/* Error Toast */}
+      {errorMessage && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-destructive text-destructive-foreground px-4 py-3 rounded-lg shadow-lg">
+          <AlertTriangle className="w-5 h-5" />
+          <span>{errorMessage}</span>
         </div>
       )}
 

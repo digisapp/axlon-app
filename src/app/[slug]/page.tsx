@@ -31,6 +31,7 @@ import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { ChatWidget } from '@/components/storefront/ChatWidget';
 import { DealerFilters } from '@/components/storefront/DealerFilters';
 import { MobileContactBar } from '@/components/storefront/MobileContactBar';
+import { jsonLdString } from '@/lib/seo/json-ld';
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
 
@@ -128,7 +129,7 @@ function DealerJsonLd({ dealer, slug }: { dealer: DealerForSchema; slug: string 
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdString(schema) }}
     />
   );
 }
@@ -163,7 +164,7 @@ function DealerBreadcrumbJsonLd({ dealerName, slug }: { dealerName: string; slug
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdString(schema) }}
     />
   );
 }

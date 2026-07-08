@@ -43,6 +43,7 @@ const ENV_VARS: EnvVar[] = [
   { key: 'INTERNAL_API_SECRET', level: 'required', description: 'Secret for internal service-to-service calls' },
 
   // Optional but warned
+  { key: 'UNSUBSCRIBE_SECRET', level: 'optional', description: 'HMAC secret for email unsubscribe tokens (falls back to INTERNAL_API_SECRET, then CRON_SECRET)' },
   { key: 'UPSTASH_REDIS_REST_URL', level: 'optional', description: 'Upstash Redis URL (caching/view batching disabled without this)' },
   { key: 'UPSTASH_REDIS_REST_TOKEN', level: 'optional', description: 'Upstash Redis token' },
 ];
@@ -110,6 +111,7 @@ export const env = {
   xaiApiKey: process.env.XAI_API_KEY!,
   cronSecret: process.env.CRON_SECRET!,
   internalApiSecret: process.env.INTERNAL_API_SECRET!,
+  unsubscribeSecret: process.env.UNSUBSCRIBE_SECRET,
   redisUrl: process.env.UPSTASH_REDIS_REST_URL,
   redisToken: process.env.UPSTASH_REDIS_REST_TOKEN,
   adminEmail: process.env.ADMIN_EMAIL ?? 'sales@axlon.ai',

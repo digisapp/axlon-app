@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
+import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -39,29 +41,43 @@ interface Conversation {
 }
 
 export default function MessagesPage() {
+  const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
     const fetchConversations = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.push('/login?redirect=/dashboard/messages');
+          return;
+        }
 
-      setUserId(user.id);
+        setUserId(user.id);
 
-      const response = await fetch('/api/messages');
-      if (response.ok) {
-        const { data } = await response.json();
-        setConversations(data || []);
+        const response = await fetch('/api/messages');
+        if (response.ok) {
+          const { data } = await response.json();
+          setConversations(data || []);
+          setLoadError(false);
+        } else {
+          setLoadError(true);
+        }
+      } catch (error) {
+        logger.error('Fetch conversations error', { error });
+        setLoadError(true);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     fetchConversations();
-  }, [supabase]);
+  }, [router, supabase]);
 
   const filteredConversations = conversations.filter((conv) => {
     const searchLower = searchQuery.toLowerCase();
@@ -135,7 +151,22 @@ export default function MessagesPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6">
-        {filteredConversations.length > 0 ? (
+        {loadError ? (
+          <Card>
+            <CardContent className="py-16 text-center">
+              <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="w-8 h-8 text-destructive" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Couldn&apos;t load messages</h3>
+              <p className="text-muted-foreground mb-6">
+                Something went wrong loading your conversations. Please try again.
+              </p>
+              <Button onClick={() => window.location.reload()}>
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        ) : filteredConversations.length > 0 ? (
           <div className="space-y-2">
             {filteredConversations.map((conv) => {
               const imageUrl = getPrimaryImage(conv.listing?.images || []);

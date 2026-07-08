@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
+import { buildUnsubscribeQuery } from '@/lib/email/unsubscribe-token';
 
 let resendInstance: Resend | null = null;
 
@@ -30,14 +31,37 @@ export async function sendEmail(template: EmailTemplate) {
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
 
+  // Per-recipient HMAC token so the unsubscribe endpoint can verify the
+  // request without CSRF/cookies (required for RFC 8058 one-click).
+  const unsubQuery = buildUnsubscribeQuery(template.to);
+
+  let html = template.html;
+  const unsubHeaders: Record<string, string> = {};
+  if (unsubQuery) {
+    // One-click clients (Gmail/Yahoo) POST "List-Unsubscribe=One-Click" to
+    // this URL; the API route reads email+token from the query string. Its
+    // GET handler redirects browsers to the /unsubscribe confirmation page.
+    unsubHeaders['List-Unsubscribe'] = `<${baseUrl}/api/unsubscribe?${unsubQuery}>`;
+    unsubHeaders['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+    // Centrally rewrite tokenless unsubscribe links hard-coded in email
+    // template footers so the visible link also carries the token.
+    html = html.replace(
+      /href="https?:\/\/[^"]*\/unsubscribe"/g,
+      `href="${baseUrl}/unsubscribe?${unsubQuery}"`
+    );
+  } else {
+    // No signing secret configured: fall back to the plain page link and omit
+    // List-Unsubscribe-Post — the API would reject a tokenless one-click POST.
+    unsubHeaders['List-Unsubscribe'] = `<${baseUrl}/unsubscribe?email=${encodeURIComponent(template.to)}>`;
+  }
+
   const { data, error } = await resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL || 'AXLON AI <noreply@axlon.ai>',
     to: template.to,
     subject: template.subject,
-    html: template.html,
+    html,
     headers: {
-      'List-Unsubscribe': `<${baseUrl}/unsubscribe?email=${encodeURIComponent(template.to)}>`,
-      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      ...unsubHeaders,
       ...template.headers,
     },
   });

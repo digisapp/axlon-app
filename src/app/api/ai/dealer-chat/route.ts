@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID, timingSafeEqual } from 'crypto';
 import { createXai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { validateBody, ValidationError, dealerAiConversationSchema } from '@/lib/validations/api';
 import { searchCollection, SearchResult } from '@/lib/ai/collections';
+
+// httpOnly cookie that binds an anonymous visitor to the conversations they
+// created (stored as chat_conversations.visitor_fingerprint)
+const VISITOR_COOKIE = 'axlon_chat_visitor';
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function tokensMatch(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
+}
 
 // Types
 interface DealerAISettings {
@@ -324,29 +339,31 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const {
-      dealerId,
-      query,
-      conversationId,
-      listingId,
-      messages = [],
-      visitorInfo,
-    } = body;
+    const { dealerId, conversationId, listingId } = body;
 
-    if (!dealerId || !query) {
+    if (!dealerId || !body.query || typeof body.query !== 'string') {
       return NextResponse.json(
         { error: 'Dealer ID and query are required' },
         { status: 400 }
       );
     }
 
-    // Clamp inputs to prevent credit exhaustion
-    if (typeof query === 'string' && query.length > 2000) {
-      body.query = query.slice(0, 2000);
-    }
-    if (Array.isArray(messages) && messages.length > 50) {
-      body.messages = messages.slice(-50); // keep last 50 messages
-    }
+    // Clamp inputs to prevent credit exhaustion, and drop any history entries
+    // that aren't plain user/assistant messages (blocks injected `system`
+    // roles and non-string content)
+    const query: string = body.query.slice(0, 2000);
+    const messages: ConversationMessage[] = (Array.isArray(body.messages) ? body.messages : [])
+      .filter(
+        (m: { role?: unknown; content?: unknown } | null) =>
+          !!m &&
+          (m.role === 'user' || m.role === 'assistant') &&
+          typeof m.content === 'string'
+      )
+      .slice(-50) // keep last 50 messages
+      .map((m: { role: 'user' | 'assistant'; content: string }) => ({
+        role: m.role,
+        content: m.content.slice(0, 4000),
+      }));
 
     const supabase = await createClient();
 
@@ -469,7 +486,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if we should capture a lead
-    const conversationMessages = messages as ConversationMessage[];
+    const conversationMessages = messages;
     const shouldCapture = aiSettings.capture_leads && shouldCaptureLead(conversationMessages, query);
 
     // Build the AI prompt
@@ -536,7 +553,7 @@ Based on this inventory, help the customer find what they need. Only recommend e
 
     // Include conversation history
     const messageHistory = conversationMessages.slice(-10).map(m => ({
-      role: m.role as 'user' | 'assistant',
+      role: m.role,
       content: m.content,
     }));
 
@@ -598,7 +615,11 @@ Based on this inventory, help the customer find what they need. Only recommend e
   }
 }
 
-// Create or update conversation
+// Create or update conversation.
+// Anonymous visitors are identified by an httpOnly cookie token that gets
+// stored as chat_conversations.visitor_fingerprint at creation time. Updates
+// (which can mint dealer_ai_leads and trigger dealer drip emails) are only
+// allowed when the request presents the matching fingerprint cookie.
 export async function PUT(request: NextRequest) {
   try {
     const identifier = getClientIdentifier(request);
@@ -610,27 +631,68 @@ export async function PUT(request: NextRequest) {
       return rateLimitResponse(rateLimitResult);
     }
 
-    const body = await request.json();
-    const {
-      dealerId,
-      conversationId,
-      visitorName,
-      visitorEmail,
-      visitorPhone,
-      visitorIntent,
-      listingId,
-    } = body;
-
-    if (!dealerId) {
-      return NextResponse.json(
-        { error: 'Dealer ID is required' },
-        { status: 400 }
-      );
+    const rawBody = await request.json();
+    let validatedData;
+    try {
+      validatedData = validateBody(dealerAiConversationSchema, rawBody);
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        return NextResponse.json(
+          { error: 'Validation failed', details: err.errors },
+          { status: 400 }
+        );
+      }
+      throw err;
     }
 
-    const supabase = await createClient();
+    const { dealerId, conversationId, listingId } = validatedData;
+    // Normalize empty strings to null
+    const visitorName = validatedData.visitorName || null;
+    const visitorEmail = validatedData.visitorEmail || null;
+    const visitorPhone = validatedData.visitorPhone || null;
+    const visitorIntent = validatedData.visitorIntent || null;
+
+    // chat_conversations RLS only grants SELECT/UPDATE to the dealer, so
+    // visitor-side conversation access goes through the admin client, gated
+    // by the explicit fingerprint check below.
+    const supabase = createAdminClient();
+
+    const cookieToken = request.cookies.get(VISITOR_COOKIE)?.value;
+    const visitorToken = cookieToken && UUID_REGEX.test(cookieToken) ? cookieToken : null;
 
     if (conversationId) {
+      // Ownership check: the caller must present the fingerprint token bound
+      // to this conversation when it was created, and the conversation must
+      // belong to the dealer named in the request.
+      const { data: conversation, error: convError } = await supabase
+        .from('chat_conversations')
+        .select('id, dealer_id, visitor_fingerprint')
+        .eq('id', conversationId)
+        .single();
+
+      if (convError || !conversation) {
+        return NextResponse.json(
+          { error: 'Conversation not found' },
+          { status: 404 }
+        );
+      }
+
+      if (
+        conversation.dealer_id !== dealerId ||
+        !visitorToken ||
+        !conversation.visitor_fingerprint ||
+        !tokensMatch(conversation.visitor_fingerprint, visitorToken)
+      ) {
+        logger.warn('Rejected dealer AI conversation update: visitor fingerprint mismatch', {
+          conversationId,
+          dealerId,
+        });
+        return NextResponse.json(
+          { error: 'Not authorized to update this conversation' },
+          { status: 403 }
+        );
+      }
+
       // Update existing conversation with visitor info
       const { error } = await supabase
         .from('chat_conversations')
@@ -645,7 +707,8 @@ export async function PUT(request: NextRequest) {
         .eq('id', conversationId);
 
       if (error) {
-        logger.error('Update conversation error', { error });
+        // Log but keep going — the lead insert below is the critical write
+        logger.error('Update conversation error', { error, conversationId, dealerId });
       }
 
       // Create lead if contact info provided
@@ -664,50 +727,64 @@ export async function PUT(request: NextRequest) {
           .select()
           .single();
 
-        if (!leadError && lead) {
-          // Update dealer's lead count
-          try {
-            await supabase.rpc('increment_dealer_ai_leads', {
-              p_dealer_id: dealerId,
-            });
-          } catch {
-            // Ignore stats update errors
-          }
-
-          return NextResponse.json({
-            success: true,
+        if (leadError || !lead) {
+          logger.error('Failed to create dealer AI lead', {
+            error: leadError,
+            dealerId,
             conversationId,
-            leadId: lead.id,
-            leadCaptured: true,
           });
+          return NextResponse.json(
+            { error: 'Failed to save your contact info' },
+            { status: 500 }
+          );
         }
+
+        // Update dealer's lead count
+        try {
+          await supabase.rpc('increment_dealer_ai_leads', {
+            p_dealer_id: dealerId,
+          });
+        } catch {
+          // Ignore stats update errors
+        }
+
+        return NextResponse.json({
+          success: true,
+          conversationId,
+          leadId: lead.id,
+          leadCaptured: true,
+        });
       }
 
       return NextResponse.json({
         success: true,
         conversationId,
-        leadCaptured: !!(visitorEmail || visitorPhone),
+        leadCaptured: false,
       });
     } else {
-      // Create new conversation
+      // Create new conversation, binding it to the visitor's cookie token
+      // (reused across their conversations, minted here if absent)
+      const fingerprint = visitorToken || randomUUID();
+
       const { data: conversation, error } = await supabase
         .from('chat_conversations')
         .insert({
           dealer_id: dealerId,
-          listing_id: listingId,
+          listing_id: listingId || null,
           is_ai_conversation: true,
           visitor_name: visitorName,
           visitor_email: visitorEmail,
           visitor_phone: visitorPhone,
           visitor_intent: visitorIntent,
+          visitor_fingerprint: fingerprint,
           lead_captured: !!(visitorEmail || visitorPhone),
           status: 'active',
         })
         .select()
         .single();
 
-      if (error) {
-        logger.error('Create conversation error', { error });
+      if (error || !conversation) {
+        logger.error('Create conversation error', { error, dealerId });
         return NextResponse.json(
           { error: 'Failed to create conversation' },
           { status: 500 }
@@ -716,6 +793,7 @@ export async function PUT(request: NextRequest) {
 
       // The lead form can submit before a conversation exists (e.g. the
       // initial conversation insert failed) — still capture the lead here
+      let leadId: string | null = null;
       if (visitorEmail || visitorPhone) {
         const { data: lead, error: leadError } = await supabase
           .from('dealer_ai_leads')
@@ -731,31 +809,46 @@ export async function PUT(request: NextRequest) {
           .select()
           .single();
 
-        if (!leadError && lead) {
-          try {
-            await supabase.rpc('increment_dealer_ai_leads', {
-              p_dealer_id: dealerId,
-            });
-          } catch {
-            // Ignore stats update errors
-          }
-
-          return NextResponse.json({
-            success: true,
+        if (leadError || !lead) {
+          logger.error('Failed to create dealer AI lead', {
+            error: leadError,
+            dealerId,
             conversationId: conversation.id,
-            leadId: lead.id,
-            leadCaptured: true,
-            isNew: true,
           });
+          return NextResponse.json(
+            { error: 'Failed to save your contact info' },
+            { status: 500 }
+          );
+        }
+
+        leadId = lead.id;
+        try {
+          await supabase.rpc('increment_dealer_ai_leads', {
+            p_dealer_id: dealerId,
+          });
+        } catch {
+          // Ignore stats update errors
         }
       }
 
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         conversationId: conversation.id,
-        leadCaptured: !!(visitorEmail || visitorPhone),
+        ...(leadId ? { leadId } : {}),
+        leadCaptured: !!leadId,
         isNew: true,
       });
+
+      // Bind this visitor to their conversations for future updates
+      response.cookies.set(VISITOR_COOKIE, fingerprint, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+      });
+
+      return response;
     }
   } catch (error) {
     logger.error('Conversation update error', { error });

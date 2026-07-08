@@ -3,9 +3,13 @@ import { withAuth } from '@/lib/auth/with-auth';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { updateDealSchema } from '@/lib/validations/deals';
 import { logger } from '@/lib/logger';
+import { enforceFeature } from '@/lib/entitlements';
 
 // GET - Get single deal with all relations
 export const GET = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'dealDesk');
+  if (gateError) return gateError;
+
   const id = new URL(request.url).pathname.split('/').at(-1);
 
   const { data: deal, error } = await supabase
@@ -38,6 +42,9 @@ export const GET = withAuth(async (request, { user, supabase }) => {
 
 // PATCH - Update deal
 export const PATCH = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'dealDesk');
+  if (gateError) return gateError;
+
   const id = new URL(request.url).pathname.split('/').at(-1);
 
   // Verify deal exists and belongs to user
@@ -100,6 +107,9 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
 
 // DELETE - Delete deal
 export const DELETE = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'dealDesk');
+  if (gateError) return gateError;
+
   const id = new URL(request.url).pathname.split('/').at(-1);
 
   // Verify deal exists and belongs to user

@@ -7,9 +7,13 @@ import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, aiLeadUpdateSchema, aiLeadNotificationSchema } from '@/lib/validations/api';
 import { sendEmail } from '@/lib/email/resend';
 import { newLeadEmail } from '@/lib/email/templates';
+import { enforceFeature } from '@/lib/entitlements';
 
 // Get dealer's AI leads
 export const GET = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'aiAssistant');
+  if (gateError) return gateError;
+
   const { searchParams } = new URL(request.url);
   const status = searchParams.get('status');
   const limit = parseInt(searchParams.get('limit') || '50');
@@ -70,6 +74,9 @@ export const GET = withAuth(async (request, { user, supabase }) => {
 
 // Update lead status
 export const PATCH = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'aiAssistant');
+  if (gateError) return gateError;
+
   const body = await request.json();
   let validatedData;
   try {

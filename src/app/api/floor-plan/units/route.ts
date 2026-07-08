@@ -4,6 +4,8 @@ import { createFloorPlanUnitSchema, floorPlanUnitsQuerySchema } from '@/lib/vali
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { requireCsrf } from '@/lib/security/csrf';
+import { enforceFeature } from '@/lib/entitlements';
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 
 // GET - List floored units
 export async function GET(request: NextRequest) {
@@ -24,6 +26,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const gateError = await enforceFeature(supabase, user.id, 'floorPlan');
+    if (gateError) return gateError;
+
     const { searchParams } = new URL(request.url);
     const queryParams = Object.fromEntries(searchParams.entries());
     const parseResult = floorPlanUnitsQuerySchema.safeParse(queryParams);
@@ -38,11 +43,17 @@ export async function GET(request: NextRequest) {
     const { status, account_id, sort_by, sort_order, search, page, limit } = parseResult.data;
     const offset = (page - 1) * limit;
 
+    const safeSearch = search ? sanitizeSearchFilter(search) : '';
+
+    // When searching on listing columns, the listings embed must be an inner
+    // join so that filtering the embedded rows also filters the parent rows.
+    const listingJoin = safeSearch ? 'listings!inner' : 'listings';
+
     let query = supabase
       .from('listing_floor_plans')
       .select(`
         *,
-        listing:listings(id, title, price, status, stock_number,
+        listing:${listingJoin}(id, title, price, status, stock_number,
           images:listing_images(url, is_primary)
         ),
         account:floor_plan_accounts!inner(
@@ -63,9 +74,14 @@ export async function GET(request: NextRequest) {
       query = query.eq('account_id', account_id);
     }
 
-    // Search by listing title or stock number
-    if (search) {
-      query = query.or(`listing.title.ilike.%${search}%,listing.stock_number.ilike.%${search}%`);
+    // Search by listing title or stock number. Foreign-table columns can't be
+    // referenced in a top-level .or() — the filter must target the embedded
+    // resource via referencedTable (combined with the !inner join above).
+    if (safeSearch) {
+      query = query.or(
+        `title.ilike.%${safeSearch}%,stock_number.ilike.%${safeSearch}%`,
+        { referencedTable: 'listing' }
+      );
     }
 
     // Sorting
@@ -104,6 +120,9 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateError = await enforceFeature(supabase, user.id, 'floorPlan');
+    if (gateError) return gateError;
 
     // Rate limiting
     const identifier = getClientIdentifier(request);

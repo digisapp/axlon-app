@@ -4,6 +4,7 @@ import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, updateStaffSchema } from '@/lib/validations/api';
 import crypto from 'crypto';
+import { enforceFeature } from '@/lib/entitlements';
 
 function hashPin(pin: string, salt: string): string {
   const data = `${salt}:${pin}`;
@@ -12,6 +13,9 @@ function hashPin(pin: string, salt: string): string {
 
 // GET - Get single staff member
 export const GET = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'voiceAgent');
+  if (gateError) return gateError;
+
   const segments = new URL(request.url).pathname.split('/');
   const id = segments[segments.indexOf('staff') + 1];
 
@@ -37,6 +41,9 @@ export const GET = withAuth(async (request, { user, supabase }) => {
 
 // PATCH - Update staff member
 export const PATCH = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'voiceAgent');
+  if (gateError) return gateError;
+
   const segments = new URL(request.url).pathname.split('/');
   const id = segments[segments.indexOf('staff') + 1];
 
@@ -106,6 +113,9 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
 
 // DELETE - Remove staff member
 export const DELETE = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'voiceAgent');
+  if (gateError) return gateError;
+
   const segments = new URL(request.url).pathname.split('/');
   const id = segments[segments.indexOf('staff') + 1];
 

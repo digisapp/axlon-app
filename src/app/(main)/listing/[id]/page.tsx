@@ -33,6 +33,7 @@ import { TranslatableTitle, TranslatableDescription } from '@/components/listing
 import { SimilarListingCard } from '@/components/listings/SimilarListingCard';
 import { DealerAIChat } from '@/components/listings/DealerAIChat';
 import { MobileContactCTA } from '@/components/listings/MobileContactCTA';
+import { jsonLdString } from '@/lib/seo/json-ld';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -186,7 +187,7 @@ function ProductJsonLd({ listing, url }: { listing: ListingForSchema; url: strin
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdString(schema) }}
     />
   );
 }
@@ -224,7 +225,7 @@ function BreadcrumbJsonLd({ listing, baseUrl }: { listing: ListingForSchema; bas
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdString(schema) }}
     />
   );
 }

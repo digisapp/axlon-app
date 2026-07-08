@@ -9,7 +9,6 @@ import {
   Phone,
   Calendar,
   MessageSquare,
-  Filter,
   ArrowUpRight,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -64,12 +63,6 @@ export default async function LeadsPage() {
           <p className="text-muted-foreground mt-1">
             Track and manage buyer inquiries
           </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Filter className="w-4 h-4 mr-2" />
-            Filter
-          </Button>
         </div>
       </div>
 

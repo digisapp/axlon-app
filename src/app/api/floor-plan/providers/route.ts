@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { enforceFeature } from '@/lib/entitlements';
 
 // GET - List all active floor plan providers
 export async function GET(request: NextRequest) {
@@ -16,6 +17,14 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const gateError = await enforceFeature(supabase, user.id, 'floorPlan');
+    if (gateError) return gateError;
 
     const { data, error } = await supabase
       .from('floor_plan_providers')
