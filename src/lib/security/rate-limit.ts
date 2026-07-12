@@ -61,12 +61,20 @@ if (typeof setInterval !== 'undefined') {
  * Uses IP address, falling back to a hash of headers
  */
 export function getClientIdentifier(request: NextRequest): string {
-  // Try to get real IP from various headers
+  // IMPORTANT: only trust headers the hosting platform (Vercel) injects and
+  // that clients cannot forge. `x-vercel-forwarded-for` is set by Vercel's edge
+  // and is stripped from inbound requests, so it is spoof-proof. `x-forwarded-for`
+  // is normalized by Vercel with the real client IP as the leftmost hop.
+  // We deliberately do NOT trust `cf-connecting-ip` / `x-real-ip` here: this app
+  // is not behind Cloudflare, so those headers are fully attacker-controlled and
+  // would let a client land every request in a fresh rate-limit bucket.
+  const vercelForwarded = request.headers.get('x-vercel-forwarded-for');
   const forwardedFor = request.headers.get('x-forwarded-for');
-  const realIp = request.headers.get('x-real-ip');
-  const cfConnectingIp = request.headers.get('cf-connecting-ip');
 
-  const ip = cfConnectingIp || realIp || forwardedFor?.split(',')[0]?.trim() || 'unknown';
+  const ip =
+    vercelForwarded?.split(',')[0]?.trim() ||
+    forwardedFor?.split(',')[0]?.trim() ||
+    'unknown';
 
   return ip;
 }

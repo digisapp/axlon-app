@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth/with-auth';
+import { enforceFeature } from '@/lib/entitlements';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 
 export const GET = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'bulkImport');
+  if (gateError) return gateError;
+
   const searchParams = request.nextUrl.searchParams;
   const status = searchParams.get('status');
   const includeFields = searchParams.getAll('include');

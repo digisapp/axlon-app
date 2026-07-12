@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth/with-auth';
+import { enforceFeature } from '@/lib/entitlements';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, updateCrmContactSchema } from '@/lib/validations/api';
 
 export const PATCH = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'crm');
+  if (gateError) return gateError;
+
   const segments = new URL(request.url).pathname.split('/');
   const id = segments[segments.indexOf('crm') + 1];
 
@@ -52,6 +56,9 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
 }, { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:dashboard-crm' } });
 
 export const DELETE = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'crm');
+  if (gateError) return gateError;
+
   const segments = new URL(request.url).pathname.split('/');
   const id = segments[segments.indexOf('crm') + 1];
 

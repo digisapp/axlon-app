@@ -30,6 +30,10 @@ interface CreateDealSheetProps {
   onSuccess: () => void;
   prefillLeadId?: string;
   prefillListingId?: string;
+  prefillBuyerName?: string;
+  prefillBuyerEmail?: string;
+  prefillBuyerPhone?: string;
+  prefillBuyerCompany?: string;
 }
 
 interface Lead {
@@ -53,6 +57,10 @@ export function CreateDealSheet({
   onSuccess,
   prefillLeadId,
   prefillListingId,
+  prefillBuyerName,
+  prefillBuyerEmail,
+  prefillBuyerPhone,
+  prefillBuyerCompany,
 }: CreateDealSheetProps) {
   const [loading, setLoading] = useState(false);
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -62,10 +70,10 @@ export function CreateDealSheet({
   // Form state
   const [leadId, setLeadId] = useState(prefillLeadId || '');
   const [listingId, setListingId] = useState(prefillListingId || '');
-  const [buyerName, setBuyerName] = useState('');
-  const [buyerEmail, setBuyerEmail] = useState('');
-  const [buyerPhone, setBuyerPhone] = useState('');
-  const [buyerCompany, setBuyerCompany] = useState('');
+  const [buyerName, setBuyerName] = useState(prefillBuyerName || '');
+  const [buyerEmail, setBuyerEmail] = useState(prefillBuyerEmail || '');
+  const [buyerPhone, setBuyerPhone] = useState(prefillBuyerPhone || '');
+  const [buyerCompany, setBuyerCompany] = useState(prefillBuyerCompany || '');
   const [notes, setNotes] = useState('');
 
   // Fetch leads and listings
@@ -186,12 +194,15 @@ export function CreateDealSheet({
           {/* From Lead */}
           <div className="space-y-2">
             <Label>From Lead (Optional)</Label>
-            <Select value={leadId} onValueChange={setLeadId}>
+            <Select
+              value={leadId || 'none'}
+              onValueChange={(v) => setLeadId(v === 'none' ? '' : v)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select a qualified lead..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None - New buyer</SelectItem>
+                <SelectItem value="none">None - New buyer</SelectItem>
                 {leads.map((lead) => (
                   <SelectItem key={lead.id} value={lead.id}>
                     {lead.buyer_name} ({lead.buyer_email})
@@ -213,12 +224,15 @@ export function CreateDealSheet({
                 className="pl-9"
               />
             </div>
-            <Select value={listingId} onValueChange={setListingId}>
+            <Select
+              value={listingId || 'none'}
+              onValueChange={(v) => setListingId(v === 'none' ? '' : v)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select listing..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No listing</SelectItem>
+                <SelectItem value="none">No listing</SelectItem>
                 {filteredListings.slice(0, 20).map((listing) => (
                   <SelectItem key={listing.id} value={listing.id}>
                     {listing.title}

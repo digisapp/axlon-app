@@ -565,6 +565,8 @@ Based on this inventory, help the customer find what they need. Only recommend e
         ...messageHistory,
         { role: 'user' as const, content: userPrompt },
       ],
+      maxOutputTokens: 1000,
+      abortSignal: AbortSignal.timeout(30_000),
     });
 
     // Add lead capture message if appropriate

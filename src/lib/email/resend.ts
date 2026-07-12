@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
 import { buildUnsubscribeQuery } from '@/lib/email/unsubscribe-token';
+import { isEmailSuppressed } from '@/lib/email/suppression';
 
 let resendInstance: Resend | null = null;
 
@@ -20,6 +21,13 @@ export interface EmailTemplate {
   subject: string;
   html: string;
   headers?: Record<string, string>;
+  /**
+   * 'marketing' sends (drip sequences, digests, reports) are checked against the
+   * suppression list and skipped for opted-out recipients. Transactional mail
+   * (password reset, confirmations, dealer lead alerts) always sends. Defaults
+   * to 'transactional' so existing callers are unaffected.
+   */
+  category?: 'transactional' | 'marketing';
 }
 
 /**
@@ -27,6 +35,12 @@ export interface EmailTemplate {
  * Used for transactional emails like welcome, confirmation, alerts.
  */
 export async function sendEmail(template: EmailTemplate) {
+  // Honor the opt-out list for marketing mail (CAN-SPAM).
+  if (template.category === 'marketing' && (await isEmailSuppressed(template.to))) {
+    logger.info('Skipping marketing email to suppressed recipient', { to: template.to });
+    return null;
+  }
+
   const resend = getResend();
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';

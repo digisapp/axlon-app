@@ -1151,6 +1151,8 @@ Based on this real inventory data, answer the user's question with specific list
       model: xai('grok-4-1-fast-non-reasoning'),
       system: systemPrompt,
       prompt,
+      maxOutputTokens: 1000,
+      abortSignal: AbortSignal.timeout(30_000),
     });
 
     // Format suggested listings for the response

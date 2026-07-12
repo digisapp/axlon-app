@@ -79,12 +79,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get dealer info for notification
+    // Get dealer info for notification. Only real business accounts can receive
+    // chat leads — this blocks lead-spam/inbox-poisoning against arbitrary user
+    // UUIDs (mirrors the is_business gate in /api/chat).
     const { data: dealer } = await supabase
       .from('profiles')
-      .select('email, company_name, notification_settings')
+      .select('email, company_name, notification_settings, is_business')
       .eq('id', dealerId)
       .single();
+
+    if (!dealer || !dealer.is_business) {
+      return NextResponse.json({ error: 'Invalid dealer' }, { status: 404 });
+    }
 
     // Update conversation with visitor info (only if owned)
     if (ownedConversationId) {

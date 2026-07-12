@@ -57,8 +57,11 @@ async function sendNewChatNotification(
 export async function POST(request: NextRequest) {
   try {
     const identifier = getClientIdentifier(request);
+    // This is a public, unauthenticated, xAI-backed endpoint — the most exposed
+    // AI surface. Use the AI rate limit (not the looser 'standard'), or each IP
+    // could burn credits at 100 model calls/min.
     const rateLimitResult = await checkRateLimit(identifier, {
-      ...RATE_LIMITS.standard,
+      ...RATE_LIMITS.ai,
       prefix: 'ratelimit:chat',
     });
     if (!rateLimitResult.success) {
@@ -259,6 +262,8 @@ ${conversationHistory}
 CUSTOMER'S LATEST MESSAGE: "${message.slice(0, 2000).replace(/["""]/g, "'").replace(/\n/g, ' ')}"
 
 Respond naturally as the dealer's AI assistant:`,
+      maxOutputTokens: 800,
+      abortSignal: AbortSignal.timeout(30_000),
     });
 
     // Save assistant message

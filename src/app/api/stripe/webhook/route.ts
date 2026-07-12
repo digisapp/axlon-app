@@ -51,9 +51,27 @@ export async function POST(request: NextRequest) {
 
   try {
     switch (event.type) {
+      // async_payment_succeeded fires when a deferred payment (e.g. ACH) settles;
+      // it carries the same session shape, so it shares the fulfillment path.
+      case 'checkout.session.async_payment_succeeded':
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         const { user_id, product, listing_id } = session.metadata || {};
+
+        // Delayed-notification payment methods (e.g. ACH debit) complete the
+        // session with payment_status 'unpaid'/'no_payment_required' before the
+        // funds settle. Only fulfill once the payment is actually collected;
+        // the async_payment_succeeded event handles the deferred case.
+        if (
+          session.payment_status !== 'paid' &&
+          session.payment_status !== 'no_payment_required'
+        ) {
+          logger.info('Checkout completed but not yet paid — deferring fulfillment', {
+            sessionId: session.id,
+            paymentStatus: session.payment_status,
+          });
+          break;
+        }
 
         // Validate required metadata fields
         const validProducts = [
@@ -224,7 +242,7 @@ export async function POST(request: NextRequest) {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('id')
+          .select('id, subscription_tier')
           .eq('stripe_customer_id', customerId)
           .single();
 
@@ -237,19 +255,35 @@ export async function POST(request: NextRequest) {
         }
 
         if (subscription.status === 'active') {
-          // Plan change or reactivation — (re)grant the paid tier
-          await supabase
-            .from('profiles')
-            .update({ is_business: true, subscription_tier: 'pro' })
-            .eq('id', profile.id);
-        } else if (subscription.status === 'canceled' || subscription.status === 'unpaid') {
-          // Dunning exhausted or canceled — downgrade to free
-          await supabase
-            .from('profiles')
-            .update({ is_business: false, subscription_tier: 'free' })
-            .eq('id', profile.id);
+          // Plan change or reactivation — (re)grant the paid tier. Never
+          // downgrade a manually-assigned 'enterprise' account (AI Transformation
+          // clients) to 'pro' on an unrelated renewal/card-update event.
+          if (profile.subscription_tier !== 'enterprise') {
+            await supabase
+              .from('profiles')
+              .update({ is_business: true, subscription_tier: 'pro' })
+              .eq('id', profile.id);
+          } else {
+            await supabase
+              .from('profiles')
+              .update({ is_business: true })
+              .eq('id', profile.id);
+          }
+        } else if (
+          subscription.status === 'canceled' ||
+          subscription.status === 'unpaid' ||
+          subscription.status === 'incomplete_expired'
+        ) {
+          // Dunning exhausted, canceled, or the initial payment never completed —
+          // downgrade to free. Leave 'enterprise' clients alone (billed off-Stripe).
+          if (profile.subscription_tier !== 'enterprise') {
+            await supabase
+              .from('profiles')
+              .update({ is_business: false, subscription_tier: 'free' })
+              .eq('id', profile.id);
+          }
         } else {
-          // past_due / incomplete etc. — keep current tier while Stripe retries
+          // past_due / incomplete / paused — keep current tier while Stripe retries
           logger.info('Subscription status changed, no tier change', {
             subscriptionId: subscription.id,
             status: subscription.status,
@@ -263,22 +297,34 @@ export async function POST(request: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        // Canceling the voice add-on must not revoke the platform tier
+        // Canceling the voice add-on must not revoke the platform tier, but it
+        // must deactivate the AI phone agent so it stops answering paid calls.
         if (await isVoiceAddonSubscription(supabase, subscription)) {
-          logger.info('Voice add-on subscription deleted', {
+          const { error: deactivateError } = await supabase
+            .from('dealer_voice_agents')
+            .update({ is_active: false, stripe_subscription_id: null })
+            .eq('stripe_subscription_id', subscription.id);
+          if (deactivateError) {
+            logger.error('Failed to deactivate voice agent on subscription cancel', {
+              subscriptionId: subscription.id,
+              error: deactivateError,
+            });
+          }
+          logger.info('Voice add-on subscription deleted, agent deactivated', {
             subscriptionId: subscription.id,
           });
           break;
         }
 
-        // Find user by customer ID and revoke dealer status
+        // Find user by customer ID and revoke dealer status (but never downgrade
+        // an 'enterprise' account billed outside Stripe).
         const { data: profile } = await supabase
           .from('profiles')
-          .select('id')
+          .select('id, subscription_tier')
           .eq('stripe_customer_id', customerId)
           .single();
 
-        if (profile) {
+        if (profile && profile.subscription_tier !== 'enterprise') {
           await supabase
             .from('profiles')
             .update({ is_business: false, subscription_tier: 'free' })

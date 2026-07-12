@@ -5,8 +5,13 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   const rawRedirect = searchParams.get('redirect') || '/dashboard';
-  // Prevent open redirect: only allow relative paths starting with /
-  const redirect = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/dashboard';
+  // Prevent open redirect: only allow same-site relative paths (reject // and /\).
+  const redirect =
+    rawRedirect.startsWith('/') &&
+    !rawRedirect.startsWith('//') &&
+    !rawRedirect.startsWith('/\\')
+      ? rawRedirect
+      : '/dashboard';
 
   if (code) {
     const supabase = await createClient();

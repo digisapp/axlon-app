@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { csrfFetch } from '@/lib/csrf-fetch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   Send,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
 
 interface InsightCard {
@@ -36,12 +37,34 @@ const suggestedPrompts = [
 
 export function CommandCenter({ insights, companyName }: CommandCenterProps) {
   const [query, setQuery] = useState('');
-  const router = useRouter();
+  const [answer, setAnswer] = useState<string | null>(null);
+  const [isAsking, setIsAsking] = useState(false);
+  const [askError, setAskError] = useState<string | null>(null);
 
-  const handleSubmit = (prompt: string) => {
-    const q = prompt || query;
-    if (!q.trim()) return;
-    router.push(`/dashboard/ai-assistant?q=${encodeURIComponent(q)}`);
+  const handleSubmit = async (prompt: string) => {
+    const q = (prompt || query).trim();
+    if (!q || isAsking) return;
+    setQuery(q);
+    setIsAsking(true);
+    setAskError(null);
+    setAnswer(null);
+    try {
+      const res = await csrfFetch('/api/dashboard/assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q }),
+      });
+      const data = await res.json();
+      if (res.ok && data.answer) {
+        setAnswer(data.answer);
+      } else {
+        setAskError(data.error || 'Could not get an answer. Please try again.');
+      }
+    } catch {
+      setAskError('Could not reach the assistant. Please try again.');
+    } finally {
+      setIsAsking(false);
+    }
   };
 
   const insightIcons = {
@@ -79,30 +102,53 @@ export function CommandCenter({ insights, companyName }: CommandCenterProps) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSubmit(query)}
+                disabled={isAsking}
                 placeholder="Ask anything about your business..."
-                className="w-full pl-3 pr-10 py-2.5 text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
+                className="w-full pl-3 pr-10 py-2.5 text-base md:text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 disabled:opacity-60"
               />
               <button
                 onClick={() => handleSubmit(query)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-primary transition-colors"
+                disabled={isAsking}
+                aria-label="Ask Axlon AI"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-primary transition-colors disabled:opacity-60"
               >
-                <Send className="w-4 h-4" />
+                {isAsking ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
               </button>
             </div>
 
+            {/* Answer / error */}
+            {(answer || askError) && (
+              <div
+                className={`mb-3 rounded-lg border p-3 text-sm ${
+                  askError
+                    ? 'border-red-500/20 bg-red-500/5 text-red-600'
+                    : 'border-primary/20 bg-primary/5 text-foreground'
+                }`}
+              >
+                {askError ?? answer}
+              </div>
+            )}
+
             {/* Suggested Prompts */}
-            <div className="space-y-1.5">
-              {suggestedPrompts.map((prompt) => (
-                <button
-                  key={prompt}
-                  onClick={() => handleSubmit(prompt)}
-                  className="w-full text-left text-xs text-muted-foreground hover:text-foreground py-1.5 px-2 rounded-md hover:bg-muted transition-colors flex items-start gap-2"
-                >
-                  <Sparkles className="w-3 h-3 mt-0.5 shrink-0 text-primary/50" />
-                  {prompt}
-                </button>
-              ))}
-            </div>
+            {!answer && (
+              <div className="space-y-1.5">
+                {suggestedPrompts.map((prompt) => (
+                  <button
+                    key={prompt}
+                    onClick={() => handleSubmit(prompt)}
+                    disabled={isAsking}
+                    className="w-full text-left text-xs text-muted-foreground hover:text-foreground py-1.5 px-2 rounded-md hover:bg-muted transition-colors flex items-start gap-2 disabled:opacity-60"
+                  >
+                    <Sparkles className="w-3 h-3 mt-0.5 shrink-0 text-primary/50" />
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Right: AI Insights */}

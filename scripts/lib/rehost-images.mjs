@@ -15,11 +15,18 @@ import crypto from 'crypto';
  */
 export async function downloadAndStoreImage(supabase, imageUrl, listingId, index = 0) {
   try {
-    const resp = await fetch(encodeURI(imageUrl.trim()), {
+    // Only encode if the URL isn't already percent-encoded — blindly running
+    // encodeURI() over an already-encoded URL turns %20 into %2520 and 404s it.
+    const trimmed = imageUrl.trim();
+    const fetchUrl = /%[0-9A-Fa-f]{2}/.test(trimmed) ? trimmed : encodeURI(trimmed);
+
+    // Abort hung dealer hosts instead of blocking the whole run for minutes.
+    const resp = await fetch(fetchUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
         'Referer': new URL(imageUrl).origin,
       },
+      signal: AbortSignal.timeout(20_000),
     });
 
     if (!resp.ok) {
@@ -27,12 +34,22 @@ export async function downloadAndStoreImage(supabase, imageUrl, listingId, index
       return null;
     }
 
-    const contentType = resp.headers.get('content-type') || 'image/jpeg';
+    const contentType = resp.headers.get('content-type') || '';
+    // Reject non-image responses (HTML error/challenge pages served with 200)
+    // so we never store a text/html blob as a listing photo.
+    if (!contentType.startsWith('image/')) {
+      console.warn(`  ⚠ Skipping non-image response (${contentType || 'unknown'}): ${imageUrl}`);
+      return null;
+    }
     const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
     const buffer = Buffer.from(await resp.arrayBuffer());
 
-    // Skip tiny images (likely tracking pixels)
+    // Skip tiny images (likely tracking pixels) and absurdly large files.
     if (buffer.length < 5000) return null;
+    if (buffer.length > 15_000_000) {
+      console.warn(`  ⚠ Skipping oversized image (${buffer.length} bytes): ${imageUrl}`);
+      return null;
+    }
 
     const hash = crypto.createHash('md5').update(buffer).digest('hex').substring(0, 8);
     const path = `dealer-imports/${listingId}/${index}-${hash}.${ext}`;

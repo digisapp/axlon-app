@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
         // Build and send the email
         const { subject, html } = buildMarketReportEmail(report);
 
-        await sendEmail({ to: profile.email, subject, html });
+        await sendEmail({ to: profile.email, subject, html, category: 'marketing' });
 
         // Store the report for dashboard access
         await supabase

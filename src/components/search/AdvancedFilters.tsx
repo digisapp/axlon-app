@@ -337,7 +337,7 @@ export function AdvancedFilters({
                     const val = parseInt(e.target.value) || 0;
                     handlePriceRangeCommit([val, priceRange[1]]);
                   }}
-                  className="h-8 text-sm"
+                  className="h-8 text-base md:text-sm"
                   placeholder="$0"
                 />
               </div>
@@ -355,7 +355,7 @@ export function AdvancedFilters({
                     const val = parseInt(e.target.value) || 500000;
                     handlePriceRangeCommit([priceRange[0], val]);
                   }}
-                  className="h-8 text-sm"
+                  className="h-8 text-base md:text-sm"
                   placeholder="$500,000+"
                 />
               </div>

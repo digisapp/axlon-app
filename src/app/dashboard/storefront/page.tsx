@@ -30,6 +30,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { isReservedSlug } from '@/lib/reserved-slugs';
 
 export default function StorefrontSettingsPage() {
   const router = useRouter();
@@ -168,6 +169,15 @@ export default function StorefrontSettingsPage() {
   };
 
   const handleSave = async () => {
+    // Block reserved slugs before saving — otherwise the storefront would be
+    // shadowed by a static route (e.g. axlon.ai/pricing) and never render.
+    if (formData.slug && isReservedSlug(formData.slug)) {
+      showErrorToast(
+        `"${formData.slug}" is a reserved URL and can't be used. Please choose another storefront URL.`
+      );
+      return;
+    }
+
     setIsSaving(true);
 
     try {

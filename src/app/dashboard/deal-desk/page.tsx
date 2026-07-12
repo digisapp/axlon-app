@@ -27,8 +27,24 @@ export default function DealDeskPage() {
     lost: [],
   });
 
-  // Dialog state
-  const [createSheetOpen, setCreateSheetOpen] = useState(false);
+  // Buyer prefill carried over from the CRM "Create Deal" action
+  // (/dashboard/deal-desk?buyer_name=...&buyer_email=...). Read once on mount.
+  const [buyerPrefill] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const p = new URLSearchParams(window.location.search);
+    const name = p.get('buyer_name');
+    const email = p.get('buyer_email');
+    if (!name && !email) return null;
+    return {
+      name: name || '',
+      email: email || '',
+      phone: p.get('buyer_phone') || '',
+      company: p.get('buyer_company') || '',
+    };
+  });
+
+  // Dialog state — auto-open the create sheet when arriving with buyer prefill.
+  const [createSheetOpen, setCreateSheetOpen] = useState(Boolean(buyerPrefill));
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
 
@@ -139,6 +155,10 @@ export default function DealDeskPage() {
         open={createSheetOpen}
         onOpenChange={setCreateSheetOpen}
         onSuccess={() => fetchDashboardData(true)}
+        prefillBuyerName={buyerPrefill?.name}
+        prefillBuyerEmail={buyerPrefill?.email}
+        prefillBuyerPhone={buyerPrefill?.phone}
+        prefillBuyerCompany={buyerPrefill?.company}
       />
 
       <DealDetailSheet

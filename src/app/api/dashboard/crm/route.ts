@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth/with-auth';
+import { enforceFeature } from '@/lib/entitlements';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import { validateBody, ValidationError, createCrmContactSchema } from '@/lib/validations/api';
 
 export const GET = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'crm');
+  if (gateError) return gateError;
+
   const searchParams = request.nextUrl.searchParams;
   const status = searchParams.get('status');
   const search = searchParams.get('search');
@@ -81,6 +85,9 @@ export const GET = withAuth(async (request, { user, supabase }) => {
 }, { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:dashboard-crm' } });
 
 export const POST = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'crm');
+  if (gateError) return gateError;
+
   const body = await request.json();
 
   let validatedData;

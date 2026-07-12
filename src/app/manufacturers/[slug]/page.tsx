@@ -25,6 +25,8 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { Manufacturer } from '@/types';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 import { jsonLdString } from '@/lib/seo/json-ld';
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
@@ -64,7 +66,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: 'Not Found' };
   }
 
-  const types = manufacturer.equipment_types.join(', ');
+  const types = (manufacturer.equipment_types ?? []).join(', ');
   const title = `${manufacturer.name} ${types.charAt(0).toUpperCase() + types.slice(1)} | AXLON AI`;
   const description = manufacturer.short_description || `Browse ${manufacturer.name} equipment on AXLON AI. Find trucks, trailers, and equipment.`;
 
@@ -201,7 +203,9 @@ export default async function ManufacturerPage({ params }: PageProps) {
     : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-gray-50 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <>
+      <Header />
+      <div className="min-h-screen bg-gradient-to-b from-slate-100 via-gray-50 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       {/* JSON-LD Structured Data */}
       <ManufacturerJsonLd manufacturer={manufacturer as Manufacturer} slug={slug} />
       <BreadcrumbJsonLd manufacturerName={manufacturer.name} slug={slug} />
@@ -298,7 +302,7 @@ export default async function ManufacturerPage({ params }: PageProps) {
 
               {/* Equipment Types */}
               <div className="flex flex-wrap gap-2 mt-4">
-                {manufacturer.equipment_types.map((type: string) => {
+                {(manufacturer.equipment_types ?? []).map((type: string) => {
                   const Icon = EQUIPMENT_TYPE_ICONS[type] || Package;
                   return (
                     <Badge
@@ -422,6 +426,8 @@ export default async function ManufacturerPage({ params }: PageProps) {
           </div>
         )}
       </div>
-    </div>
+      </div>
+      <Footer />
+    </>
   );
 }
