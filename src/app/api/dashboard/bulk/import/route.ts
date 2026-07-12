@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth/with-auth';
+import { enforceFeature } from '@/lib/entitlements';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, createListingSchema } from '@/lib/validations/api';
 
 export const POST = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'bulkImport');
+  if (gateError) return gateError;
+
   const body = await request.json();
 
   let validatedData;

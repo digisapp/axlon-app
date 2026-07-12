@@ -14,7 +14,12 @@ import {
 import Link from 'next/link';
 import { LeadKanban } from '@/components/dashboard/LeadKanban';
 
-export default async function LeadsPage() {
+export default async function LeadsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const { status: highlightStatus } = await searchParams;
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -82,6 +87,7 @@ export default async function LeadsPage() {
           leads={leads}
           teamMembers={teamMembers}
           currentUserId={user.id}
+          highlightStatus={highlightStatus}
         />
       ) : (
         <Card>

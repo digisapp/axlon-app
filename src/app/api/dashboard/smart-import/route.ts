@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth/with-auth';
+import { enforceFeature } from '@/lib/entitlements';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import {
@@ -152,7 +153,10 @@ async function extractContent(file: File, buffer: Buffer): Promise<{
 
 // --- Route Handler ---
 
-export const POST = withAuth(async (request) => {
+export const POST = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'bulkImport');
+  if (gateError) return gateError;
+
   // Parse multipart form data
   const formData = await request.formData();
   const file = formData.get('file') as File | null;

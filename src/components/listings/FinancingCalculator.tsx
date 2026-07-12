@@ -58,7 +58,10 @@ export function FinancingCalculator({ listingPrice, className }: FinancingCalcul
     if (isNaN(value)) return;
     const clamped = Math.max(0, Math.min(value, listingPrice));
     setDownPayment(clamped);
-    setDownPaymentPercent(Math.round((clamped / listingPrice) * 100));
+    // Guard against divide-by-zero on $0 / "Call for price" listings.
+    setDownPaymentPercent(
+      listingPrice > 0 ? Math.round((clamped / listingPrice) * 100) : 0
+    );
   };
 
   const handleDownPaymentPercentChange = (value: number[]) => {

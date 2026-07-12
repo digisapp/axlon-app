@@ -5,6 +5,9 @@ import { logger } from '@/lib/logger';
 
 const RETENTION_DAYS = 30;
 
+// Allow the full serverless window for batch processing (Vercel default is short).
+export const maxDuration = 300;
+
 export async function GET(request: NextRequest) {
   if (!verifyCronRequest(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

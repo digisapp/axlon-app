@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth/with-auth';
+import { enforceFeature } from '@/lib/entitlements';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, createCrmActivitySchema } from '@/lib/validations/api';
 
 export const GET = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'crm');
+  if (gateError) return gateError;
+
   const searchParams = request.nextUrl.searchParams;
   const contactId = searchParams.get('contact_id');
   const limit = parseInt(searchParams.get('limit') || '20');
@@ -31,6 +35,9 @@ export const GET = withAuth(async (request, { user, supabase }) => {
 }, { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:dashboard-crm-activities' } });
 
 export const POST = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'crm');
+  if (gateError) return gateError;
+
   const body = await request.json();
 
   let validatedData;

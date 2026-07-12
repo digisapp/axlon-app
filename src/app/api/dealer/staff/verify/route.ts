@@ -123,10 +123,13 @@ export async function POST(request: NextRequest) {
     const staff = staffMembers?.find(s => verifyPin(pin, s));
 
     if (error || !staff) {
-      // Increment failed_attempts on every candidate the PIN was tested
-      // against, locking the account for LOCKOUT_MINUTES once the counter
-      // reaches MAX_FAILED_ATTEMPTS.
-      if (!error && staffMembers && staffMembers.length > 0) {
+      // Only apply per-account lockout when a specific staff member was
+      // targeted by name. Without a name the PIN is tested against ALL of the
+      // dealer's active staff, and incrementing every one would let anyone lock
+      // out an entire dealer's voice auth with a few wrong PINs (the dealer_id
+      // is public). Broad, nameless attempts are throttled by the strict IP
+      // rate limit above instead.
+      if (name && !error && staffMembers && staffMembers.length > 0) {
         await Promise.all(
           staffMembers.map((candidate) => {
             const newFailedAttempts = (candidate.failed_attempts || 0) + 1;

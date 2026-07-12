@@ -19,6 +19,7 @@ import {
   Store,
 } from 'lucide-react';
 import Link from 'next/link';
+import { ManageBillingButton } from '@/components/dashboard/ManageBillingButton';
 
 const FREE_FEATURES = [
   'Unlimited listings on marketplace',
@@ -147,6 +148,12 @@ export default async function BillingPage() {
               </div>
             )}
           </div>
+
+          {currentTier === 'pro' && (
+            <div className="pt-2 border-t">
+              <ManageBillingButton />
+            </div>
+          )}
         </CardContent>
       </Card>
 

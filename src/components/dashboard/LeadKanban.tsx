@@ -47,6 +47,8 @@ interface LeadKanbanProps {
   leads: Lead[];
   teamMembers?: TeamMember[];
   currentUserId?: string;
+  /** Column to visually emphasize (from a ?status= deep-link). */
+  highlightStatus?: string;
 }
 
 const columns = [
@@ -56,7 +58,7 @@ const columns = [
   { id: 'won', label: 'Won', color: 'bg-green-500' },
 ];
 
-export function LeadKanban({ leads: initialLeads, teamMembers = [], currentUserId }: LeadKanbanProps) {
+export function LeadKanban({ leads: initialLeads, teamMembers = [], currentUserId, highlightStatus }: LeadKanbanProps) {
   const [leads, setLeads] = useState(initialLeads);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -148,7 +150,13 @@ export function LeadKanban({ leads: initialLeads, teamMembers = [], currentUserI
               </Badge>
             </div>
 
-            <div className="space-y-3 min-h-[200px] p-2 bg-muted/30 rounded-lg">
+            <div
+              className={`space-y-3 min-h-[200px] p-2 rounded-lg ${
+                highlightStatus === column.id
+                  ? 'bg-primary/5 ring-2 ring-primary/40'
+                  : 'bg-muted/30'
+              }`}
+            >
               {getLeadsByStatus(column.id).map(lead => (
                 <LeadCard
                   key={lead.id}

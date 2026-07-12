@@ -63,16 +63,19 @@ export function ContactSeller({ listingId, sellerId, listingTitle }: ContactSell
       return;
     }
 
+    // Arm the disabled guard synchronously, before the first await, so a fast
+    // double-click / double-Enter can't fire two /api/leads POSTs.
+    setIsSending(true);
+
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     // Check if user is trying to message themselves (only if seller is specified)
     if (sellerId && user?.id === sellerId) {
       setError("You can't contact yourself");
+      setIsSending(false);
       return;
     }
-
-    setIsSending(true);
 
     try {
       // Create lead via API

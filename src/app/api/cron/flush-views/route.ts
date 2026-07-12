@@ -4,6 +4,9 @@ import { verifyCronRequest } from '@/lib/security/cron-auth';
 
 import { logger } from '@/lib/logger'
 
+// Allow the full serverless window for batch processing (Vercel default is short).
+export const maxDuration = 300;
+
 export async function GET(request: NextRequest) {
   // Verify the request is authorized
   if (!verifyCronRequest(request)) {

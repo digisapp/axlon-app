@@ -2,6 +2,8 @@
 
 import { useState, memo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { csrfFetch } from '@/lib/csrf-fetch';
 import {
   Table,
   TableBody,
@@ -57,10 +59,31 @@ interface InventoryTableProps {
 }
 
 export const InventoryTable = memo(function InventoryTable({ listings }: InventoryTableProps) {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+
+  const handleDelete = async (id: string, title: string) => {
+    if (!confirm(`Delete "${title}"? This removes it from the marketplace.`)) return;
+    setDeletingId(id);
+    try {
+      const res = await csrfFetch(`/api/listings/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setDeletedIds((prev) => new Set(prev).add(id));
+        router.refresh();
+      } else {
+        alert('Could not delete the listing. Please try again.');
+      }
+    } catch {
+      alert('Could not delete the listing. Please try again.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Capture time-at-mount once — a lazy useState initializer runs exactly
   // once, which satisfies the purity rule (useMemo may re-run)
@@ -68,6 +91,7 @@ export const InventoryTable = memo(function InventoryTable({ listings }: Invento
 
   // Filter listings
   const filteredListings = listings.filter(listing => {
+    if (deletedIds.has(listing.id)) return false;
     const matchesSearch =
       listing.title.toLowerCase().includes(search.toLowerCase()) ||
       listing.stock_number?.toLowerCase().includes(search.toLowerCase());
@@ -327,9 +351,16 @@ export const InventoryTable = memo(function InventoryTable({ listings }: Invento
                                 Edit
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              disabled={deletingId === listing.id}
+                              onSelect={(e) => {
+                                e.preventDefault();
+                                handleDelete(listing.id, listing.title);
+                              }}
+                            >
                               <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
+                              {deletingId === listing.id ? 'Deleting…' : 'Delete'}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

@@ -28,10 +28,10 @@ export const STRIPE_PRODUCTS = {
   FEATURED_LISTING_WEEK: 'price_featured_week', // $49/week
   FEATURED_LISTING_MONTH: 'price_featured_month', // $149/month
   BUMP_LISTING: 'price_bump', // $14.99 one-time
-  PLATFORM_MONTHLY: 'price_platform_monthly', // $399/month
-  PLATFORM_YEARLY: 'price_platform_yearly', // $3,990/year
-  VOICE_ADDON_MONTHLY: 'price_voice_addon_monthly', // $499/month
-  VOICE_ADDON_YEARLY: 'price_voice_addon_yearly', // $4,990/year
+  PLATFORM_MONTHLY: 'price_platform_monthly', // $499/month
+  PLATFORM_YEARLY: 'price_platform_yearly', // $4,990/year
+  VOICE_ADDON_MONTHLY: 'price_voice_addon_monthly', // $299/month
+  VOICE_ADDON_YEARLY: 'price_voice_addon_yearly', // $2,990/year
   GUIDED_SETUP: 'price_guided_setup', // $2,499 one-time
   ENTERPRISE_ONBOARDING: 'price_enterprise_onboarding', // $14,999 one-time
 } as const;
@@ -53,8 +53,11 @@ export const PRICING = {
     description: 'Refresh your listing to appear as newly posted',
   },
   PLATFORM: {
-    monthly: 39900,
-    yearly: 399000,
+    // Must match the advertised price on the billing/pricing pages and
+    // PLAN_PRICES.pro in src/lib/plans.ts ($499/mo). Do not diverge — the
+    // amount charged here is what the customer agreed to.
+    monthly: 49900,
+    yearly: 499000,
     label: 'AXLON Platform',
     features: [
       'Unlimited listings on marketplace',
@@ -70,8 +73,9 @@ export const PRICING = {
     ],
   },
   VOICE_ADDON: {
-    monthly: 49900,
-    yearly: 499000,
+    // Must match advertised voice price (PLAN_PRICES.voice_addon = $299/mo).
+    monthly: 29900,
+    yearly: 299000,
     label: 'AXLON Voice',
     minutesIncluded: 500,
     overagePerMinute: 25, // cents

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth/with-auth';
+import { enforceFeature } from '@/lib/entitlements';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 
 // Minutes saved per AI action — used for time-saved estimate
@@ -10,6 +11,9 @@ const TIME_SAVED = {
 };
 
 export const GET = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'aiAssistant');
+  if (gateError) return gateError;
+
   const { searchParams } = new URL(request.url);
   const days = parseInt(searchParams.get('days') || '30');
 

@@ -17,6 +17,8 @@ import {
   Calendar,
 } from 'lucide-react';
 import { Manufacturer } from '@/types';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 
 export const metadata = {
   title: 'Manufacturer Directory - Truck, Trailer & Equipment Brands',
@@ -95,7 +97,9 @@ export default async function ManufacturersPage({ searchParams }: PageProps) {
   const regularManufacturers = updatedManufacturers.filter(m => !m.is_featured);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-gray-50 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
+    <>
+      <Header />
+      <div className="min-h-screen bg-gradient-to-b from-slate-100 via-gray-50 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950">
       {/* Background Pattern */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:48px_48px]" />
@@ -204,7 +208,9 @@ export default async function ManufacturersPage({ searchParams }: PageProps) {
           </div>
         ) : null}
       </div>
-    </div>
+      </div>
+      <Footer />
+    </>
   );
 }
 

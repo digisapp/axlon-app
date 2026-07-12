@@ -54,8 +54,13 @@ export default async function SavedListingsPage() {
       `)
       .in('id', listingIds);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    savedListings = (listings as any) || [];
+    // Preserve most-recently-saved-first order: `.in()` returns rows in
+    // arbitrary order, so re-sort by the favorite order captured in listingIds.
+    const rows = (listings || []) as typeof savedListings;
+    const byId = new Map(rows.map((l) => [l.id, l]));
+    savedListings = listingIds
+      .map((id) => byId.get(id))
+      .filter((l): l is (typeof savedListings)[number] => Boolean(l));
   }
 
   return (

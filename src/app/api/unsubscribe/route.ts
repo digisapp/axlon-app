@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { logger } from '@/lib/logger';
 import { checkRateLimit, getClientIdentifier } from '@/lib/security/rate-limit';
 import { normalizeEmail, verifyUnsubscribeToken } from '@/lib/email/unsubscribe-token';
+import { suppressEmail } from '@/lib/email/suppression';
 
 /**
  * Unsubscribe endpoint.
@@ -47,11 +48,17 @@ async function extractParams(request: NextRequest): Promise<UnsubscribeParams> {
 async function processUnsubscribe(email: string): Promise<void> {
   const supabase = createAdminClient();
 
-  // (i) If a profile exists, turn off its email preferences.
+  // (0) Durable opt-out: record the address so future marketing sends are
+  // suppressed even if a new drip/digest is enqueued later.
+  await suppressEmail(email, 'unsubscribe');
+
+  // (i) If a profile exists, turn off its email preferences. Match
+  // case-insensitively — a profile stored with any uppercase (imported/edited)
+  // would otherwise keep receiving alerts after a "successful" unsubscribe.
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('id')
-    .eq('email', email)
+    .ilike('email', email)
     .maybeSingle();
   if (profileError) {
     logger.error('Unsubscribe: profile lookup failed', { error: profileError });

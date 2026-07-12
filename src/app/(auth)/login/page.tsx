@@ -15,10 +15,13 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawRedirect = searchParams.get('redirect') || '/dashboard';
-  // Prevent open redirect: only allow relative paths starting with /
-  // (same validation as src/app/(auth)/auth/callback/route.ts)
+  // Prevent open redirect: only allow same-site relative paths. Reject both //
+  // (protocol-relative) and /\ (browsers normalize the backslash to /, so /\evil.com
+  // becomes //evil.com and navigates off-site).
   const redirect =
-    rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')
+    rawRedirect.startsWith('/') &&
+    !rawRedirect.startsWith('//') &&
+    !rawRedirect.startsWith('/\\')
       ? rawRedirect
       : '/dashboard';
   const authError = searchParams.get('error');

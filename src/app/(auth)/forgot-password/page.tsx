@@ -23,8 +23,12 @@ export default function ForgotPasswordPage() {
 
     const supabase = createClient();
 
+    // Send the recovery link straight to the "Set New Password" screen, which
+    // exchanges the ?code= itself. Routing through /auth/callback would consume
+    // the code and log the user straight into the dashboard without ever letting
+    // them set a new password.
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?redirect=/dashboard/settings`,
+      redirectTo: `${window.location.origin}/reset-password`,
     });
 
     if (error) {

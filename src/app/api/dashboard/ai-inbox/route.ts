@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth/with-auth';
+import { enforceFeature } from '@/lib/entitlements';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { Resend } from 'resend';
 import { logger } from '@/lib/logger';
@@ -14,6 +15,9 @@ const actionSchema = z.object({
 });
 
 export const GET = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'aiInbox');
+  if (gateError) return gateError;
+
   const { searchParams } = new URL(request.url);
   const status = searchParams.get('status') || 'pending';
   const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
@@ -59,6 +63,9 @@ export const GET = withAuth(async (request, { user, supabase }) => {
 }, { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:ai-inbox-get' } });
 
 export const PATCH = withAuth(async (request, { user, supabase }) => {
+  const gateError = await enforceFeature(supabase, user.id, 'aiInbox');
+  if (gateError) return gateError;
+
   const url = new URL(request.url);
   const id = url.searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });

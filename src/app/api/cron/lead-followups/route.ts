@@ -178,11 +178,12 @@ export async function GET(request: NextRequest) {
 
         const email = await generateFollowUpEmail(context);
 
-        // Send the email
+        // Send the email (marketing drip — honors the suppression list)
         const result = await sendEmail({
           to: followup.email_to,
           subject: email.subject,
           html: email.html,
+          category: 'marketing',
         });
 
         // Mark as sent

@@ -174,10 +174,11 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
   const { category, q, sort, minPrice, maxPrice, minYear, maxYear, condition } = await searchParams;
   const supabase = await createClient();
 
-  // Fetch dealer profile
+  // Fetch dealer profile — explicit public columns only (never expose
+  // stripe_customer_id / tax_id / business_license / notification_settings).
   const { data: dealer } = await supabase
     .from('profiles')
-    .select('*')
+    .select('id, company_name, tagline, about, avatar_url, banner_url, email, phone, website, city, state, social_links, chat_enabled, chat_settings, storefront_views')
     .eq('slug', slug)
     .eq('is_business', true)
     .single();

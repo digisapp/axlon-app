@@ -3,6 +3,9 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { logger } from '@/lib/logger';
 import { verifyCronRequest } from '@/lib/security/cron-auth';
 
+// Allow the full serverless window for batch processing (Vercel default is short).
+export const maxDuration = 300;
+
 // GET - Generate floor plan alerts
 export async function GET(request: NextRequest) {
   if (!verifyCronRequest(request)) {

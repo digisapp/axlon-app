@@ -287,6 +287,7 @@ export async function GET(request: NextRequest) {
           to: profile.email,
           subject: `${total} new match${total === 1 ? '' : 'es'} for "${search.name}" on AXLON`,
           html: buildEmailHtml(search, matches, total, baseUrl),
+          category: 'marketing',
         });
 
         await supabase

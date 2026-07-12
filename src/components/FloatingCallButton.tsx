@@ -2,12 +2,23 @@
 
 import { Phone } from 'lucide-react';
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { RESERVED_SLUGS } from '@/lib/reserved-slugs';
 
 const PHONE_NUMBER = '+14694213536';
 const DISPLAY_NUMBER = '(469) 421-3536';
 
 export function FloatingCallButton() {
   const [isHovered, setIsHovered] = useState(false);
+  const pathname = usePathname();
+
+  // Don't show the AXLON sales call button on dealer storefronts (axlon.ai/[slug]):
+  // they render their own dealer contact bar + chat widget in the same corner, and
+  // this button dials AXLON's number, not the dealer's. A single-segment path whose
+  // first segment isn't a known app route is a dealer storefront.
+  const firstSegment = pathname.split('/').filter(Boolean)[0];
+  const isStorefront = Boolean(firstSegment) && !RESERVED_SLUGS.has(firstSegment);
+  if (isStorefront) return null;
 
   return (
     <a

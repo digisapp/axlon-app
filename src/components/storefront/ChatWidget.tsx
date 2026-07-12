@@ -288,21 +288,21 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
               placeholder="Your name"
               value={leadInfo.name}
               onChange={(e) => setLeadInfo({ ...leadInfo, name: e.target.value })}
-              className="h-9 text-sm"
+              className="h-9 text-base md:text-sm"
             />
             <Input
               placeholder="Email"
               type="email"
               value={leadInfo.email}
               onChange={(e) => setLeadInfo({ ...leadInfo, email: e.target.value })}
-              className="h-9 text-sm"
+              className="h-9 text-base md:text-sm"
             />
             <Input
               placeholder="Phone (optional)"
               type="tel"
               value={leadInfo.phone}
               onChange={(e) => setLeadInfo({ ...leadInfo, phone: e.target.value })}
-              className="h-9 text-sm"
+              className="h-9 text-base md:text-sm"
             />
             {leadError && (
               <p className="text-xs text-destructive" role="alert">
