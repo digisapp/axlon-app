@@ -118,8 +118,28 @@ async function sleep(ms) {
 // Cache for dealer IDs by company name
 const dealerCache = new Map();
 
+// A parsed "dealer name" is only trustworthy enough to mint an account for if it
+// actually looks like a business name. Garbage from a page-layout shift (labels
+// like "Seller Information", empty/one-char strings, all-digits) must NOT create
+// junk auth users — route those to the shared fallback account instead.
+function isPlausibleDealerName(name) {
+  if (!name) return false;
+  const n = name.trim();
+  if (n.length < 3 || n.length > 80) return false;
+  if (!/[a-zA-Z]/.test(n)) return false; // must contain letters
+  const junk = /^(seller|contact|dealer|information|listing|details|phone|email|call|for more|n\/a|unknown)\b/i;
+  if (junk.test(n)) return false;
+  return true;
+}
+
 async function getOrCreateDealer(dealerInfo) {
-  const dealerName = dealerInfo.name?.trim() || 'TruckPaper Listing';
+  const rawName = dealerInfo.name?.trim();
+
+  // Unrecognized/garbled names must never mint a new account.
+  if (!isPlausibleDealerName(rawName)) {
+    return getOrCreateFallbackDealer();
+  }
+  const dealerName = rawName;
 
   // Check cache first
   if (dealerCache.has(dealerName)) {
@@ -131,7 +151,7 @@ async function getOrCreateDealer(dealerInfo) {
     .from('profiles')
     .select('id')
     .eq('company_name', dealerName)
-    .single();
+    .maybeSingle();
 
   if (existing) {
     dealerCache.set(dealerName, existing.id);
@@ -169,8 +189,9 @@ async function getOrCreateDealer(dealerInfo) {
         city: dealerInfo.city || '',
         state: dealerInfo.state || '',
         country: 'USA',
-        is_dealer: true,
-        is_verified: false,
+        // Column renamed to is_business in migration 045; is_verified no longer
+        // exists — writing the old names errored and left the profile unpopulated.
+        is_business: true,
       })
       .eq('id', userId);
 

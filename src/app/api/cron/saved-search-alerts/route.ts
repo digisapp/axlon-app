@@ -102,11 +102,13 @@ async function findNewMatches(
 ): Promise<{ matches: MatchedListing[]; total: number }> {
   const f = search.filters || {};
 
+  // Filter on published_at (when the listing became active), not created_at, so
+  // drafted-then-published and scheduled listings are alerted when they go live.
   let query = supabase
     .from('listings')
-    .select('id, title, price, year, make, model, city, state, created_at', { count: 'exact' })
+    .select('id, title, price, year, make, model, city, state, created_at, published_at', { count: 'exact' })
     .eq('status', 'active')
-    .gt('created_at', since);
+    .gt('published_at', since);
 
   if (f.category) {
     const categoryIds = await resolveCategoryIds(supabase, f.category, categoryCache);

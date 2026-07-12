@@ -35,13 +35,35 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createAdminClient();
 
-    // Only send to dealers who explicitly opted into market reports
-    const { data: dealers, error: dealersError } = await supabase
+    // Idempotency + fair rotation: find everyone already sent a report THIS
+    // period first, then fetch only dealers who still need one. Applying the
+    // batch limit to the unsent set (not the whole opted-in set) is what stops
+    // the first 100 dealers from being re-fetched every run while dealers past
+    // position 100 are never reached.
+    const periodStart = currentPeriodStart(new Date()).toISOString();
+    const { data: existingReports } = await supabase
+      .from('dealer_market_reports')
+      .select('dealer_id')
+      .gte('created_at', periodStart);
+
+    const alreadySent = new Set((existingReports || []).map((r) => r.dealer_id));
+
+    let dealerQuery = supabase
       .from('dealer_ai_settings')
       .select('dealer_id')
       .eq('is_enabled', true)
       .eq('market_reports_enabled', true)
-      .limit(DEALER_BATCH_SIZE);
+      .order('dealer_id', { ascending: true });
+
+    if (alreadySent.size > 0) {
+      dealerQuery = dealerQuery.not(
+        'dealer_id',
+        'in',
+        `(${Array.from(alreadySent).join(',')})`
+      );
+    }
+
+    const { data: dealers, error: dealersError } = await dealerQuery.limit(DEALER_BATCH_SIZE);
 
     if (dealersError) {
       logger.error('Error fetching dealers for market reports', { error: dealersError });
@@ -49,19 +71,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (!dealers || dealers.length === 0) {
-      return NextResponse.json({ success: true, reports: 0, message: 'No subscribed dealers' });
+      return NextResponse.json({ success: true, reports: 0, message: 'No dealers pending a report this period' });
     }
-
-    // Idempotency: dealers who already received a report this period are skipped
-    // so a retry or manual re-run never re-emails the whole dealer base.
-    const periodStart = currentPeriodStart(new Date()).toISOString();
-    const { data: existingReports } = await supabase
-      .from('dealer_market_reports')
-      .select('dealer_id')
-      .gte('created_at', periodStart)
-      .in('dealer_id', dealers.map((d) => d.dealer_id));
-
-    const alreadySent = new Set((existingReports || []).map((r) => r.dealer_id));
 
     let sent = 0;
     let failed = 0;

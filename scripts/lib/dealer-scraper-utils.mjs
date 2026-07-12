@@ -233,8 +233,27 @@ export { downloadAndStoreImage, insertRehostedImages };
  * Create or update a listing from scraped data.
  * Returns { id, action: 'created' | 'updated' | 'skipped' }
  */
+/**
+ * Compute a STABLE per-unit identifier for dedup. The title must not be the
+ * primary key here: titles are AI-normalized (temp 0.1, not deterministic), so
+ * keying on the title slug produces duplicates across runs and collapses
+ * distinct same-title fleet units into one. Prefer real per-unit identifiers;
+ * only fall back to the title slug when the listing carries no stable id.
+ */
+export function stableSourceListingId(listing) {
+  if (listing.source_listing_id) return String(listing.source_listing_id);
+  if (listing.sourceId) return String(listing.sourceId);
+  if (listing.source_url) {
+    return 'url:' + crypto.createHash('sha1').update(listing.source_url).digest('hex').slice(0, 16);
+  }
+  if (listing.vin) return 'vin:' + String(listing.vin).trim().toUpperCase();
+  if (listing.stock_number) return 'stock:' + String(listing.stock_number).trim().toLowerCase();
+  console.warn(`  ⚠ No stable id for "${listing.title}" — falling back to title slug (dedup may drift across runs)`);
+  return slugify(listing.title);
+}
+
 export async function upsertListing(supabase, dealerSourceId, listing) {
-  const sourceListingId = listing.source_listing_id || listing.sourceId || slugify(listing.title);
+  const sourceListingId = stableSourceListingId(listing);
 
   // Check for existing
   const existingId = await findExistingListing(supabase, dealerSourceId, sourceListingId);

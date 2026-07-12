@@ -70,7 +70,13 @@ export async function GET(request: NextRequest) {
               .remove(storagePaths);
 
             if (storageError) {
-              logger.warn('Cleanup cron: storage delete partial failure', { listingId, error: storageError });
+              // Do NOT hard-delete the row when storage removal failed — deleting
+              // it (and its listing_images rows via cascade) would orphan these
+              // objects forever, since nothing would reference them. Leave the row
+              // soft-deleted so the next run retries the storage removal.
+              logger.warn('Cleanup cron: storage delete failed, deferring row delete', { listingId, error: storageError });
+              totalErrors++;
+              continue;
             }
           }
         }

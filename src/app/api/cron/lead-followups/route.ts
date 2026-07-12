@@ -57,6 +57,10 @@ export async function GET(request: NextRequest) {
     let sent = 0;
     let failed = 0;
     let skipped = 0;
+    // Step-1 follow-ups whose buyer email actually sent in THIS run — only these
+    // should trigger the dealer "new lead" alert (not every step-1 row in the
+    // batch, some of which were skipped/failed/claimed by a concurrent run).
+    const succeededStep1: typeof pendingFollowups = [];
 
     for (const followup of pendingFollowups) {
       try {
@@ -199,6 +203,7 @@ export async function GET(request: NextRequest) {
           .eq('id', followup.id);
 
         sent++;
+        if (followup.step === 1) succeededStep1.push(followup);
         logger.info('Follow-up email sent', {
           followupId: followup.id,
           step: followup.step,
@@ -222,10 +227,22 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Also notify dealers of new leads (step 1 only) — send dealer alert
-    const step1Sent = pendingFollowups.filter(f => f.step === 1);
-    for (const followup of step1Sent) {
+    // Notify dealers of new leads — only for step-1 follow-ups whose buyer email
+    // actually sent in this run, and only once (dealer_alerted_at guards against
+    // a reprocessed row re-alerting).
+    for (const followup of succeededStep1) {
       try {
+        // Idempotency: claim the alert by stamping dealer_alerted_at only if it's
+        // still null. Zero rows back means another run already alerted — skip.
+        const { data: claimedAlert } = await supabase
+          .from('lead_followup_queue')
+          .update({ dealer_alerted_at: new Date().toISOString() })
+          .eq('id', followup.id)
+          .is('dealer_alerted_at', null)
+          .select('id');
+
+        if (!claimedAlert || claimedAlert.length === 0) continue;
+
         const { data: dealer } = await supabase
           .from('profiles')
           .select('email, company_name')

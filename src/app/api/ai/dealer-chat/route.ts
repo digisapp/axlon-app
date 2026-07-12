@@ -586,14 +586,29 @@ Based on this inventory, help the customer find what they need. Only recommend e
       location: [l.city, l.state].filter(Boolean).join(', '),
     }));
 
-    // Update conversation stats
+    // Persist the transcript + update stats so the dealer's dashboard shows the
+    // full conversation (chat_messages is service_role-only under migration 057,
+    // so this must use the admin client — the anon `supabase` above can't write).
     if (conversationId) {
       try {
-        await supabase.rpc('increment_dealer_ai_messages', {
-          p_dealer_id: dealerId,
-        });
-      } catch {
-        // Ignore errors for stats update
+        const admin = createAdminClient();
+        // Only write to a conversation that actually belongs to this dealer.
+        const { data: convo } = await admin
+          .from('chat_conversations')
+          .select('id, dealer_id')
+          .eq('id', conversationId)
+          .maybeSingle();
+
+        if (convo && convo.dealer_id === dealerId) {
+          await admin.from('chat_messages').insert([
+            { conversation_id: conversationId, role: 'user', content: query },
+            { conversation_id: conversationId, role: 'assistant', content: finalResponse },
+          ]);
+        }
+
+        await admin.rpc('increment_dealer_ai_messages', { p_dealer_id: dealerId });
+      } catch (persistError) {
+        logger.warn('Failed to persist dealer chat transcript', { error: persistError, conversationId });
       }
     }
 
