@@ -80,12 +80,19 @@ CREATE POLICY "Admins can update any profile"
 
 -- Also give admins UPDATE on trade_in_requests (admin trade-in actions 500'd
 -- on rows with no assigned dealer because RLS blocked the .select().single()).
-DROP POLICY IF EXISTS "Admins can manage trade-in requests" ON trade_in_requests;
-CREATE POLICY "Admins can manage trade-in requests"
-  ON trade_in_requests FOR UPDATE
-  TO authenticated
-  USING (is_admin(auth.uid()))
-  WITH CHECK (is_admin(auth.uid()));
+-- Guarded: prod migration history shows 011 applied but the table may not exist
+-- (history drift), so only add the policy when the table is actually present.
+DO $$
+BEGIN
+  IF to_regclass('public.trade_in_requests') IS NOT NULL THEN
+    DROP POLICY IF EXISTS "Admins can manage trade-in requests" ON trade_in_requests;
+    CREATE POLICY "Admins can manage trade-in requests"
+      ON trade_in_requests FOR UPDATE
+      TO authenticated
+      USING (is_admin(auth.uid()))
+      WITH CHECK (is_admin(auth.uid()));
+  END IF;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- 4. Split the public SELECT policy by role.
