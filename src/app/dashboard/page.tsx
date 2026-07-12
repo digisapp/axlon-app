@@ -120,19 +120,19 @@ export default async function DashboardPage() {
       .eq('user_id', user.id)
       .gte('created_at', fourteenDaysAgo)
       .lt('created_at', sevenDaysAgo),
-    // Views last 7 days
+    // Views last 7 days (listing_views timestamps are viewed_at, not created_at)
     supabase
       .from('listing_views')
       .select('*', { count: 'exact', head: true })
       .in('listing_id', listingIds)
-      .gte('created_at', sevenDaysAgo),
+      .gte('viewed_at', sevenDaysAgo),
     // Views previous 7 days
     supabase
       .from('listing_views')
       .select('*', { count: 'exact', head: true })
       .in('listing_id', listingIds)
-      .gte('created_at', fourteenDaysAgo)
-      .lt('created_at', sevenDaysAgo),
+      .gte('viewed_at', fourteenDaysAgo)
+      .lt('viewed_at', sevenDaysAgo),
     // Recent listings
     supabase
       .from('listings')

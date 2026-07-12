@@ -56,7 +56,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Get dealer info
     const { data: dealer } = await supabase
       .from('profiles')
-      .select('name, email, phone, company_name, address')
+      .select('email, phone, company_name, address')
       .eq('id', user.id)
       .single();
 
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const pdfBuffer = generateQuotePdf(
       deal,
       {
-        name: dealer?.company_name || dealer?.name || 'Dealer',
+        name: dealer?.company_name || 'Dealer',
         email: dealer?.email || undefined,
         phone: dealer?.phone || undefined,
         address: dealer?.address || undefined,

@@ -97,24 +97,27 @@ export async function searchNewTrailers(params: {
   const supabase = getSupabase();
   const limit = params.limit || 5;
 
+  // manufacturer_products stores slug + product_type; the manufacturer's name
+  // and slug live on the joined manufacturers table (there is no denormalized
+  // manufacturer_name/product_slug/category/subcategory column).
   let query = supabase
     .from('manufacturer_products')
     .select(`
-      id, name, manufacturer_name, manufacturer_slug, product_slug,
-      category, subcategory, tonnage_min, tonnage_max, gooseneck_type, description,
+      id, name, slug, product_type, tonnage_min, tonnage_max, gooseneck_type, description,
+      manufacturer:manufacturers!inner(name, slug),
       specs:manufacturer_product_specs(spec_key, spec_value)
     `)
     .eq('is_active', true);
 
-  if (params.manufacturer) query = query.ilike('manufacturer_name', `%${sanitizeSearchFilter(params.manufacturer)}%`);
-  if (params.category) query = query.ilike('category', `%${sanitizeSearchFilter(params.category)}%`);
+  if (params.manufacturer) query = query.ilike('manufacturers.name', `%${sanitizeSearchFilter(params.manufacturer)}%`);
+  if (params.category) query = query.ilike('product_type', `%${sanitizeSearchFilter(params.category)}%`);
   if (params.minTonnage) query = query.gte('tonnage_max', params.minTonnage);
   if (params.maxTonnage) query = query.lte('tonnage_min', params.maxTonnage);
   if (params.gooseneckType) query = query.eq('gooseneck_type', sanitizeSearchFilter(params.gooseneckType));
   if (params.query) {
     const q = sanitizeSearchFilter(params.query);
     if (q) {
-      query = query.or(`name.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%`);
+      query = query.or(`name.ilike.%${q}%,description.ilike.%${q}%,product_type.ilike.%${q}%`);
     }
   }
 
@@ -125,20 +128,36 @@ export async function searchNewTrailers(params: {
     return [];
   }
 
-  return (data || []) as Array<{
+  type Row = {
     id: string;
     name: string;
-    manufacturer_name: string;
-    manufacturer_slug: string;
-    product_slug: string;
-    category: string;
-    subcategory: string | null;
+    slug: string;
+    product_type: string | null;
     tonnage_min: number | null;
     tonnage_max: number | null;
     gooseneck_type: string | null;
     description: string | null;
+    manufacturer: { name: string; slug: string } | { name: string; slug: string }[] | null;
     specs: Array<{ spec_key: string; spec_value: string }>;
-  }>;
+  };
+
+  return ((data || []) as Row[]).map((row) => {
+    const mfr = Array.isArray(row.manufacturer) ? row.manufacturer[0] : row.manufacturer;
+    return {
+      id: row.id,
+      name: row.name,
+      manufacturer_name: mfr?.name || '',
+      manufacturer_slug: mfr?.slug || '',
+      product_slug: row.slug,
+      category: row.product_type || '',
+      subcategory: null,
+      tonnage_min: row.tonnage_min,
+      tonnage_max: row.tonnage_max,
+      gooseneck_type: row.gooseneck_type,
+      description: row.description,
+      specs: row.specs,
+    };
+  });
 }
 
 // ── Tool: Get Product Specs ──────────────────────────────────────
@@ -159,12 +178,14 @@ export async function getProductSpecs(params: {
   const { data, error } = await supabase
     .from('manufacturer_products')
     .select(`
-      name, manufacturer_name, category, description,
+      name, product_type, description,
+      manufacturer:manufacturers!inner(name, slug),
       specs:manufacturer_product_specs(spec_key, spec_value)
     `)
-    .ilike('manufacturer_slug', `%${sanitizeSearchFilter(params.manufacturer)}%`)
-    .ilike('product_slug', `%${sanitizeSearchFilter(params.product)}%`)
-    .single();
+    .ilike('manufacturers.slug', `%${sanitizeSearchFilter(params.manufacturer)}%`)
+    .ilike('slug', `%${sanitizeSearchFilter(params.product)}%`)
+    .limit(1)
+    .maybeSingle();
 
   if (error || !data) {
     return { product: null, specs: {} };
@@ -175,11 +196,12 @@ export async function getProductSpecs(params: {
     specs[s.spec_key] = s.spec_value;
   }
 
+  const mfr = Array.isArray(data.manufacturer) ? data.manufacturer[0] : data.manufacturer;
   return {
     product: {
       name: data.name,
-      manufacturer: data.manufacturer_name,
-      category: data.category,
+      manufacturer: (mfr as { name: string } | null)?.name || '',
+      category: data.product_type || '',
       description: data.description,
     },
     specs,
@@ -199,7 +221,8 @@ export async function compareProducts(params: {
   const { data, error } = await supabase
     .from('manufacturer_products')
     .select(`
-      id, name, manufacturer_name,
+      id, name,
+      manufacturer:manufacturers(name),
       specs:manufacturer_product_specs(spec_key, spec_value)
     `)
     .in('id', params.productIds);
@@ -211,9 +234,10 @@ export async function compareProducts(params: {
     for (const s of (product.specs as Array<{ spec_key: string; spec_value: string }>)) {
       specs[s.spec_key] = s.spec_value;
     }
+    const mfr = Array.isArray(product.manufacturer) ? product.manufacturer[0] : product.manufacturer;
     return {
       name: product.name,
-      manufacturer: product.manufacturer_name,
+      manufacturer: (mfr as { name: string } | null)?.name || '',
       specs,
     };
   });

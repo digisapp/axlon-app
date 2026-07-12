@@ -23,6 +23,40 @@ function getSupabase() {
   return createAdminClient();
 }
 
+// manufacturer_products stores slug + product_type; the manufacturer name/slug
+// come from the joined manufacturers table. Normalize a raw row into the flat
+// ManufacturerProduct shape the scoring logic expects.
+const PRODUCT_SELECT = `
+  id, name, slug, product_type, description,
+  manufacturer:manufacturers!inner(slug, name),
+  specs:manufacturer_product_specs(spec_key, spec_value)
+`;
+
+interface RawProductRow {
+  id: string;
+  name: string;
+  slug: string;
+  product_type: string | null;
+  description: string | null;
+  manufacturer: { slug: string; name: string } | { slug: string; name: string }[] | null;
+  specs: Array<{ spec_key: string; spec_value: string }> | null;
+}
+
+function normalizeProduct(raw: RawProductRow): ManufacturerProduct {
+  const mfr = Array.isArray(raw.manufacturer) ? raw.manufacturer[0] : raw.manufacturer;
+  return {
+    id: raw.id,
+    manufacturer_slug: mfr?.slug || '',
+    product_slug: raw.slug,
+    name: raw.name,
+    manufacturer_name: mfr?.name || '',
+    category: raw.product_type || '',
+    subcategory: null,
+    description: raw.description,
+    specs: raw.specs || [],
+  };
+}
+
 /**
  * Match detected equipment (from vision AI) to our manufacturer product catalog.
  * Returns top matches with confidence scores.
@@ -44,17 +78,13 @@ export async function matchToManufacturerProduct(
   // Step 1: Try exact manufacturer match
   let query = supabase
     .from('manufacturer_products')
-    .select(`
-      id, manufacturer_slug, product_slug, name, manufacturer_name,
-      category, subcategory, description,
-      specs:manufacturer_product_specs(spec_key, spec_value)
-    `)
+    .select(PRODUCT_SELECT)
     .eq('is_active', true);
 
   // Filter by manufacturer if make is detected
   if (detected.make) {
     const normalizedMake = normalizeMake(detected.make);
-    query = query.ilike('manufacturer_name', `%${normalizedMake}%`);
+    query = query.ilike('manufacturers.name', `%${normalizedMake}%`);
   }
 
   const { data: products, error } = await query.limit(50);
@@ -70,9 +100,10 @@ export async function matchToManufacturerProduct(
   }
 
   // Step 2: Score each product against detected info
-  const results: MatchResult[] = products.map(product => {
-    const { score, matchedOn } = calculateMatchScore(product as ManufacturerProduct, detected);
-    return { product: product as ManufacturerProduct, score, matchedOn };
+  const results: MatchResult[] = (products as unknown as RawProductRow[]).map(raw => {
+    const product = normalizeProduct(raw);
+    const { score, matchedOn } = calculateMatchScore(product, detected);
+    return { product, score, matchedOn };
   });
 
   // Sort by score descending, return top 5
@@ -156,21 +187,18 @@ async function matchByCategory(
 
   const { data: products, error } = await supabase
     .from('manufacturer_products')
-    .select(`
-      id, manufacturer_slug, product_slug, name, manufacturer_name,
-      category, subcategory, description,
-      specs:manufacturer_product_specs(spec_key, spec_value)
-    `)
+    .select(PRODUCT_SELECT)
     .eq('is_active', true)
-    .or(typeKeywords.map(k => `category.ilike.%${k}%`).join(','))
+    .or(typeKeywords.map(k => `product_type.ilike.%${k}%`).join(','))
     .limit(20);
 
   if (error || !products) return [];
 
-  return products
-    .map(product => {
-      const { score, matchedOn } = calculateMatchScore(product as ManufacturerProduct, detected);
-      return { product: product as ManufacturerProduct, score, matchedOn };
+  return (products as unknown as RawProductRow[])
+    .map(raw => {
+      const product = normalizeProduct(raw);
+      const { score, matchedOn } = calculateMatchScore(product, detected);
+      return { product, score, matchedOn };
     })
     .filter(r => r.score > 0)
     .sort((a, b) => b.score - a.score)
