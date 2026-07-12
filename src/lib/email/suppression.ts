@@ -9,10 +9,13 @@ import { logger } from '@/lib/logger';
 export async function isEmailSuppressed(email: string): Promise<boolean> {
   try {
     const supabase = createAdminClient();
+    // Suppressions are always stored lowercased (see suppressEmail), so an exact
+    // match on the lowercased input is both correct and free of LIKE-wildcard
+    // pitfalls (an address may legitimately contain _ or %).
     const { data, error } = await supabase
       .from('email_suppressions')
       .select('email')
-      .ilike('email', email.trim())
+      .eq('email', email.trim().toLowerCase())
       .maybeSingle();
     if (error) {
       logger.warn('Email suppression lookup failed', { error });

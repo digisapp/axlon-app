@@ -55,10 +55,13 @@ async function processUnsubscribe(email: string): Promise<void> {
   // (i) If a profile exists, turn off its email preferences. Match
   // case-insensitively — a profile stored with any uppercase (imported/edited)
   // would otherwise keep receiving alerts after a "successful" unsubscribe.
+  // Escape LIKE metacharacters (_ and %) so an address containing them can't
+  // match a different profile.
+  const emailPattern = email.replace(/([\\%_])/g, '\\$1');
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('id')
-    .ilike('email', email)
+    .ilike('email', emailPattern)
     .maybeSingle();
   if (profileError) {
     logger.error('Unsubscribe: profile lookup failed', { error: profileError });

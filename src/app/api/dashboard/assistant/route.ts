@@ -71,8 +71,10 @@ export const POST = withAuth(async (request, { user, supabase }) => {
     )
     .join('\n') || 'No active listings.';
 
+  // Open = not yet resolved. 'won' and 'lost' are the terminal states
+  // (leads.status is new|contacted|qualified|won|lost — there is no 'closed').
   const activeLeads = (leads || []).filter(
-    (l) => l.status !== 'closed' && l.status !== 'lost'
+    (l) => l.status !== 'won' && l.status !== 'lost'
   );
   const leadsSummary = activeLeads
     .map((l) => `- ${l.buyer_name || 'Unnamed'} | ${l.status}`)
