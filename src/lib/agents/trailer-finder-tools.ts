@@ -110,18 +110,19 @@ export async function searchNewTrailers(params: {
     .eq('is_active', true);
 
   if (params.manufacturer) query = query.ilike('manufacturers.name', `%${sanitizeSearchFilter(params.manufacturer)}%`);
-  if (params.category) query = query.ilike('product_type', `%${sanitizeSearchFilter(params.category)}%`);
   if (params.minTonnage) query = query.gte('tonnage_max', params.minTonnage);
   if (params.maxTonnage) query = query.lte('tonnage_min', params.maxTonnage);
   if (params.gooseneckType) query = query.eq('gooseneck_type', sanitizeSearchFilter(params.gooseneckType));
   if (params.query) {
     const q = sanitizeSearchFilter(params.query);
     if (q) {
-      query = query.or(`name.ilike.%${q}%,description.ilike.%${q}%,product_type.ilike.%${q}%`);
+      // product_type is an enum (ILIKE not valid on it), so match on text columns only.
+      query = query.or(`name.ilike.%${q}%,description.ilike.%${q}%`);
     }
   }
 
-  const { data, error } = await query.limit(limit);
+  // Over-fetch a little when we still need to filter by category in JS below.
+  const { data, error } = await query.limit(params.category ? limit * 4 : limit);
 
   if (error) {
     logger.error('searchNewTrailers error', { error });
@@ -141,7 +142,16 @@ export async function searchNewTrailers(params: {
     specs: Array<{ spec_key: string; spec_value: string }>;
   };
 
-  return ((data || []) as Row[]).map((row) => {
+  let rows = (data || []) as Row[];
+  // product_type is an enum, so category matching is done here in JS.
+  if (params.category) {
+    const cat = params.category.toLowerCase();
+    rows = rows.filter(
+      (r) => (r.product_type || '').toLowerCase().includes(cat) || r.name.toLowerCase().includes(cat)
+    );
+  }
+
+  return rows.slice(0, limit).map((row) => {
     const mfr = Array.isArray(row.manufacturer) ? row.manufacturer[0] : row.manufacturer;
     return {
       id: row.id,

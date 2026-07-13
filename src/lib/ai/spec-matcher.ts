@@ -185,18 +185,23 @@ async function matchByCategory(
   const supabase = getSupabase();
   const typeKeywords = detected.type.toLowerCase().split(/[\s-]+/);
 
+  // product_type is an enum, so ILIKE is invalid on it — fetch active products
+  // and keyword-match on the normalized product/category text in JS.
   const { data: products, error } = await supabase
     .from('manufacturer_products')
     .select(PRODUCT_SELECT)
     .eq('is_active', true)
-    .or(typeKeywords.map(k => `product_type.ilike.%${k}%`).join(','))
-    .limit(20);
+    .limit(200);
 
   if (error || !products) return [];
 
   return (products as unknown as RawProductRow[])
-    .map(raw => {
-      const product = normalizeProduct(raw);
+    .map(normalizeProduct)
+    .filter(product => {
+      const hay = `${product.category} ${product.name}`.toLowerCase();
+      return typeKeywords.some(k => k && hay.includes(k));
+    })
+    .map(product => {
       const { score, matchedOn } = calculateMatchScore(product, detected);
       return { product, score, matchedOn };
     })
