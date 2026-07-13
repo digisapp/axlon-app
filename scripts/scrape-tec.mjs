@@ -305,13 +305,16 @@ async function main() {
         continue;
       }
 
-      // Check for duplicate
+      // Check for duplicate. limit(1).maybeSingle() so identical-title rows don't
+      // make .single() error (which was treated as "not found" -> re-inserted a
+      // duplicate, with a full duplicate image set, on every run).
       const { data: exists } = await supabase
         .from('listings')
         .select('id')
         .eq('title', details.title)
         .eq('user_id', dealerId)
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       if (exists) {
         console.log('duplicate');

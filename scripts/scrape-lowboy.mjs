@@ -224,12 +224,16 @@ async function main() {
         state: details.state,
       });
 
-      // Check duplicate
+      // Check duplicate. limit(1).maybeSingle() so identical-title rows don't
+      // make .single() error (treated as "not found" -> duplicate re-inserted
+      // every run). NOTE: no user_id filter here, so a same-title listing under
+      // any dealer blocks import — acceptable for now; full fix needs stable IDs.
       const title = details.title || listing.title;
       const { data: exists } = await supabase.from('listings')
         .select('id')
         .eq('title', title)
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       if (exists) {
         console.log(' duplicate');

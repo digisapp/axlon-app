@@ -1,6 +1,7 @@
 import { createXai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import { logger } from '@/lib/logger';
+import { escapeHtml } from '@/lib/utils/html-escape';
 
 function getXai() {
   if (!process.env.XAI_API_KEY) {
@@ -101,13 +102,18 @@ function buildAutoReplyHtml(opts: {
   businessPhone: string | null;
   businessEmail: string;
 }): string {
+  // Escape every interpolated value: the AI body is shaped by untrusted buyer
+  // input, so it must never be trusted as HTML in the email or any stored draft.
   const bodyHtml = opts.body
     .split('\n')
     .map((line) => {
       if (line.trim() === '') return '<br>';
-      return `<p style="margin: 0 0 10px 0; line-height: 1.6; color: #1f2937;">${line}</p>`;
+      return `<p style="margin: 0 0 10px 0; line-height: 1.6; color: #1f2937;">${escapeHtml(line)}</p>`;
     })
     .join('');
+  const safeName = escapeHtml(opts.businessName);
+  const safePhone = escapeHtml(opts.businessPhone);
+  const safeEmail = escapeHtml(opts.businessEmail);
 
   return `<!DOCTYPE html>
 <html>
@@ -118,7 +124,7 @@ function buildAutoReplyHtml(opts: {
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 580px; margin: 0 auto; padding: 24px; background: #ffffff; color: #1f2937;">
 
   <div style="border-bottom: 2px solid #111827; padding-bottom: 14px; margin-bottom: 24px;">
-    <strong style="font-size: 17px; color: #111827;">${opts.businessName}</strong>
+    <strong style="font-size: 17px; color: #111827;">${safeName}</strong>
   </div>
 
   <div style="font-size: 15px;">
@@ -128,13 +134,13 @@ function buildAutoReplyHtml(opts: {
   <div style="margin-top: 28px; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
     <p style="margin: 0 0 4px 0; font-size: 13px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Direct Contact</p>
     ${opts.businessPhone
-      ? `<p style="margin: 0 0 4px 0; font-size: 14px;"><a href="tel:${opts.businessPhone}" style="color: #111827; text-decoration: none; font-weight: 600;">${opts.businessPhone}</a></p>`
+      ? `<p style="margin: 0 0 4px 0; font-size: 14px;"><a href="tel:${safePhone}" style="color: #111827; text-decoration: none; font-weight: 600;">${safePhone}</a></p>`
       : ''}
-    <p style="margin: 0; font-size: 14px;"><a href="mailto:${opts.businessEmail}" style="color: #2563eb;">${opts.businessEmail}</a></p>
+    <p style="margin: 0; font-size: 14px;"><a href="mailto:${safeEmail}" style="color: #2563eb;">${safeEmail}</a></p>
   </div>
 
   <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af;">
-    <p style="margin: 0;">Powered by <a href="https://axlon.ai" style="color: #9ca3af; text-decoration: none;">AXLON AI</a> on behalf of ${opts.businessName}</p>
+    <p style="margin: 0;">Powered by <a href="https://axlon.ai" style="color: #9ca3af; text-decoration: none;">AXLON AI</a> on behalf of ${safeName}</p>
   </div>
 </body>
 </html>`;
