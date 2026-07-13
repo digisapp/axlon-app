@@ -20,6 +20,12 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { ManageBillingButton } from '@/components/dashboard/ManageBillingButton';
+import { CheckoutButton } from '@/components/dashboard/CheckoutButton';
+
+// Self-serve Stripe Checkout is gated behind this flag. Off by default: plan
+// CTAs keep routing to /contact (sales) until Stripe is configured + tested and
+// the flag is set to 'true' in the environment.
+const SELF_SERVE_CHECKOUT = process.env.NEXT_PUBLIC_ENABLE_SELF_SERVE_CHECKOUT === 'true';
 
 const FREE_FEATURES = [
   'Unlimited listings on marketplace',
@@ -65,7 +71,12 @@ const TRANSFORMATION_FEATURES = [
   'Priority support',
 ];
 
-export default async function BillingPage() {
+export default async function BillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ checkout?: string }>;
+}) {
+  const { checkout } = await searchParams;
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -101,6 +112,21 @@ export default async function BillingPage() {
         <h1 className="text-2xl md:text-3xl font-bold">Plans & Billing</h1>
         <p className="text-muted-foreground mt-1">Manage your subscription and usage</p>
       </div>
+
+      {checkout === 'success' && (
+        <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-4 text-sm">
+          <p className="font-medium text-green-600">Payment received — thank you!</p>
+          <p className="text-muted-foreground mt-1">
+            Your plan is being activated. If it doesn&apos;t show as active within a
+            minute, refresh this page.
+          </p>
+        </div>
+      )}
+      {checkout === 'cancelled' && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
+          <p className="text-muted-foreground">Checkout was cancelled — no charge was made.</p>
+        </div>
+      )}
 
       {/* Current Plan */}
       <Card>
@@ -229,12 +255,19 @@ export default async function BillingPage() {
                   ))}
                 </ul>
                 {currentTier === 'free' ? (
-                  <Button className="w-full" asChild>
-                    <Link href="/contact?plan=platform">
+                  SELF_SERVE_CHECKOUT ? (
+                    <CheckoutButton product="platform_monthly" className="w-full">
                       <Zap className="w-4 h-4 mr-2" />
                       Upgrade to Platform
-                    </Link>
-                  </Button>
+                    </CheckoutButton>
+                  ) : (
+                    <Button className="w-full" asChild>
+                      <Link href="/contact?plan=platform">
+                        <Zap className="w-4 h-4 mr-2" />
+                        Upgrade to Platform
+                      </Link>
+                    </Button>
+                  )
                 ) : !hasVoice ? (
                   <Button className="w-full" variant="outline" disabled>Current Plan</Button>
                 ) : null}
@@ -270,12 +303,21 @@ export default async function BillingPage() {
                   Overage: $0.25/min beyond 500 included minutes
                 </p>
                 {!hasVoice ? (
-                  <Button className="w-full bg-cyan-600 hover:bg-cyan-700" asChild>
-                    <Link href="/contact?plan=voice">
+                  // Self-serve voice checkout only when already on Platform (voice
+                  // is an add-on); non-Platform users get the bundle via sales.
+                  SELF_SERVE_CHECKOUT && isPro ? (
+                    <CheckoutButton product="voice_addon_monthly" className="w-full bg-cyan-600 hover:bg-cyan-700">
                       <PhoneCall className="w-4 h-4 mr-2" />
-                      {isPro ? 'Add Voice Agent' : 'Get Platform + Voice — $699/mo'}
-                    </Link>
-                  </Button>
+                      Add Voice Agent
+                    </CheckoutButton>
+                  ) : (
+                    <Button className="w-full bg-cyan-600 hover:bg-cyan-700" asChild>
+                      <Link href="/contact?plan=voice">
+                        <PhoneCall className="w-4 h-4 mr-2" />
+                        {isPro ? 'Add Voice Agent' : 'Get Platform + Voice — $699/mo'}
+                      </Link>
+                    </Button>
+                  )
                 ) : (
                   <Button className="w-full" variant="outline" disabled>Active</Button>
                 )}
