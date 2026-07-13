@@ -12,6 +12,21 @@ export const maxDuration = 300;
 const BATCH_SIZE = 10; // Process up to 10 follow-ups per cron run
 const STALE_SENDING_MS = 15 * 60 * 1000; // recover rows stuck in 'sending' > 15 min
 
+// Undo a dealer-alert claim so a later run retries instead of dropping it.
+async function releaseAlertClaim(
+  supabase: ReturnType<typeof createAdminClient>,
+  followupId: string
+): Promise<void> {
+  try {
+    await supabase
+      .from('lead_followup_queue')
+      .update({ dealer_alerted_at: null })
+      .eq('id', followupId);
+  } catch (error) {
+    logger.error('Failed to release dealer-alert claim', { error, followupId });
+  }
+}
+
 export async function GET(request: NextRequest) {
   if (!verifyCronRequest(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -231,6 +246,7 @@ export async function GET(request: NextRequest) {
     // actually sent in this run, and only once (dealer_alerted_at guards against
     // a reprocessed row re-alerting).
     for (const followup of succeededStep1) {
+      let claimed = false;
       try {
         // Idempotency: claim the alert by stamping dealer_alerted_at only if it's
         // still null. Zero rows back means another run already alerted — skip.
@@ -242,6 +258,7 @@ export async function GET(request: NextRequest) {
           .select('id');
 
         if (!claimedAlert || claimedAlert.length === 0) continue;
+        claimed = true;
 
         const { data: dealer } = await supabase
           .from('profiles')
@@ -261,9 +278,15 @@ export async function GET(request: NextRequest) {
             subject: `New Lead: ${lead.visitor_name || 'Anonymous'} — ${lead.equipment_interest || 'Equipment inquiry'}`,
             html: buildDealerAlertHtml(dealer.company_name || 'Your company', lead, followup.conversation_summary),
           });
+        } else {
+          // Nothing sent (missing dealer/lead) — release the claim so a later run
+          // can retry rather than silently dropping the alert.
+          await releaseAlertClaim(supabase, followup.id);
         }
       } catch (error) {
-        // Don't fail the whole cron if dealer notification fails
+        // Release the claim on a transient failure (Resend/DB hiccup) so the
+        // alert is retried next run instead of being lost forever.
+        if (claimed) await releaseAlertClaim(supabase, followup.id);
         logger.error('Failed to send dealer lead alert', { error, followupId: followup.id });
       }
     }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { withAuth } from '@/lib/auth/with-auth';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, tradeInRequestSchema } from '@/lib/validations/api';
@@ -65,7 +66,13 @@ export async function POST(request: NextRequest) {
       status: 'pending',
     };
 
-    const { data, error } = await supabase
+    // Insert with the service-role client: trade-in submissions are public
+    // (anonymous buyers), and the owner-only SELECT RLS policy would otherwise
+    // make the .select() RETURNING project 0 rows for a null user_id → a
+    // spurious 500 even though the row was saved. This route is already
+    // rate-limited + CSRF-protected + Zod-validated.
+    const adminClient = createAdminClient();
+    const { data, error } = await adminClient
       .from('trade_in_requests')
       .insert(tradeInData)
       .select()
