@@ -29,7 +29,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { jsonLdString } from '@/lib/seo/json-ld';
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com';
 
 export const revalidate = 3600;
 

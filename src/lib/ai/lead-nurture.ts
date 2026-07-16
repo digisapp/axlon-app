@@ -78,13 +78,13 @@ export async function generateFollowUpEmail(context: FollowUpContext): Promise<G
 
   const listingContext = context.listings.length > 0
     ? context.listings.map(l =>
-        `- ${l.title} | ${l.price ? '$' + l.price.toLocaleString() : 'Call for price'} | ${l.condition || 'N/A'} | axlon.ai/listing/${l.id}`
+        `- ${l.title} | ${l.price ? '$' + l.price.toLocaleString() : 'Call for price'} | ${l.condition || 'N/A'} | axleyard.com/listing/${l.id}`
       ).join('\n')
     : 'No specific listings viewed.';
 
   const similarContext = context.similarListings.length > 0
     ? context.similarListings.map(l =>
-        `- ${l.title} | ${l.price ? '$' + l.price.toLocaleString() : 'Call for price'} | axlon.ai/listing/${l.id}`
+        `- ${l.title} | ${l.price ? '$' + l.price.toLocaleString() : 'Call for price'} | axleyard.com/listing/${l.id}`
       ).join('\n')
     : '';
 
@@ -182,7 +182,7 @@ function buildEmailHtml(opts: {
         ${opts.listings.slice(0, 3).map(l => `
           <tr>
             <td style="padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px;">
-              <a href="https://axlon.ai/listing/${l.id}" style="color: #111; text-decoration: none; font-weight: 600;">
+              <a href="https://axleyard.com/listing/${l.id}" style="color: #111; text-decoration: none; font-weight: 600;">
                 ${l.title}
               </a>
               <br>
@@ -206,8 +206,8 @@ function buildEmailHtml(opts: {
   </div>
   ${listingCards}
   <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af;">
-    <p>Sent via <a href="https://axlon.ai" style="color: #6b7280;">AXLON</a> on behalf of ${opts.dealerName}</p>
-    <p><a href="https://axlon.ai/unsubscribe" style="color: #9ca3af;">Unsubscribe from these emails</a></p>
+    <p>Sent via <a href="https://axleyard.com" style="color: #6b7280;">AXLON</a> on behalf of ${opts.dealerName}</p>
+    <p><a href="https://axleyard.com/unsubscribe" style="color: #9ca3af;">Unsubscribe from these emails</a></p>
   </div>
 </body>
 </html>`;
@@ -225,7 +225,7 @@ function generateFallbackEmail(context: FollowUpContext): GeneratedEmail {
     },
     2: {
       subject: `Still looking at ${equipment}?`,
-      body: `Hi ${name},\n\nJust checking in — are you still in the market for ${equipment}?\n\nWe have some units available that might be a good fit. Take a look at our current inventory at axlon.ai and let us know if anything catches your eye.\n\n${dealer} Team`,
+      body: `Hi ${name},\n\nJust checking in — are you still in the market for ${equipment}?\n\nWe have some units available that might be a good fit. Take a look at our current inventory at axleyard.com and let us know if anything catches your eye.\n\n${dealer} Team`,
     },
     3: {
       subject: `${equipment} — specs and pricing info`,

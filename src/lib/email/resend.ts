@@ -43,7 +43,7 @@ export async function sendEmail(template: EmailTemplate) {
 
   const resend = getResend();
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com';
 
   // Per-recipient HMAC token so the unsubscribe endpoint can verify the
   // request without CSRF/cookies (required for RFC 8058 one-click).

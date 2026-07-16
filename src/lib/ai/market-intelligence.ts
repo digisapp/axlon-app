@@ -456,8 +456,8 @@ export function buildMarketReportEmail(report: MarketReport): { subject: string;
   </div>
 
   <div style="text-align: center; padding: 16px; font-size: 12px; color: #9ca3af;">
-    <p>AXLON Market Intelligence · <a href="https://axlon.ai" style="color: #6b7280;">axlon.ai</a></p>
-    <p><a href="https://axlon.ai/dashboard/ai-assistant" style="color: #9ca3af;">Manage report preferences</a> · <a href="https://axlon.ai/unsubscribe" style="color: #9ca3af;">Unsubscribe</a></p>
+    <p>AXLON Market Intelligence · <a href="https://axleyard.com" style="color: #6b7280;">axleyard.com</a></p>
+    <p><a href="https://axleyard.com/dashboard/ai-assistant" style="color: #9ca3af;">Manage report preferences</a> · <a href="https://axleyard.com/unsubscribe" style="color: #9ca3af;">Unsubscribe</a></p>
   </div>
 
 </body>

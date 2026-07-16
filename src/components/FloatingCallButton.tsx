@@ -12,7 +12,7 @@ export function FloatingCallButton() {
   const [isHovered, setIsHovered] = useState(false);
   const pathname = usePathname();
 
-  // Don't show the AXLON sales call button on dealer storefronts (axlon.ai/[slug]):
+  // Don't show the AXLON sales call button on dealer storefronts (axleyard.com/[slug]):
   // they render their own dealer contact bar + chat widget in the same corner, and
   // this button dials AXLON's number, not the dealer's. A single-segment path whose
   // first segment isn't a known app route is a dealer storefront.

@@ -25,7 +25,7 @@ const ENV_VARS: EnvVar[] = [
   { key: 'SUPABASE_SERVICE_ROLE_KEY', level: 'critical', description: 'Supabase service role key (server-only)' },
 
   // App
-  { key: 'NEXT_PUBLIC_APP_URL', level: 'critical', description: 'Public app URL (e.g. https://axlon.ai)' },
+  { key: 'NEXT_PUBLIC_APP_URL', level: 'critical', description: 'Public app URL (e.g. https://axleyard.com)' },
 
   // Stripe
   { key: 'STRIPE_SECRET_KEY', level: 'required', description: 'Stripe secret key' },

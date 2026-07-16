@@ -33,8 +33,8 @@ export default async function FinanceLayout({ children }: { children: React.Reac
             '@type': 'FinancialService',
             name: 'AXLON AI Equipment Financing',
             description: 'Commercial truck and trailer financing with flexible terms from 24-84 months.',
-            url: 'https://axlon.ai/finance',
-            provider: { '@type': 'Organization', name: 'AXLON AI', url: 'https://axlon.ai' },
+            url: 'https://axleyard.com/finance',
+            provider: { '@type': 'Organization', name: 'AXLON AI', url: 'https://axleyard.com' },
           }),
         }}
       />

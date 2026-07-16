@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const stripe = getStripe();
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com';
     const session = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
       return_url: `${appUrl}/dashboard/billing`,

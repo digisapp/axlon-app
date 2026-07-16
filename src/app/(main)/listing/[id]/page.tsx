@@ -77,7 +77,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ? listing.description.slice(0, 155) + (listing.description.length > 155 ? '...' : '')
     : `${conditionText}${metaTitle} - ${priceText}${locationText ? ` in ${locationText}` : ''}. Browse trucks, trailers, and equipment on AXLON AI.`;
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com';
 
   return {
     title: metaTitle,
@@ -318,7 +318,7 @@ export default async function ListingPage({ params }: PageProps) {
     imageUrl: primaryImage?.url || null,
   };
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com';
   const listingUrl = `${baseUrl}/listing/${id}`;
 
   return (

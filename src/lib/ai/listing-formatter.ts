@@ -76,7 +76,7 @@ export function formatListingForCollection(listing: ListingForFormat): string {
   }
 
   // Link
-  lines.push(`**View listing:** https://axlon.ai/listing/${listing.id}`);
+  lines.push(`**View listing:** https://axleyard.com/listing/${listing.id}`);
 
   return lines.join('\n');
 }

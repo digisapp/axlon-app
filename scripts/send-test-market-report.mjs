@@ -145,7 +145,7 @@ function buildMarketReportEmail(report) {
   </div>
 
   <div style="text-align: center; padding: 16px; font-size: 12px; color: #9ca3af;">
-    <p>AXLON Market Intelligence · <a href="https://axlon.ai" style="color: #6b7280;">axlon.ai</a></p>
+    <p>AXLON Market Intelligence · <a href="https://axleyard.com" style="color: #6b7280;">axleyard.com</a></p>
     <p>Reply STOP to unsubscribe from weekly reports.</p>
   </div>
 

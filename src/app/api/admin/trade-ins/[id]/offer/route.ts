@@ -66,7 +66,7 @@ export async function POST(
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: #0066cc; padding: 20px; text-align: center;">
-            <img src="https://axlon.ai/images/axlonai-logo.png" alt="AXLON AI" height="40" />
+            <img src="https://axleyard.com/images/axlonai-logo.png" alt="AXLON AI" height="40" />
           </div>
           <div style="padding: 30px; background: #ffffff;">
             <h2 style="color: #333; margin-bottom: 20px;">Trade-In Valuation</h2>
@@ -80,7 +80,7 @@ export async function POST(
               </p>
             </div>
             <div style="margin-top: 30px; text-align: center;">
-              <a href="https://axlon.ai"
+              <a href="https://axleyard.com"
                  style="display: inline-block; background: #0066cc; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">
                 Browse Equipment
               </a>

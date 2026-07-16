@@ -169,5 +169,5 @@ function buildSimpleHtml(plainText: string, fromName: string): string {
     .split('\n')
     .map(line => line.trim() === '' ? '<br>' : `<p style="margin:0 0 10px 0;line-height:1.6;color:#1f2937;">${line}</p>`)
     .join('');
-  return `<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:580px;margin:0 auto;padding:24px;">${bodyHtml}<p style="font-size:12px;color:#9ca3af;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:12px;">Sent via <a href="https://axlon.ai" style="color:#9ca3af;">AXLON AI</a></p></body></html>`;
+  return `<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:580px;margin:0 auto;padding:24px;">${bodyHtml}<p style="font-size:12px;color:#9ca3af;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:12px;">Sent via <a href="https://axleyard.com" style="color:#9ca3af;">AXLON AI</a></p></body></html>`;
 }

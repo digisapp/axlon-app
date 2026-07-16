@@ -28,7 +28,7 @@ export default function TermsPage() {
         <div className="prose prose-slate dark:prose-invert max-w-none space-y-6 text-muted-foreground [&_h2]:text-foreground [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-8 [&_h2]:mb-3 [&_h3]:text-foreground [&_h3]:text-lg [&_h3]:font-medium [&_h3]:mt-6 [&_h3]:mb-2 [&_strong]:text-foreground [&_a]:text-primary [&_a]:underline">
           <p>
             Welcome to AXLON AI. These Terms of Service (&quot;Terms&quot;) govern your use of
-            the AXLON AI website and platform at axlon.ai (the &quot;Service&quot;) operated by
+            the AXLON AI website and platform at axleyard.com (the &quot;Service&quot;) operated by
             AXLON AI (&quot;AXLON,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;). By
             using the Service, you agree to these Terms.
           </p>

@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, skipped: true });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com';
 
     // Send email notification via Resend
     try {

@@ -18,7 +18,7 @@ const LISTINGS_PER_PAGE = 5000;
 const SUPABASE_PAGE_SIZE = 1000;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com';
 
   // Static pages
   const staticPages: MetadataRoute.Sitemap = [

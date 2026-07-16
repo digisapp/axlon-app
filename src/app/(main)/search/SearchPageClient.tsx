@@ -163,7 +163,7 @@ function SearchPageContent() {
   ).length;
 
   // JSON-LD ItemList schema for search results SEO
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com';
   const jsonLdItemList = useMemo(() => {
     if (!listings || listings.length === 0) return null;
     const itemsForSchema = listings.slice(0, 10);

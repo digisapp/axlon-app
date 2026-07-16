@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: #0066cc; padding: 20px; text-align: center;">
-              <img src="https://axlon.ai/images/axlonai-logo.png" alt="AXLON AI" height="40" />
+              <img src="https://axleyard.com/images/axlonai-logo.png" alt="AXLON AI" height="40" />
             </div>
             <div style="padding: 30px; background: #ffffff;">
               <h2 style="color: #333; margin-bottom: 20px;">New Trade-In Request</h2>
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
               ` : ''}
 
               <div style="text-align: center; margin-top: 30px;">
-                <a href="https://axlon.ai/admin/trade-ins"
+                <a href="https://axleyard.com/admin/trade-ins"
                    style="display: inline-block; background: #0066cc; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">
                   View in Admin Panel
                 </a>

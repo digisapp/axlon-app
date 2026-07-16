@@ -1,5 +1,9 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+
+// Hosts that serve the standalone AXLON experience instead of the marketplace.
+const AXLON_HOSTS = new Set(['axlon.ai', 'www.axlon.ai']);
+const CANONICAL_ORIGIN = 'https://axleyard.com';
 
 function buildCsp(nonce: string): string {
   return [
@@ -22,6 +26,24 @@ function buildCsp(nonce: string): string {
 
 export async function middleware(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+
+  // axlon.ai is the standalone AXLON surface: its root renders the /ask page
+  // (anonymous, no session needed); every other path 308s to axleyard.com so
+  // links indexed or emailed under the old domain keep resolving.
+  const host = request.headers.get('host')?.toLowerCase().split(':')[0] ?? '';
+  if (AXLON_HOSTS.has(host)) {
+    const { pathname, search } = request.nextUrl;
+    if (pathname === '/' || pathname === '/ask') {
+      const askHeaders = new Headers(request.headers);
+      askHeaders.set('x-nonce', nonce);
+      const rewrite = NextResponse.rewrite(new URL('/ask', request.url), {
+        request: { headers: askHeaders },
+      });
+      rewrite.headers.set('Content-Security-Policy', buildCsp(nonce));
+      return rewrite;
+    }
+    return NextResponse.redirect(`${CANONICAL_ORIGIN}${pathname}${search}`, 308);
+  }
 
   // Inject nonce into request headers so server components can read it via headers()
   const requestHeaders = new Headers(request.headers);

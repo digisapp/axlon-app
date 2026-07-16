@@ -170,7 +170,7 @@ export default function StorefrontSettingsPage() {
 
   const handleSave = async () => {
     // Block reserved slugs before saving — otherwise the storefront would be
-    // shadowed by a static route (e.g. axlon.ai/pricing) and never render.
+    // shadowed by a static route (e.g. axleyard.com/pricing) and never render.
     if (formData.slug && isReservedSlug(formData.slug)) {
       showErrorToast(
         `"${formData.slug}" is a reserved URL and can't be used. Please choose another storefront URL.`
@@ -352,7 +352,7 @@ export default function StorefrontSettingsPage() {
               <CardContent className="space-y-4">
                 <div className="flex gap-2">
                   <div className="flex items-center px-3 bg-muted rounded-l-md border border-r-0 text-sm text-muted-foreground">
-                    axlon.ai/
+                    axleyard.com/
                   </div>
                   <Input
                     placeholder="your-company-name"

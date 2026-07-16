@@ -74,7 +74,7 @@ export async function classifyAndDraftReply(email: {
 
   const { text } = await generateText({
     model: xai('grok-3-mini-fast'),
-    system: `You are the AI email assistant for AXLON — a heavy haul trailer and semi truck marketplace (axlon.ai). You classify inbound emails and draft professional replies.
+    system: `You are the AI email assistant for AXLON — a heavy haul trailer and semi truck marketplace (axleyard.com). You classify inbound emails and draft professional replies.
 
 AXLON helps dealers list and sell lowboy trailers, flatbeds, step decks, semi trucks, and other heavy haul equipment. Services include: equipment listings, AI-powered search, dealer storefronts, financing tools, trade-in valuations, and transport coordination.
 
@@ -84,7 +84,7 @@ ${CATEGORIES.map(c => `- ${c}`).join('\n')}
 RULES:
 - Be warm, professional, and helpful in drafts
 - Never make up pricing, inventory, or availability — say "our team will get back to you with specific details"
-- For purchase inquiries, mention they can browse listings at axlon.ai
+- For purchase inquiries, mention they can browse listings at axleyard.com
 - For dealer onboarding, mention free listing and AI-powered tools
 - Keep drafts concise (2-3 paragraphs max)
 - Sign off as "The AXLON Team"
@@ -166,7 +166,7 @@ export function wrapInBrandedTemplate(bodyHtml: string, quotedOriginal?: string)
     <!-- Footer -->
     <div style="background:#f8fafc;border-radius:0 0 12px 12px;padding:20px 32px;text-align:center;border:1px solid #e5e7eb;border-top:0">
       <p style="margin:0;color:#64748b;font-size:13px">
-        <a href="https://axlon.ai" style="color:#2563eb;text-decoration:none;font-weight:600">axlon.ai</a>
+        <a href="https://axleyard.com" style="color:#2563eb;text-decoration:none;font-weight:600">axleyard.com</a>
         &nbsp;&middot;&nbsp; sales@axlon.ai
       </p>
       <p style="margin:8px 0 0;color:#94a3b8;font-size:11px">

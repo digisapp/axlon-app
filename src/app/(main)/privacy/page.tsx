@@ -30,7 +30,7 @@ export default function PrivacyPage() {
             AXLON AI (&quot;AXLON,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is
             committed to protecting your privacy. This Privacy Policy explains how we collect,
             use, disclose, and safeguard your information when you use our website and platform
-            at axlon.ai (the &quot;Service&quot;).
+            at axleyard.com (the &quot;Service&quot;).
           </p>
 
           <h2>1. Information We Collect</h2>

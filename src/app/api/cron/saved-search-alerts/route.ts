@@ -222,7 +222,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const supabase = createAdminClient();
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com';
     const now = Date.now();
     const nowIso = new Date(now).toISOString();
     const categoryCache = new Map<string, string[]>();

@@ -118,13 +118,13 @@ export function Header() {
           <Link href="/" className="flex items-center gap-2">
             <Image
               src="/images/axlonai-logo.png"
-              alt="AXLON AI"
+              alt="Axleyard"
               width={40}
               height={40}
               className="h-8 w-8"
               priority
             />
-            <span className="font-bold text-xl font-[family-name:var(--font-gunship)] tracking-wider">AXLON <span className="text-primary">AI</span></span>
+            <span className="font-bold text-xl font-[family-name:var(--font-gunship)] tracking-wider">AXLE<span className="text-primary">YARD</span></span>
           </Link>
 
           {/* Desktop Nav */}
@@ -359,12 +359,12 @@ export function Header() {
                   <SheetTitle className="flex items-center gap-2">
                     <Image
                       src="/images/axlonai-logo.png"
-                      alt="AXLON AI"
+                      alt="Axleyard"
                       width={32}
                       height={32}
                       className="h-8 w-8"
                     />
-                    <span className="font-bold text-xl font-[family-name:var(--font-gunship)] tracking-wider">AXLON <span className="text-primary">AI</span></span>
+                    <span className="font-bold text-xl font-[family-name:var(--font-gunship)] tracking-wider">AXLE<span className="text-primary">YARD</span></span>
                   </SheetTitle>
                 </SheetHeader>
 

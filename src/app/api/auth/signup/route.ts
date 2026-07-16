@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
           company_name: companyName,
           is_business: true,
         },
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai'}/auth/callback`,
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com'}/auth/callback`,
       },
     });
 

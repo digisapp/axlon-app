@@ -10,7 +10,7 @@ function isAllowedRedirect(url: string | undefined): url is string {
   if (!url) return false;
   try {
     const parsed = new URL(url);
-    const appUrl = new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://axlon.ai');
+    const appUrl = new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com');
     return parsed.hostname === appUrl.hostname;
   } catch {
     return false;

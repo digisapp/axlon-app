@@ -140,7 +140,7 @@ function buildAutoReplyHtml(opts: {
   </div>
 
   <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af;">
-    <p style="margin: 0;">Powered by <a href="https://axlon.ai" style="color: #9ca3af; text-decoration: none;">AXLON AI</a> on behalf of ${safeName}</p>
+    <p style="margin: 0;">Powered by <a href="https://axleyard.com" style="color: #9ca3af; text-decoration: none;">AXLON AI</a> on behalf of ${safeName}</p>
   </div>
 </body>
 </html>`;

@@ -537,7 +537,7 @@ export function scraOutreachEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="https://axlon.ai/images/axlonai-logo.png" alt="AXLON AI" height="40" style="height: 40px;">
+            <img src="https://axleyard.com/images/axlonai-logo.png" alt="AXLON AI" height="40" style="height: 40px;">
           </div>
 
           <h1 style="font-size: 22px; margin-bottom: 16px; color: #1a1a1a;">
@@ -583,7 +583,7 @@ export function scraOutreachEmail({
           </div>
 
           <p style="text-align: center; margin: 32px 0;">
-            <a href="https://axlon.ai/get-started?ref=scra" style="${buttonStyles}">
+            <a href="https://axleyard.com/get-started?ref=scra" style="${buttonStyles}">
               Get Started Free
             </a>
           </p>
@@ -594,7 +594,7 @@ export function scraOutreachEmail({
 
           <div style="${footerStyles}">
             <p style="margin-bottom: 8px;">
-              <a href="https://axlon.ai" style="color: #0066cc; text-decoration: none;">axlon.ai</a>
+              <a href="https://axleyard.com" style="color: #0066cc; text-decoration: none;">axleyard.com</a>
             </p>
             <p style="font-size: 12px; color: #999;">
               You're receiving this because ${escapeHtml(companyName)} is listed in the SC&RA member directory.

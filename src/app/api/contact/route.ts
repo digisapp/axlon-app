@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: #0066cc; padding: 20px; text-align: center;">
-              <img src="https://axlon.ai/images/axlonai-logo.png" alt="AXLON AI" height="40" />
+              <img src="https://axleyard.com/images/axlonai-logo.png" alt="AXLON AI" height="40" />
             </div>
             <div style="padding: 30px; background: #ffffff;">
               <h2 style="color: #333; margin-bottom: 20px;">${escapeHtml(subjectLine)}</h2>
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="background: #0066cc; padding: 20px; text-align: center;">
-              <img src="https://axlon.ai/images/axlonai-logo.png" alt="AXLON AI" height="40" />
+              <img src="https://axleyard.com/images/axlonai-logo.png" alt="AXLON AI" height="40" />
             </div>
             <div style="padding: 30px; background: #ffffff;">
               <h2 style="color: #333; margin-bottom: 10px;">Thanks for reaching out, ${escapeHtml(validatedData.name.split(' ')[0])}!</h2>
@@ -148,14 +148,14 @@ export async function POST(request: NextRequest) {
                 In the meantime, you can explore our platform:
               </p>
               <ul style="color: #555; line-height: 1.8;">
-                <li><a href="https://axlon.ai/search" style="color: #0066cc;">Browse equipment</a></li>
-                <li><a href="https://axlon.ai/how-it-works" style="color: #0066cc;">See how AXLON works</a></li>
-                <li><a href="https://axlon.ai/get-started" style="color: #0066cc;">Learn about our business platform</a></li>
+                <li><a href="https://axleyard.com/search" style="color: #0066cc;">Browse equipment</a></li>
+                <li><a href="https://axleyard.com/how-it-works" style="color: #0066cc;">See how AXLON works</a></li>
+                <li><a href="https://axleyard.com/get-started" style="color: #0066cc;">Learn about our business platform</a></li>
               </ul>
             </div>
             <div style="padding: 20px; background: #f9f9f9; text-align: center; color: #888; font-size: 12px;">
               <p>AXLON AI &mdash; The AI platform for equipment businesses</p>
-              <p style="margin-top: 5px;"><a href="https://axlon.ai/privacy" style="color: #888;">Privacy Policy</a> &middot; <a href="https://axlon.ai/terms" style="color: #888;">Terms of Service</a></p>
+              <p style="margin-top: 5px;"><a href="https://axleyard.com/privacy" style="color: #888;">Privacy Policy</a> &middot; <a href="https://axleyard.com/terms" style="color: #888;">Terms of Service</a></p>
             </div>
           </div>
         `,

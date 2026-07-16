@@ -565,7 +565,7 @@ function formatListingsForAI(listings: ListingResult[], stats: { total: number; 
     if (listing.mileage) {
       context += `   Mileage: ${listing.mileage.toLocaleString()} miles\n`;
     }
-    context += `   Link: axlon.ai/listing/${listing.id}\n\n`;
+    context += `   Link: axleyard.com/listing/${listing.id}\n\n`;
   });
 
   return context;
@@ -854,7 +854,7 @@ WHEN GIVEN INVENTORY DATA:
 - Reference the ACTUAL listings provided in the context
 - Mention specific prices, years, makes, models from the data
 - Highlight deals that are below market value
-- Include the listing links (axlon.ai/listing/ID) so users can view them
+- Include the listing links (axleyard.com/listing/ID) so users can view them
 - Use the stats (average price, price range, total count) to give market insights
 
 For FINANCING questions:
@@ -884,7 +884,7 @@ Typical truck specs:
 - Day cab: ~16,000 lbs, 180" wheelbase
 - Common trailer: 53ft, ~15,000 lbs empty, kingpin at 49"
 
-For detailed calculations, direct users to the Axle Weight Calculator at axlon.ai/tools/axle-weight-calculator
+For detailed calculations, direct users to the Axle Weight Calculator at axleyard.com/tools/axle-weight-calculator
 
 LOWBOY TRAILER / HEAVY HAUL SPECIALIST KNOWLEDGE:
 You are an expert on lowboy trailers (also called heavy haul trailers, low-bed trailers, or double-drop trailers). This is a core specialty of AXLON AI. Answer detailed technical questions with authority.

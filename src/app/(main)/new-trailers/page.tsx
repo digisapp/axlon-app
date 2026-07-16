@@ -100,7 +100,7 @@ export default async function NewTrailersPage() {
         item: {
           '@type': 'Product',
           name: `${mfr.name} ${p.name}`,
-          url: `https://axlon.ai/new-trailers/${mfr.slug}/${p.slug}`,
+          url: `https://axleyard.com/new-trailers/${mfr.slug}/${p.slug}`,
           brand: { '@type': 'Brand', name: mfr.name },
           image: p.images?.find((i) => i.is_primary)?.url || p.images?.[0]?.url || undefined,
         },

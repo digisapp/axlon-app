@@ -125,7 +125,7 @@ const aiSystems = [
   {
     icon: Store,
     title: 'Marketplace Listing',
-    desc: 'Your inventory on AXLON.ai — AI-powered search puts your equipment in front of qualified buyers.',
+    desc: 'Your inventory on Axleyard — AI-powered search puts your equipment in front of qualified buyers.',
     color: 'rose',
   },
 ];
@@ -145,14 +145,14 @@ function ForBusinessJsonLd() {
     '@type': 'WebPage',
     name: 'AXLON AI for Equipment Businesses',
     description: 'AI operating system built and run for heavy haul, crane & rigging, and equipment businesses.',
-    url: 'https://axlon.ai/for-business',
+    url: 'https://axleyard.com/for-business',
     mainEntity: {
       '@type': 'Service',
       name: 'AXLON AI Transformation Program',
       provider: {
         '@type': 'Organization',
         name: 'AXLON AI',
-        url: 'https://axlon.ai',
+        url: 'https://axleyard.com',
       },
       serviceType: 'AI Business Transformation',
       areaServed: 'US',

@@ -26,7 +26,7 @@ async function setupTestDealer() {
       .eq('user_id', existingDealer.id);
 
     console.log(`Listings: ${count}`);
-    console.log(`\nView at: https://axlon.ai/demo-dealer`);
+    console.log(`\nView at: https://axleyard.com/demo-dealer`);
     return;
   }
 
@@ -70,7 +70,7 @@ async function setupTestDealer() {
       state: 'TX',
       address: '1234 Demo Drive',
       zip_code: '77001',
-      website: 'https://axlon.ai',
+      website: 'https://axleyard.com',
       chat_enabled: true,
       chat_settings: {
         greeting: 'Hi! Welcome to Demo Truck & Trailer. How can I help you find the right equipment today?',
@@ -123,7 +123,7 @@ async function setupTestDealer() {
   }
 
   console.log('\n✅ Test dealer setup complete!');
-  console.log(`\nView storefront at: https://axlon.ai/demo-dealer`);
+  console.log(`\nView storefront at: https://axleyard.com/demo-dealer`);
   console.log('Or locally: http://localhost:3000/demo-dealer');
 }
 

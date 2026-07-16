@@ -23,10 +23,10 @@ function OrganizationJsonLd({ nonce }: { nonce?: string }) {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'AXLON AI',
-    url: 'https://axlon.ai',
-    logo: 'https://axlon.ai/images/axlonai-logo.png',
-    description: 'The AI-powered marketplace for trucks, trailers, and heavy equipment. AI tools for businesses — voice agents, lead management, smart pricing, and instant listings.',
+    name: 'Axleyard',
+    url: 'https://axleyard.com',
+    logo: 'https://axleyard.com/images/axlonai-logo.png',
+    description: 'The AI-powered marketplace for trucks, trailers, and heavy equipment. Home of AXLON, the AI assistant — smart search, voice agents, lead management, and instant listings.',
     foundingDate: '2024',
     contactPoint: {
       '@type': 'ContactPoint',
@@ -57,13 +57,13 @@ function WebsiteJsonLd({ nonce }: { nonce?: string }) {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'AXLON AI',
-    url: 'https://axlon.ai',
+    name: 'Axleyard',
+    url: 'https://axleyard.com',
     potentialAction: {
       '@type': 'SearchAction',
       target: {
         '@type': 'EntryPoint',
-        urlTemplate: 'https://axlon.ai/search?q={search_term_string}',
+        urlTemplate: 'https://axleyard.com/search?q={search_term_string}',
       },
       'query-input': 'required name=search_term_string',
     },
@@ -99,27 +99,27 @@ const gunship = localFont({
 
 export const metadata: Metadata = {
   title: {
-    default: "AXLON AI — Trucks, Trailers & Heavy Equipment Marketplace",
-    template: "%s | AXLON AI",
+    default: "Axleyard — Trucks, Trailers & Heavy Equipment Marketplace",
+    template: "%s | Axleyard",
   },
-  description: "Browse thousands of trucks, trailers, and heavy equipment. AI tools for dealers and businesses — smart search, instant listings, voice agents, and lead management.",
+  description: "Browse thousands of trucks, trailers, and heavy equipment. Ask AXLON, our AI assistant — smart search, instant listings, voice agents, and lead management for dealers.",
   keywords: ["trucks", "trailers", "heavy equipment", "marketplace", "semi trucks", "commercial vehicles", "Peterbilt", "Freightliner", "Kenworth", "Volvo", "buy trucks", "sell trucks", "AI tools", "dealer management", "lowboy trailers"],
-  authors: [{ name: "AXLON AI" }],
-  creator: "AXLON AI",
-  publisher: "AXLON AI",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://axlon.ai"),
+  authors: [{ name: "Axleyard" }],
+  creator: "Axleyard",
+  publisher: "Axleyard",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://axleyard.com"),
   openGraph: {
-    title: "AXLON AI — Trucks, Trailers & Heavy Equipment Marketplace",
-    description: "Browse thousands of trucks, trailers, and heavy equipment. AI tools for dealers and businesses — smart search, instant listings, voice agents, and lead management.",
+    title: "Axleyard — Trucks, Trailers & Heavy Equipment Marketplace",
+    description: "Browse thousands of trucks, trailers, and heavy equipment. Ask AXLON, our AI assistant — smart search, instant listings, voice agents, and lead management for dealers.",
     type: "website",
-    siteName: "AXLON AI",
+    siteName: "Axleyard",
     locale: "en_US",
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "AXLON AI — Trucks, Trailers & Heavy Equipment Marketplace" }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Axleyard — Trucks, Trailers & Heavy Equipment Marketplace" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "AXLON AI — Trucks, Trailers & Heavy Equipment Marketplace",
-    description: "Browse thousands of trucks, trailers, and heavy equipment. AI tools for dealers and businesses.",
+    title: "Axleyard — Trucks, Trailers & Heavy Equipment Marketplace",
+    description: "Browse thousands of trucks, trailers, and heavy equipment. Ask AXLON, our AI assistant.",
     images: ["/opengraph-image"],
   },
   robots: {
@@ -165,7 +165,13 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const nonce = (await headers()).get('x-nonce') ?? undefined;
+  const headerList = await headers();
+  const nonce = headerList.get('x-nonce') ?? undefined;
+  // axlon.ai serves the standalone AXLON page via a middleware rewrite, so the
+  // browser path stays "/" — pathname-based visibility in the floating widgets
+  // would wrongly show marketplace UI there. Gate them on host instead.
+  const host = headerList.get('host')?.toLowerCase().split(':')[0] ?? '';
+  const isAxlonHost = host === 'axlon.ai' || host === 'www.axlon.ai';
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -187,9 +193,9 @@ export default async function RootLayout({
             <NotificationProvider>
               <CompareProvider>
                   {children}
-                  <MobileBottomNav />
-                  <CompareBar />
-                  <FloatingCallButton />
+                  {!isAxlonHost && <MobileBottomNav />}
+                  {!isAxlonHost && <CompareBar />}
+                  {!isAxlonHost && <FloatingCallButton />}
                   <KeyboardShortcuts />
                   <PWACleanup />
                   <div aria-live="polite" aria-atomic="true">

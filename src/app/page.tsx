@@ -49,8 +49,8 @@ function HomePageJsonLd() {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
-    name: 'AXLON AI',
-    url: 'https://axlon.ai',
+    name: 'Axleyard',
+    url: 'https://axleyard.com',
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
     description: 'AI-powered marketplace for buying and selling trucks, trailers, and heavy equipment. Search with natural language, get smart pricing, and list equipment instantly.',
@@ -64,8 +64,8 @@ function HomePageJsonLd() {
     },
     provider: {
       '@type': 'Organization',
-      name: 'AXLON AI',
-      url: 'https://axlon.ai',
+      name: 'Axleyard',
+      url: 'https://axleyard.com',
     },
   };
   return (
@@ -109,12 +109,12 @@ export default async function HomePage() {
           <Link href="/" className="flex items-center gap-2">
             <Image
               src="/images/axlonai-logo.png"
-              alt="AXLON AI"
+              alt="Axleyard"
               width={28}
               height={28}
               className="w-7 h-7"
             />
-            <span className="font-bold text-2xl font-[family-name:var(--font-gunship)] tracking-wider">AXLON <span className="text-primary">AI</span></span>
+            <span className="font-bold text-2xl font-[family-name:var(--font-gunship)] tracking-wider">AXLE<span className="text-primary">YARD</span></span>
           </Link>
           <HomeHeader />
         </div>
@@ -372,7 +372,7 @@ export default async function HomePage() {
               <thead>
                 <tr className="border-b bg-muted/30">
                   <th className="text-left py-3 px-2 sm:px-4 font-medium text-muted-foreground">Feature</th>
-                  <th className="text-center py-3 px-2 sm:px-4 font-bold text-primary">AXLON AI</th>
+                  <th className="text-center py-3 px-2 sm:px-4 font-bold text-primary">Axleyard</th>
                   <th className="text-center py-3 px-2 sm:px-4 font-medium text-muted-foreground">TruckPaper</th>
                   <th className="text-center py-3 px-2 sm:px-4 font-medium text-muted-foreground">Salesforce</th>
                 </tr>
@@ -456,13 +456,13 @@ export default async function HomePage() {
           <div className="flex items-center gap-2">
             <Image
               src="/images/axlonai-logo.png"
-              alt="AXLON AI"
+              alt="Axleyard"
               width={20}
               height={20}
               className="w-5 h-5"
             />
             <p className="text-xs md:text-sm text-muted-foreground">
-              &copy; 2026 <span className="font-[family-name:var(--font-gunship)]">AXLON AI</span>. All rights reserved.
+              &copy; 2026 <span className="font-[family-name:var(--font-gunship)]">AXLEYARD</span>. All rights reserved.
             </p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 md:flex gap-3 sm:gap-6 text-center sm:text-left">

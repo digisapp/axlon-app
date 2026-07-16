@@ -33,8 +33,8 @@ export default async function DealsLayout({ children }: { children: React.ReactN
             '@type': 'CollectionPage',
             name: 'Deals - Below Market Price Trucks & Trailers',
             description: 'AI-analyzed deals on trucks, trailers, and equipment priced below market value.',
-            url: 'https://axlon.ai/deals',
-            isPartOf: { '@type': 'WebSite', name: 'AXLON AI', url: 'https://axlon.ai' },
+            url: 'https://axleyard.com/deals',
+            isPartOf: { '@type': 'WebSite', name: 'AXLON AI', url: 'https://axleyard.com' },
           }),
         }}
       />
