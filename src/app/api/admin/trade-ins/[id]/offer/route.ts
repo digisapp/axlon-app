@@ -60,7 +60,7 @@ export async function POST(
     // Send email
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
-      from: 'AXLON AI <noreply@axlon.ai>',
+      from: process.env.RESEND_FROM_EMAIL || 'AXLON AI <noreply@axlon.ai>',
       to: email,
       subject: 'Trade-In Offer from AXLON AI',
       html: `

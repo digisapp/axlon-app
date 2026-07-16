@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     try {
       const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
-        from: 'AXLON AI <noreply@axlon.ai>',
+        from: process.env.RESEND_FROM_EMAIL || 'AXLON AI <noreply@axlon.ai>',
         to: ADMIN_EMAIL,
         subject: `New Trade-In Request: ${equipmentInfo || 'Equipment'}`,
         html: `

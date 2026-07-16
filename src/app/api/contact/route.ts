@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       const resend = new Resend(process.env.RESEND_API_KEY);
       // Resend resolves with { error } instead of throwing — inspect it
       const { error: adminEmailError } = await resend.emails.send({
-        from: 'AXLON AI <noreply@axlon.ai>',
+        from: process.env.RESEND_FROM_EMAIL || 'AXLON AI <noreply@axlon.ai>',
         to: ADMIN_EMAIL,
         subject: `${subjectLine} from ${validatedData.name}`,
         html: `
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       }
       // Send auto-reply to the submitter
       const { error: autoReplyError } = await resend.emails.send({
-        from: 'AXLON AI <noreply@axlon.ai>',
+        from: process.env.RESEND_FROM_EMAIL || 'AXLON AI <noreply@axlon.ai>',
         to: validatedData.email,
         subject: `We received your message — AXLON AI`,
         html: `
