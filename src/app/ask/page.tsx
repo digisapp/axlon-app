@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import { Sparkles } from 'lucide-react';
-import { AISearchBar } from '@/components/search/AISearchBar';
+import { AskAxlonHero } from '@/components/ask/AskAxlonHero';
 
 // The standalone AXLON surface. Served at axleyard.com/ask, and rewritten to
 // from the root of axlon.ai by middleware — keep it self-contained (no Header/
@@ -22,35 +21,13 @@ export const metadata: Metadata = {
 export default function AskAxlonPage() {
   return (
     <main className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-white px-4 pb-[env(safe-area-inset-bottom)] dark:bg-zinc-950">
-      {/* Subtle radial glow behind the wordmark */}
+      {/* Subtle radial glow behind the mascot */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 h-[60vh] bg-[radial-gradient(ellipse_at_top,theme(colors.primary/12%),transparent_65%)]"
       />
 
-      <div className="relative flex w-full max-w-2xl flex-col items-center gap-8 -mt-12">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
-            <Sparkles className="h-3 w-3 text-primary" />
-            AI for the heavy haul industry
-          </span>
-          <h1 className="font-[family-name:var(--font-gunship)] text-5xl font-bold tracking-wider text-zinc-900 dark:text-zinc-50 md:text-6xl">
-            AXLON
-          </h1>
-          <p className="max-w-md text-balance text-sm text-zinc-500 dark:text-zinc-400 md:text-base">
-            Ask me anything — lowboy trailers, semi trucks, parts, prices, or
-            financing. I&apos;ll search the yard and answer instantly.
-          </p>
-        </div>
-
-        <AISearchBar
-          size="large"
-          autoFocus
-          animatedPlaceholder
-          showLanguageHint
-          className="w-full"
-        />
-      </div>
+      <AskAxlonHero />
 
       <footer className="absolute bottom-6 flex flex-col items-center gap-1 px-4 text-center">
         <a
