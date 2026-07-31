@@ -242,6 +242,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   src={primaryImage.url}
                   alt={primaryImage.alt_text || product.name}
                   fill
+                  sizes="(max-width: 1024px) 100vw, 800px"
                   className="object-cover"
                   unoptimized
                   priority
@@ -262,6 +263,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                       src={img.url}
                       alt={img.alt_text || product.name}
                       fill
+                      sizes="(max-width: 640px) 25vw, 120px"
                       className="object-cover"
                       unoptimized
                     />
@@ -474,6 +476,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                             src={rpImage.url}
                             alt={rpImage.alt_text || rp.name}
                             fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                             className="object-cover group-hover:scale-105 transition-transform duration-500"
                             unoptimized
                           />

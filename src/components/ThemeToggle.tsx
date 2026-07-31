@@ -16,7 +16,7 @@ export function ThemeToggle({ size = 'default' }: { size?: 'default' | 'sm' }) {
   }, []);
 
   const btnClass = size === 'sm'
-    ? 'h-8 w-8 rounded-full glass-button touch-manipulation'
+    ? 'h-10 w-10 md:h-8 md:w-8 rounded-full glass-button touch-manipulation'
     : 'h-10 w-10 rounded-full glass-button touch-manipulation';
 
   const iconClass = size === 'sm' ? 'h-4 w-4 transition-transform' : 'h-5 w-5 transition-transform';

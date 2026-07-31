@@ -207,7 +207,8 @@ Phone: ${form.phone || 'Not provided'}
                     onChange={set('name')}
                     placeholder="John Smith"
                     required
-                    className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                    autoComplete="name"
+                    className="w-full px-3 py-2.5 rounded-lg border bg-background text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
                   />
                 </div>
                 <div>
@@ -220,7 +221,9 @@ Phone: ${form.phone || 'Not provided'}
                     onChange={set('email')}
                     placeholder="john@company.com"
                     required
-                    className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                    autoComplete="email"
+                    inputMode="email"
+                    className="w-full px-3 py-2.5 rounded-lg border bg-background text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
                   />
                 </div>
                 <div>
@@ -230,7 +233,9 @@ Phone: ${form.phone || 'Not provided'}
                     value={form.phone}
                     onChange={set('phone')}
                     placeholder="+1 (555) 000-0000"
-                    className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                    autoComplete="tel"
+                    inputMode="tel"
+                    className="w-full px-3 py-2.5 rounded-lg border bg-background text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
                   />
                 </div>
                 <div>
@@ -243,7 +248,8 @@ Phone: ${form.phone || 'Not provided'}
                     onChange={set('company')}
                     placeholder="Smith Heavy Haul LLC"
                     required
-                    className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+                    autoComplete="organization"
+                    className="w-full px-3 py-2.5 rounded-lg border bg-background text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
                   />
                 </div>
               </div>

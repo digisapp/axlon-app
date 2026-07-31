@@ -486,8 +486,10 @@ export function AISearchBar({
           placeholder={currentPlaceholder}
           className={cn(
             'flex-1 bg-transparent outline-none placeholder:text-zinc-400 min-w-0 text-zinc-900 dark:text-zinc-100',
-            isLarge ? 'text-base md:text-lg' : isSmall ? 'text-sm' : 'text-base'
+            isLarge ? 'text-base md:text-lg' : isSmall ? 'text-base md:text-sm' : 'text-base'
           )}
+          inputMode="search"
+          enterKeyHint="search"
           autoComplete="off"
           spellCheck="false"
         />

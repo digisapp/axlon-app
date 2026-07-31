@@ -343,8 +343,8 @@ export function DealerAIChat({
           className={cn(
             'fixed z-50 shadow-2xl transition-all duration-200 border-2',
             isMinimized
-              ? 'bottom-4 right-4 w-72'
-              : 'bottom-4 right-4 w-[400px] max-w-[calc(100vw-2rem)]'
+              ? 'bottom-[calc(5.5rem+env(safe-area-inset-bottom))] lg:bottom-4 right-4 w-72'
+              : 'bottom-[calc(5.5rem+env(safe-area-inset-bottom))] lg:bottom-4 right-4 w-[400px] max-w-[calc(100vw-2rem)]'
           )}
         >
           {/* Header */}
@@ -398,7 +398,7 @@ export function DealerAIChat({
           {!isMinimized && (
             <>
               <CardContent className="p-0">
-                <div className="h-[350px] overflow-y-auto p-4 space-y-4">
+                <div className="h-[350px] overflow-y-auto overscroll-contain p-4 space-y-4">
                   {messages.map((msg) => (
                     <div key={msg.id}>
                       <div

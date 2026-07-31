@@ -19,7 +19,7 @@ export const QuickFilterChip = memo(function QuickFilterChip({
     <button
       onClick={onClick}
       aria-pressed={isActive}
-      className={`px-3 py-1.5 text-xs md:text-sm rounded-full border transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+      className={`px-3 py-2 md:py-1.5 text-sm rounded-full border transition-colors flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 snap-start ${
         isActive
           ? 'bg-primary text-primary-foreground border-primary'
           : 'bg-background hover:bg-muted border-border'

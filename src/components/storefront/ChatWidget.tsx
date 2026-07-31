@@ -207,7 +207,7 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg z-50"
+        className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] lg:bottom-6 right-6 w-14 h-14 rounded-full shadow-lg z-50"
         size="icon"
       >
         <MessageCircle className="w-6 h-6" />
@@ -216,7 +216,7 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
   }
 
   return (
-    <Card className="fixed bottom-6 right-6 w-[360px] max-w-[calc(100vw-2rem)] h-[500px] shadow-2xl z-50 flex flex-col overflow-hidden">
+    <Card className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] lg:bottom-6 right-6 w-[360px] max-w-[calc(100vw-2rem)] h-[500px] shadow-2xl z-50 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="bg-primary text-primary-foreground p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -239,7 +239,7 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/30">
+      <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4 bg-muted/30">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -293,6 +293,8 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
             <Input
               placeholder="Email"
               type="email"
+              autoComplete="email"
+              inputMode="email"
               value={leadInfo.email}
               onChange={(e) => setLeadInfo({ ...leadInfo, email: e.target.value })}
               className="h-9 text-base md:text-sm"
@@ -300,6 +302,7 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
             <Input
               placeholder="Phone (optional)"
               type="tel"
+              autoComplete="tel"
               value={leadInfo.phone}
               onChange={(e) => setLeadInfo({ ...leadInfo, phone: e.target.value })}
               className="h-9 text-base md:text-sm"

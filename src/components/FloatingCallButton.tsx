@@ -20,6 +20,12 @@ export function FloatingCallButton() {
   const isStorefront = Boolean(firstSegment) && !RESERVED_SLUGS.has(firstSegment);
   if (isStorefront) return null;
 
+  // Listing detail has its own contact/call CTA bar — avoid stacked "Call" buttons.
+  if (pathname === '/listing' || pathname.startsWith('/listing/')) return null;
+
+  // Keep the standalone AXLON page clean (matches the axlon.ai surface).
+  if (pathname === '/ask' || pathname.startsWith('/ask/')) return null;
+
   return (
     <a
       href={`tel:${PHONE_NUMBER}`}

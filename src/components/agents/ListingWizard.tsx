@@ -165,7 +165,7 @@ export function ListingWizard({ onComplete, onCancel }: ListingWizardProps) {
               onChange={(e) => setImageInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addImage()}
               placeholder="Paste image URL..."
-              className="flex-1 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-1 px-3 py-2 border rounded-md text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <Button onClick={addImage} variant="outline" size="sm">
               Add
@@ -341,7 +341,7 @@ export function ListingWizard({ onComplete, onCancel }: ListingWizardProps) {
                 value={editedDescription}
                 onChange={(e) => setEditedDescription(e.target.value)}
                 rows={6}
-                className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border rounded-md text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
             ) : (
               <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/50 p-3 rounded-md">

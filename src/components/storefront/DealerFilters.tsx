@@ -189,6 +189,7 @@ export function DealerFilters({
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                     <Input
                       type="number"
+                      inputMode="numeric"
                       placeholder={priceRange[0].toLocaleString()}
                       value={minPrice}
                       onChange={(e) => setMinPrice(e.target.value)}
@@ -203,6 +204,7 @@ export function DealerFilters({
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                     <Input
                       type="number"
+                      inputMode="numeric"
                       placeholder={priceRange[1].toLocaleString()}
                       value={maxPrice}
                       onChange={(e) => setMaxPrice(e.target.value)}
@@ -221,6 +223,7 @@ export function DealerFilters({
                   <Label className="text-xs text-muted-foreground mb-1 block">From</Label>
                   <Input
                     type="number"
+                    inputMode="numeric"
                     placeholder={yearRange[0].toString()}
                     value={minYear}
                     onChange={(e) => setMinYear(e.target.value)}
@@ -231,6 +234,7 @@ export function DealerFilters({
                   <Label className="text-xs text-muted-foreground mb-1 block">To</Label>
                   <Input
                     type="number"
+                    inputMode="numeric"
                     placeholder={yearRange[1].toString()}
                     value={maxYear}
                     onChange={(e) => setMaxYear(e.target.value)}

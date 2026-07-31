@@ -170,7 +170,7 @@ export function AudioPlayer({ src, title, onClose, className }: AudioPlayerProps
             <span className="text-sm font-medium truncate flex-1">{title}</span>
           )}
           {onClose && (
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClose}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 md:h-6 md:w-6" onClick={onClose}>
               <X className="w-3 h-3" />
             </Button>
           )}

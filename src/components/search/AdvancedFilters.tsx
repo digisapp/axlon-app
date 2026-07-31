@@ -328,6 +328,7 @@ export function AdvancedFilters({
                 <Label className="text-xs text-muted-foreground">Min</Label>
                 <Input
                   type="number"
+                  inputMode="numeric"
                   value={priceRange[0]}
                   onChange={(e) => {
                     const val = parseInt(e.target.value) || 0;
@@ -337,7 +338,7 @@ export function AdvancedFilters({
                     const val = parseInt(e.target.value) || 0;
                     handlePriceRangeCommit([val, priceRange[1]]);
                   }}
-                  className="h-8 text-base md:text-sm"
+                  className="h-11 md:h-8 text-base md:text-sm"
                   placeholder="$0"
                 />
               </div>
@@ -346,6 +347,7 @@ export function AdvancedFilters({
                 <Label className="text-xs text-muted-foreground">Max</Label>
                 <Input
                   type="number"
+                  inputMode="numeric"
                   value={priceRange[1]}
                   onChange={(e) => {
                     const val = parseInt(e.target.value) || 500000;
@@ -355,7 +357,7 @@ export function AdvancedFilters({
                     const val = parseInt(e.target.value) || 500000;
                     handlePriceRangeCommit([priceRange[0], val]);
                   }}
-                  className="h-8 text-base md:text-sm"
+                  className="h-11 md:h-8 text-base md:text-sm"
                   placeholder="$500,000+"
                 />
               </div>
@@ -378,7 +380,7 @@ export function AdvancedFilters({
                   value={localFilters.yearMin?.toString() || ''}
                   onValueChange={(v) => handleYearChange('yearMin', v)}
                 >
-                  <SelectTrigger className="h-8">
+                  <SelectTrigger className="h-11 md:h-8">
                     <SelectValue placeholder="Any" />
                   </SelectTrigger>
                   <SelectContent>
@@ -398,7 +400,7 @@ export function AdvancedFilters({
                   value={localFilters.yearMax?.toString() || ''}
                   onValueChange={(v) => handleYearChange('yearMax', v)}
                 >
-                  <SelectTrigger className="h-8">
+                  <SelectTrigger className="h-11 md:h-8">
                     <SelectValue placeholder="Any" />
                   </SelectTrigger>
                   <SelectContent>

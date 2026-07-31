@@ -199,7 +199,7 @@ export const SearchListingCard = memo(function SearchListingCard({
               {dealInfo.percentage}% Off
             </Badge>
           )}
-          <div className="absolute top-2 right-2 flex gap-1">
+          <div className="absolute top-2 right-2 flex gap-2">
             <CompareButton
               listing={{
                 id: listing.id,
@@ -214,7 +214,7 @@ export const SearchListingCard = memo(function SearchListingCard({
                 image_url: primaryImageSrc,
               }}
               variant="icon"
-              className="bg-background/80 hover:bg-background w-7 h-7 md:w-8 md:h-8"
+              className="bg-background/80 hover:bg-background"
             />
             <FavoriteButton listingId={listing.id} variant="ghost" size="icon" showText={false} />
           </div>

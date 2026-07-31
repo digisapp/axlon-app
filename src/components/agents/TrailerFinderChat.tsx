@@ -181,7 +181,7 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
       </div>
 
       {/* Messages */}
-      <div className={`overflow-y-auto px-4 py-3 space-y-4 ${variant === 'floating' ? (isExpanded ? 'h-[calc(100%-120px)]' : 'h-[460px]') : 'h-[500px]'}`}>
+      <div className={`overflow-y-auto overscroll-contain px-4 py-3 space-y-4 ${variant === 'floating' ? (isExpanded ? 'h-[calc(100%-120px)]' : 'h-[460px]') : 'h-[500px]'}`}>
         {messages.length === 0 && (
           <div className="text-center py-8">
             <Bot className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
@@ -260,7 +260,8 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
             onChange={(e) => setInput(e.target.value)}
             placeholder="What do you need to haul?"
             disabled={isLoading}
-            className="flex-1 px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+            enterKeyHint="send"
+            className="flex-1 px-3 py-2 text-base md:text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
           />
           <Button
             type="submit"

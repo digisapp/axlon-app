@@ -649,14 +649,14 @@ export default function CRMPage() {
                     </div>
                     <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                       {contact.phone && (
-                        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                        <Button variant="ghost" size="icon" className="h-10 w-10 md:h-8 md:w-8" asChild>
                           <a href={`tel:${contact.phone}`}>
                             <Phone className="w-4 h-4" />
                           </a>
                         </Button>
                       )}
                       {contact.email && (
-                        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                        <Button variant="ghost" size="icon" className="h-10 w-10 md:h-8 md:w-8" asChild>
                           <a href={`mailto:${contact.email}`}>
                             <Mail className="w-4 h-4" />
                           </a>
@@ -665,7 +665,7 @@ export default function CRMPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        className="h-10 w-10 md:h-8 md:w-8 text-destructive hover:text-destructive"
                         onClick={() => handleDeleteContact(contact.id)}
                       >
                         <Trash2 className="w-4 h-4" />

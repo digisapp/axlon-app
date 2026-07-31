@@ -116,6 +116,7 @@ export function FinancingCalculator({ listingPrice, className }: FinancingCalcul
           />
           <Input
             type="number"
+            inputMode="decimal"
             value={downPayment}
             onChange={(e) => handleDownPaymentChange(Number(e.target.value))}
             className="text-right"

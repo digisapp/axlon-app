@@ -292,7 +292,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
   const hasActiveFilters = !!(minPrice || maxPrice || minYear || maxYear || condition);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-dvh bg-gradient-to-b from-slate-50 to-white">
       {/* JSON-LD Structured Data */}
       <DealerJsonLd dealer={dealer as DealerForSchema} slug={slug} />
       <DealerBreadcrumbJsonLd dealerName={dealer.company_name} slug={slug} />
@@ -446,7 +446,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                       href={socialLinks.facebook}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all"
+                      className="w-11 h-11 md:w-8 md:h-8 rounded-lg bg-slate-100 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all"
                     >
                       <Facebook className="w-4 h-4" />
                     </a>
@@ -456,7 +456,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                       href={socialLinks.instagram}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center hover:bg-pink-500 hover:text-white transition-all"
+                      className="w-11 h-11 md:w-8 md:h-8 rounded-lg bg-slate-100 flex items-center justify-center hover:bg-pink-500 hover:text-white transition-all"
                     >
                       <Instagram className="w-4 h-4" />
                     </a>
@@ -504,7 +504,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
       )}
 
       {/* Main Content */}
-      <div className="relative max-w-7xl mx-auto px-4 pb-8">
+      <div className="relative max-w-7xl mx-auto px-4 pb-28 lg:pb-8">
         {/* Search & Filters Bar */}
         <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm -mx-4 px-4 py-4 border-b border-slate-200 mb-6">
           <div className="flex flex-col lg:flex-row gap-4">
@@ -544,10 +544,13 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
           </div>
 
           {/* Category Pills */}
-          <div className="flex flex-wrap gap-2 mt-4">
-            <Link href={`/${slug}${q ? `?q=${q}` : ''}${sort ? `${q ? '&' : '?'}sort=${sort}` : ''}`}>
+          <div className="flex gap-2 mt-4 overflow-x-auto snap-x [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Link
+              href={`/${slug}${q ? `?q=${q}` : ''}${sort ? `${q ? '&' : '?'}sort=${sort}` : ''}`}
+              className="flex-shrink-0 snap-start"
+            >
               <Badge
-                className={`cursor-pointer px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                className={`cursor-pointer px-3 py-2 md:py-1.5 rounded-lg text-sm font-medium transition-all ${
                   !category
                     ? 'bg-slate-900 text-white border-0 shadow-md'
                     : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
@@ -565,9 +568,13 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
               }).length;
               const isActive = category === catSlug;
               return (
-                <Link key={cat} href={`/${slug}?category=${catSlug}${q ? `&q=${q}` : ''}${sort ? `&sort=${sort}` : ''}`}>
+                <Link
+                  key={cat}
+                  href={`/${slug}?category=${catSlug}${q ? `&q=${q}` : ''}${sort ? `&sort=${sort}` : ''}`}
+                  className="flex-shrink-0 snap-start"
+                >
                   <Badge
-                    className={`cursor-pointer px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    className={`cursor-pointer px-3 py-2 md:py-1.5 rounded-lg text-sm font-medium transition-all ${
                       isActive
                         ? 'bg-slate-900 text-white border-0 shadow-md'
                         : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'

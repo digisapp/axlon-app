@@ -80,14 +80,14 @@ export default async function HomePage() {
   const [deals, stats] = await Promise.all([getHomeDeals(), getHomeStats()]);
 
   return (
-    <div className="min-h-screen flex flex-col gradient-bg relative overflow-hidden">
+    <div className="min-h-dvh flex flex-col gradient-bg relative overflow-hidden">
       <HomePageJsonLd />
       <div className="noise-overlay" />
 
       {/* Top Banner */}
       <div className="relative z-10 w-full bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b border-primary/20 py-2.5 px-4 overflow-hidden">
         <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)] animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
-        <div className="relative flex items-center justify-center gap-2">
+        <div className="relative flex flex-wrap items-center justify-center gap-2">
           <div className="hidden sm:flex items-center justify-center w-5 h-5 rounded-full bg-primary/20">
             <Zap className="w-3 h-3 text-primary" />
           </div>
@@ -96,7 +96,7 @@ export default async function HomePage() {
           </p>
           <Link
             href="/for-business"
-            className="text-xs font-medium text-primary hover:underline ml-1"
+            className="text-xs font-medium text-primary hover:underline ml-1 py-2 inline-block"
           >
             + AI Tools for Business
           </Link>
@@ -171,7 +171,7 @@ export default async function HomePage() {
               <Link
                 key={href}
                 href={href}
-                className="text-xs text-muted-foreground hover:text-primary rounded-full border px-3 py-1.5 bg-white/60 dark:bg-white/[0.05] transition-colors"
+                className="text-xs text-muted-foreground hover:text-primary rounded-full border px-3 py-2.5 md:py-1.5 bg-white/60 dark:bg-white/[0.05] transition-colors"
               >
                 {name}
               </Link>
@@ -484,7 +484,7 @@ function FooterLink({ href, children }: { href: string; children: React.ReactNod
   return (
     <Link
       href={href}
-      className="text-xs md:text-sm text-muted-foreground hover:text-foreground transition-colors"
+      className="inline-block py-2 text-xs md:text-sm text-muted-foreground hover:text-foreground transition-colors"
     >
       {children}
     </Link>

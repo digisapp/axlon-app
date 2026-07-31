@@ -459,10 +459,10 @@ export default function AIInboxPage() {
                   <div className="pt-2 border-t">
                     <p className="text-xs text-muted-foreground mb-2">Was this response good?</p>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="gap-1 flex-1 h-8" onClick={() => sendFeedback(selected, 'positive')} disabled={sendingFeedback}>
+                      <Button size="sm" variant="outline" className="gap-1 flex-1 h-10 md:h-8" onClick={() => sendFeedback(selected, 'positive')} disabled={sendingFeedback}>
                         <ThumbsUp className="w-3.5 h-3.5 text-emerald-500" /> Yes
                       </Button>
-                      <Button size="sm" variant="outline" className="gap-1 flex-1 h-8" onClick={() => sendFeedback(selected, 'negative')} disabled={sendingFeedback}>
+                      <Button size="sm" variant="outline" className="gap-1 flex-1 h-10 md:h-8" onClick={() => sendFeedback(selected, 'negative')} disabled={sendingFeedback}>
                         <ThumbsDown className="w-3.5 h-3.5 text-red-500" /> No
                       </Button>
                     </div>

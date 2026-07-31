@@ -19,6 +19,8 @@ const SHOW_ON_PREFIXES = [
   '/search',
   '/new-trailers',
   '/categories',
+  '/manufacturers',
+  '/industries',
   '/dealers',
   '/deals',
   '/compare',
@@ -45,7 +47,7 @@ export function MobileBottomNav() {
   return (
     <>
       {/* In-flow spacer so page content isn't hidden behind the fixed nav */}
-      <div className="h-14 md:hidden" aria-hidden="true" />
+      <div className="h-[calc(3.5rem+env(safe-area-inset-bottom))] md:hidden" aria-hidden="true" />
       <nav
         aria-label="Primary"
         className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur pb-[env(safe-area-inset-bottom)] md:hidden"

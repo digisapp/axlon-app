@@ -349,6 +349,7 @@ export default function GetStartedPage() {
                       <Input
                         id="phone"
                         type="tel"
+                        autoComplete="tel"
                         placeholder="(555) 123-4567"
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}

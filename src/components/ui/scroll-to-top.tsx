@@ -35,7 +35,7 @@ export function ScrollToTop({ threshold = 400, className }: ScrollToTopProps) {
       size="icon"
       onClick={scrollToTop}
       className={cn(
-        'fixed bottom-6 right-6 z-50 rounded-full shadow-lg transition-all duration-300',
+        'fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-4 right-auto md:left-auto md:right-6 md:bottom-6 z-50 rounded-full shadow-lg transition-all duration-300',
         'bg-background/80 backdrop-blur-sm hover:bg-background',
         'h-12 w-12 md:h-10 md:w-10 touch-manipulation',
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none',

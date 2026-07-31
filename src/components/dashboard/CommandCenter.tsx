@@ -172,7 +172,7 @@ export function CommandCenter({ insights, companyName }: CommandCenterProps) {
                       <p className="text-sm font-medium">{insight.title}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{insight.description}</p>
                     </div>
-                    <Button variant="ghost" size="sm" className="shrink-0 h-7 text-xs" asChild>
+                    <Button variant="ghost" size="sm" className="shrink-0 h-9 md:h-7 text-xs" asChild>
                       <a href={insight.href}>
                         {insight.action}
                         <ArrowRight className="w-3 h-3 ml-1" />

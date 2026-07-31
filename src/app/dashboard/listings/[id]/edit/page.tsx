@@ -1078,7 +1078,7 @@ export default function EditListingPage({ params }: PageProps) {
           </Card>
 
           {/* Submit Buttons */}
-          <div className="flex items-center justify-end gap-3 p-4 bg-background border rounded-xl sticky bottom-4">
+          <div className="flex items-center justify-end gap-3 p-4 bg-background border rounded-xl sticky bottom-[calc(1rem+env(safe-area-inset-bottom))]">
             <Button
               type="button"
               variant="outline"

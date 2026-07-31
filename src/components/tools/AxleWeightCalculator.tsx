@@ -203,6 +203,7 @@ export function AxleWeightCalculator() {
                 <Label>Tractor Empty Weight (lbs)</Label>
                 <Input
                   type="number"
+                  inputMode="numeric"
                   value={truckEmptyWeight}
                   onChange={(e) => setTruckEmptyWeight(Number(e.target.value))}
                 />
@@ -211,6 +212,7 @@ export function AxleWeightCalculator() {
                 <Label>Wheelbase (inches)</Label>
                 <Input
                   type="number"
+                  inputMode="numeric"
                   value={wheelbase}
                   onChange={(e) => setWheelbase(Number(e.target.value))}
                 />
@@ -222,6 +224,7 @@ export function AxleWeightCalculator() {
                 <Label>Steer Axle Empty (lbs)</Label>
                 <Input
                   type="number"
+                  inputMode="numeric"
                   value={steerAxleEmpty}
                   onChange={(e) => setSteerAxleEmpty(Number(e.target.value))}
                 />
@@ -230,6 +233,7 @@ export function AxleWeightCalculator() {
                 <Label>Drive Axles Empty (lbs)</Label>
                 <Input
                   type="number"
+                  inputMode="numeric"
                   value={driveAxleEmpty}
                   onChange={(e) => setDriveAxleEmpty(Number(e.target.value))}
                 />
@@ -269,6 +273,7 @@ export function AxleWeightCalculator() {
                 <Label>Trailer Empty Weight (lbs)</Label>
                 <Input
                   type="number"
+                  inputMode="numeric"
                   value={trailerEmptyWeight}
                   onChange={(e) => setTrailerEmptyWeight(Number(e.target.value))}
                 />
@@ -277,6 +282,7 @@ export function AxleWeightCalculator() {
                 <Label>Trailer Length (ft)</Label>
                 <Input
                   type="number"
+                  inputMode="numeric"
                   value={trailerLength}
                   onChange={(e) => setTrailerLength(Number(e.target.value))}
                 />
@@ -287,6 +293,7 @@ export function AxleWeightCalculator() {
               <Label>Axle Spread (ft from kingpin)</Label>
               <Input
                 type="number"
+                inputMode="numeric"
                 value={axleSpread}
                 onChange={(e) => setAxleSpread(Number(e.target.value))}
               />
@@ -307,6 +314,7 @@ export function AxleWeightCalculator() {
               <Label>Cargo Weight (lbs)</Label>
               <Input
                 type="number"
+                inputMode="numeric"
                 value={cargoWeight}
                 onChange={(e) => setCargoWeight(Number(e.target.value))}
                 className="text-lg"

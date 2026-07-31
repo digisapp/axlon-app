@@ -340,7 +340,7 @@ export default function OutreachPage() {
           <select
             value={stateFilter}
             onChange={(e) => { setStateFilter(e.target.value); setPage(0); }}
-            className="h-10 px-3 rounded-md border border-input bg-background text-sm"
+            className="h-10 px-3 rounded-md border border-input bg-background text-base md:text-sm"
           >
             <option value="">All States</option>
             {US_STATES.map(s => (

@@ -221,7 +221,7 @@ export default function ConversationPage({ params }: PageProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-dvh flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -229,7 +229,7 @@ export default function ConversationPage({ params }: PageProps) {
 
   if (loadError) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-4 text-center">
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-4 px-4 text-center">
         <p className="text-lg font-semibold">Couldn&apos;t load this conversation</p>
         <p className="text-muted-foreground">Something went wrong. Please try again.</p>
         <div className="flex gap-2">
@@ -245,7 +245,7 @@ export default function ConversationPage({ params }: PageProps) {
   const messageGroups = groupMessagesByDate(messages);
 
   return (
-    <div className="min-h-screen bg-muted/30 flex flex-col">
+    <div className="min-h-dvh bg-muted/30 flex flex-col">
       {/* Header */}
       <header className="bg-background border-b sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3">
@@ -363,7 +363,7 @@ export default function ConversationPage({ params }: PageProps) {
       </div>
 
       {/* Message Input */}
-      <div className="bg-background border-t sticky bottom-0">
+      <div className="bg-background border-t sticky bottom-0 pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-4xl mx-auto px-4 py-3">
           {sendError && (
             <p className="text-sm text-destructive mb-2">{sendError}</p>
