@@ -17,6 +17,7 @@ import {
   Search,
 } from 'lucide-react';
 import { jsonLdString } from '@/lib/seo/json-ld';
+import { isOptimizerBlockedImage } from '@/lib/images/optimizer-blocked-hosts';
 
 function createSupabase() {
   return createClient(
@@ -246,6 +247,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   sizes="(max-width: 1024px) 100vw, 800px"
                   className="object-cover"
                   priority
+                  unoptimized={isOptimizerBlockedImage(primaryImage.url)}
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -265,7 +267,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
                       fill
                       sizes="(max-width: 640px) 25vw, 120px"
                       className="object-cover"
-                        />
+                      unoptimized={isOptimizerBlockedImage(img.url)}
+                    />
                   </div>
                 ))}
               </div>
@@ -477,7 +480,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
                             fill
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                             className="object-cover group-hover:scale-105 transition-transform duration-500"
-                                    />
+                            unoptimized={isOptimizerBlockedImage(rpImage.url)}
+                          />
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center">
                             <Truck className="w-10 h-10 text-muted-foreground/20" />

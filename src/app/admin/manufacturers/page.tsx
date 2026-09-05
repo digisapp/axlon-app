@@ -349,7 +349,7 @@ export default function AdminManufacturersPage() {
                             width={48}
                             height={48}
                             className="object-contain"
-                                    />
+                          />
                         ) : (
                           <Factory className="w-6 h-6 text-muted-foreground" />
                         )}

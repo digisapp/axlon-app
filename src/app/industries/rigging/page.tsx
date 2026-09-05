@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   title: 'AI Tools for Rigging & Heavy Lift Services',
   description: 'Axleyard helps rigging companies, millwrights, and heavy lift service providers manage leads, list equipment, and grow with AI-powered tools.',
   openGraph: {
-    title: 'AI Tools for Rigging & Heavy Lift Services',
+    title: 'AI Tools for Rigging & Heavy Lift Services | Axleyard',
     description: 'Manage leads, list equipment, and grow your rigging business with AI.',
   },
   alternates: { canonical: '/industries/rigging' },

@@ -23,12 +23,12 @@ import {
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'AI Transformation Program | AXLON',
+  title: 'AI Transformation Program',
   description:
     'We partner with 12–15 heavy haul and equipment companies per year. We embed directly into your operations, deploy custom AI systems, and integrate your inventory into the Axlon Marketplace.',
   alternates: { canonical: '/transform' },
   openGraph: {
-    title: 'AI Transformation Program | AXLON',
+    title: 'AI Transformation Program | Axleyard',
     description:
       'We partner with 12–15 heavy haul and equipment companies per year. Custom AI systems that eliminate waste and drive revenue.',
   },

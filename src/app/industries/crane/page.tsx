@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   title: 'AI Tools for Crane & Rigging Companies',
   description: 'Axleyard helps crane and rigging companies manage leads, automate customer inquiries, list equipment, and grow their business with AI-powered tools.',
   openGraph: {
-    title: 'AI Tools for Crane & Rigging Companies',
+    title: 'AI Tools for Crane & Rigging Companies | Axleyard',
     description: 'Manage leads, automate inquiries, and grow your crane business with AI.',
   },
   alternates: { canonical: '/industries/crane' },

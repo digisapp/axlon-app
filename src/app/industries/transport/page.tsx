@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   title: 'AI Tools for Heavy Haul & Transport Companies',
   description: 'Axleyard helps heavy haul and specialized transport companies manage leads, sell equipment, and grow with AI-powered tools built for the industry.',
   openGraph: {
-    title: 'AI Tools for Heavy Haul & Transport Companies',
+    title: 'AI Tools for Heavy Haul & Transport Companies | Axleyard',
     description: 'Manage leads, sell equipment, and grow your transport business with AI.',
   },
   alternates: { canonical: '/industries/transport' },
