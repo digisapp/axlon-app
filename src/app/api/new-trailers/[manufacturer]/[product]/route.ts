@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
+import { CATALOG_CACHE_HEADERS } from '@/lib/api/cache-headers';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,7 +38,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ data });
+    return NextResponse.json({ data }, { headers: CATALOG_CACHE_HEADERS });
   } catch (error) {
     logger.error('New trailer product detail API error', { error: error });
     return NextResponse.json(

@@ -49,7 +49,7 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
     || (query ? `Results for "${query}"` : 'Search Trucks, Trailers & Equipment');
   const description = catMeta?.description
     || (query
-      ? `Search results for "${query}" on AXLON AI. Browse trucks, trailers, and equipment matching your search.`
+      ? `Search results for "${query}" on Axleyard. Browse trucks, trailers, and equipment matching your search.`
       : 'Search thousands of trucks, trailers, and heavy equipment listings. Filter by price, year, make, condition, and location. AI-powered search understands natural language.');
 
   const canonical = category
@@ -60,12 +60,12 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
     title,
     description,
     openGraph: {
-      title: `${title} | AXLON AI`,
+      title: `${title} | Axleyard`,
       description,
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${title} | AXLON AI`,
+      title: `${title} | Axleyard`,
       description,
     },
     alternates: {

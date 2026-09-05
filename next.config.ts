@@ -26,7 +26,7 @@ const securityHeaders = [
     key: 'Permissions-Policy',
     value: 'camera=(), microphone=(self), geolocation=(self)',
   },
-  // CSP is set dynamically per-request in src/middleware.ts with a nonce
+  // CSP is set dynamically per-request in src/proxy.ts with a nonce
 ];
 
 const nextConfig: NextConfig = {
@@ -41,6 +41,11 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    formats: ['image/avif', 'image/webp'],
+    // Listing/catalog images are immutable once re-hosted — keep optimized
+    // variants cached for 31 days instead of the short default, which forced
+    // frequent origin refetches from Supabase storage.
+    minimumCacheTTL: 2678400,
     remotePatterns: [
       // Supabase storage (all listing images are re-hosted here)
       { protocol: 'https', hostname: '*.supabase.co' },

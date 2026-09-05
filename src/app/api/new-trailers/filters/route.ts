@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
+import { CATALOG_CACHE_HEADERS } from '@/lib/api/cache-headers';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -78,15 +79,18 @@ export async function GET() {
     }
     const deck_heights = Array.from(deckHeightSet).sort((a, b) => a - b);
 
-    return NextResponse.json({
-      data: {
-        product_types,
-        gooseneck_types,
-        tonnage_range,
-        axle_counts,
-        deck_heights,
+    return NextResponse.json(
+      {
+        data: {
+          product_types,
+          gooseneck_types,
+          tonnage_range,
+          axle_counts,
+          deck_heights,
+        },
       },
-    });
+      { headers: CATALOG_CACHE_HEADERS }
+    );
   } catch (error) {
     logger.error('New trailers filters API error', { error: error });
     return NextResponse.json(

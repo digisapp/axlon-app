@@ -14,13 +14,13 @@ import {
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Contact Us — AXLON AI',
+  title: 'Contact Us',
   description:
-    'Get in touch with the AXLON AI team. Book a demo, ask about pricing, or get support for your equipment business.',
+    'Get in touch with the Axleyard team. Book a demo, ask about pricing, or get support for your equipment business.',
   alternates: { canonical: '/contact' },
   openGraph: {
-    title: 'Contact Us | AXLON AI',
-    description: 'Get in touch with the AXLON team. Book a demo or get support.',
+    title: 'Contact Us | Axleyard',
+    description: 'Get in touch with the Axleyard team. Book a demo or get support.',
   },
 };
 

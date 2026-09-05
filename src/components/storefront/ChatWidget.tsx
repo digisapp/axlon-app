@@ -41,6 +41,9 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [showLeadForm, setShowLeadForm] = useState(false);
+  // "Maybe later" must stick — without this flag the auto-open effect below
+  // re-opens the form the instant it closes.
+  const [leadFormDismissed, setLeadFormDismissed] = useState(false);
   const [leadInfo, setLeadInfo] = useState({ name: '', email: '', phone: '' });
   const [leadSubmitted, setLeadSubmitted] = useState(false);
   const [leadError, setLeadError] = useState('');
@@ -72,10 +75,10 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
   useEffect(() => {
     const collectAfter = chatSettings?.collectLeadAfter || 3;
     const userMessages = messages.filter((m) => m.role === 'user').length;
-    if (userMessages >= collectAfter && !leadSubmitted && !showLeadForm) {
+    if (userMessages >= collectAfter && !leadSubmitted && !leadFormDismissed && !showLeadForm) {
       setShowLeadForm(true);
     }
-  }, [messages, chatSettings?.collectLeadAfter, leadSubmitted, showLeadForm]);
+  }, [messages, chatSettings?.collectLeadAfter, leadSubmitted, leadFormDismissed, showLeadForm]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -320,7 +323,14 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
               >
                 {leadSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Submit'}
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => setShowLeadForm(false)}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setLeadFormDismissed(true);
+                  setShowLeadForm(false);
+                }}
+              >
                 Maybe later
               </Button>
             </div>

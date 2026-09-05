@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { newTrailersQuerySchema } from '@/lib/validations/api';
 import { logger } from '@/lib/logger';
+import { CATALOG_CACHE_HEADERS } from '@/lib/api/cache-headers';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -133,12 +134,15 @@ export async function GET(request: NextRequest) {
 
     const total = count || 0;
 
-    return NextResponse.json({
-      data: data || [],
-      total,
-      page,
-      total_pages: Math.ceil(total / limit),
-    });
+    return NextResponse.json(
+      {
+        data: data || [],
+        total,
+        page,
+        total_pages: Math.ceil(total / limit),
+      },
+      { headers: CATALOG_CACHE_HEADERS }
+    );
   } catch (error) {
     logger.error('New trailers API error', { error: error });
     return NextResponse.json(

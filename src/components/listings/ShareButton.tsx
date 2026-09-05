@@ -53,7 +53,7 @@ export function ShareButton({
 
   const shareUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
   const shareText = price ? `${title} - $${price.toLocaleString()}` : title;
-  const fullDescription = description || `Check out this listing on AXLON AI: ${title}`;
+  const fullDescription = description || `Check out this listing on Axleyard: ${title}`;
 
   const flagCopied = () => {
     setCopied(true);

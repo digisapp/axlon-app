@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { PUBLIC_LISTING_COLUMNS } from '@/lib/listings/public-columns';
 
 export async function GET(request: NextRequest) {
   const identifier = getClientIdentifier(request);
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
   let query = supabase
     .from('listings')
     .select(`
-      *,
+      ${PUBLIC_LISTING_COLUMNS},
       category:categories!left(id, name, slug),
       images:listing_images!left(id, url, thumbnail_url, is_primary, sort_order)
     `)

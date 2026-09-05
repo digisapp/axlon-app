@@ -120,7 +120,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const product = await getProduct(manufacturer, productSlug);
 
   if (!product) {
-    return { title: 'Product Not Found | AXLON AI' };
+    return { title: 'Product Not Found' };
   }
 
   const specs = [
@@ -130,7 +130,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   ].filter(Boolean).join(' | ');
 
   return {
-    title: `${product.name} by ${product.manufacturer.name} | New Trailers | AXLON AI`,
+    // No brand suffix — the root layout's "%s | Axleyard" template appends it.
+    title: `${product.name} by ${product.manufacturer.name} | New Trailers`,
     description: product.short_description || product.description || `${product.name} - ${specs}. View full specifications and details.`,
     openGraph: {
       title: `${product.name} - ${product.manufacturer.name}`,
@@ -244,7 +245,6 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   fill
                   sizes="(max-width: 1024px) 100vw, 800px"
                   className="object-cover"
-                  unoptimized
                   priority
                 />
               ) : (
@@ -265,8 +265,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                       fill
                       sizes="(max-width: 640px) 25vw, 120px"
                       className="object-cover"
-                      unoptimized
-                    />
+                        />
                   </div>
                 ))}
               </div>
@@ -478,8 +477,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                             fill
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                             className="object-cover group-hover:scale-105 transition-transform duration-500"
-                            unoptimized
-                          />
+                                    />
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center">
                             <Truck className="w-10 h-10 text-muted-foreground/20" />

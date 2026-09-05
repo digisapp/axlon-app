@@ -25,21 +25,21 @@ import {
 import { jsonLdString } from '@/lib/seo/json-ld';
 
 export const metadata: Metadata = {
-  title: 'For Business — AI Transformation for Equipment Companies | AXLON AI',
+  title: 'For Business — AI Transformation for Equipment Companies',
   description:
-    'AXLON AI deploys a full AI operating system for heavy haul, crane & rigging, and equipment businesses. AI lead response, voice agent, CRM, and marketplace — built and run for you.',
+    'Axleyard deploys a full AI operating system for heavy haul, crane & rigging, and equipment businesses. AI lead response, voice agent, CRM, and marketplace — built and run for you.',
   alternates: {
     canonical: '/for-business',
   },
   openGraph: {
-    title: 'For Business — AI Transformation for Equipment Companies | AXLON AI',
-    description: 'AXLON AI deploys a full AI operating system for heavy haul, crane & rigging, and equipment businesses.',
+    title: 'For Business — AI Transformation for Equipment Companies | Axleyard',
+    description: 'Axleyard deploys a full AI operating system for heavy haul, crane & rigging, and equipment businesses.',
     type: 'website',
     url: '/for-business',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AXLON AI for Business',
+    title: 'Axleyard for Business',
     description: 'AI operating system built and run for equipment businesses.',
   },
 };
@@ -143,15 +143,15 @@ function ForBusinessJsonLd() {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'AXLON AI for Equipment Businesses',
+    name: 'Axleyard for Equipment Businesses',
     description: 'AI operating system built and run for heavy haul, crane & rigging, and equipment businesses.',
     url: 'https://axleyard.com/for-business',
     mainEntity: {
       '@type': 'Service',
-      name: 'AXLON AI Transformation Program',
+      name: 'Axleyard AI Transformation Program',
       provider: {
         '@type': 'Organization',
-        name: 'AXLON AI',
+        name: 'Axleyard',
         url: 'https://axleyard.com',
       },
       serviceType: 'AI Business Transformation',
@@ -182,7 +182,7 @@ export default function ForBusinessPage() {
           <div className="flex items-center justify-center mb-6">
             <Link href="/" className="flex items-center gap-2">
               <Image src="/images/axlonai-logo.png" alt="AXLON AI" width={36} height={36} className="w-9 h-9" />
-              <span className="font-bold text-lg text-white">AXLON AI</span>
+              <span className="font-bold text-lg text-white">Axleyard</span>
             </Link>
           </div>
 
@@ -464,7 +464,7 @@ export default function ForBusinessPage() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2">
             <Image src="/images/axlonai-logo.png" alt="AXLON AI" width={20} height={20} className="w-5 h-5" />
-            <p className="text-xs text-muted-foreground">&copy; 2026 AXLON AI. All rights reserved.</p>
+            <p className="text-xs text-muted-foreground">&copy; 2026 Axleyard. All rights reserved.</p>
           </div>
           <div className="flex gap-6">
             <Link href="/transform" className="text-xs text-muted-foreground hover:text-foreground transition-colors">AI Transformation</Link>

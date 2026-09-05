@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
+import { PUBLIC_LISTING_COLUMNS } from '@/lib/listings/public-columns';
 import { getImageSrc } from '@/lib/utils';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
@@ -64,7 +65,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: 'Not Found' };
   }
 
-  const title = `${dealer.company_name} | AXLON AI`;
+  // No brand suffix — the root layout's "%s | Axleyard" template appends it.
+  const title = dealer.company_name;
   const description = dealer.tagline || `Browse inventory from ${dealer.company_name} in ${dealer.city}, ${dealer.state}`;
 
   return {
@@ -198,7 +200,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
   let listingsQuery = supabase
     .from('listings')
     .select(`
-      *,
+      ${PUBLIC_LISTING_COLUMNS},
       images:listing_images(id, url, thumbnail_url, is_primary, sort_order),
       category:categories(name, slug)
     `)
@@ -213,20 +215,25 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
     }
   }
 
-  // Apply price filters
-  if (minPrice) {
-    listingsQuery = listingsQuery.gte('price', parseInt(minPrice));
+  // Apply price filters — ignore non-numeric values (?minYear=abc would
+  // otherwise become NaN, fail the Postgres integer cast, and 500 the page)
+  const parsedMinPrice = minPrice ? parseInt(minPrice) : NaN;
+  const parsedMaxPrice = maxPrice ? parseInt(maxPrice) : NaN;
+  if (Number.isFinite(parsedMinPrice)) {
+    listingsQuery = listingsQuery.gte('price', parsedMinPrice);
   }
-  if (maxPrice) {
-    listingsQuery = listingsQuery.lte('price', parseInt(maxPrice));
+  if (Number.isFinite(parsedMaxPrice)) {
+    listingsQuery = listingsQuery.lte('price', parsedMaxPrice);
   }
 
   // Apply year filters
-  if (minYear) {
-    listingsQuery = listingsQuery.gte('year', parseInt(minYear));
+  const parsedMinYear = minYear ? parseInt(minYear) : NaN;
+  const parsedMaxYear = maxYear ? parseInt(maxYear) : NaN;
+  if (Number.isFinite(parsedMinYear)) {
+    listingsQuery = listingsQuery.gte('year', parsedMinYear);
   }
-  if (maxYear) {
-    listingsQuery = listingsQuery.lte('year', parseInt(maxYear));
+  if (Number.isFinite(parsedMaxYear)) {
+    listingsQuery = listingsQuery.lte('year', parsedMaxYear);
   }
 
   // Apply condition filter
@@ -252,7 +259,9 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
       listingsQuery = listingsQuery.order('created_at', { ascending: false });
   }
 
-  const { data: listings } = await listingsQuery;
+  // A failed query must degrade to an empty inventory, not crash the page
+  const { data: listingsData } = await listingsQuery;
+  const listings = listingsData ?? [];
 
   // Get unique categories from listings
   const categorySet = new Set<string>();
@@ -404,7 +413,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                   )}
                   {dealer.email && (
                     <Button size="lg" variant="outline" className="gap-2" asChild>
-                      <a href={`mailto:${dealer.email}?subject=Inquiry from AXLON AI`}>
+                      <a href={`mailto:${dealer.email}?subject=Inquiry via Axleyard`}>
                         <Mail className="w-4 h-4" />
                         Email Dealer
                       </a>
@@ -546,7 +555,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
           {/* Category Pills */}
           <div className="flex gap-2 mt-4 overflow-x-auto snap-x [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <Link
-              href={`/${slug}${q ? `?q=${q}` : ''}${sort ? `${q ? '&' : '?'}sort=${sort}` : ''}`}
+              href={`/${slug}${q ? `?q=${encodeURIComponent(q)}` : ''}${sort ? `${q ? '&' : '?'}sort=${encodeURIComponent(sort)}` : ''}`}
               className="flex-shrink-0 snap-start"
             >
               <Badge
@@ -570,7 +579,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
               return (
                 <Link
                   key={cat}
-                  href={`/${slug}?category=${catSlug}${q ? `&q=${q}` : ''}${sort ? `&sort=${sort}` : ''}`}
+                  href={`/${slug}?category=${encodeURIComponent(catSlug)}${q ? `&q=${encodeURIComponent(q)}` : ''}${sort ? `&sort=${encodeURIComponent(sort)}` : ''}`}
                   className="flex-shrink-0 snap-start"
                 >
                   <Badge
@@ -595,7 +604,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
             {q && <span className="text-slate-500"> matching &quot;{q}&quot;</span>}
             {hasActiveFilters && (
               <Link
-                href={`/${slug}${q ? `?q=${q}` : ''}${category ? `${q ? '&' : '?'}category=${category}` : ''}`}
+                href={`/${slug}${q ? `?q=${encodeURIComponent(q)}` : ''}${category ? `${q ? '&' : '?'}category=${encodeURIComponent(category)}` : ''}`}
                 className="ml-2 text-primary text-sm hover:underline"
               >
                 Clear filters

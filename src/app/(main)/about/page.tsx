@@ -13,12 +13,13 @@ import {
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'About AXLON AI — The AI Platform for Equipment Businesses',
+  // Brand omitted — the root layout's "%s | Axleyard" template appends it.
+  title: 'About — The AI Platform for Equipment Businesses',
   description:
-    'AXLON AI is building the operating system for equipment businesses. AI sales assistants, voice agents, CRM, and marketplace — all in one platform.',
+    'Axleyard is building the operating system for equipment businesses. AI sales assistants, voice agents, CRM, and marketplace — all in one platform.',
   alternates: { canonical: '/about' },
   openGraph: {
-    title: 'About AXLON AI',
+    title: 'About Axleyard',
     description: 'The AI operating system for equipment businesses.',
   },
 };
@@ -91,7 +92,7 @@ export default function AboutPage() {
                 <Building2 className="w-5 h-5 md:w-6 md:h-6 text-white" />
               </div>
               <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight">
-                About AXLON AI
+                About Axleyard
               </h1>
             </div>
             <p className="text-slate-400 text-base md:text-lg max-w-xl">

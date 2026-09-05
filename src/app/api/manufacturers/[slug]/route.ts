@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
+import { CATALOG_CACHE_HEADERS } from '@/lib/api/cache-headers';
 
 export async function GET(
   request: Request,
@@ -80,12 +81,15 @@ export async function GET(
       .rpc('get_manufacturer_category_counts', { make_name: manufacturer.canonical_name })
       .select('*');
 
-    return NextResponse.json({
-      data: manufacturer,
-      listings: listings || [],
-      listing_count: listingCount || 0,
-      category_counts: categoryCounts || [],
-    });
+    return NextResponse.json(
+      {
+        data: manufacturer,
+        listings: listings || [],
+        listing_count: listingCount || 0,
+        category_counts: categoryCounts || [],
+      },
+      { headers: CATALOG_CACHE_HEADERS }
+    );
   } catch (error) {
     logger.error('Manufacturer API error', { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

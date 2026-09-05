@@ -6,12 +6,12 @@ export const metadata: Metadata = {
   title: 'Commercial Truck & Trailer Financing Calculator',
   description: 'Calculate monthly payments for commercial truck and trailer financing. Flexible terms from 24-84 months with competitive rates. Get pre-qualified today.',
   openGraph: {
-    title: 'Commercial Truck & Trailer Financing | AXLON AI',
+    title: 'Commercial Truck & Trailer Financing | Axleyard',
     description: 'Calculate monthly payments for truck and trailer financing. Flexible terms, competitive rates.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Truck & Trailer Financing Calculator | AXLON AI',
+    title: 'Truck & Trailer Financing Calculator | Axleyard',
     description: 'Calculate monthly payments for commercial truck and trailer financing. 24-84 month terms.',
   },
   alternates: {
@@ -31,10 +31,10 @@ export default async function FinanceLayout({ children }: { children: React.Reac
           __html: jsonLdString({
             '@context': 'https://schema.org',
             '@type': 'FinancialService',
-            name: 'AXLON AI Equipment Financing',
+            name: 'Axleyard Equipment Financing',
             description: 'Commercial truck and trailer financing with flexible terms from 24-84 months.',
             url: 'https://axleyard.com/finance',
-            provider: { '@type': 'Organization', name: 'AXLON AI', url: 'https://axleyard.com' },
+            provider: { '@type': 'Organization', name: 'Axleyard', url: 'https://axleyard.com' },
           }),
         }}
       />

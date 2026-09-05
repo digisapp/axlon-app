@@ -94,6 +94,17 @@ export const POST = withAuth(async (request, { user, supabase }) => {
     return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
   }
 
+  // Keep the thread within the listing's buyer<->seller pair: either the
+  // sender owns the listing (reply) or the recipient does. Without this, any
+  // authenticated user could inject messages into arbitrary inboxes dressed
+  // up as inquiries about a real listing.
+  if (recipient_id !== listing.user_id && user.id !== listing.user_id) {
+    return NextResponse.json(
+      { error: 'Recipient is not a participant for this listing' },
+      { status: 403 }
+    );
+  }
+
   // Insert message
   const { data: message, error } = await supabase
     .from('messages')

@@ -62,10 +62,10 @@ export async function PATCH(
         return NextResponse.json({ error: 'Listing is not deleted' }, { status: 400 });
       }
 
-      const { error } = await supabase
-        .from('listings')
-        .update({ deleted_at: null, deleted_by: null, status: 'draft' })
-        .eq('id', id);
+      // Must go through the SECURITY DEFINER restore_listing() RPC (054): a
+      // plain UPDATE matches 0 rows under the owner-only RLS update policy
+      // and silently no-ops while this route reports success.
+      const { error } = await supabase.rpc('restore_listing', { p_listing_id: id });
 
       if (error) {
         logger.error('Admin restore listing error', { id, error: error.message });

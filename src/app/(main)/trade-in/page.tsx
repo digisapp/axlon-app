@@ -21,12 +21,12 @@ export const metadata = {
   title: 'Trade-In Your Equipment',
   description: 'Get a free valuation for your truck, trailer, or equipment. Submit a trade-in request and receive a response within 24-48 hours.',
   openGraph: {
-    title: 'Trade-In Your Equipment | AXLON AI',
+    title: 'Trade-In Your Equipment | Axleyard',
     description: 'Get a free valuation for your truck, trailer, or equipment. Fast response within 24-48 hours.',
   },
   twitter: {
     card: 'summary' as const,
-    title: 'Trade-In Your Equipment | AXLON AI',
+    title: 'Trade-In Your Equipment | Axleyard',
     description: 'Get a free valuation for your truck, trailer, or equipment.',
   },
   alternates: {

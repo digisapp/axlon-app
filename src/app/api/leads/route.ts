@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { calculateLeadScoreWithAI } from '@/lib/leads/scoring';
@@ -38,7 +37,12 @@ export async function POST(request: NextRequest) {
     const csrfError = await requireCsrf(request);
     if (csrfError) return csrfError;
 
-    const supabase = await createClient();
+    // Service-role client: the caller is an anonymous buyer, but every DB
+    // operation here touches rows owned by OTHER users (the seller's lead,
+    // the dealer's AI inbox), which anon RLS rightly blocks — including the
+    // RETURNING read-back on the insert. Input is rate-limited + CSRF-checked
+    // + Zod-validated above/below.
+    const supabase = createAdminClient();
     const body = await request.json();
 
     // Validate input with Zod

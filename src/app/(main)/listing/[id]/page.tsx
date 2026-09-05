@@ -61,7 +61,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   const primaryImage = listing.images?.find((img: { is_primary: boolean }) => img.is_primary) || listing.images?.[0];
-  const imageUrl = primaryImage?.url || '/images/og-image.png';
+  const imageUrl = primaryImage?.url || '/opengraph-image';
 
   // Build descriptive title and description
   const titleParts = [listing.year, listing.make, listing.model].filter(Boolean);
@@ -75,7 +75,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const conditionText = listing.condition ? `${listing.condition} ` : '';
   const metaDescription = listing.description
     ? listing.description.slice(0, 155) + (listing.description.length > 155 ? '...' : '')
-    : `${conditionText}${metaTitle} - ${priceText}${locationText ? ` in ${locationText}` : ''}. Browse trucks, trailers, and equipment on AXLON AI.`;
+    : `${conditionText}${metaTitle} - ${priceText}${locationText ? ` in ${locationText}` : ''}. Browse trucks, trailers, and equipment on Axleyard.`;
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com';
 

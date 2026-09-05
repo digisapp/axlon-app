@@ -1,7 +1,7 @@
 {
-  "name": "AXLON AI — Trucks, Trailers & Heavy Equipment Marketplace",
-  "short_name": "AXLON AI",
-  "description": "Browse thousands of trucks, trailers, and heavy equipment. AI tools for dealers and businesses — smart search, instant listings, voice agents, and lead management.",
+  "name": "Axleyard — Trucks, Trailers & Heavy Equipment Marketplace",
+  "short_name": "Axleyard",
+  "description": "Browse thousands of trucks, trailers, and heavy equipment. Ask AXLON, the AI assistant — smart search, instant listings, voice agents, and lead management for dealers.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
@@ -26,7 +26,10 @@
       "type": "image/png"
     }
   ],
-  "categories": ["business", "shopping"],
+  "categories": [
+    "business",
+    "shopping"
+  ],
   "lang": "en-US",
   "scope": "/"
 }

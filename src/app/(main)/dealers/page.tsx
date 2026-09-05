@@ -19,15 +19,15 @@ import {
 } from 'lucide-react';
 
 export const metadata = {
-  title: 'Business Directory — Find Trusted Equipment Businesses | AXLON AI',
-  description: 'Browse verified truck and equipment businesses on AXLON AI. Find trusted businesses near you with AI-powered storefronts, inventory, and direct messaging.',
+  title: 'Business Directory — Find Trusted Equipment Businesses',
+  description: 'Browse verified truck and equipment businesses on Axleyard. Find trusted businesses near you with AI-powered storefronts, inventory, and direct messaging.',
   openGraph: {
-    title: 'Business Directory | AXLON AI',
+    title: 'Business Directory | Axleyard',
     description: 'Find trusted truck and equipment businesses near you. Verified businesses with direct messaging.',
   },
   twitter: {
     card: 'summary_large_image' as const,
-    title: 'Business Directory | AXLON AI',
+    title: 'Business Directory | Axleyard',
     description: 'Find trusted truck and equipment businesses near you.',
   },
   alternates: {

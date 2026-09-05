@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 import { generateListingDescription } from '@/lib/ai/vision';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
+    // Cost-bearing xAI vision endpoint — its only caller is the dashboard
+    // listing editor, so require a session like /api/ai/analyze and
+    // /api/ai/price do. Unauthenticated it let anyone burn vision credits
+    // (up to 10 images per call) against arbitrary URLs.
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const identifier = getClientIdentifier(request);
     const rateLimitResult = await checkRateLimit(identifier, {
       ...RATE_LIMITS.ai,

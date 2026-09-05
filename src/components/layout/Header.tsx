@@ -62,23 +62,24 @@ export function Header() {
       const { data: { user: authUser } } = await supabase.auth.getUser();
 
       if (authUser) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id, email, company_name, avatar_url')
-          .eq('id', authUser.id)
-          .single();
+        // Profile + unread badge are independent; run them together so a
+        // signed-in visitor pays one round-trip on every page instead of two
+        const [{ data: profile }, { count }] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('id, email, company_name, avatar_url')
+            .eq('id', authUser.id)
+            .single(),
+          supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('recipient_id', authUser.id)
+            .eq('is_read', false),
+        ]);
 
         if (profile) {
           setUser(profile);
         }
-
-        // Get unread message count
-        const { count } = await supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('recipient_id', authUser.id)
-          .eq('is_read', false);
-
         setUnreadCount(count || 0);
       }
     };

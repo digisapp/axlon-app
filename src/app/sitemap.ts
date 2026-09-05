@@ -12,9 +12,8 @@ function createStaticClient() {
 // Re-generate the sitemap at most once per hour (otherwise it is frozen at build time)
 export const revalidate = 3600;
 
-const LISTINGS_PER_PAGE = 5000;
-
-// Supabase caps un-ranged selects at 1,000 rows; page through to fetch everything.
+// Supabase caps every response at 1,000 rows — even an explicit .range() —
+// so all paging loops must step by at most 1,000 or rows silently vanish.
 const SUPABASE_PAGE_SIZE = 1000;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -142,12 +141,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.3,
     },
-    {
-      url: `${baseUrl}/transform`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
+    // NOTE: /transform is deliberately absent — the page sets
+    // `robots: { index: false }` (invite-only program, 12–15 partners/year).
+    // Submitting a noindex URL trips "Submitted URL marked noindex" in Search
+    // Console. If the page should rank, drop the noindex there first.
     {
       url: `${baseUrl}/apply`,
       lastModified: new Date(),
@@ -175,7 +172,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .eq('status', 'active');
 
     const totalListings = count || 0;
-    const pages = Math.ceil(totalListings / LISTINGS_PER_PAGE);
+    const pages = Math.ceil(totalListings / SUPABASE_PAGE_SIZE);
 
     // Fetch all listings in batches
     for (let i = 0; i < pages; i++) {
@@ -184,7 +181,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .select('id, updated_at')
         .eq('status', 'active')
         .order('updated_at', { ascending: false })
-        .range(i * LISTINGS_PER_PAGE, (i + 1) * LISTINGS_PER_PAGE - 1);
+        .range(i * SUPABASE_PAGE_SIZE, (i + 1) * SUPABASE_PAGE_SIZE - 1);
 
       if (listings) {
         listingPages = listingPages.concat(

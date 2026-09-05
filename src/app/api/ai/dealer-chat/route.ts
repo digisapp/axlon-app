@@ -637,6 +637,30 @@ Based on this inventory, help the customer find what they need. Only recommend e
 // stored as chat_conversations.visitor_fingerprint at creation time. Updates
 // (which can mint dealer_ai_leads and trigger dealer drip emails) are only
 // allowed when the request presents the matching fingerprint cookie.
+/**
+ * Every dealer_ai_leads insert queues a 4-email follow-up sequence to the
+ * visitor's address (migration 041 trigger), so a repeat submission — or
+ * abuse with someone else's email — must reuse the existing lead instead of
+ * amplifying into another round of unsolicited email.
+ */
+async function findRecentDuplicateLead(
+  supabase: ReturnType<typeof createAdminClient>,
+  dealerId: string,
+  visitorEmail: string
+) {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data } = await supabase
+    .from('dealer_ai_leads')
+    .select('id, conversation_id')
+    .eq('dealer_id', dealerId)
+    .eq('visitor_email', visitorEmail)
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data;
+}
+
 export async function PUT(request: NextRequest) {
   try {
     const identifier = getClientIdentifier(request);
@@ -730,6 +754,18 @@ export async function PUT(request: NextRequest) {
 
       // Create lead if contact info provided
       if (visitorEmail || visitorPhone) {
+        if (visitorEmail) {
+          const duplicate = await findRecentDuplicateLead(supabase, dealerId, visitorEmail);
+          if (duplicate) {
+            return NextResponse.json({
+              success: true,
+              conversationId,
+              leadId: duplicate.id,
+              leadCaptured: true,
+            });
+          }
+        }
+
         const { data: lead, error: leadError } = await supabase
           .from('dealer_ai_leads')
           .insert({
@@ -779,6 +815,32 @@ export async function PUT(request: NextRequest) {
         leadCaptured: false,
       });
     } else {
+      // Unlike the conversationId branch (fingerprint-gated), this path takes
+      // dealerId straight from the body — verify it names a real business
+      // account before writing anything, or an arbitrary profile UUID plus a
+      // victim email would queue follow-up emails via the lead trigger.
+      const { data: dealer } = await supabase
+        .from('profiles')
+        .select('id, is_business')
+        .eq('id', dealerId)
+        .single();
+
+      if (!dealer?.is_business) {
+        return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+      }
+
+      if (visitorEmail) {
+        const duplicate = await findRecentDuplicateLead(supabase, dealerId, visitorEmail);
+        if (duplicate) {
+          return NextResponse.json({
+            success: true,
+            conversationId: duplicate.conversation_id,
+            leadId: duplicate.id,
+            leadCaptured: true,
+          });
+        }
+      }
+
       // Create new conversation, binding it to the visitor's cookie token
       // (reused across their conversations, minted here if absent)
       const fingerprint = visitorToken || randomUUID();

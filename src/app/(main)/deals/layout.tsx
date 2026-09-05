@@ -6,12 +6,12 @@ export const metadata: Metadata = {
   title: 'Deals - Below Market Price Trucks & Trailers',
   description: 'Find trucks, trailers, and equipment priced below market value. AI-analyzed deals with verified savings on commercial vehicles and heavy equipment.',
   openGraph: {
-    title: 'Deals - Below Market Price Trucks & Trailers | AXLON AI',
+    title: 'Deals - Below Market Price Trucks & Trailers | Axleyard',
     description: 'Find trucks, trailers, and equipment priced below market value. AI-analyzed deals with verified savings.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Deals - Below Market Price Trucks & Trailers | AXLON AI',
+    title: 'Deals - Below Market Price Trucks & Trailers | Axleyard',
     description: 'AI-analyzed deals on trucks, trailers, and equipment priced below market value.',
   },
   alternates: {
@@ -34,7 +34,7 @@ export default async function DealsLayout({ children }: { children: React.ReactN
             name: 'Deals - Below Market Price Trucks & Trailers',
             description: 'AI-analyzed deals on trucks, trailers, and equipment priced below market value.',
             url: 'https://axleyard.com/deals',
-            isPartOf: { '@type': 'WebSite', name: 'AXLON AI', url: 'https://axleyard.com' },
+            isPartOf: { '@type': 'WebSite', name: 'Axleyard', url: 'https://axleyard.com' },
           }),
         }}
       />

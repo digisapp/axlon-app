@@ -10,12 +10,12 @@ export const metadata: Metadata = {
   title: 'New Trailers | Browse Lowboy & Heavy Haul Trailers by Manufacturer',
   description: 'Browse new trucks, trailers, and heavy haul equipment from 18+ top manufacturers like Trail King, Fontaine, Talbert, Mack, Felling, and more. AI-powered comparison tools.',
   openGraph: {
-    title: 'New Trailers & Trucks - Heavy Equipment Catalog | AXLON AI',
+    title: 'New Trailers & Trucks - Heavy Equipment Catalog | Axleyard',
     description: 'Browse new trailers and trucks from 18+ top manufacturers. Compare specs, tonnage, deck heights, and gooseneck types.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'New Trailers & Trucks - Heavy Equipment Catalog | AXLON AI',
+    title: 'New Trailers & Trucks - Heavy Equipment Catalog | Axleyard',
     description: 'Browse new trailers and trucks from 18+ manufacturers. Compare specs, tonnage, and deck heights.',
   },
   alternates: {
@@ -47,34 +47,46 @@ interface ManufacturerWithProducts {
 export default async function NewTrailersPage() {
   const supabase = createSupabase();
 
-  // Fetch manufacturers with products
-  const { data: manufacturers } = await supabase
-    .from('manufacturers')
-    .select('id, name, slug, logo_url, short_description, product_count')
-    .gt('product_count', 0)
-    .eq('is_active', true)
-    .order('name');
+  // Fetch manufacturers and products in parallel. Every product row here is
+  // serialized into the RSC payload, so select only what ProductCard and the
+  // JSON-LD actually render — select('*') shipped full descriptions/specs for
+  // every product and made this page a 4MB+ HTML document.
+  const [{ data: manufacturers }, { data: products }] = await Promise.all([
+    supabase
+      .from('manufacturers')
+      .select('id, name, slug, logo_url, short_description, product_count')
+      .gt('product_count', 0)
+      .eq('is_active', true)
+      .order('name'),
+    supabase
+      .from('manufacturer_products')
+      .select(`
+        id, name, slug, series, gooseneck_type, tonnage_min, tonnage_max,
+        deck_height_inches, axle_count, sort_order,
+        manufacturer:manufacturers!manufacturer_id(id, name, slug),
+        images:manufacturer_product_images(url, alt_text, is_primary)
+      `)
+      .eq('is_active', true)
+      // Only the primary (or first) image is rendered — products average ~14
+      // images each, and shipping them all put ~5,600 image rows in the RSC
+      // payload.
+      .order('is_primary', { referencedTable: 'images', ascending: false })
+      .order('sort_order', { referencedTable: 'images', ascending: true })
+      .limit(1, { referencedTable: 'images' })
+      .order('sort_order', { ascending: true })
+      .order('name', { ascending: true }),
+  ]);
 
-  // Fetch all active products with images and manufacturer info
-  const { data: products } = await supabase
-    .from('manufacturer_products')
-    .select(`
-      *,
-      manufacturer:manufacturers!manufacturer_id(id, name, slug, logo_url),
-      images:manufacturer_product_images(id, url, alt_text, is_primary, sort_order)
-    `)
-    .eq('is_active', true)
-    .order('sort_order', { referencedTable: 'manufacturer_product_images', ascending: true })
-    .order('sort_order', { ascending: true })
-    .order('name', { ascending: true });
+  // The narrowed select omits columns ManufacturerProduct declares (unused by
+  // the card), and supabase-js types the to-one manufacturer embed as an
+  // array; the runtime shape is what ProductCard reads, so cast once here.
+  const productRows = (products ?? []) as unknown as ProductRow[];
 
   // Group products by manufacturer
   const groupedByManufacturer: ManufacturerWithProducts[] = [];
-  if (manufacturers && products) {
+  if (manufacturers) {
     for (const mfr of manufacturers) {
-      const mfrProducts = products.filter(
-        (p: ProductRow) => p.manufacturer?.id === mfr.id
-      );
+      const mfrProducts = productRows.filter((p) => p.manufacturer?.id === mfr.id);
       if (mfrProducts.length > 0) {
         groupedByManufacturer.push({
           ...mfr,
@@ -84,7 +96,7 @@ export default async function NewTrailersPage() {
     }
   }
 
-  const totalProducts = products?.length || 0;
+  const totalProducts = productRows.length;
 
   // JSON-LD structured data
   const jsonLd = {

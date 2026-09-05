@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
+import { CATALOG_CACHE_HEADERS } from '@/lib/api/cache-headers';
 
 export async function GET() {
   try {
@@ -23,10 +24,10 @@ export async function GET() {
       children: categories?.filter(c => c.parent_id === parent.id) || [],
     }));
 
-    return NextResponse.json({
-      data: categories,
-      tree,
-    });
+    return NextResponse.json(
+      { data: categories, tree },
+      { headers: CATALOG_CACHE_HEADERS }
+    );
   } catch (error) {
     logger.error('Categories API error', { error });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

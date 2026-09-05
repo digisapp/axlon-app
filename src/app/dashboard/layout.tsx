@@ -45,29 +45,26 @@ export default async function DashboardLayout({
     }, { onConflict: 'id' });
   }
 
-  // Get unread messages count
-  const { count: unreadMessages } = await supabase
-    .from('messages')
-    .select('*', { count: 'exact', head: true })
-    .eq('recipient_id', user.id)
-    .eq('is_read', false);
-
-  // Get new leads count (leads created in last 7 days with status 'new')
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-  const { count: newLeads } = await supabase
-    .from('leads')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('status', 'new');
-
-  // Get pending AI inbox count
-  const { count: pendingAiInbox } = await supabase
-    .from('ai_inbox_items')
-    .select('*', { count: 'exact', head: true })
-    .eq('dealer_id', user.id)
-    .eq('status', 'pending');
+  // Badge counts are independent — run them in parallel (this layout renders
+  // on every dashboard navigation)
+  const [{ count: unreadMessages }, { count: newLeads }, { count: pendingAiInbox }] =
+    await Promise.all([
+      supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('recipient_id', user.id)
+        .eq('is_read', false),
+      supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('status', 'new'),
+      supabase
+        .from('ai_inbox_items')
+        .select('*', { count: 'exact', head: true })
+        .eq('dealer_id', user.id)
+        .eq('status', 'pending'),
+    ]);
 
   // Trial countdown
   const trialStart = profile?.created_at ? new Date(profile.created_at) : new Date();

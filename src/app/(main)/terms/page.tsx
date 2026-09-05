@@ -2,19 +2,19 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — AXLON AI',
-  description: 'AXLON AI terms of service. Read the terms governing your use of our platform.',
+  title: 'Terms of Service',
+  description: 'Axleyard terms of service. Read the terms governing your use of our platform.',
   alternates: { canonical: '/terms' },
   openGraph: {
-    title: 'Terms of Service — AXLON AI',
-    description: 'Read the terms governing your use of the AXLON AI platform.',
+    title: 'Terms of Service — Axleyard',
+    description: 'Read the terms governing your use of the Axleyard platform.',
     type: 'website',
     url: '/terms',
   },
   twitter: {
     card: 'summary',
-    title: 'Terms of Service — AXLON AI',
-    description: 'Read the terms governing your use of the AXLON AI platform.',
+    title: 'Terms of Service — Axleyard',
+    description: 'Read the terms governing your use of the Axleyard platform.',
   },
 };
 

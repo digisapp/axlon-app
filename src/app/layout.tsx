@@ -145,7 +145,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "AXLON",
+    title: "Axleyard",
   },
 };
 

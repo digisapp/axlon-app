@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
   // handler failure leaves no record and Stripe's retry will reprocess.
   const { data: existingEvent } = await supabase
     .from('stripe_webhook_events')
-    .select('id')
+    .select('event_id')
     .eq('event_id', event.id)
     .single();
 

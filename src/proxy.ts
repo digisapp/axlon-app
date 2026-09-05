@@ -24,7 +24,9 @@ function buildCsp(nonce: string): string {
   ].join('; ');
 }
 
-export async function middleware(request: NextRequest) {
+// Next.js 16 renamed the `middleware` file convention to `proxy` (same
+// runtime contract; the old name is deprecated and warns on every build).
+export async function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
 
   // axlon.ai is the standalone AXLON surface: its root renders the /ask page

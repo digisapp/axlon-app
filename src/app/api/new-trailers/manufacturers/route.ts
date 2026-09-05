@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
+import { CATALOG_CACHE_HEADERS } from '@/lib/api/cache-headers';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,7 +25,10 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json({ data: manufacturers || [] });
+    return NextResponse.json(
+      { data: manufacturers || [] },
+      { headers: CATALOG_CACHE_HEADERS }
+    );
   } catch (error) {
     logger.error('New trailers manufacturers API error', { error: error });
     return NextResponse.json(

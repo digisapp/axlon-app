@@ -19,17 +19,18 @@ import {
 import { Manufacturer } from '@/types';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { getActiveListingCountsByMake, normalizeMake } from '@/lib/listings/make-counts';
 
 export const metadata = {
   title: 'Manufacturer Directory - Truck, Trailer & Equipment Brands',
   description: 'Browse leading truck, trailer, and equipment manufacturers including Trail King, Fontaine, Talbert, XL Specialized, Peterbilt, Freightliner, and more.',
   openGraph: {
-    title: 'Manufacturer Directory | AXLON AI',
+    title: 'Manufacturer Directory | Axleyard',
     description: 'Research leading truck, trailer, and equipment manufacturers. Compare brands, specs, and product lines.',
   },
   twitter: {
     card: 'summary_large_image' as const,
-    title: 'Manufacturer Directory | AXLON AI',
+    title: 'Manufacturer Directory | Axleyard',
     description: 'Research leading truck, trailer, and equipment manufacturers.',
   },
   alternates: {
@@ -74,23 +75,18 @@ export default async function ManufacturersPage({ searchParams }: PageProps) {
     query = query.contains('equipment_types', [type]);
   }
 
-  const { data: manufacturers } = await query;
+  const [{ data: manufacturers }, countsByMake] = await Promise.all([
+    query,
+    getActiveListingCountsByMake(),
+  ]);
 
-  // Get listing counts for each manufacturer (in parallel — doing these
-  // serially added one DB round-trip per manufacturer to every page view)
-  const updatedManufacturers: Manufacturer[] = manufacturers
-    ? await Promise.all(
-        manufacturers.map(async (mfr) => {
-          const { count } = await supabase
-            .from('listings')
-            .select('*', { count: 'exact', head: true })
-            .ilike('make', mfr.canonical_name)
-            .eq('status', 'active');
-
-          return { ...mfr, listing_count: count || 0 };
-        })
-      )
-    : [];
+  // Live per-brand counts come from one aggregated (and briefly cached) read
+  // instead of a COUNT query per manufacturer — the previous fan-out issued
+  // ~80 parallel round-trips and put this page at 1-3s TTFB.
+  const updatedManufacturers: Manufacturer[] = (manufacturers ?? []).map((mfr) => ({
+    ...mfr,
+    listing_count: countsByMake.get(normalizeMake(mfr.canonical_name)) ?? 0,
+  }));
 
   // Separate featured and regular manufacturers
   const featuredManufacturers = updatedManufacturers.filter(m => m.is_featured);

@@ -14,6 +14,7 @@ import { requireCsrf } from '@/lib/security/csrf';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import { logger } from '@/lib/logger';
 import { syncListingToCollection } from '@/lib/ai/listing-sync';
+import { PUBLIC_LISTING_COLUMNS } from '@/lib/listings/public-columns';
 
 export async function GET(request: NextRequest) {
   const identifier = getClientIdentifier(request);
@@ -100,7 +101,7 @@ export async function GET(request: NextRequest) {
   let query = supabase
     .from('listings')
     .select(`
-      *,
+      ${PUBLIC_LISTING_COLUMNS},
       category:categories!left(id, name, slug),
       images:listing_images!left(id, url, thumbnail_url, is_primary, sort_order),
       user:profiles!listings_user_id_fkey(id, company_name, avatar_url, is_business)

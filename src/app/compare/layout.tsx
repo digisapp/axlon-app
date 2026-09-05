@@ -4,7 +4,7 @@ export const metadata: Metadata = {
   title: 'Compare Equipment Side-by-Side',
   description: 'Compare trucks, trailers, and heavy equipment side by side. View specs, pricing, and features to make the best purchasing decision.',
   openGraph: {
-    title: 'Compare Equipment Side-by-Side | AXLON AI',
+    title: 'Compare Equipment Side-by-Side | Axleyard',
     description: 'Compare trucks, trailers, and equipment specs, pricing, and features side by side.',
   },
   robots: { index: false, follow: true },

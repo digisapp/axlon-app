@@ -7,6 +7,7 @@ import { syncListingToCollection, removeListingFromCollection } from '@/lib/ai/l
 import { cacheDelete, cacheDeletePattern, CACHE_KEYS } from '@/lib/cache';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { requireCsrf } from '@/lib/security/csrf';
+import { PUBLIC_LISTING_COLUMNS } from '@/lib/listings/public-columns';
 
 // GET - Fetch a single listing
 export async function GET(
@@ -19,10 +20,10 @@ export async function GET(
   const { data: listing, error } = await supabase
     .from('listings')
     .select(`
-      *,
+      ${PUBLIC_LISTING_COLUMNS}, deleted_at,
       category:categories(id, name, slug),
       images:listing_images(id, url, thumbnail_url, is_primary, sort_order),
-      user:profiles(id, company_name, phone, email, avatar_url, is_business)
+      user:profiles!listings_user_id_fkey(id, company_name, phone, email, avatar_url, is_business)
     `)
     .eq('id', id)
     .single();

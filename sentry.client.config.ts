@@ -25,7 +25,25 @@ Sentry.init({
     /Failed to fetch/,
   ],
 
-  integrations: [
-    Sentry.replayIntegration(),
-  ],
+  integrations: [],
 });
+
+// Session Replay is ~100KB gzipped but only 1% of sessions ever record —
+// fetch it after idle instead of shipping it in every page's critical bundle.
+// The sample rates above apply when the integration is added.
+if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
+  const loadReplay = () =>
+    Sentry.lazyLoadIntegration('replayIntegration')
+      .then((replayIntegration) => {
+        Sentry.addIntegration(replayIntegration());
+      })
+      .catch(() => {
+        // Replay is a nice-to-have; never let its load failure surface
+      });
+
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(loadReplay);
+  } else {
+    setTimeout(loadReplay, 3000);
+  }
+}

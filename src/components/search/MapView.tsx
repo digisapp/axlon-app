@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MapPin, Loader2, X } from 'lucide-react';
 import { useImageFallback } from '@/hooks/useImageFallback';
 import { getImageSrc } from '@/lib/utils';
+import { getApproxCoordinates } from '@/lib/geo/state-centroids';
 import type { Listing } from '@/types';
 
 // Import Leaflet CSS
@@ -45,27 +45,27 @@ interface MapViewProps {
   onClose?: () => void;
 }
 
+interface PlacedListing {
+  listing: Listing;
+  position: [number, number];
+  approximate: boolean;
+}
+
 // Component to fit bounds to markers
-function FitBounds({ listings }: { listings: Listing[] }) {
+function FitBounds({ placed }: { placed: PlacedListing[] }) {
   const map = useMap();
 
   useEffect(() => {
-    const validListings = listings.filter(
-      (l) => l.latitude && l.longitude
-    );
-
-    if (validListings.length > 0) {
-      const bounds = L.latLngBounds(
-        validListings.map((l) => [l.latitude!, l.longitude!] as [number, number])
-      );
+    if (placed.length > 0) {
+      const bounds = L.latLngBounds(placed.map((p) => p.position));
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 10 });
     }
-  }, [listings, map]);
+  }, [placed, map]);
 
   return null;
 }
 
-function MapMarkerPopup({ listing }: { listing: Listing }) {
+function MapMarkerPopup({ listing, position, approximate }: PlacedListing) {
   const { hasError, handleError } = useImageFallback();
   const primaryImage =
     listing.images?.find((img) => img.is_primary) || listing.images?.[0];
@@ -73,7 +73,7 @@ function MapMarkerPopup({ listing }: { listing: Listing }) {
 
   return (
     <Marker
-      position={[listing.latitude!, listing.longitude!]}
+      position={position}
       icon={listing.is_featured ? featuredIcon : defaultIcon}
     >
       <Popup maxWidth={300} minWidth={200}>
@@ -85,6 +85,7 @@ function MapMarkerPopup({ listing }: { listing: Listing }) {
                   src={primaryImageSrc}
                   alt={listing.title}
                   fill
+                  sizes="300px"
                   className="object-cover rounded-t"
                   onError={handleError}
                 />
@@ -111,6 +112,7 @@ function MapMarkerPopup({ listing }: { listing: Listing }) {
               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                 <MapPin className="w-3 h-3" />
                 {[listing.city, listing.state].filter(Boolean).join(', ')}
+                {approximate && <span className="opacity-70">(approx.)</span>}
               </p>
             </div>
           </Link>
@@ -128,10 +130,18 @@ export function MapView({ listings, isLoading, onClose }: MapViewProps) {
     setIsMounted(true);
   }, []);
 
-  // Filter listings with valid coordinates
-  const mappableListings = listings.filter(
-    (listing) => listing.latitude && listing.longitude
+  // Place every listing we can: exact coordinates when a listing has them,
+  // otherwise a state-level position (listings have no lat/lng column, so
+  // without the fallback the map was empty for every search)
+  const placed = useMemo<PlacedListing[]>(
+    () =>
+      listings.flatMap((listing) => {
+        const coords = getApproxCoordinates(listing);
+        return coords ? [{ listing, ...coords }] : [];
+      }),
+    [listings]
   );
+  const approximateCount = placed.filter((p) => p.approximate).length;
 
   // Default center (US center)
   const defaultCenter: [number, number] = [39.8283, -98.5795];
@@ -152,13 +162,13 @@ export function MapView({ listings, isLoading, onClose }: MapViewProps) {
     );
   }
 
-  if (mappableListings.length === 0) {
+  if (placed.length === 0) {
     return (
       <div className="w-full h-[500px] md:h-[600px] bg-muted rounded-lg flex flex-col items-center justify-center text-center p-4">
         <MapPin className="w-12 h-12 text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold mb-2">No locations available</h3>
         <p className="text-sm text-muted-foreground max-w-md">
-          None of the current listings have location coordinates. Try adjusting
+          None of the current listings include a location. Try adjusting
           your search or view the listings in grid/list mode.
         </p>
         {onClose && (
@@ -194,20 +204,22 @@ export function MapView({ listings, isLoading, onClose }: MapViewProps) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        <FitBounds listings={mappableListings} />
+        <FitBounds placed={placed} />
 
-        {mappableListings.map((listing) => (
-          <MapMarkerPopup key={listing.id} listing={listing} />
+        {placed.map((p) => (
+          <MapMarkerPopup key={p.listing.id} {...p} />
         ))}
       </MapContainer>
 
       {/* Legend */}
       <div className="absolute bottom-3 left-3 z-[1000] bg-background/90 backdrop-blur-sm rounded-lg p-2 text-xs shadow-lg">
         <p className="font-medium mb-1">
-          {mappableListings.length} of {listings.length} listings shown
+          {placed.length} of {listings.length} listings shown
         </p>
         <p className="text-muted-foreground">
-          Only listings with location data appear on the map
+          {approximateCount > 0
+            ? 'Pins are placed by state; open a listing for the exact location'
+            : 'Only listings with location data appear on the map'}
         </p>
       </div>
     </div>
