@@ -9,6 +9,7 @@ import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
+import { downloadAndStoreManufacturerImage, isSupabaseStorageUrl } from './rehost-images.mjs';
 
 puppeteer.use(StealthPlugin());
 
@@ -119,25 +120,55 @@ export async function upsertProduct(supabase, manufacturerId, product) {
 
 /**
  * Upsert product images. Deletes existing images and re-inserts.
+ *
+ * Images are never hotlinked from the manufacturer's site: each one is
+ * re-hosted into Supabase Storage (manufacturer-products/<productId>/...).
+ * A copy already stored for the same original URL is reused, so re-running
+ * a scraper does not re-download an unchanged catalog. Images that cannot
+ * be fetched are dropped rather than inserted as a dead external link.
  */
 export async function upsertProductImages(supabase, productId, images) {
   if (!images || images.length === 0) return;
 
-  // Delete existing images for this product
+  // Reuse stored copies keyed by the original external URL
+  const { data: existing } = await supabase
+    .from('manufacturer_product_images')
+    .select('url, original_url')
+    .eq('product_id', productId);
+  const stored = new Map();
+  for (const row of existing || []) {
+    if (row.original_url && isSupabaseStorageUrl(row.url)) stored.set(row.original_url, row.url);
+  }
+
+  const rows = [];
+  for (let i = 0; i < images.length; i++) {
+    const img = images[i];
+    if (!img?.url || !img.url.startsWith('http')) continue;
+
+    const hosted = isSupabaseStorageUrl(img.url)
+      ? img.url
+      : stored.get(img.url) ||
+        (await downloadAndStoreManufacturerImage(supabase, img.url, productId, rows.length));
+    if (!hosted) continue;
+
+    rows.push({
+      product_id: productId,
+      url: hosted,
+      original_url: isSupabaseStorageUrl(img.url) ? img.original_url || null : img.url,
+      alt_text: img.alt_text || null,
+      sort_order: rows.length,
+      is_primary: rows.length === 0,
+      source_url: img.source_url || null,
+    });
+  }
+
+  // Replace the product's image set only once the new set is ready
   await supabase
     .from('manufacturer_product_images')
     .delete()
     .eq('product_id', productId);
 
-  // Insert new images
-  const rows = images.map((img, i) => ({
-    product_id: productId,
-    url: img.url,
-    alt_text: img.alt_text || null,
-    sort_order: i,
-    is_primary: i === 0,
-    source_url: img.source_url || null,
-  }));
+  if (rows.length === 0) return;
 
   const { error } = await supabase
     .from('manufacturer_product_images')
@@ -160,15 +191,27 @@ export async function upsertProductSpecs(supabase, productId, specs) {
     .delete()
     .eq('product_id', productId);
 
-  // Insert new specs
-  const rows = specs.map((spec, i) => ({
-    product_id: productId,
-    spec_category: spec.category,
-    spec_key: spec.key,
-    spec_value: spec.value,
-    spec_unit: spec.unit || null,
-    sort_order: i,
-  }));
+  // Insert new specs. The table is UNIQUE(product_id, spec_category,
+  // spec_key); a page that repeats a spec (common in tabbed spec sheets)
+  // made the whole batch insert fail AFTER the delete above, leaving the
+  // product with zero specs on every run. Keep the first occurrence.
+  const seen = new Set();
+  const rows = [];
+  for (const spec of specs) {
+    if (!spec?.category || !spec?.key) continue;
+    const dedupeKey = spec.category + '::' + spec.key;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+    rows.push({
+      product_id: productId,
+      spec_category: spec.category,
+      spec_key: spec.key,
+      spec_value: spec.value,
+      spec_unit: spec.unit || null,
+      sort_order: rows.length,
+    });
+  }
+  if (rows.length === 0) return;
 
   const { error } = await supabase
     .from('manufacturer_product_specs')

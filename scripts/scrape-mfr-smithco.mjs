@@ -455,8 +455,24 @@ async function scrapeProductPage(page, url) {
       if (src.includes('logo') || src.includes('icon') || src.includes('favicon')) return;
       if (src.includes('.gif') || src.includes('.svg')) return;
       if (src.includes('gravatar')) return;
-      // Only keep sidedump.com domain images
-      if (!src.includes('sidedump.com')) return;
+      // Only keep images actually served from sidedump.com. A substring test
+      // matched the site's Bing tracking pixel (bat.bing.com/...?p=https://
+      // sidedump.com/...) and stored it as every product's primary photo.
+      let host = '';
+      let pathname = '';
+      try {
+        const parsed = new URL(src, location.href);
+        host = parsed.hostname;
+        pathname = parsed.pathname;
+      } catch {
+        return;
+      }
+      // Photos are served from the site's Servd/Statamic transform CDN
+      // (*.svdcdn.com); anything else on the page is chrome or tracking.
+      const isSiteHost = host === 'sidedump.com' || host.endsWith('.sidedump.com');
+      const isCdnHost = host.endsWith('.svdcdn.com');
+      if (!isSiteHost && !isCdnHost) return;
+      if (isSiteHost && !/\.(jpe?g|png|webp|avif)$/i.test(pathname)) return;
 
       const width = img.naturalWidth || img.width || 0;
       if (width > 0 && width < 50) return; // skip tiny images

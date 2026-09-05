@@ -47,63 +47,14 @@ const nextConfig: NextConfig = {
     // frequent origin refetches from Supabase storage.
     minimumCacheTTL: 2678400,
     remotePatterns: [
-      // Supabase storage (all listing images are re-hosted here)
+      // Every image the app renders through next/image is re-hosted in
+      // Supabase Storage: listing photos (dealer-imports/...) and the
+      // manufacturer catalog (manufacturer-products/..., moved Sep 2026).
+      // Scrapers re-host on insert, so no other host should ever appear
+      // here. The one origin that cannot be re-hosted (Eager Beaver, behind
+      // Cloudflare bot protection) is rendered `unoptimized` instead — see
+      // src/lib/images/optimizer-blocked-hosts.ts.
       { protocol: 'https', hostname: '*.supabase.co' },
-      // Webflow CDN — used by manufacturer product images (not yet re-hosted)
-      { protocol: 'https', hostname: '*.website-files.com' },
-      // Hale Trailer WordPress media — used by manufacturer product images
-      { protocol: 'https', hostname: '*.haletrailer.com' },
-      // Manufacturer product catalog images
-      { protocol: 'https', hostname: '*.trailking.com' },
-      { protocol: 'https', hostname: '*.fontainespecialized.com' },
-      { protocol: 'https', hostname: '*.talbertmfg.com' },
-      { protocol: 'https', hostname: '*.xlspecializedtrailer.com' },
-      { protocol: 'https', hostname: '*.pittstrailers.com' },
-      { protocol: 'https', hostname: '*.eagerbeavertrailers.com' },
-      { protocol: 'https', hostname: '*.kaufmantrailers.com' },
-      { protocol: 'https', hostname: '*.witzco.com' },
-      { protocol: 'https', hostname: '*.globetrailers.com' },
-      { protocol: 'https', hostname: '*.etnyre.com' },
-      { protocol: 'https', hostname: '*.landoll.com' },
-      { protocol: 'https', hostname: '*.maxtrailer.us' },
-      { protocol: 'https', hostname: '*.faymonville.com' },
-      { protocol: 'https', hostname: '*.loadstartrailers.com' },
-      { protocol: 'https', hostname: '*.dorseymfg.com' },
-      { protocol: 'https', hostname: '*.kalynsiebert.com' },
-      { protocol: 'https', hostname: '*.smithcomfg.com' },
-      { protocol: 'https', hostname: '*.macktrucks.com' },
-      { protocol: 'https', hostname: '*.volvogroup.com' },
-      { protocol: 'https', hostname: '*.felling.com' },
-      // `*.example.com` matches exactly one subdomain, so bare apex hosts must
-      // be listed separately. Every host below is present in
-      // manufacturer_product_images today; a host missing here makes
-      // /_next/image return 400 and the card falls back to a placeholder.
-      { protocol: 'https', hostname: 'landoll.com' },
-      { protocol: 'https', hostname: 'kalynsiebert.com' },
-      { protocol: 'https', hostname: 'xlspecializedtrailer.com' },
-      { protocol: 'https', hostname: 'loadstartrailers.com' },
-      { protocol: 'https', hostname: 'talbertmfg.com' },
-      { protocol: 'https', hostname: 'pittstrailers.com' },
-      { protocol: 'https', hostname: 'etnyre.com' },
-      { protocol: 'https', hostname: 'trailking.com' },
-      { protocol: 'https', hostname: 'felling.com' },
-      { protocol: 'https', hostname: 'globetrailers.com' },
-      { protocol: 'https', hostname: 'witzco.com' },
-      { protocol: 'https', hostname: 'kaufmantrailers.com' },
-      { protocol: 'https', hostname: 'eagerbeavertrailers.com' },
-      { protocol: 'https', hostname: 'fontainespecialized.com' },
-      { protocol: 'https', hostname: 'faymonville.com' },
-      { protocol: 'https', hostname: 'macktrucks.com' },
-      { protocol: 'https', hostname: 'maxtrailer.us' },
-      // Dorsey's catalog lives on dorseytrailer.net, not dorseymfg.com
-      { protocol: 'https', hostname: '*.dorseytrailer.net' },
-      { protocol: 'https', hostname: 'dorseytrailer.net' },
-      // Jetpack/WordPress.com image CDN fronting several manufacturer sites
-      { protocol: 'https', hostname: 'i0.wp.com' },
-      { protocol: 'https', hostname: 'i1.wp.com' },
-      { protocol: 'https', hostname: 'i2.wp.com' },
-      // Vimeo poster frames used as product thumbnails
-      { protocol: 'https', hostname: 'i.vimeocdn.com' },
     ],
   },
 };
