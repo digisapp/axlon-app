@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
@@ -12,6 +13,16 @@ import { Loader2, Mail, Lock, Building2, ArrowLeft, Check, Package, BarChart3, U
 import { csrfFetch } from '@/lib/csrf-fetch';
 
 export default function SignupPage() {
+  const searchParams = useSearchParams();
+  // Where to land after the confirmation email / OAuth round-trip. Same-site
+  // relative paths only (reject // and /\ like the login page does) so a
+  // crafted link can't bounce a new account off-site. Used by /claim so a
+  // dealer returns to finish claiming their inventory.
+  const rawRedirect = searchParams.get('redirect') || '';
+  const redirect =
+    rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') && !rawRedirect.startsWith('/\\')
+      ? rawRedirect
+      : '';
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -47,6 +58,7 @@ export default function SignupPage() {
           email: formData.email,
           password: formData.password,
           companyName: formData.companyName,
+          ...(redirect && { redirect }),
         }),
       });
 
@@ -73,7 +85,7 @@ export default function SignupPage() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`,
       },
     });
   };

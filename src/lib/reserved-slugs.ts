@@ -15,7 +15,7 @@ export const RESERVED_SLUGS = new Set<string>([
   'deals', 'dealers', 'finance', 'for-business', 'get-started', 'how-it-works',
   'industries', 'listing', 'manufacturers', 'new-trailers', 'offline', 'pricing',
   'privacy', 'search', 'sponsors', 'terms', 'tools', 'trade-in', 'transform',
-  'voice', 'workshops',
+  'voice', 'workshops', 'claim',
   // Auth
   'login', 'signup', 'forgot-password', 'reset-password', 'auth', 'logout',
   // App areas / system

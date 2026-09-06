@@ -14,6 +14,8 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
+  Link2,
+  BadgeCheck,
 } from 'lucide-react';
 
 interface DealerSource {
@@ -31,12 +33,16 @@ interface DealerSource {
   location_state: string | null;
   notes: string | null;
   active_listings: number;
+  claimed_by: string | null;
+  claimed_at: string | null;
+  claim_url: string | null;
 }
 
 export default function DealerSourcesPage() {
   const [dealers, setDealers] = useState<DealerSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [triggering, setTriggering] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchDealers = async () => {
@@ -199,6 +205,12 @@ export default function DealerSourcesPage() {
                       <Badge variant="outline" className="text-[10px]">
                         {dealer.scrape_method}
                       </Badge>
+                      {dealer.claimed_by && (
+                        <Badge className="text-[10px] bg-green-600 hover:bg-green-600 gap-1">
+                          <BadgeCheck className="w-3 h-3" />
+                          Claimed
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                       {dealer.website && (
@@ -227,6 +239,22 @@ export default function DealerSourcesPage() {
                       </span>
                     </div>
                   </div>
+                  {dealer.claim_url && !dealer.claimed_by && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex-shrink-0 gap-1"
+                      title="Copy the one-time claim link to send to this dealer's contact email"
+                      onClick={() => {
+                        navigator.clipboard.writeText(dealer.claim_url!);
+                        setCopiedId(dealer.id);
+                        setTimeout(() => setCopiedId((c) => (c === dealer.id ? null : c)), 2000);
+                      }}
+                    >
+                      {copiedId === dealer.id ? <CheckCircle className="w-3.5 h-3.5 text-green-600" /> : <Link2 className="w-3.5 h-3.5" />}
+                      {copiedId === dealer.id ? 'Copied' : 'Claim link'}
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"

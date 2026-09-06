@@ -252,8 +252,25 @@ export function stableSourceListingId(listing) {
   return slugify(listing.title);
 }
 
+// Once a dealer has claimed their scraped inventory (dealer_sources.claimed_by),
+// every unit the scraper adds afterwards must land in their account rather
+// than the admin placeholder. Cached per run — the owner doesn't change mid-scrape.
+const ownerCache = new Map();
+async function listingOwnerFor(supabase, dealerSourceId) {
+  if (ownerCache.has(dealerSourceId)) return ownerCache.get(dealerSourceId);
+  const { data } = await supabase
+    .from('dealer_sources')
+    .select('claimed_by')
+    .eq('id', dealerSourceId)
+    .maybeSingle();
+  const owner = data?.claimed_by || AXLON_SYSTEM_USER_ID;
+  ownerCache.set(dealerSourceId, owner);
+  return owner;
+}
+
 export async function upsertListing(supabase, dealerSourceId, listing) {
   const sourceListingId = stableSourceListingId(listing);
+  const ownerId = await listingOwnerFor(supabase, dealerSourceId);
 
   // Check for existing
   const existingId = await findExistingListing(supabase, dealerSourceId, sourceListingId);
@@ -264,7 +281,7 @@ export async function upsertListing(supabase, dealerSourceId, listing) {
   const categoryId = CATEGORY_MAP[listing.category_slug] || DEFAULT_CATEGORY_ID;
 
   const row = {
-    user_id: AXLON_SYSTEM_USER_ID,
+    user_id: ownerId,
     title: listing.title,
     description: listing.description || listing.ai_description || null,
     price: listing.price || null,

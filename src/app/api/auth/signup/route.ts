@@ -10,6 +10,13 @@ const signupSchema = z.object({
   email: z.string().email('Invalid email').max(254, 'Email too long'),
   password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password too long'),
   companyName: z.string().min(1, 'Company name is required').max(200, 'Company name too long'),
+  // Optional post-confirmation destination (same-site path only; the auth
+  // callback re-validates it). Lets /claim bring a new dealer straight back.
+  redirect: z
+    .string()
+    .max(500)
+    .regex(/^\/(?![\/\\])/, 'Redirect must be a same-site path')
+    .optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -27,7 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password, companyName } = parsed.data;
+    const { email, password, companyName, redirect } = parsed.data;
 
     const supabase = createAdminClient();
 
@@ -41,7 +48,7 @@ export async function POST(request: NextRequest) {
           company_name: companyName,
           is_business: true,
         },
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com'}/auth/callback`,
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com'}/auth/callback${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`,
       },
     });
 

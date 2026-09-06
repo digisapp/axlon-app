@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkIsAdmin } from '@/lib/admin/check-admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
+import { buildClaimUrl } from '@/lib/claims/token';
 
 /**
  * GET /api/admin/scrape-dealers — List dealer sources and their status
@@ -43,9 +44,14 @@ export async function GET(request: NextRequest) {
       countMap[id] = (countMap[id] || 0) + 1;
     });
 
+    // The claim link is the dealer's one-time key to their scraped inventory
+    // — this route is admin-only, and the link should only ever be sent to
+    // the dealer's own contact address.
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com';
     const enriched = (dealers || []).map((d) => ({
       ...d,
       active_listings: countMap[d.id] || 0,
+      claim_url: d.claimed_by ? null : buildClaimUrl(appUrl, d.id),
     }));
 
     return NextResponse.json({ dealers: enriched });
