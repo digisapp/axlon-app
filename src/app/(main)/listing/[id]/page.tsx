@@ -2,6 +2,7 @@
 export const revalidate = 300;
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Metadata } from 'next';
@@ -17,6 +18,7 @@ import {
   Check,
   AlertCircle,
   ChevronLeft,
+  Store,
 } from 'lucide-react';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { FavoriteButton } from '@/components/listings/FavoriteButton';
@@ -247,6 +249,21 @@ export default async function ListingPage({ params }: PageProps) {
 
   if (error || !listing) {
     notFound();
+  }
+
+  // Scraped inventory that no dealer has claimed yet: invite the dealer who
+  // finds their own unit here to request a claim link (the link itself is
+  // only ever sent to the dealer's contact address — never rendered
+  // publicly). dealer_sources is admin-only under RLS, so look the name up
+  // with the service-role client; only the public company name leaves here.
+  let unclaimedSourceName: string | null = null;
+  if (listing.source_dealer_id) {
+    const { data: dealerSource } = await createAdminClient()
+      .from('dealer_sources')
+      .select('name, claimed_by')
+      .eq('id', listing.source_dealer_id)
+      .maybeSingle();
+    if (dealerSource?.name && !dealerSource.claimed_by) unclaimedSourceName = dealerSource.name;
   }
 
   // Capture current time once to avoid impure Date.now() calls during render.
@@ -584,6 +601,29 @@ export default async function ListingPage({ params }: PageProps) {
                 listingTitle={listing.title}
               />
             </div>
+
+            {/* Claim CTA for the dealer whose inventory this is */}
+            {unclaimedSourceName && (
+              <Card className="border-dashed">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
+                    <Store className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="text-sm">
+                    <p className="font-semibold">Is this your dealership&apos;s inventory?</p>
+                    <p className="text-muted-foreground mt-0.5">
+                      Claim the {unclaimedSourceName} storefront to manage these listings and let AXLON answer buyers for you.
+                    </p>
+                    <Link
+                      href={`/contact?subject=claim&dealer=${encodeURIComponent(unclaimedSourceName)}`}
+                      className="inline-block mt-2 font-medium text-primary hover:underline"
+                    >
+                      Request a claim link
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* AI Chat Widget */}
             {listing.user?.id && listing.user?.is_business && (

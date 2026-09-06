@@ -9,9 +9,10 @@ import { csrfFetch } from '@/lib/csrf-fetch';
 interface ContactFormProps {
   defaultSubject?: string;
   defaultPlan?: string;
+  defaultMessage?: string;
 }
 
-export function ContactForm({ defaultSubject, defaultPlan }: ContactFormProps) {
+export function ContactForm({ defaultSubject, defaultPlan, defaultMessage }: ContactFormProps) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -152,6 +153,7 @@ export function ContactForm({ defaultSubject, defaultPlan }: ContactFormProps) {
           <option value="pricing">Pricing Question</option>
           <option value="support">Technical Support</option>
           <option value="partnership">Partnership</option>
+          <option value="claim">Claim my dealership&apos;s storefront</option>
           <option value="other">Other</option>
         </select>
       </div>
@@ -165,6 +167,7 @@ export function ContactForm({ defaultSubject, defaultPlan }: ContactFormProps) {
           name="message"
           rows={5}
           placeholder="Tell us how we can help..."
+          defaultValue={defaultMessage}
           required
           className="w-full px-3 py-2 rounded-md border bg-background text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
         />

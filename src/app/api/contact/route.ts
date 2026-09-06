@@ -15,6 +15,7 @@ const subjectLabels: Record<string, string> = {
   pricing: 'Pricing Question',
   support: 'Technical Support',
   partnership: 'Partnership Inquiry',
+  claim: 'Storefront Claim Request',
   other: 'General Inquiry',
 };
 

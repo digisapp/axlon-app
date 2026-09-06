@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 };
 
 interface PageProps {
-  searchParams: Promise<{ plan?: string }>;
+  searchParams: Promise<{ plan?: string; subject?: string; dealer?: string }>;
 }
 
 const planLabels: Record<string, string> = {
@@ -37,8 +37,13 @@ const planLabels: Record<string, string> = {
 };
 
 export default async function ContactPage({ searchParams }: PageProps) {
-  const { plan } = await searchParams;
-  const planLabel = plan ? planLabels[plan] || 'General Inquiry' : null;
+  const { plan, subject, dealer } = await searchParams;
+  // A dealer who found their scraped inventory arrives with subject=claim
+  const isClaim = subject === 'claim';
+  const dealerName = dealer ? dealer.slice(0, 120) : '';
+  const planLabel = isClaim
+    ? `Storefront claim request${dealerName ? ` · ${dealerName}` : ''}`
+    : plan ? planLabels[plan] || 'General Inquiry' : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted/50 via-background to-background">
@@ -78,7 +83,15 @@ export default async function ContactPage({ searchParams }: PageProps) {
                 Fill out the form and we&apos;ll get back to you within 24 hours.
               </p>
 
-              <ContactForm defaultSubject={plan} defaultPlan={plan} />
+              <ContactForm
+            defaultSubject={isClaim ? 'claim' : plan}
+            defaultPlan={plan}
+            defaultMessage={
+              isClaim
+                ? `I represent ${dealerName || 'a dealership'} and would like to claim our inventory listed on Axleyard.`
+                : undefined
+            }
+          />
             </div>
           </div>
 
