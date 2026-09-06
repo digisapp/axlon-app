@@ -565,7 +565,7 @@ function ListingCardSkeleton({ viewMode }: { viewMode: 'grid' | 'list' | 'map' }
 
 export default function SearchPageClient() {
   return (
-    <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+    <Suspense fallback={<div className="min-h-[70vh] p-8 text-center text-muted-foreground">Loading...</div>}>
       <SearchPageContent />
     </Suspense>
   );

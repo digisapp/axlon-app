@@ -119,10 +119,10 @@ export function Header() {
           <Link href="/" className="flex items-center gap-2">
             <Image
               src="/images/axlonai-logo.png"
-              alt="Axleyard"
-              width={40}
-              height={40}
-              className="h-8 w-8"
+              alt=""
+              width={28}
+              height={32}
+              className="h-8 w-auto"
               priority
             />
             <span className="font-bold text-xl font-[family-name:var(--font-gunship)] tracking-wider">AXLE<span className="text-primary">YARD</span></span>

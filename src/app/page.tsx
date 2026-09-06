@@ -45,7 +45,7 @@ const SERVICE_LINKS = [
   { name: 'Below-Market Deals', href: '/deals' },
 ];
 
-function HomePageJsonLd() {
+function HomePageJsonLd({ activeListings }: { activeListings: number | null }) {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
@@ -58,7 +58,8 @@ function HomePageJsonLd() {
       '@type': 'AggregateOffer',
       priceCurrency: 'USD',
       availability: 'https://schema.org/InStock',
-      offerCount: '5000+',
+      // Structured data must reflect the live inventory, not a marketing figure
+      ...(activeListings ? { offerCount: String(activeListings) } : {}),
       lowPrice: '5000',
       highPrice: '500000',
     },
@@ -81,7 +82,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-dvh flex flex-col gradient-bg relative overflow-hidden">
-      <HomePageJsonLd />
+      <HomePageJsonLd activeListings={stats.activeListings} />
       <div className="noise-overlay" />
 
       {/* Top Banner */}
@@ -109,10 +110,10 @@ export default async function HomePage() {
           <Link href="/" className="flex items-center gap-2">
             <Image
               src="/images/axlonai-logo.png"
-              alt="Axleyard"
+              alt=""
               width={28}
-              height={28}
-              className="w-7 h-7"
+              height={32}
+              className="h-7 w-auto"
             />
             <span className="font-bold text-2xl font-[family-name:var(--font-gunship)] tracking-wider">AXLE<span className="text-primary">YARD</span></span>
           </Link>
@@ -456,10 +457,10 @@ export default async function HomePage() {
           <div className="flex items-center gap-2">
             <Image
               src="/images/axlonai-logo.png"
-              alt="Axleyard"
-              width={20}
+              alt=""
+              width={18}
               height={20}
-              className="w-5 h-5"
+              className="h-5 w-auto"
             />
             <p className="text-xs md:text-sm text-muted-foreground">
               &copy; 2026 <span className="font-[family-name:var(--font-gunship)]">AXLEYARD</span>. All rights reserved.

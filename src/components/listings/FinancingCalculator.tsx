@@ -113,6 +113,7 @@ export function FinancingCalculator({ listingPrice, className }: FinancingCalcul
             max={50}
             step={5}
             className="mb-2"
+            aria-label="Down payment percentage"
           />
           <Input
             type="number"
@@ -120,6 +121,7 @@ export function FinancingCalculator({ listingPrice, className }: FinancingCalcul
             value={downPayment}
             onChange={(e) => handleDownPaymentChange(Number(e.target.value))}
             className="text-right"
+            aria-label="Down payment amount in dollars"
           />
         </div>
 
@@ -138,6 +140,7 @@ export function FinancingCalculator({ listingPrice, className }: FinancingCalcul
             min={0}
             max={20}
             step={0.5}
+            aria-label="Interest rate (APR) percentage"
           />
         </div>
 
@@ -148,7 +151,7 @@ export function FinancingCalculator({ listingPrice, className }: FinancingCalcul
             Loan Term
           </Label>
           <Select value={loanTerm.toString()} onValueChange={(v) => setLoanTerm(Number(v))}>
-            <SelectTrigger>
+            <SelectTrigger aria-label="Loan term">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

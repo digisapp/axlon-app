@@ -29,8 +29,17 @@ const securityHeaders = [
   // CSP is set dynamically per-request in src/proxy.ts with a nonce
 ];
 
+// The public app URL is interpolated into canonical links, sitemap entries,
+// robots.txt, email links and OAuth redirects. Normalize it once at build
+// time so stray whitespace or a trailing slash in the hosting env var can't
+// corrupt every generated URL (a trailing newline shipped to prod once).
+const publicAppUrl = (process.env.NEXT_PUBLIC_APP_URL || '').trim().replace(/\/+$/, '');
+
 const nextConfig: NextConfig = {
   serverExternalPackages: ['pdf-parse'],
+  env: {
+    ...(publicAppUrl && { NEXT_PUBLIC_APP_URL: publicAppUrl }),
+  },
   async headers() {
     return [
       {

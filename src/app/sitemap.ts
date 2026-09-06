@@ -314,12 +314,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
 
     if (products.length > 0) {
+      const mfrSlug = (product: ProductRow) =>
+        (Array.isArray(product.manufacturers) ? product.manufacturers[0] : product.manufacturers).slug;
+
       productPages = products.map((product) => ({
-        url: `${baseUrl}/new-trailers/${(Array.isArray(product.manufacturers) ? product.manufacturers[0] : product.manufacturers).slug}/${product.slug}`,
+        url: `${baseUrl}/new-trailers/${mfrSlug(product)}/${product.slug}`,
         lastModified: product.updated_at ? new Date(product.updated_at) : new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.7,
       }));
+
+      // One catalog page per manufacturer (/new-trailers?manufacturer=slug)
+      // — the index only previews 8 products per brand, so these are the
+      // canonical "every model" pages.
+      const seen = new Set<string>();
+      for (const product of products) {
+        const slug = mfrSlug(product);
+        if (seen.has(slug)) continue;
+        seen.add(slug);
+        productPages.push({
+          url: `${baseUrl}/new-trailers?manufacturer=${slug}`,
+          lastModified: new Date(),
+          changeFrequency: 'weekly' as const,
+          priority: 0.8,
+        });
+      }
     }
   } catch (error) {
     console.error('Error generating sitemap products:', error);

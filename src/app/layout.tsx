@@ -187,6 +187,10 @@ export default async function RootLayout({
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
+          // next-themes injects an inline theme-detection script; without the
+          // request nonce the CSP blocks it on every page (console error +
+          // wrong theme until hydration)
+          nonce={nonce}
         >
           <QueryProvider>
             <CsrfProvider>
