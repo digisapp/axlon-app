@@ -172,12 +172,19 @@ export default async function RootLayout({
   // would wrongly show marketplace UI there. Gate them on host instead.
   const host = headerList.get('host')?.toLowerCase().split(':')[0] ?? '';
   const isAxlonHost = host === 'axlon.ai' || host === 'www.axlon.ai';
+  // Lead-gen microsite domains (xltrailers.com, ...) are rewritten to /sites/*
+  // by the proxy, so the browser path stays "/" here too. They render their own
+  // chrome and must not show marketplace compare bars, nav or call buttons —
+  // and must not carry Axleyard's Organization/WebSite JSON-LD, which would
+  // tell search engines the wrong entity owns the domain.
+  const isMicrositeHost = headerList.get('x-microsite-host') !== null;
+  const isMarketplaceHost = !isAxlonHost && !isMicrositeHost;
 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <OrganizationJsonLd nonce={nonce} />
-        <WebsiteJsonLd nonce={nonce} />
+        {isMarketplaceHost && <OrganizationJsonLd nonce={nonce} />}
+        {isMarketplaceHost && <WebsiteJsonLd nonce={nonce} />}
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${gunship.variable} antialiased min-h-screen`}
@@ -197,9 +204,9 @@ export default async function RootLayout({
             <NotificationProvider>
               <CompareProvider>
                   {children}
-                  {!isAxlonHost && <MobileBottomNav />}
-                  {!isAxlonHost && <CompareBar />}
-                  {!isAxlonHost && <FloatingCallButton />}
+                  {isMarketplaceHost && <MobileBottomNav />}
+                  {isMarketplaceHost && <CompareBar />}
+                  {isMarketplaceHost && <FloatingCallButton />}
                   <KeyboardShortcuts />
                   <PWACleanup />
                   <div aria-live="polite" aria-atomic="true">
