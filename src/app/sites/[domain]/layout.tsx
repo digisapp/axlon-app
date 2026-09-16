@@ -6,9 +6,11 @@ import { MicrositeHeader } from '@/components/microsites/MicrositeHeader';
 import { MicrositeFooter } from '@/components/microsites/MicrositeFooter';
 import { MicrositeTracker } from '@/components/microsites/MicrositeTracker';
 
-// Traffic and inventory change constantly; the catalog does not. Revalidate
-// hourly rather than rendering per request.
-export const revalidate = 3600;
+// Dynamic, not cached. `revalidate` would be inert here anyway: the root
+// layout reads headers() for the CSP nonce, which opts the whole route tree
+// into dynamic rendering. Every microsite request therefore renders fresh —
+// slower, but it means an admin edit or a status change is visible
+// immediately, with no cache to bust.
 
 export default async function MicrositeLayout({
   children,

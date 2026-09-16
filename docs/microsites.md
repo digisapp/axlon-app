@@ -52,11 +52,11 @@ Two things the proxy is strict about, both load-bearing:
    strips `www.` before matching and would never find such a row.
 4. Fill in Settings: manufacturer catalog, headline, accent colour, notify
    email. Leave the disclaimer blank to use the generated wording.
-5. Flip **status → live** *in the admin UI*, not in SQL. Pages are cached for
-   an hour (`revalidate = 3600`) and saving through `/admin/microsites` calls
-   `revalidatePath`, which busts that cache immediately. A status change made
-   directly in SQL does not, so a host someone already visited can keep
-   serving the old response for up to an hour.
+5. Flip **status → live**, in the admin UI or straight in SQL — either takes
+   effect on the next request. Microsite pages render dynamically (the root
+   layout reads `headers()` for the CSP nonce, which opts the whole route tree
+   out of static rendering), so there is no cache standing between a status
+   change and what visitors see.
 
 Until a site is live it redirects to axleyard.com and its `robots.txt` returns
 `Disallow: /`, so pointing DNS early never publishes a half-built page or gets
@@ -94,8 +94,9 @@ set on the microsite's own domain), Zod validation, and a honeypot field.
 ## Analytics
 
 `MicrositeTracker` beacons one row per page view to
-`POST /api/microsites/track`. It runs client-side on purpose: the pages are
-cached for an hour, so a server-side counter would only fire on cache misses.
+`POST /api/microsites/track`. It runs client-side so that a bfcache restore or
+a client-side navigation still counts, and so the tracker keeps working if
+these pages are ever made cacheable.
 
 Known bot user-agents are dropped, the endpoint is rate-limited, and only a
 `live` microsite id is accepted. Writes go through the service role — visitors
@@ -121,3 +122,13 @@ Keep it that way: a site must never present itself *as* the manufacturer — no
 manufacturer logo as the site logo, no "official", no copied brand styling.
 Descriptive, factual use of a maker's name to say what is being sold is the
 line this stays on.
+
+
+## Performance note
+
+Every microsite request currently hits the database (one query to resolve the
+host, plus the catalog/listing reads). That is fine at today's traffic and
+keeps status changes instant, but it is the first thing to revisit if a site
+starts ranking. Static rendering is not available while the root layout reads
+`headers()` for the CSP nonce; the realistic options are a short-lived cache
+inside `getMicrositeByHost` or moving the nonce out of the root layout.

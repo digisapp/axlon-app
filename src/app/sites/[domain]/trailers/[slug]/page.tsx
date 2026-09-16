@@ -11,7 +11,6 @@ import {
 import { MicrositeLeadForm } from '@/components/microsites/MicrositeLeadForm';
 import { isOptimizerBlockedImage } from '@/lib/images/optimizer-blocked-hosts';
 
-export const revalidate = 3600;
 
 interface PageProps {
   params: Promise<{ domain: string; slug: string }>;

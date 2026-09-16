@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import { isDirectAppHostRequest } from '@/lib/microsites/guard';
 import { getMicrositeByHost } from '@/lib/microsites/resolve';
 
-export const revalidate = 3600;
-
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ domain: string }> }

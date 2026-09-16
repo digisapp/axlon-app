@@ -4,8 +4,6 @@ import { getMicrositeByHost, getMicrositeProducts } from '@/lib/microsites/resol
 
 // The proxy rewrites https://<domain>/sitemap.xml to /sites/<domain>/sitemap.xml,
 // so each microsite serves its own sitemap at the conventional path.
-export const revalidate = 3600;
-
 function escapeXml(value: string): string {
   return value.replace(/[<>&'"]/g, (c) =>
     ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' })[c] as string
