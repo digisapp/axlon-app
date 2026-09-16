@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+import { isAppHost, normalizeHost } from '@/lib/microsites/config';
 
 // Hosts that serve the standalone AXLON experience instead of the marketplace.
 const AXLON_HOSTS = new Set(['axlon.ai', 'www.axlon.ai']);
@@ -45,6 +46,32 @@ export async function proxy(request: NextRequest) {
       return rewrite;
     }
     return NextResponse.redirect(`${CANONICAL_ORIGIN}${pathname}${search}`, 308);
+  }
+
+  // Any host that is not the app itself is a lead-gen microsite domain
+  // (xltrailers.com, tagtrailers.com, ...). Rewrite it under /sites/<host> so
+  // one Next app serves every domain; the page resolves the host to a row in
+  // `microsites` and 404s if there isn't one, or it isn't live.
+  //
+  // The DB lookup deliberately does NOT happen here: proxy runs on every
+  // request at the edge, and a query per request would cost more than the
+  // page render it precedes.
+  if (!isAppHost(host)) {
+    const siteHost = normalizeHost(host);
+    const { pathname, search } = request.nextUrl;
+
+    // Don't wrap paths the app owns regardless of host.
+    if (!pathname.startsWith('/sites/') && !pathname.startsWith('/_next') && !pathname.startsWith('/api/')) {
+      const siteHeaders = new Headers(request.headers);
+      siteHeaders.set('x-nonce', nonce);
+      siteHeaders.set('x-microsite-host', siteHost);
+
+      const url = new URL(`/sites/${siteHost}${pathname === '/' ? '' : pathname}${search}`, request.url);
+      const rewrite = NextResponse.rewrite(url, { request: { headers: siteHeaders } });
+      rewrite.headers.set('Content-Security-Policy', buildCsp(nonce));
+      rewrite.headers.set('x-microsite-host', siteHost);
+      return rewrite;
+    }
   }
 
   // Inject nonce into request headers so server components can read it via headers()
