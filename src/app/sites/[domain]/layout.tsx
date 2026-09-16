@@ -1,5 +1,5 @@
 import { headers } from 'next/headers';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getMicrositeByHost, disclaimerFor } from '@/lib/microsites/resolve';
 import { isAppHost } from '@/lib/microsites/config';
 import { MicrositeHeader } from '@/components/microsites/MicrositeHeader';
@@ -31,7 +31,13 @@ export default async function MicrositeLayout({
   }
 
   const site = await getMicrositeByHost(domain);
-  if (!site) notFound();
+
+  // No row, or the row isn't live yet: send the visitor to the marketplace
+  // rather than showing them a dead page. This also makes the proxy's
+  // catch-all rewrite non-breaking — a domain pointed at this project that we
+  // have no microsite for keeps working instead of starting to 404. Its
+  // robots.txt still returns Disallow: /, so nothing gets indexed here.
+  if (!site) redirect('https://axleyard.com');
 
   return (
     <div

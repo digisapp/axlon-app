@@ -19,6 +19,34 @@ export const dynamic = 'force-dynamic';
 
 const PAGE_SIZE = 100;
 
+/** Only the fields this page renders. `leads` carries columns from several
+ *  migrations plus two embedded relations, and there are no generated DB
+ *  types in this project. */
+interface LeadRow {
+  id: string;
+  buyer_name: string | null;
+  name: string | null;
+  buyer_email: string | null;
+  email: string | null;
+  buyer_phone: string | null;
+  phone: string | null;
+  message: string | null;
+  status: string;
+  intent: string | null;
+  source: string | null;
+  created_at: string;
+  equipment_type: string | null;
+  product_interest: string | null;
+  landing_path: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  call_recording_url: string | null;
+  call_duration_seconds: number | null;
+  listings: { id: string; title: string | null; price: number | null } | null;
+  microsite: { id: string; name: string; domain: string } | { id: string; name: string; domain: string }[] | null;
+}
+
 interface SearchParams {
   source?: string;
   microsite?: string;
@@ -33,19 +61,36 @@ export default async function AdminLeadsPage({
   const filters = await searchParams;
   const supabase = await createClient();
 
+  // Migration 075 and this page ship independently, so the microsite columns
+  // may not exist yet. Probe once: without this the embed below fails, every
+  // query in the Promise.all returns null, and the page renders "no leads" —
+  // a blank lead list is a much worse failure than a missing filter row.
+  const { error: micrositeProbe } = await supabase
+    .from('microsites')
+    .select('id', { head: true, count: 'exact' })
+    .limit(1);
+  const hasMicrosites = !micrositeProbe;
+
+  // The select string varies, and supabase-js resolves row types from that
+  // string literal — a ternary hands it a union it can't parse. Cast to '*'
+  // so it falls back to the plain row type; the shape is declared as LeadRow
+  // below, which is what this page actually reads.
+  const leadSelect = (
+    hasMicrosites
+      ? '*, listings(id, title, price), microsite:microsites(id, name, domain)'
+      : '*, listings(id, title, price)'
+  ) as '*';
+
   // Narrow the list without re-querying the whole table client-side.
   let listQuery = supabase
     .from('leads')
-    .select(
-      `*, listings(id, title, price), microsite:microsites(id, name, domain)`,
-      { count: 'exact' }
-    )
+    .select(leadSelect, { count: 'exact' })
     .order('created_at', { ascending: false })
     .limit(PAGE_SIZE);
 
-  if (filters.microsite) {
+  if (filters.microsite && hasMicrosites) {
     listQuery = listQuery.eq('microsite_id', filters.microsite);
-  } else if (filters.source === 'microsite') {
+  } else if (filters.source === 'microsite' && hasMicrosites) {
     listQuery = listQuery.not('microsite_id', 'is', null);
   } else if (filters.source === 'phone_call') {
     listQuery = listQuery.eq('source', 'phone_call');
@@ -60,7 +105,7 @@ export default async function AdminLeadsPage({
   const todayStart = new Date().toISOString().split('T')[0];
 
   const [
-    { data: leads, count: filteredCount },
+    { data: leadRows, count: filteredCount },
     { count: totalLeads },
     { count: newLeads },
     { count: phoneLeads },
@@ -72,10 +117,16 @@ export default async function AdminLeadsPage({
     supabase.from('leads').select('*', { count: 'exact', head: true }),
     supabase.from('leads').select('*', { count: 'exact', head: true }).eq('status', 'new'),
     supabase.from('leads').select('*', { count: 'exact', head: true }).eq('source', 'phone_call'),
-    supabase.from('leads').select('*', { count: 'exact', head: true }).not('microsite_id', 'is', null),
+    hasMicrosites
+      ? supabase.from('leads').select('*', { count: 'exact', head: true }).not('microsite_id', 'is', null)
+      : Promise.resolve({ count: 0 }),
     supabase.from('leads').select('*', { count: 'exact', head: true }).gte('created_at', todayStart),
-    supabase.from('microsites').select('id, name, domain').order('domain'),
+    hasMicrosites
+      ? supabase.from('microsites').select('id, name, domain').order('domain')
+      : Promise.resolve({ data: [] }),
   ]);
+
+  const leads = (leadRows ?? []) as unknown as LeadRow[];
 
   const formatDuration = (seconds: number | null) => {
     if (!seconds) return null;
@@ -110,7 +161,7 @@ export default async function AdminLeadsPage({
 
   const sourceTabs = [
     { key: undefined, label: 'All' },
-    { key: 'microsite', label: 'Microsites' },
+    ...(hasMicrosites ? [{ key: 'microsite', label: 'Microsites' }] : []),
     { key: 'phone_call', label: 'Phone' },
     { key: 'marketplace', label: 'Marketplace' },
   ];
@@ -225,12 +276,12 @@ export default async function AdminLeadsPage({
             {activeSite ? `Leads from ${activeSite.domain}` : 'All Leads'}
           </CardTitle>
           <CardDescription>
-            Showing {leads?.length || 0} of {filteredCount || 0} matching leads
+            Showing {leads.length} of {filteredCount || 0} matching leads
             {(filteredCount || 0) > PAGE_SIZE && ` (most recent ${PAGE_SIZE})`}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {leads && leads.length > 0 ? (
+          {leads.length > 0 ? (
             <div className="space-y-4">
               {leads.map((lead) => {
                 const site = Array.isArray(lead.microsite) ? lead.microsite[0] : lead.microsite;
