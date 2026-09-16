@@ -68,7 +68,7 @@ async function getOrCreateDealer() {
     phone: DEALER_INFO.phone,
     city: DEALER_INFO.city,
     state: DEALER_INFO.state,
-    is_dealer: true,
+    is_business: true,
     website: DEALER_INFO.website,
   }).eq('id', authUser.user.id);
 

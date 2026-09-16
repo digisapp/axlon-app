@@ -267,6 +267,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .select('slug, updated_at')
         .eq('is_business', true)
         .not('slug', 'is', null)
+        // A suspended business's storefront 404s, so keep it out of the sitemap.
+        .not('is_suspended', 'is', true)
         .order('company_name', { ascending: true })
         .range(i * SUPABASE_PAGE_SIZE, (i + 1) * SUPABASE_PAGE_SIZE - 1);
 

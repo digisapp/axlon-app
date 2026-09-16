@@ -28,7 +28,7 @@ const dealer = {
   state: 'TN',
   zip: '37086',
   about: `Pinnacle Truck & Trailer is a one-stop-shop for trucks, trailers, service, and parts located in La Vergne (Nashville), Tennessee. We specialize in truck and trailer sales throughout Tennessee, carrying equipment from trusted brands like XL Specialized Trailers, Transcraft, Benson, Extreme Trailers, Reitnouer, Fontaine, and Liddell. We have 6 service bays to handle repairs on Flatbeds, Drop Decks, Lowboys, Dry Vans, Reefers, and Car Haulers. We specialize in pre-emission trucks for the Owner Operator. Competitive financing rates available from a variety of lenders.`,
-  is_dealer: true,
+  is_business: true,
   business_hours: {
     monday: '8:00 AM - 5:00 PM',
     tuesday: '8:00 AM - 5:00 PM',
@@ -374,7 +374,7 @@ async function seedDealer() {
         zip_code: dealer.zip,
         about: dealer.about,
         business_hours: dealer.business_hours,
-        is_dealer: true,
+        is_business: true,
       })
       .eq('id', dealerId);
 
@@ -417,7 +417,7 @@ async function seedDealer() {
         zip_code: dealer.zip,
         about: dealer.about,
         business_hours: dealer.business_hours,
-        is_dealer: true,
+        is_business: true,
       })
       .eq('id', dealerId);
 

@@ -68,6 +68,41 @@ const SORT_MAP: Record<string, string> = {
   created_at: 'created_at',
 };
 
+// Filters arriving in the URL used to be dropped entirely: the API request is
+// rebuilt from component state, so /search?make=Trail+King listed the whole
+// marketplace under an "All Listings" heading. The manufacturer page's two
+// primary CTAs produce exactly that link.
+function filtersFromParams(params: { get(name: string): string | null }): FilterValues {
+  const num = (key: string) => {
+    const raw = params.get(key);
+    if (!raw) return undefined;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : undefined;
+  };
+  const list = (key: string) => {
+    const raw = params.get(key);
+    if (!raw) return undefined;
+    const items = raw.split(',').map((v) => v.trim()).filter(Boolean);
+    return items.length > 0 ? items : undefined;
+  };
+
+  const seeded: FilterValues = {
+    priceMin: num('min_price'),
+    priceMax: num('max_price'),
+    yearMin: num('min_year'),
+    yearMax: num('max_year'),
+    mileageMax: num('max_mileage'),
+    makes: list('make'),
+    conditions: list('condition'),
+    states: list('state'),
+  };
+
+  // Drop empty keys so "any active filters?" checks stay accurate.
+  return Object.fromEntries(
+    Object.entries(seeded).filter(([, value]) => value !== undefined)
+  ) as FilterValues;
+}
+
 function SearchPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -82,7 +117,10 @@ function SearchPageContent() {
 
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('grid');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [advancedFilters, setAdvancedFilters] = useState<FilterValues>({});
+  // Seeded once from the URL; user interaction owns it from then on.
+  const [advancedFilters, setAdvancedFilters] = useState<FilterValues>(() =>
+    filtersFromParams(searchParams)
+  );
   const [useInfiniteMode, setUseInfiniteMode] = useState(false);
 
   // Changing filters or sort restarts the result set, so a page > 1 from the

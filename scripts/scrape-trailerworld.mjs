@@ -93,7 +93,7 @@ async function getOrCreateDealer() {
       city: DEALER_INFO.city,
       state: DEALER_INFO.state,
       country: DEALER_INFO.country,
-      is_dealer: true,
+      is_business: true,
       is_verified: true,
     })
     .eq('id', userId);

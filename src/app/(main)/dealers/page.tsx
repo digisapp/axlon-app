@@ -55,10 +55,13 @@ export default async function DealersPage({ searchParams }: PageProps) {
       city,
       state,
       phone,
-      storefront_views
+      storefront_views,
+      business_status
     `)
     .eq('is_business', true)
     .not('slug', 'is', null)
+    // Suspended businesses must not appear in the public directory.
+    .not('is_suspended', 'is', true)
     .order('storefront_views', { ascending: false });
 
   // Apply search filter (sanitize to prevent filter injection)
@@ -76,19 +79,25 @@ export default async function DealersPage({ searchParams }: PageProps) {
 
   const { data: dealers } = await query;
 
-  // Get listing counts for each dealer
+  // Get listing counts for each dealer. PostgREST caps every response at 1,000
+  // rows regardless of the filter, so aggregating a bare select under-reported
+  // the badges; page through instead.
   const dealerIds = dealers?.map(d => d.id) || [];
-  const { data: listingCounts } = await supabase
-    .from('listings')
-    .select('user_id')
-    .in('user_id', dealerIds)
-    .eq('status', 'active');
-
-  // Count listings per dealer
   const countMap: Record<string, number> = {};
-  listingCounts?.forEach(l => {
-    countMap[l.user_id] = (countMap[l.user_id] || 0) + 1;
-  });
+  if (dealerIds.length > 0) {
+    for (let from = 0; ; from += 1000) {
+      const { data: batch } = await supabase
+        .from('listings')
+        .select('user_id')
+        .in('user_id', dealerIds)
+        .eq('status', 'active')
+        .is('deleted_at', null)
+        .range(from, from + 999);
+      if (!batch || batch.length === 0) break;
+      for (const l of batch) countMap[l.user_id] = (countMap[l.user_id] || 0) + 1;
+      if (batch.length < 1000) break;
+    }
+  }
 
   // Get unique states for filter
   const { data: statesData } = await supabase
@@ -96,6 +105,7 @@ export default async function DealersPage({ searchParams }: PageProps) {
     .select('state')
     .eq('is_business', true)
     .not('slug', 'is', null)
+    .not('is_suspended', 'is', true)
     .not('state', 'is', null);
 
   const states = [...new Set(statesData?.map(s => s.state).filter(Boolean))].sort();
@@ -219,7 +229,10 @@ export default async function DealersPage({ searchParams }: PageProps) {
                           <h3 className="font-semibold text-foreground truncate group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
                             {dealer.company_name || 'Business'}
                           </h3>
-                          <Shield className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                          {/* Only an actually-reviewed business gets the trust mark. */}
+                          {dealer.business_status === 'approved' && (
+                            <Shield className="w-4 h-4 text-amber-500 flex-shrink-0" aria-label="Verified business" />
+                          )}
                         </div>
                         {dealer.tagline && (
                           <p className="text-sm text-muted-foreground line-clamp-2">

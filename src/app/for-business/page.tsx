@@ -81,7 +81,7 @@ const stats = [
   { value: '24/7', label: 'AI Availability' },
   { value: '< 60s', label: 'Lead Response Time' },
   { value: '12mo', label: 'Transformation Program' },
-  { value: '10–20', label: 'Clients We Work With' },
+  { value: '10–15', label: 'Clients We Work With' },
 ];
 
 const audiences = [
@@ -204,7 +204,7 @@ export default function ForBusinessPage() {
               for heavy haul, crane & rigging, and equipment businesses.
             </p>
             <p className="text-sm text-amber-400 font-medium mb-8">
-              We work with a select group of 10–20 businesses &middot; Apply to see if you qualify
+              We work with a select group of 10–15 businesses &middot; Apply to see if you qualify
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -435,7 +435,7 @@ export default function ForBusinessPage() {
         <div className="max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
             <Clock className="w-3.5 h-3.5" />
-            Limited to 10–20 clients
+            Limited to 10–15 clients
           </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Ready to run your business with AI?

@@ -45,7 +45,7 @@ const dealer = {
   state: 'TX',
   zip: '78380',
   about: `J & B Pavelka, Inc. is a premier South Texas pre-owned truck and new/pre-owned trailer dealer since 1997. With locations in Robstown (Corpus Christi), Houston, and Burnet Texas, we offer a full line of Doonan, Manac CPS, Kalyn/Siebert, Talbert, Viking, Eager Beaver, Interstate, Holden, and Protrak trailers. We specialize in Heavy Haul, Oilfield, Wind Energy, Construction, and Railroad industries, with trailers ranging from 25 to 100 ton capacity. Our service department offers complete customization, laser alignments, DOT inspections, and more. We are members of the Used Truck Association (UTA), National Trailer Dealer Association (NTDA), SC&RA, and NATDA.`,
-  is_dealer: true,
+  is_business: true,
   locations: [
     { name: 'Robstown', address: '3205 Highway 44', city: 'Robstown', state: 'TX', zip: '78380', phone: '844-694-2368' },
     { name: 'Houston', address: '11113 Wallisville RD', city: 'Houston', state: 'TX', zip: '77013', phone: '844-759-6907' },
@@ -190,7 +190,7 @@ async function seedDealer(listings: ListingData[]) {
         state: dealer.state,
         zip_code: dealer.zip,
         about: dealer.about,
-        is_dealer: true,
+        is_business: true,
       })
       .eq('id', dealerId);
 
@@ -224,7 +224,7 @@ async function seedDealer(listings: ListingData[]) {
         state: dealer.state,
         zip_code: dealer.zip,
         about: dealer.about,
-        is_dealer: true,
+        is_business: true,
       })
       .eq('id', dealerId);
 

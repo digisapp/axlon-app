@@ -54,7 +54,7 @@ async function getOrCreateDealer(info) {
       phone: info.phone || '',
       city: info.city || '',
       state: info.state || '',
-      is_dealer: true,
+      is_business: true,
     }).eq('id', authUser.user.id);
 
     dealerCache.set(name, authUser.user.id);

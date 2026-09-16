@@ -93,7 +93,7 @@ async function getOrCreateDealer() {
       zip_code: DEALER_INFO.zip,
       website: DEALER_INFO.website,
       about: DEALER_INFO.about,
-      is_dealer: true,
+      is_business: true,
     }).eq('id', existing.id);
     return existing.id;
   }
@@ -119,7 +119,7 @@ async function getOrCreateDealer() {
     zip_code: DEALER_INFO.zip,
     website: DEALER_INFO.website,
     about: DEALER_INFO.about,
-    is_dealer: true,
+    is_business: true,
   }).eq('id', authUser.user.id);
 
   console.log('Created dealer:', DEALER_INFO.name);

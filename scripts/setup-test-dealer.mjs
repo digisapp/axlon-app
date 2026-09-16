@@ -64,7 +64,7 @@ async function setupTestDealer() {
       slug: 'demo-dealer',
       tagline: 'Quality trucks and trailers at competitive prices',
       about: 'Welcome to Demo Truck & Trailer! We\'ve been serving the trucking industry for over 20 years, providing quality new and used trucks, trailers, and heavy equipment. Our experienced sales team is here to help you find the right equipment for your needs.',
-      is_dealer: true,
+      is_business: true,
       phone: '(555) 123-4567',
       city: 'Houston',
       state: 'TX',

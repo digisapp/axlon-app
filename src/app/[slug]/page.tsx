@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import { PUBLIC_LISTING_COLUMNS } from '@/lib/listings/public-columns';
 import { getImageSrc } from '@/lib/utils';
@@ -180,21 +181,30 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
   // stripe_customer_id / tax_id / business_license / notification_settings).
   const { data: dealer } = await supabase
     .from('profiles')
-    .select('id, company_name, tagline, about, avatar_url, banner_url, email, phone, website, city, state, social_links, chat_enabled, chat_settings, storefront_views')
+    .select('id, company_name, tagline, about, avatar_url, banner_url, email, phone, website, city, state, social_links, chat_enabled, chat_settings, storefront_views, business_status')
     .eq('slug', slug)
     .eq('is_business', true)
+    // A suspended business must lose its public presence. Admin "suspend" only
+    // sets is_suspended, so without this the storefront kept serving their
+    // phone, email and inventory.
+    .not('is_suspended', 'is', true)
     .single();
 
   if (!dealer) {
     notFound();
   }
 
-  // Increment view count (fire and forget)
-  supabase
-    .from('profiles')
-    .update({ storefront_views: (dealer.storefront_views || 0) + 1 })
-    .eq('id', dealer.id)
-    .then(() => {});
+  // "Verified" has to mean reviewed. Both /get-started and the storefront claim
+  // flow set is_business without any review, so an unconditional badge told
+  // buyers every self-signup had been vetted.
+  const isVerified = dealer.business_status === 'approved';
+
+  // Increment view count (fire and forget). Atomic, and via the service role:
+  // as the visitor this UPDATE matched zero rows under the profiles policies,
+  // so the counter sat at 0 and the /dealers ordering was meaningless.
+  createAdminClient()
+    .rpc('increment_storefront_views', { p_profile_id: dealer.id })
+    .then(() => {}, () => {});
 
   // Fetch dealer's listings
   let listingsQuery = supabase
@@ -263,13 +273,16 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
   const { data: listingsData } = await listingsQuery;
   const listings = listingsData ?? [];
 
-  // Get unique categories from listings
-  const categorySet = new Set<string>();
+  // Get unique categories from listings. The slug has to come from the row —
+  // deriving it from the name ("Reefer / Refrigerated Trailers" →
+  // "reefer-/-refrigerated-trailers") never matched the real slug, so those
+  // pills always filtered down to "No listings found".
+  const categoryMap = new Map<string, { name: string; slug: string }>();
   listings?.forEach((listing) => {
     const cat = Array.isArray(listing.category) ? listing.category[0] : listing.category;
-    if (cat?.name) categorySet.add(cat.name);
+    if (cat?.name && cat?.slug) categoryMap.set(cat.slug, { name: cat.name, slug: cat.slug });
   });
-  const categories = Array.from(categorySet);
+  const categories = Array.from(categoryMap.values());
 
   // Filter by category if selected
   const filteredListings = category
@@ -373,10 +386,12 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                       <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
                         {dealer.company_name}
                       </h1>
-                      <Badge className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white border-0 px-2.5 py-0.5 text-xs shadow-sm">
-                        <CheckCircle2 className="w-3 h-3 mr-1" />
-                        Verified
-                      </Badge>
+                      {isVerified && (
+                        <Badge className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white border-0 px-2.5 py-0.5 text-xs shadow-sm">
+                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                          Verified
+                        </Badge>
+                      )}
                     </div>
 
                     {dealer.tagline && (
@@ -520,6 +535,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
             {/* Search */}
             <form className="flex-1 relative" action={`/${slug}`}>
               {/* Preserve other params */}
+              {category && <input type="hidden" name="category" value={category} />}
               {sort && <input type="hidden" name="sort" value={sort} />}
               {minPrice && <input type="hidden" name="minPrice" value={minPrice} />}
               {maxPrice && <input type="hidden" name="maxPrice" value={maxPrice} />}
@@ -570,15 +586,15 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
               </Badge>
             </Link>
             {categories.map((cat) => {
-              const catSlug = cat.toLowerCase().replace(/\s+/g, '-');
+              const catSlug = cat.slug;
               const count = listings?.filter((l) => {
                 const c = Array.isArray(l.category) ? l.category[0] : l.category;
-                return c?.name === cat;
+                return c?.slug === cat.slug;
               }).length;
               const isActive = category === catSlug;
               return (
                 <Link
-                  key={cat}
+                  key={cat.slug}
                   href={`/${slug}?category=${encodeURIComponent(catSlug)}${q ? `&q=${encodeURIComponent(q)}` : ''}${sort ? `&sort=${encodeURIComponent(sort)}` : ''}`}
                   className="flex-shrink-0 snap-start"
                 >
@@ -589,7 +605,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                         : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
                     }`}
                   >
-                    {cat} ({count})
+                    {cat.name} ({count})
                   </Badge>
                 </Link>
               );
@@ -693,7 +709,9 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { icon: Shield, label: 'Verified Business', desc: 'Trusted & vetted' },
+              isVerified
+                ? { icon: Shield, label: 'Verified Business', desc: 'Trusted & vetted' }
+                : { icon: Shield, label: 'Direct from Seller', desc: 'Contact them directly' },
               { icon: Award, label: 'Quality Inventory', desc: 'Inspected vehicles' },
               { icon: Clock, label: 'Fast Response', desc: 'Quick replies' },
               { icon: Sparkles, label: 'AI Powered', desc: '24/7 assistance' },

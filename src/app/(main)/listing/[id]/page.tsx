@@ -3,6 +3,7 @@ export const revalidate = 300;
 
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { PUBLIC_LISTING_COLUMNS } from '@/lib/listings/public-columns';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Metadata } from 'next';
@@ -239,7 +240,8 @@ export default async function ListingPage({ params }: PageProps) {
   const { data: listing, error } = await supabase
     .from('listings')
     .select(`
-      *,
+      ${PUBLIC_LISTING_COLUMNS},
+      source_dealer_id,
       category:categories!left(id, name, slug),
       images:listing_images!left(id, url, thumbnail_url, is_primary, sort_order, ai_analysis),
       user:profiles!listings_user_id_fkey(id, company_name, phone, email, avatar_url, is_business, created_at)
@@ -250,6 +252,11 @@ export default async function ListingPage({ params }: PageProps) {
   if (error || !listing) {
     notFound();
   }
+
+  // supabase-js types a resolved embed as an array, but these are many-to-one
+  // FKs that return a single row at runtime.
+  const category = Array.isArray(listing.category) ? listing.category[0] : listing.category;
+  const seller = Array.isArray(listing.user) ? listing.user[0] : listing.user;
 
   // Scraped inventory that no dealer has claimed yet: invite the dealer who
   // finds their own unit here to request a claim link (the link itself is
@@ -383,8 +390,8 @@ export default async function ListingPage({ params }: PageProps) {
           <Breadcrumbs
             items={[
               { label: 'Search', href: '/search' },
-              ...(listing.category?.name
-                ? [{ label: listing.category.name, href: `/search?category=${listing.category?.slug || ''}` }]
+              ...(category?.name
+                ? [{ label: category.name, href: `/search?category=${category?.slug || ''}` }]
                 : []),
               { label: listing.title },
             ]}
@@ -597,7 +604,7 @@ export default async function ListingPage({ params }: PageProps) {
             <div id="contact-seller" className="scroll-mt-20">
               <ContactSeller
                 listingId={id}
-                sellerId={listing.user?.id || ''}
+                sellerId={seller?.id || ''}
                 listingTitle={listing.title}
               />
             </div>
@@ -626,10 +633,10 @@ export default async function ListingPage({ params }: PageProps) {
             )}
 
             {/* AI Chat Widget */}
-            {listing.user?.id && listing.user?.is_business && (
+            {seller?.id && seller?.is_business && (
               <DealerAIChat
-                dealerId={listing.user.id}
-                dealerName={listing.user.company_name || 'Dealer'}
+                dealerId={seller.id}
+                dealerName={seller.company_name || 'Dealer'}
                 listingId={id}
                 listingTitle={listing.title}
               />
@@ -681,7 +688,7 @@ export default async function ListingPage({ params }: PageProps) {
       </div>
 
       {/* Fixed bottom contact bar - mobile/tablet only */}
-      <MobileContactCTA phone={listing.user?.phone || null} />
+      <MobileContactCTA phone={seller?.phone || null} />
     </div>
   );
 }

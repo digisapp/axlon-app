@@ -114,17 +114,22 @@ export async function GET(request: NextRequest) {
       listing_count: countMap.get(user.id) || 0,
     }));
 
-    // Get overall counts — single query + in-memory aggregation (avoids 3 round trips)
-    const { data: profileFlags } = await supabase
-      .from('profiles')
-      .select('is_business, is_suspended');
+    // Overall counts must be aggregated in Postgres: a bare select is capped at
+    // 1,000 rows by PostgREST, so counting the rows in JS silently saturated
+    // every stat card once the platform passed that many profiles.
+    const [
+      { count: totalUsersCount },
+      { count: totalBusinessesCount },
+      { count: suspendedUsersCount },
+    ] = await Promise.all([
+      supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_business', true),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_suspended', true),
+    ]);
 
-    let totalUsers = 0, totalBusinesses = 0, suspendedUsers = 0;
-    for (const p of profileFlags ?? []) {
-      totalUsers++;
-      if (p.is_business) totalBusinesses++;
-      if (p.is_suspended) suspendedUsers++;
-    }
+    const totalUsers = totalUsersCount ?? 0;
+    const totalBusinesses = totalBusinessesCount ?? 0;
+    const suspendedUsers = suspendedUsersCount ?? 0;
 
     return NextResponse.json({
       data: usersWithStats,

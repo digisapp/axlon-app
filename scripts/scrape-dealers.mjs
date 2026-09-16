@@ -386,7 +386,7 @@ async function getOrCreateDealer(name, email, phone, location) {
     company_name: name,
     phone,
     location,
-    is_dealer: true,
+    is_business: true,
   }).eq('id', authData.user.id);
 
   return authData.user.id;

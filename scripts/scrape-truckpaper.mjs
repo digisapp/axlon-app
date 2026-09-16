@@ -231,7 +231,7 @@ async function getOrCreateFallbackDealer() {
       .update({
         company_name: 'TruckPaper Listings',
         website: 'https://www.truckpaper.com',
-        is_dealer: true,
+        is_business: true,
       })
       .eq('id', authUser.user.id);
 

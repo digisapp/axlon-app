@@ -561,7 +561,7 @@ async function getOrCreateDealerProfile(
       company_name: name,
       phone,
       location,
-      is_dealer: true,
+      is_business: true,
     })
     .eq('id', authData.user.id);
 

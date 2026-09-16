@@ -52,16 +52,23 @@ export default async function CategoriesPage() {
     children: categories?.filter((c) => c.parent_id === parent.id) || [],
   }));
 
-  // Get listing counts per category
-  const { data: counts } = await supabase
-    .from('listings')
-    .select('category_id')
-    .eq('status', 'active');
-
-  const countMap = (counts || []).reduce((acc, listing) => {
-    acc[listing.category_id] = (acc[listing.category_id] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  // Get listing counts per category. PostgREST caps responses at 1,000 rows, so
+  // a single select silently under-counted every category once the marketplace
+  // passed that size; page through instead.
+  const countMap: Record<string, number> = {};
+  for (let from = 0; ; from += 1000) {
+    const { data: batch } = await supabase
+      .from('listings')
+      .select('category_id')
+      .eq('status', 'active')
+      .is('deleted_at', null)
+      .range(from, from + 999);
+    if (!batch || batch.length === 0) break;
+    for (const listing of batch) {
+      if (listing.category_id) countMap[listing.category_id] = (countMap[listing.category_id] || 0) + 1;
+    }
+    if (batch.length < 1000) break;
+  }
 
   const getCategoryCount = (categoryId: string, children?: Array<{ id: string }>) => {
     let count = countMap[categoryId] || 0;

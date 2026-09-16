@@ -27,7 +27,7 @@ const dealer = {
   state: 'MO',
   zip: '63088',
   about: `Blyth Trailer Sales is a class 8 semi trailer dealership located just outside of St. Louis, MO. We buy and sell trailers all over the United States and Canada. We offer a wide selection of flatbeds, drop decks, dry vans, lowboys, and much more from popular brands including Manac, Dorsey Trailer, and XL Specialized Trailers. We also offer competitive financing through BMO Harris, Hitachi, Wells Fargo, and more.`,
-  is_dealer: true,
+  is_business: true,
   avatar_url: null,
 };
 
@@ -297,7 +297,7 @@ async function seedDealer() {
         city: dealer.city,
         state: dealer.state,
         about: dealer.about,
-        is_dealer: true,
+        is_business: true,
       })
       .eq('id', dealerId);
 
@@ -338,7 +338,7 @@ async function seedDealer() {
         city: dealer.city,
         state: dealer.state,
         about: dealer.about,
-        is_dealer: true,
+        is_business: true,
       })
       .eq('id', dealerId);
 
