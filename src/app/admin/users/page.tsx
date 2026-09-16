@@ -97,9 +97,6 @@ export default function AdminUsersPage() {
         const data = await response.json();
         setUsers(data.data || []);
         setTotalPages(data.total_pages || 1);
-        // TODO: these stat cards are only as accurate as /api/admin/users, which still
-        // derives them from an unbounded `profiles.select('is_business, is_suspended')`
-        // (capped at 1,000 rows by Supabase). Fix needs count queries in that route.
         setStats(data.stats || { total_users: 0, total_businesses: 0, suspended_users: 0 });
       }
     } catch (error) {
