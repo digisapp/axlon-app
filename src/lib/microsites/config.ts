@@ -53,3 +53,27 @@ export const SITE_PREVIEW_PARAM = '__site';
 export function isPreviewAllowed(): boolean {
   return process.env.NODE_ENV !== 'production';
 }
+
+/**
+ * Whether a normalized host is safe to interpolate into a rewrite path.
+ *
+ * The proxy builds `/sites/<host><pathname>` and hands it to `new URL()`,
+ * which resolves `..` segments — so a forged `Host: ../../admin` would escape
+ * the /sites/ prefix and rewrite to an arbitrary internal route. Only a
+ * well-formed apex host may ever reach that template. Mirrors the
+ * microsites_domain_format CHECK in migration 075.
+ */
+export function isRewritableHost(host: string): boolean {
+  if (!host || host.length > 253) return false;
+  return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(host);
+}
+
+/**
+ * Header the proxy stamps on a microsite request so server components can
+ * tell they are rendering a microsite rather than the marketplace.
+ *
+ * It is trusted, so the proxy MUST delete any client-supplied copy on every
+ * path — otherwise anyone can set it and reach /sites/* under the marketplace
+ * domain, which is exactly what the guards exist to prevent.
+ */
+export const MICROSITE_HOST_HEADER = 'x-microsite-host';

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isAppHost, normalizeHost } from '@/lib/microsites/config';
+import { isAppHost, isRewritableHost, normalizeHost } from '@/lib/microsites/config';
 
 // This pair decides whether a request renders the marketplace or a microsite.
 // A false positive here 404s a lead-gen domain; a false negative routes
@@ -57,5 +57,40 @@ describe('isAppHost', () => {
     expect(isAppHost('notaxleyard.com')).toBe(false);
     expect(isAppHost('axleyard.com.evil.test')).toBe(false);
     expect(isAppHost('fakevercel.app')).toBe(false);
+  });
+});
+
+describe('isRewritableHost', () => {
+  // The proxy interpolates the host into `/sites/<host><pathname>` and hands
+  // that to new URL(), which resolves `..` segments. Anything that escapes the
+  // /sites/ prefix must be refused here or it rewrites to an internal route.
+  it('refuses hosts that would escape the /sites/ prefix', () => {
+    for (const evil of ['../../admin', '..', '.', 'a.com/../../admin', 'a.com/x', '/admin', 'a..b']) {
+      expect(isRewritableHost(evil)).toBe(false);
+    }
+    // Proof of the property itself, not just the predicate.
+    for (const evil of ['../../admin', '..', 'a.com/../../admin']) {
+      const escaped = new URL(`/sites/${evil}/x`, 'https://axleyard.com').pathname;
+      expect(escaped.startsWith('/sites/')).toBe(false);
+    }
+  });
+
+  it('refuses empty, over-long and non-dotted hosts', () => {
+    expect(isRewritableHost('')).toBe(false);
+    expect(isRewritableHost('localhost')).toBe(false);
+    expect(isRewritableHost(`${'a'.repeat(250)}.com`)).toBe(false);
+  });
+
+  it('accepts real apex hosts', () => {
+    for (const good of ['xltrailers.com', 'tag-trailers.co.uk', 'a1.example.io']) {
+      expect(isRewritableHost(good)).toBe(true);
+      expect(new URL(`/sites/${good}/x`, 'https://axleyard.com').pathname).toBe(`/sites/${good}/x`);
+    }
+  });
+
+  it('pairs with normalizeHost on every domain we own', () => {
+    for (const d of ['xltrailers.com', 'www.XLTrailers.com:443', 'tagtrailers.com', 'haletrailers.com']) {
+      expect(isRewritableHost(normalizeHost(d))).toBe(true);
+    }
   });
 });

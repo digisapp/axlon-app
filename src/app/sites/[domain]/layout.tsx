@@ -1,7 +1,7 @@
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { getMicrositeByHost, disclaimerFor } from '@/lib/microsites/resolve';
-import { isAppHost } from '@/lib/microsites/config';
+import { MICROSITE_HOST_HEADER, isAppHost } from '@/lib/microsites/config';
 import { MicrositeHeader } from '@/components/microsites/MicrositeHeader';
 import { MicrositeFooter } from '@/components/microsites/MicrositeFooter';
 import { MicrositeTracker } from '@/components/microsites/MicrositeTracker';
@@ -25,7 +25,7 @@ export default async function MicrositeLayout({
   // publish every microsite twice under axleyard.com — duplicate content
   // competing with the domain it was built for. Only the proxy rewrite (which
   // sets x-microsite-host) may reach these pages in production.
-  const viaProxy = headerList.get('x-microsite-host') !== null;
+  const viaProxy = headerList.get(MICROSITE_HOST_HEADER) !== null;
   if (!viaProxy && isAppHost(host) && process.env.NODE_ENV === 'production') {
     notFound();
   }

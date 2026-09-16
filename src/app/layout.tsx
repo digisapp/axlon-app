@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import { MICROSITE_HOST_HEADER } from "@/lib/microsites/config";
 import { Geist, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import { ThemeProvider } from "next-themes";
@@ -177,7 +178,7 @@ export default async function RootLayout({
   // chrome and must not show marketplace compare bars, nav or call buttons —
   // and must not carry Axleyard's Organization/WebSite JSON-LD, which would
   // tell search engines the wrong entity owns the domain.
-  const isMicrositeHost = headerList.get('x-microsite-host') !== null;
+  const isMicrositeHost = headerList.get(MICROSITE_HOST_HEADER) !== null;
   const isMarketplaceHost = !isAxlonHost && !isMicrositeHost;
 
   return (

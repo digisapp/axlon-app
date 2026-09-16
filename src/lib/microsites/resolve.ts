@@ -2,6 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { ManufacturerProduct } from '@/types';
+import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import { normalizeHost } from './config';
 
 export type MicrositeStatus = 'draft' | 'live' | 'paused';
@@ -63,7 +64,19 @@ export const getMicrositeByHost = cache(
       .maybeSingle();
 
     if (!data) return null;
-    const site = data as unknown as Microsite;
+
+    // PostgREST returns a many-to-one embed as an object, but the generated
+    // types allow an array. Normalize once here so every caller — the pages,
+    // the listing filter, the disclaimer — can read `site.manufacturer.name`
+    // without each repeating the check (and one of them forgetting to).
+    const row = data as unknown as Omit<Microsite, 'manufacturer'> & {
+      manufacturer?: Microsite['manufacturer'] | NonNullable<Microsite['manufacturer']>[];
+    };
+    const site: Microsite = {
+      ...row,
+      manufacturer: Array.isArray(row.manufacturer) ? (row.manufacturer[0] ?? null) : (row.manufacturer ?? null),
+    };
+
     // Only `live` sites are served. Pointing DNS at the app must not publish
     // a site whose copy nobody has reviewed.
     if (site.status !== 'live') return null;
@@ -163,8 +176,13 @@ export const getMicrositeListings = cache(
       .order('sort_order', { referencedTable: 'listing_images', ascending: true })
       .limit(limit);
 
-    const make = site.listing_make || site.manufacturer?.name;
-    if (make) query = query.ilike('make', `%${make}%`);
+    const rawMake = site.listing_make || site.manufacturer?.name;
+    if (rawMake) {
+      // Admin-entered, but a stray % or _ in a make name silently turns this
+      // into a much broader match than the admin asked for.
+      const make = sanitizeSearchFilter(rawMake).replace(/[%_]/g, (c) => `\\${c}`);
+      if (make) query = query.ilike('make', `%${make}%`);
+    }
 
     const { data, error } = await query;
     if (error || !data) return [];

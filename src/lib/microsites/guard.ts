@@ -1,6 +1,6 @@
 import 'server-only';
 import { headers } from 'next/headers';
-import { isAppHost } from './config';
+import { MICROSITE_HOST_HEADER, isAppHost } from './config';
 
 /**
  * True when a /sites/* request did NOT arrive through the proxy's host
@@ -13,7 +13,7 @@ import { isAppHost } from './config';
  */
 export async function isDirectAppHostRequest(): Promise<boolean> {
   const headerList = await headers();
-  if (headerList.get('x-microsite-host') !== null) return false;
+  if (headerList.get(MICROSITE_HOST_HEADER) !== null) return false;
   if (process.env.NODE_ENV !== 'production') return false;
   return isAppHost(headerList.get('host'));
 }

@@ -22,6 +22,19 @@ live in the database.
 `/api/*` and `/_next/*` are excluded from the rewrite, so the lead form, the
 CSRF endpoint and static assets work identically on every domain.
 
+Two things the proxy is strict about, both load-bearing:
+
+- **The host is validated before it is interpolated into a path.** The rewrite
+  builds `/sites/<host><pathname>` and hands it to `new URL()`, which resolves
+  `..` segments — so `Host: ../../admin` would otherwise escape the prefix and
+  rewrite to an internal route. `isRewritableHost()` refuses anything that is
+  not a well-formed apex host, and such a request falls through to the app.
+- **`x-microsite-host` is deleted from every inbound request.** Downstream code
+  treats that header as proof the proxy rewrote a microsite request; if a
+  client could set it, `curl -H 'x-microsite-host: x' axleyard.com/sites/...`
+  would walk straight past the app-host guards and serve a microsite under the
+  marketplace domain.
+
 ## Adding a domain
 
 1. **Vercel** → project → Settings → Domains → add the apex (`xltrailers.com`)
@@ -39,9 +52,15 @@ CSRF endpoint and static assets work identically on every domain.
    strips `www.` before matching and would never find such a row.
 4. Fill in Settings: manufacturer catalog, headline, accent colour, notify
    email. Leave the disclaimer blank to use the generated wording.
-5. Flip **status → live**. Until then the domain 404s and its `robots.txt`
-   returns `Disallow: /`, so pointing DNS early never publishes a half-built
-   page or gets a parked host indexed.
+5. Flip **status → live** *in the admin UI*, not in SQL. Pages are cached for
+   an hour (`revalidate = 3600`) and saving through `/admin/microsites` calls
+   `revalidatePath`, which busts that cache immediately. A status change made
+   directly in SQL does not, so a host someone already visited can keep
+   serving the old response for up to an hour.
+
+Until a site is live it redirects to axleyard.com and its `robots.txt` returns
+`Disallow: /`, so pointing DNS early never publishes a half-built page or gets
+a parked host indexed.
 
 ## What a site renders
 

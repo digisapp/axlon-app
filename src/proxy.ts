@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
-import { isAppHost, normalizeHost } from '@/lib/microsites/config';
+import { MICROSITE_HOST_HEADER, isAppHost, isRewritableHost, normalizeHost } from '@/lib/microsites/config';
 
 // Hosts that serve the standalone AXLON experience instead of the marketplace.
 const AXLON_HOSTS = new Set(['axlon.ai', 'www.axlon.ai']);
@@ -38,6 +38,7 @@ export async function proxy(request: NextRequest) {
     const { pathname, search } = request.nextUrl;
     if (pathname === '/' || pathname === '/ask') {
       const askHeaders = new Headers(request.headers);
+      askHeaders.delete(MICROSITE_HOST_HEADER);
       askHeaders.set('x-nonce', nonce);
       const rewrite = NextResponse.rewrite(new URL('/ask', request.url), {
         request: { headers: askHeaders },
@@ -56,26 +57,36 @@ export async function proxy(request: NextRequest) {
   // The DB lookup deliberately does NOT happen here: proxy runs on every
   // request at the edge, and a query per request would cost more than the
   // page render it precedes.
-  if (!isAppHost(host)) {
-    const siteHost = normalizeHost(host);
+  const siteHost = normalizeHost(host);
+
+  // `isRewritableHost` is the guard, not a formality: the template below goes
+  // through `new URL()`, which resolves `..` segments, so a forged
+  // `Host: ../../admin` would otherwise escape /sites/ and rewrite to an
+  // arbitrary internal route. A host that fails it falls through to the app.
+  if (!isAppHost(host) && isRewritableHost(siteHost)) {
     const { pathname, search } = request.nextUrl;
 
     // Don't wrap paths the app owns regardless of host.
     if (!pathname.startsWith('/sites/') && !pathname.startsWith('/_next') && !pathname.startsWith('/api/')) {
       const siteHeaders = new Headers(request.headers);
       siteHeaders.set('x-nonce', nonce);
-      siteHeaders.set('x-microsite-host', siteHost);
+      // set() replaces any client-supplied value.
+      siteHeaders.set(MICROSITE_HOST_HEADER, siteHost);
 
       const url = new URL(`/sites/${siteHost}${pathname === '/' ? '' : pathname}${search}`, request.url);
       const rewrite = NextResponse.rewrite(url, { request: { headers: siteHeaders } });
       rewrite.headers.set('Content-Security-Policy', buildCsp(nonce));
-      rewrite.headers.set('x-microsite-host', siteHost);
       return rewrite;
     }
   }
 
   // Inject nonce into request headers so server components can read it via headers()
   const requestHeaders = new Headers(request.headers);
+  // Everything downstream treats this header as proof the proxy rewrote a
+  // microsite request. Any copy that arrives from the client is a forgery —
+  // without this delete, `curl -H 'x-microsite-host: x' axleyard.com/sites/...`
+  // walks straight past the app-host guards.
+  requestHeaders.delete(MICROSITE_HOST_HEADER);
   requestHeaders.set('x-nonce', nonce);
   const noncedRequest = new NextRequest(request.nextUrl, {
     headers: requestHeaders,
