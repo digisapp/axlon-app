@@ -41,6 +41,29 @@ function parseEmailAddress(raw: string): { email: string; name: string | null } 
   return { name: null, email: raw.trim() };
 }
 
+/**
+ * Resend webhooks are ACCOUNT-wide, not domain-scoped, and this Resend account
+ * is shared with several unrelated projects. Without this filter every inbound
+ * email addressed to those other domains would be stored in the Axleyard inbox
+ * and the AI auto-reply could answer another business's customers as Axleyard.
+ */
+const INBOUND_DOMAINS = (process.env.INBOUND_EMAIL_DOMAINS || 'axlon.ai,axleyard.com')
+  .split(',')
+  .map((d) => d.trim().toLowerCase())
+  .filter(Boolean);
+
+function isOurRecipient(to: unknown): boolean {
+  const recipients = Array.isArray(to) ? to : typeof to === 'string' ? [to] : [];
+  return recipients.some((raw) => {
+    const address = parseEmailAddress(String(raw)).email.toLowerCase();
+    const at = address.lastIndexOf('@');
+    if (at === -1) return false;
+    const host = address.slice(at + 1);
+    // Match the domain itself and any subdomain (dealers.axlon.ai, send.axlon.ai).
+    return INBOUND_DOMAINS.some((domain) => host === domain || host.endsWith(`.${domain}`));
+  });
+}
+
 // ─── Spam Filtering ─────────────────────────────────────
 
 const SPAM_PATTERNS = [
@@ -290,6 +313,14 @@ export async function POST(request: NextRequest) {
 
     const { data } = event;
     const sender = parseEmailAddress(data.from || '');
+
+    // Not addressed to us: another project on this shared Resend account owns it.
+    if (!isOurRecipient(data.to)) {
+      logger.info('Inbound email ignored — recipient is not one of our domains', {
+        from: sender.email,
+      });
+      return NextResponse.json({ received: true, ignored: 'recipient_not_ours' });
+    }
 
     // Spam filter
     const spamCheck = isSpam(data.from || '', data.subject || '');
