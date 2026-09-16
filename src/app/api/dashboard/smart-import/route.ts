@@ -3,6 +3,7 @@ import { withAuth } from '@/lib/auth/with-auth';
 import { enforceFeature } from '@/lib/entitlements';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { parseXlsxSheet, UnsupportedFileError } from '@/lib/imports/excel';
 import {
   detectDataType,
   parseInventoryBatch,
@@ -91,30 +92,17 @@ async function extractContent(file: File, buffer: Buffer): Promise<{
   }
 
   // Excel
-  if (file.type.includes('spreadsheetml') || file.type.includes('ms-excel') || name.match(/\.xlsx?$/)) {
-    const XLSX = await import('xlsx');
-    const workbook = XLSX.read(buffer, { type: 'buffer' });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rawData = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '' });
-
-    if (rawData.length < 2) return { rows: [], headers: [], rawText: '', format: 'tabular' };
-
-    const headers = (rawData[0] as string[]).map(h => String(h).toLowerCase().trim());
-    const rows: Record<string, string>[] = [];
-
-    for (let i = 1; i < rawData.length; i++) {
-      const values = rawData[i] as string[];
-      const row: Record<string, string> = {};
-      let hasData = false;
-      headers.forEach((h, idx) => {
-        const val = String(values[idx] || '').trim();
-        row[h] = val;
-        if (val) hasData = true;
-      });
-      if (hasData) rows.push(row);
-    }
-
+  if (file.type.includes('spreadsheetml') || name.endsWith('.xlsx') || name.endsWith('.xlsm')) {
+    const { headers, rows } = await parseXlsxSheet(buffer, MAX_ROWS);
     return { rows, headers, rawText: '', format: 'tabular' };
+  }
+
+  // Legacy .xls (BIFF) is not readable by exceljs. Say so plainly instead of
+  // failing further down with an unrelated error.
+  if (file.type.includes('ms-excel') || name.endsWith('.xls')) {
+    throw new UnsupportedFileError(
+      'Legacy .xls files are not supported. Please re-save the file as .xlsx or CSV and upload it again.'
+    );
   }
 
   // PDF
@@ -173,7 +161,7 @@ export const POST = withAuth(async (request, { user, supabase }) => {
 
   // Validate MIME type (also check by extension as fallback)
   const ext = file.name.toLowerCase().split('.').pop();
-  const validExtensions = ['csv', 'xlsx', 'xls', 'pdf', 'txt', 'json', 'docx', 'md'];
+  const validExtensions = ['csv', 'xlsx', 'xlsm', 'pdf', 'txt', 'json', 'docx', 'md'];
   if (!ALLOWED_MIME_TYPES.includes(file.type) && !validExtensions.includes(ext || '')) {
     return NextResponse.json(
       { error: 'Supported formats: CSV, Excel, PDF, TXT, JSON, DOCX' },
@@ -181,9 +169,22 @@ export const POST = withAuth(async (request, { user, supabase }) => {
     );
   }
 
-  // Extract content
+  // Extract content. A malformed or unsupported upload is the user's to fix,
+  // so answer with 400 and the reason instead of an unhandled 500.
   const buffer = Buffer.from(await file.arrayBuffer());
-  const content = await extractContent(file, buffer);
+  let content: Awaited<ReturnType<typeof extractContent>>;
+  try {
+    content = await extractContent(file, buffer);
+  } catch (err) {
+    if (err instanceof UnsupportedFileError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+    logger.error('Smart import: could not read file', { name: file.name, type: file.type, err });
+    return NextResponse.json(
+      { error: 'That file could not be read. Please check it opens correctly, or try CSV.' },
+      { status: 400 },
+    );
+  }
 
   // Row limit for tabular data
   if (content.format === 'tabular' && content.rows.length > MAX_ROWS) {

@@ -323,7 +323,7 @@ export function SmartImportDropzone({ compact, onComplete }: SmartImportDropzone
           ref={fileInputRef}
           type="file"
           className="hidden"
-          accept=".csv,.xlsx,.xls,.pdf,.txt,.json,.docx,.md"
+          accept=".csv,.xlsx,.xlsm,.pdf,.txt,.json,.docx,.md"
           onChange={handleInputChange}
         />
         <div className="flex flex-col items-center text-center gap-3">
