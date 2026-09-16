@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isDirectAppHostRequest } from '@/lib/microsites/guard';
 import { getMicrositeByHost, getMicrositeProducts } from '@/lib/microsites/resolve';
 
 // The proxy rewrites https://<domain>/sitemap.xml to /sites/<domain>/sitemap.xml,
@@ -15,6 +16,12 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ domain: string }> }
 ) {
+  // Route handlers don't run the layout, so the app-host guard is repeated
+  // here. Without it these files are served under axleyard.com too.
+  if (await isDirectAppHostRequest()) {
+    return new NextResponse('Not found', { status: 404 });
+  }
+
   const { domain } = await params;
   const site = await getMicrositeByHost(domain);
   if (!site) return new NextResponse('Not found', { status: 404 });
