@@ -71,6 +71,31 @@ const emptyManufacturer = {
   feature_tier: 'free' as 'free' | 'featured' | 'premium',
 };
 
+/**
+ * next/image only whitelists *.supabase.co (next.config.ts), and a src it can't parse
+ * throws at render — so non-Supabase logos render unoptimized and junk values render nothing.
+ */
+function logoImageProps(url: string | null | undefined) {
+  if (!url) return null;
+  try {
+    const { protocol, hostname } = new URL(url);
+    if (protocol !== 'http:' && protocol !== 'https:') return null;
+    return { src: url, unoptimized: !hostname.endsWith('.supabase.co') };
+  } catch {
+    return null;
+  }
+}
+
+function validateLogoUrl(url: string) {
+  if (!url) return '';
+  try {
+    if (new URL(url).protocol !== 'https:') return 'Logo URL must start with https://';
+    return '';
+  } catch {
+    return 'Enter a valid URL (https://...)';
+  }
+}
+
 export default function AdminManufacturersPage() {
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,6 +108,7 @@ export default function AdminManufacturersPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState(emptyManufacturer);
   const [nameVariationsInput, setNameVariationsInput] = useState('');
+  const [logoUrlError, setLogoUrlError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -114,6 +140,7 @@ export default function AdminManufacturersPage() {
   const openAddDialog = () => {
     setFormData(emptyManufacturer);
     setNameVariationsInput('');
+    setLogoUrlError('');
     setIsEditing(false);
     setEditingId(null);
     setIsDialogOpen(true);
@@ -137,6 +164,7 @@ export default function AdminManufacturersPage() {
       feature_tier: manufacturer.feature_tier,
     });
     setNameVariationsInput(manufacturer.name_variations.join(', '));
+    setLogoUrlError(validateLogoUrl(manufacturer.logo_url || ''));
     setIsEditing(true);
     setEditingId(manufacturer.id);
     setIsDialogOpen(true);
@@ -145,6 +173,12 @@ export default function AdminManufacturersPage() {
   const handleSubmit = async () => {
     if (!formData.name || !formData.canonical_name) {
       alert('Name and canonical name are required');
+      return;
+    }
+
+    const logoError = validateLogoUrl(formData.logo_url);
+    if (logoError) {
+      setLogoUrlError(logoError);
       return;
     }
 
@@ -333,7 +367,9 @@ export default function AdminManufacturersPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {manufacturers.map((manufacturer) => (
+                {manufacturers.map((manufacturer) => {
+                  const logo = logoImageProps(manufacturer.logo_url);
+                  return (
                   <div
                     key={manufacturer.id}
                     className={`flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors ${
@@ -342,9 +378,10 @@ export default function AdminManufacturersPage() {
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
-                        {manufacturer.logo_url ? (
+                        {logo ? (
                           <Image
-                            src={manufacturer.logo_url}
+                            src={logo.src}
+                            unoptimized={logo.unoptimized}
                             alt={manufacturer.name}
                             width={48}
                             height={48}
@@ -425,7 +462,8 @@ export default function AdminManufacturersPage() {
                       </Button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -481,9 +519,16 @@ export default function AdminManufacturersPage() {
                 <label className="text-sm font-medium">Logo URL</label>
                 <Input
                   value={formData.logo_url}
-                  onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, logo_url: e.target.value });
+                    setLogoUrlError(validateLogoUrl(e.target.value));
+                  }}
                   placeholder="https://..."
+                  aria-invalid={!!logoUrlError}
                 />
+                {logoUrlError && (
+                  <p className="text-xs text-red-600 mt-1">{logoUrlError}</p>
+                )}
               </div>
             </div>
 
@@ -598,7 +643,7 @@ export default function AdminManufacturersPage() {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
+            <Button onClick={handleSubmit} disabled={isSubmitting || !!logoUrlError}>
               {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {isEditing ? 'Save Changes' : 'Add Manufacturer'}
             </Button>

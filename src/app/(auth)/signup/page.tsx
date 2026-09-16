@@ -129,7 +129,7 @@ export default function SignupPage() {
           <Link href="/" className="flex justify-center mb-4">
             <Image
               src="/images/axlonai-logo.png"
-              alt="AXLON AI"
+              alt="Axleyard"
               width={120}
               height={80}
               className="dark:brightness-110"

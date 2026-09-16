@@ -53,8 +53,6 @@ import {
   Key,
   Trash2,
   Edit,
-  Eye,
-  EyeOff,
 } from 'lucide-react';
 import { DealerVoiceAgent } from '@/types';
 import { toast } from 'sonner';
@@ -151,7 +149,6 @@ export default function VoiceAgentPage() {
   const [staffLoading, setStaffLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
-  const [showPin, setShowPin] = useState<string | null>(null);
   const [staffSaving, setStaffSaving] = useState(false);
 
   const [staffFormData, setStaffFormData] = useState({
@@ -1248,17 +1245,9 @@ export default function VoiceAgentPage() {
                             <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                               <span className="flex items-center gap-1">
                                 <Key className="w-3 h-3" />
-                                PIN: {showPin === member.id ? member.voice_pin : '••••'}
-                                <button
-                                  onClick={() => setShowPin(showPin === member.id ? null : member.id)}
-                                  className="hover:text-foreground"
-                                >
-                                  {showPin === member.id ? (
-                                    <EyeOff className="w-3 h-3" />
-                                  ) : (
-                                    <Eye className="w-3 h-3" />
-                                  )}
-                                </button>
+                                {/* The API masks voice_pin, so there is nothing to reveal —
+                                    reset the PIN instead of offering a fake eye toggle. */}
+                                PIN: {member.voice_pin}
                               </span>
                               {member.phone_number && (
                                 <span className="flex items-center gap-1">

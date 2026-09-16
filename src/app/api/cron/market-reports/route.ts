@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 import { sendEmail } from '@/lib/email/resend';
 import { generateMarketReport, buildMarketReportEmail } from '@/lib/ai/market-intelligence';
 import { verifyCronRequest } from '@/lib/security/cron-auth';
+import { filterDealersWithFeature } from '@/lib/entitlements-server';
 
 // Report generation runs xAI + email per dealer; give the run headroom.
 export const maxDuration = 300;
@@ -74,13 +75,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, reports: 0, message: 'No dealers pending a report this period' });
     }
 
+    // Market Intelligence is a paid feature: market_reports_enabled can stay set
+    // after a trial lapses to free, which would keep billing us for xAI + Resend.
+    const entitledDealers = await filterDealersWithFeature(
+      dealers.map((d) => d.dealer_id),
+      'marketIntel'
+    );
+
     let sent = 0;
     let failed = 0;
     let alreadySentCount = 0;
+    let notEntitled = 0;
 
     for (const dealer of dealers) {
       if (alreadySent.has(dealer.dealer_id)) {
         alreadySentCount++;
+        continue;
+      }
+      if (!entitledDealers.has(dealer.dealer_id)) {
+        notEntitled++;
         continue;
       }
       try {
@@ -136,6 +149,7 @@ export async function GET(request: NextRequest) {
       sent,
       failed,
       alreadySent: alreadySentCount,
+      notEntitled,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

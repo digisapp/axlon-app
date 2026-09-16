@@ -51,11 +51,14 @@ interface LeadKanbanProps {
   highlightStatus?: string;
 }
 
-const columns = [
+// 'lost' needs a column of its own — without it, leads marked lost disappeared
+// from the board entirely (while still being counted in the page header).
+const columns: { id: string; label: string; color: string; muted?: boolean }[] = [
   { id: 'new', label: 'New', color: 'bg-blue-500' },
   { id: 'contacted', label: 'Contacted', color: 'bg-yellow-500' },
   { id: 'qualified', label: 'Qualified', color: 'bg-purple-500' },
   { id: 'won', label: 'Won', color: 'bg-green-500' },
+  { id: 'lost', label: 'Lost', color: 'bg-muted-foreground', muted: true },
 ];
 
 export function LeadKanban({ leads: initialLeads, teamMembers = [], currentUserId, highlightStatus }: LeadKanbanProps) {
@@ -87,7 +90,9 @@ export function LeadKanban({ leads: initialLeads, teamMembers = [], currentUserI
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           notes,
-          follow_up_date: followUpDate ? new Date(followUpDate).toISOString() : null,
+          // Send the date as picked: new Date('2026-09-20').toISOString() is UTC
+          // midnight, which renders as the previous day west of UTC.
+          follow_up_date: followUpDate || null,
           follow_up_note: followUpNote || null,
           assigned_to: assignedTo || null,
         }),
@@ -113,11 +118,24 @@ export function LeadKanban({ leads: initialLeads, teamMembers = [], currentUserI
   };
 
   const updateLeadStatus = async (leadId: string, newStatus: string) => {
+    const previousStatus = leads.find(lead => lead.id === leadId)?.status;
+
     setLeads(prev =>
       prev.map(lead =>
         lead.id === leadId ? { ...lead, status: newStatus } : lead
       )
     );
+
+    // Roll back only this lead: resetting to initialLeads would also throw away
+    // every earlier move that did succeed.
+    const rollback = () => {
+      if (previousStatus === undefined) return;
+      setLeads(prev =>
+        prev.map(lead =>
+          lead.id === leadId ? { ...lead, status: previousStatus } : lead
+        )
+      );
+    };
 
     try {
       const response = await csrfFetch(`/api/dashboard/leads/${leadId}`, {
@@ -127,10 +145,12 @@ export function LeadKanban({ leads: initialLeads, teamMembers = [], currentUserI
       });
 
       if (!response.ok) {
-        setLeads(initialLeads);
+        rollback();
+        toast.error('Failed to move lead');
       }
     } catch (error) {
-      setLeads(initialLeads);
+      rollback();
+      toast.error('Failed to move lead');
     }
   };
 
@@ -139,9 +159,9 @@ export function LeadKanban({ leads: initialLeads, teamMembers = [], currentUserI
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {columns.map(column => (
-          <div key={column.id} className="space-y-3">
+          <div key={column.id} className={`space-y-3 ${column.muted ? 'opacity-70' : ''}`}>
             <div className="flex items-center gap-2 p-2">
               <div className={`w-3 h-3 rounded-full ${column.color}`} />
               <h3 className="font-semibold">{column.label}</h3>

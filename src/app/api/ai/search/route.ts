@@ -23,7 +23,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await parseSearchQuery(query);
+    // Anonymous endpoint (no session, so no CSRF cookie to check) — clamp the
+    // query so a huge body can't be turned into an expensive prompt.
+    const result = await parseSearchQuery(query.slice(0, 500));
 
     return NextResponse.json({ data: result });
   } catch (error) {

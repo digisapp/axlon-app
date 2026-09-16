@@ -1,6 +1,7 @@
 import { createXai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import { logger } from '@/lib/logger';
+import { escapeHtml } from '@/lib/utils/html-escape';
 
 function getXai() {
   if (!process.env.XAI_API_KEY) {
@@ -131,6 +132,8 @@ Return JSON: {"subject": "...", "body": "..."}`;
       model: xai('grok-4-1-fast-non-reasoning'),
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
+      maxOutputTokens: 800,
+      abortSignal: AbortSignal.timeout(30_000),
     });
 
     // Parse the AI response
@@ -161,12 +164,15 @@ function buildEmailHtml(opts: {
   body: string;
   listings: Array<{ id: string; title: string; price: number | null }>;
 }): string {
+  // The body is model-generated (and seeded with buyer/listing text), so it is
+  // escaped BEFORE any markup is added — only the linkification below may emit
+  // tags. Newlines become paragraphs so the formatting still survives.
   const bodyHtml = opts.body
     .split('\n')
     .map(line => {
       if (line.trim() === '') return '<br>';
       // Convert URLs to clickable links
-      const withLinks = line.replace(
+      const withLinks = escapeHtml(line).replace(
         /(https?:\/\/[^\s]+|axlon\.ai\/[^\s]+)/g,
         (url) => {
           const href = url.startsWith('http') ? url : `https://${url}`;
@@ -182,8 +188,8 @@ function buildEmailHtml(opts: {
         ${opts.listings.slice(0, 3).map(l => `
           <tr>
             <td style="padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px;">
-              <a href="https://axleyard.com/listing/${l.id}" style="color: #111; text-decoration: none; font-weight: 600;">
-                ${l.title}
+              <a href="https://axleyard.com/listing/${encodeURIComponent(l.id)}" style="color: #111; text-decoration: none; font-weight: 600;">
+                ${escapeHtml(l.title)}
               </a>
               <br>
               <span style="color: #059669; font-weight: 600;">${l.price ? '$' + l.price.toLocaleString() : 'Call for price'}</span>
@@ -198,7 +204,7 @@ function buildEmailHtml(opts: {
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1f2937; background: #ffffff;">
   <div style="border-bottom: 2px solid #111; padding-bottom: 12px; margin-bottom: 20px;">
-    <strong style="font-size: 16px;">${opts.dealerName}</strong>
+    <strong style="font-size: 16px;">${escapeHtml(opts.dealerName)}</strong>
     <span style="color: #6b7280; font-size: 13px; margin-left: 8px;">via AXLON</span>
   </div>
   <div style="font-size: 15px;">
@@ -206,7 +212,7 @@ function buildEmailHtml(opts: {
   </div>
   ${listingCards}
   <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #9ca3af;">
-    <p>Sent via <a href="https://axleyard.com" style="color: #6b7280;">AXLON</a> on behalf of ${opts.dealerName}</p>
+    <p>Sent via <a href="https://axleyard.com" style="color: #6b7280;">AXLON</a> on behalf of ${escapeHtml(opts.dealerName)}</p>
     <p><a href="https://axleyard.com/unsubscribe" style="color: #9ca3af;">Unsubscribe from these emails</a></p>
   </div>
 </body>

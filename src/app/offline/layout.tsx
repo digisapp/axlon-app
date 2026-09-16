@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Unsubscribe',
+  title: 'Offline',
   robots: { index: false, follow: false },
 };
 
-export default function UnsubscribeLayout({ children }: { children: React.ReactNode }) {
+export default function OfflineLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }

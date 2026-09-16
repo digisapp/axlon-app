@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -83,7 +83,12 @@ export default function AuditLogPage() {
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
 
+  // Changing a filter while on page > 1 fires two overlapping fetches (filter change +
+  // the page reset below); only the newest request is allowed to apply its response.
+  const requestId = useRef(0);
+
   const fetchLog = useCallback(async () => {
+    const id = ++requestId.current;
     setIsLoading(true);
     try {
       const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
@@ -107,13 +112,14 @@ export default function AuditLogPage() {
         );
       }
 
+      if (id !== requestId.current) return;
       setEntries(rows);
       setTotal(data.total || 0);
       setTotalPages(data.total_pages || 1);
     } catch (err) {
-      logger.error('Audit log fetch error', { error: err });
+      if (id === requestId.current) logger.error('Audit log fetch error', { error: err });
     } finally {
-      setIsLoading(false);
+      if (id === requestId.current) setIsLoading(false);
     }
   }, [page, actionFilter, targetFilter, search]);
 

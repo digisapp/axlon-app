@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getStripe, PRICING } from '@/lib/stripe/config';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
@@ -78,8 +79,11 @@ export async function POST(request: NextRequest) {
       });
       customerId = customer.id;
 
-      // Save customer ID to profile
-      await supabase
+      // Save customer ID to profile. Must be the service-role client: the
+      // protect_profile_privileged_columns trigger (migration 058) silently
+      // resets stripe_customer_id for non-admin writers, which otherwise makes
+      // every checkout mint a new Stripe customer and breaks the billing portal.
+      await createAdminClient()
         .from('profiles')
         .update({ stripe_customer_id: customerId })
         .eq('id', user.id);

@@ -63,8 +63,17 @@ export function DealsKanban({ initialDeals, onDealClick }: DealsKanbanProps) {
 
       toast.success(`Deal moved to ${columns.find((c) => c.id === newStatus)?.label || newStatus}`);
     } catch (error) {
-      // Revert on error
-      setDeals(initialDeals);
+      // Roll back only this deal: setDeals(initialDeals) would also undo every
+      // earlier move that did succeed.
+      setDeals((prev) => {
+        const reverted = { ...prev };
+        reverted[newStatus] = (reverted[newStatus] || []).filter((d) => d.id !== dealId);
+        reverted[currentStatus!] = [
+          currentDeal!,
+          ...(reverted[currentStatus!] || []).filter((d) => d.id !== dealId),
+        ];
+        return reverted;
+      });
       toast.error('Failed to update deal status');
     }
   };

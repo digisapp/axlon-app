@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { startVideoGeneration, getVideoResult } from '@/lib/ai/video';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { requireCsrf } from '@/lib/security/csrf';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,6 +29,11 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Cookie-authenticated mutation — needs the same CSRF guard as every other
+    // session-backed POST.
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
 
     const { listingId } = await request.json();
     if (!listingId) {

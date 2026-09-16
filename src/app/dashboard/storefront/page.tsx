@@ -43,6 +43,8 @@ export default function StorefrontSettingsPage() {
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  // Full notification_settings object as loaded — this page only owns 3 of its keys.
+  const [notificationSettings, setNotificationSettings] = useState<Record<string, unknown>>({});
 
   const [formData, setFormData] = useState({
     slug: '',
@@ -92,8 +94,14 @@ export default function StorefrontSettingsPage() {
       if (profile) {
         const socialLinks = profile.social_links || {};
         const chatSettings = profile.chat_settings || {};
-        const businessHours = profile.business_hours || formData.business_hours;
-        const notificationSettings = profile.notification_settings || {};
+        // The column default is '{}' (truthy), which would render an Hours editor
+        // with zero rows and no way to add a day — treat empty as "use defaults".
+        const savedHours = profile.business_hours as typeof formData.business_hours | null;
+        const businessHours = savedHours && Object.keys(savedHours).length > 0
+          ? savedHours
+          : formData.business_hours;
+        const loadedNotifications: Record<string, unknown> = profile.notification_settings || {};
+        setNotificationSettings(loadedNotifications);
 
         setFormData({
           slug: profile.slug || '',
@@ -112,9 +120,9 @@ export default function StorefrontSettingsPage() {
           social_facebook: socialLinks.facebook || '',
           social_instagram: socialLinks.instagram || '',
           business_hours: businessHours,
-          notify_new_chat: notificationSettings.new_chat !== false,
-          notify_new_lead: notificationSettings.new_lead !== false,
-          notify_new_message: notificationSettings.new_message !== false,
+          notify_new_chat: loadedNotifications.new_chat !== false,
+          notify_new_lead: loadedNotifications.new_lead !== false,
+          notify_new_message: loadedNotifications.new_message !== false,
         });
       }
 
@@ -231,7 +239,10 @@ export default function StorefrontSettingsPage() {
             instagram: formData.social_instagram || null,
           },
           business_hours: formData.business_hours,
+          // Merge, don't replace: the Settings page stores marketing/weekly_digest
+          // in the same JSON column and a bare object here would wipe them.
           notification_settings: {
+            ...notificationSettings,
             new_chat: formData.notify_new_chat,
             new_lead: formData.notify_new_lead,
             new_message: formData.notify_new_message,

@@ -27,7 +27,7 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/login');
+    redirect('/login?redirect=/dashboard');
   }
 
   // Get user profile
@@ -78,6 +78,7 @@ export default async function DashboardPage() {
     { count: aiDraftsThisMonth },
     { data: openLeadListings },
     { data: openDeals },
+    { data: voiceAgent },
   ] = await Promise.all([
     // Unread messages
     supabase
@@ -195,9 +196,10 @@ export default async function DashboardPage() {
       .order('created_at', { ascending: false })
       .limit(5),
     // Recent messages for activity feed
+    // messages has no sender_name column — embed the sender profile instead
     supabase
       .from('messages')
-      .select('id, sender_name, content, created_at, listing_id')
+      .select('id, content, created_at, listing_id, sender:profiles!messages_sender_id_fkey(company_name, email)')
       .eq('recipient_id', user.id)
       .order('created_at', { ascending: false })
       .limit(3),
@@ -239,6 +241,13 @@ export default async function DashboardPage() {
       .eq('dealer_id', user.id)
       .in('status', ['quote', 'negotiation', 'pending_approval'])
       .limit(500),
+    // Onboarding: the AI phone number lives on dealer_voice_agents
+    // (profiles has no voice_phone_number column)
+    supabase
+      .from('dealer_voice_agents')
+      .select('phone_number')
+      .eq('dealer_id', user.id)
+      .maybeSingle(),
   ]);
 
   // Trial status
@@ -283,39 +292,45 @@ export default async function DashboardPage() {
     lost: pipelineLost || 0,
   };
 
-  // Build activity feed
-  const activities: ActivityItem[] = [];
+  // Build activity feed. Keep each row's real timestamp: getTimeAgo() emits
+  // labels like "3h"/"2w+" that don't sort chronologically on their own.
+  const activities: { at: number; item: ActivityItem }[] = [];
 
   recentLeads?.forEach((lead) => {
-    const ago = getTimeAgo(new Date(lead.created_at));
     activities.push({
-      id: `lead-${lead.id}`,
-      type: lead.source === 'phone_call' ? 'call' : 'lead',
-      title: `New lead: ${lead.buyer_name}`,
-      description: lead.source === 'phone_call' ? 'Inbound phone call' : 'Submitted inquiry',
-      time: ago,
-      href: '/dashboard/leads',
+      at: new Date(lead.created_at).getTime(),
+      item: {
+        id: `lead-${lead.id}`,
+        type: lead.source === 'phone_call' ? 'call' : 'lead',
+        title: `New lead: ${lead.buyer_name}`,
+        description: lead.source === 'phone_call' ? 'Inbound phone call' : 'Submitted inquiry',
+        time: getTimeAgo(new Date(lead.created_at)),
+        href: '/dashboard/leads',
+      },
     });
   });
 
   recentMessages?.forEach((msg) => {
-    const ago = getTimeAgo(new Date(msg.created_at));
+    const sender = Array.isArray(msg.sender) ? msg.sender[0] : msg.sender;
+    const senderName = sender?.company_name || sender?.email?.split('@')[0] || 'Buyer';
     activities.push({
-      id: `msg-${msg.id}`,
-      type: 'message',
-      title: `Message from ${msg.sender_name || 'Buyer'}`,
-      description: msg.content?.slice(0, 60) || 'New message',
-      time: ago,
-      href: '/dashboard/messages',
+      at: new Date(msg.created_at).getTime(),
+      item: {
+        id: `msg-${msg.id}`,
+        type: 'message',
+        title: `Message from ${senderName}`,
+        description: msg.content?.slice(0, 60) || 'New message',
+        time: getTimeAgo(new Date(msg.created_at)),
+        href: '/dashboard/messages',
+      },
     });
   });
 
-  // Sort by most recent and take top 8
-  activities.sort((a, b) => {
-    const timeOrder = ['just now', '1m', '2m', '5m', '10m', '30m', '1h', '2h', '3h', '5h', '12h', '1d', '2d', '3d', '5d', '1w', '2w'];
-    return timeOrder.indexOf(a.time) - timeOrder.indexOf(b.time);
-  });
-  const feedActivities = activities.slice(0, 8);
+  // Most recent first, top 8
+  const feedActivities = activities
+    .sort((a, b) => b.at - a.at)
+    .slice(0, 8)
+    .map((row) => row.item);
 
   // Build AI insights
   const insights: { type: 'inventory' | 'lead' | 'market'; title: string; description: string; action: string; href: string }[] = [];
@@ -384,7 +399,7 @@ export default async function DashboardPage() {
       <OnboardingChecklist
         hasListings={totalListings > 0}
         hasImported={totalListings >= 3}
-        hasPhoneNumber={!!profile?.voice_phone_number}
+        hasPhoneNumber={!!voiceAgent?.phone_number}
         hasLeads={(newLeads || 0) > 0 || (pipeline.contacted || 0) > 0 || (pipeline.won || 0) > 0}
       />
 

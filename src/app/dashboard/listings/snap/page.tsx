@@ -178,14 +178,14 @@ export default function SnapListPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       toast.error('Please sign in');
-      router.push('/login');
+      router.push('/login?redirect=/dashboard/listings/snap');
       return;
     }
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       toast.error('Your session has expired. Please sign in again.');
-      router.push('/login');
+      router.push('/login?redirect=/dashboard/listings/snap');
       return;
     }
 
@@ -306,27 +306,40 @@ export default function SnapListPage() {
     setIsPublishing(true);
 
     try {
-      // Upload video if present
+      // Upload video if present.
+      // Bucket is `listing-videos` (migration 072): the `listings` bucket this
+      // used to target never existed, so every video upload 404'd, and
+      // `listing-images` rejects video mime types. A video failure is
+      // also no longer fatal — it previously rejected out of the whole
+      // publish, orphaning the photos and creating no listing at all.
       let videoUrl = '';
       if (videoFile) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          const ext = videoFile.name.split('.').pop() || 'mp4';
-          const fileName = `videos/snap-${Date.now()}.${ext}`;
-          const uploadUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/listings/${fileName}`;
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const { data: { user: videoUser } } = await supabase.auth.getUser();
+          if (session && videoUser) {
+            const ext = videoFile.name.split('.').pop() || 'mp4';
+            // First path segment must be the user id to satisfy the bucket's
+            // owner update/delete policies.
+            const fileName = `${videoUser.id}/snap-${Date.now()}.${ext}`;
+            const uploadUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/listing-videos/${fileName}`;
 
-          await new Promise<void>((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', uploadUrl, true);
-            xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
-            xhr.setRequestHeader('x-upsert', 'false');
-            xhr.onload = () => xhr.status < 300 ? resolve() : reject();
-            xhr.onerror = () => reject();
-            xhr.send(videoFile);
-          });
+            await new Promise<void>((resolve, reject) => {
+              const xhr = new XMLHttpRequest();
+              xhr.open('POST', uploadUrl, true);
+              xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
+              xhr.setRequestHeader('x-upsert', 'false');
+              xhr.onload = () => (xhr.status < 300 ? resolve() : reject(new Error(`Video upload failed (${xhr.status})`)));
+              xhr.onerror = () => reject(new Error('Video upload failed'));
+              xhr.send(videoFile);
+            });
 
-          const { data: urlData } = supabase.storage.from('listings').getPublicUrl(fileName);
-          videoUrl = urlData.publicUrl;
+            const { data: urlData } = supabase.storage.from('listing-videos').getPublicUrl(fileName);
+            videoUrl = urlData.publicUrl;
+          }
+        } catch (videoError) {
+          logger.error('Snap & List video upload failed', { videoError });
+          toast.error('The video could not be uploaded — publishing without it.');
         }
       }
 

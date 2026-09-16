@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { after } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getResend } from '@/lib/email/resend';
+import { suppressEmail } from '@/lib/email/suppression';
 import { classifyAndDraftReply, wrapInBrandedTemplate } from '@/lib/ai/email-classifier';
 import { logger } from '@/lib/logger';
 import { env } from '@/lib/env';
@@ -81,7 +82,7 @@ function isSpam(from: string, subject: string): { isSpam: boolean; reason?: stri
 
 // ─── Delivery Status Handler ────────────────────────────
 
-async function handleDeliveryStatus(type: string, emailId: string) {
+async function handleDeliveryStatus(type: string, emailId: string, recipients?: string[]) {
   const supabase = createAdminClient();
 
   const statusMap: Record<string, string> = {
@@ -95,10 +96,27 @@ async function handleDeliveryStatus(type: string, emailId: string) {
   const newStatus = statusMap[type];
   if (!newStatus) return;
 
-  await supabase
+  const { data: updated } = await supabase
     .from('emails')
     .update({ status: newStatus })
-    .eq('resend_id', emailId);
+    .eq('resend_id', emailId)
+    .select('to_email');
+
+  // A bounce or spam complaint must also stop future sends to that address —
+  // continuing to mail it is what burns the sending domain's reputation.
+  if (type === 'email.bounced' || type === 'email.complained') {
+    const reason = type === 'email.bounced' ? 'bounced' : 'complained';
+    const addresses = new Set<string>(
+      [
+        ...(updated || []).map((row) => row.to_email as string | null),
+        ...(recipients || []),
+      ].filter((addr): addr is string => Boolean(addr))
+    );
+
+    for (const address of addresses) {
+      await suppressEmail(address, reason);
+    }
+  }
 
   logger.info('Email delivery status updated', { emailId, status: newStatus });
 }
@@ -261,7 +279,7 @@ export async function POST(request: NextRequest) {
 
     // ─── Delivery Status Events ─────────────────────
     if (['email.delivered', 'email.bounced', 'email.complained', 'email.opened', 'email.clicked'].includes(event.type)) {
-      await handleDeliveryStatus(event.type, event.data.email_id);
+      await handleDeliveryStatus(event.type, event.data.email_id, event.data.to);
       return NextResponse.json({ received: true });
     }
 
@@ -284,10 +302,30 @@ export async function POST(request: NextRequest) {
     let htmlBody: string | null = null;
     let textBody: string | null = null;
 
+    const supabase = createAdminClient();
+
+    // Resend retries webhooks, and `emails.resend_id` is the inbound message's
+    // identity — re-processing would duplicate the email and re-run the AI
+    // classifier/auto-reply.
+    const { data: alreadyStored } = await supabase
+      .from('emails')
+      .select('id, thread_id')
+      .eq('resend_id', data.email_id)
+      .maybeSingle();
+
+    if (alreadyStored) {
+      logger.info('Inbound email already processed — skipping', { emailId: data.email_id });
+      return NextResponse.json({ received: true, duplicate: true, threadId: alreadyStored.thread_id });
+    }
+
     try {
-      const emailDetail = await resend.emails.get(data.email_id);
+      // Inbound mail bodies live behind the receiving API; emails.get() is the
+      // outbound-message endpoint and returns no html/text for inbound ids.
+      const emailDetail = resend.emails.receiving
+        ? await resend.emails.receiving.get(data.email_id)
+        : await resend.emails.get(data.email_id);
       if (emailDetail.data) {
-        // Resend SDK types don't expose html/text on GetEmailResponse — cast via record
+        // GetEmailResponse doesn't declare html/text — read them via a record cast
         const emailData = emailDetail.data as unknown as Record<string, unknown>;
         htmlBody = typeof emailData.html === 'string' ? emailData.html : null;
         textBody = typeof emailData.text === 'string' ? emailData.text : null;
@@ -295,8 +333,6 @@ export async function POST(request: NextRequest) {
     } catch (fetchErr) {
       logger.warn('Could not fetch email body from Resend API', { emailId: data.email_id, error: fetchErr });
     }
-
-    const supabase = createAdminClient();
 
     // ─── Thread Matching (3-tier) ─────────────────────
 

@@ -351,6 +351,9 @@ export async function parseSearchQuery(query: string): Promise<AISearchResult> {
     const { object } = await generateObject({
       model: xai('grok-4-1-fast-non-reasoning'),
       schema: searchResultSchema,
+      // Bound the call so a hung xAI request falls through to the regex fallback.
+      abortSignal: AbortSignal.timeout(30_000),
+      maxOutputTokens: 1024,
       prompt: `You are an AI assistant for AXLON AI, a marketplace for buying and selling trucks, trailers, and heavy equipment.
 
 Parse the following natural language search query and extract structured search filters.
@@ -420,6 +423,8 @@ export async function generateSearchSuggestions(partialQuery: string): Promise<s
       schema: z.object({
         suggestions: z.array(z.string()).max(5),
       }),
+      abortSignal: AbortSignal.timeout(30_000),
+      maxOutputTokens: 256,
       prompt: `You are helping users search for trucks, trailers, and heavy equipment on AXLON AI.
 
 Based on this partial search query, suggest 5 relevant completions:

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { generateListingDescription } from '@/lib/ai/vision';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { requireCsrf } from '@/lib/security/csrf';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,6 +25,10 @@ export async function POST(request: NextRequest) {
     if (!rateLimitResult.success) {
       return rateLimitResponse(rateLimitResult);
     }
+
+    // Cookie-authenticated, cost-bearing POST — guard it like other session routes.
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
 
     const body = await request.json();
     const imageUrls = Array.isArray(body.imageUrls) ? body.imageUrls.slice(0, 10) : [];

@@ -49,7 +49,7 @@ export async function exportComparePdf(listings: CompareListing[]) {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('AXLON AI', margin, 15);
+  doc.text('Axleyard', margin, 15);
 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
@@ -168,10 +168,10 @@ export async function exportComparePdf(listings: CompareListing[]) {
   doc.setTextColor(100, 100, 100);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text('AXLON AI - AI-Powered Truck & Equipment Marketplace', margin, pageHeight - 7);
+  doc.text('Axleyard - AI-Powered Truck & Equipment Marketplace', margin, pageHeight - 7);
   doc.text('https://axleyard.com', pageWidth - margin, pageHeight - 7, { align: 'right' });
 
   // Download the PDF
-  const filename = `axlonai-comparison-${new Date().toISOString().split('T')[0]}.pdf`;
+  const filename = `axleyard-comparison-${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(filename);
 }

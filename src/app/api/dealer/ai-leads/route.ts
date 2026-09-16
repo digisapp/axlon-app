@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { verifyInternalRequest } from '@/lib/security/internal-auth';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { withAuth } from '@/lib/auth/with-auth';
@@ -162,7 +162,10 @@ export async function POST(request: NextRequest) {
     }
     const { dealerId, leadId } = validatedNotification;
 
-    const supabase = await createClient();
+    // Service-role client: this is a server-to-server call with no user
+    // session, and dealer_ai_leads / dealer_ai_settings are owner-only under
+    // RLS — the anon client read nothing here, so the notification never sent.
+    const supabase = createAdminClient();
 
     // Get lead details
     const { data: lead } = await supabase

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { checkIsAdmin, logAdminAction } from '@/lib/admin/check-admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
@@ -7,6 +7,15 @@ import { validateBody, ValidationError, manufacturerSchema } from '@/lib/validat
 import { requireCsrf } from '@/lib/security/csrf';
 
 const updateManufacturerSchema = manufacturerSchema.partial();
+
+/** manufacturers.logo_url is rendered as an image src — only https is safe to store. */
+function isHttpsUrl(value: string): boolean {
+  try {
+    return new URL(value).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
 
 export async function GET(
   request: NextRequest,
@@ -29,7 +38,10 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const supabase = await createClient();
+    // manufacturers RLS: public SELECT is is_active = true only and writes are
+    // service_role only, so the admin console must use the admin client to read
+    // and edit deactivated makers. Admin is verified above.
+    const supabase = createAdminClient();
 
     const { data: manufacturer, error } = await supabase
       .from('manufacturers')
@@ -98,7 +110,11 @@ export async function PATCH(
       throw err;
     }
 
-    const supabase = await createClient();
+    if (validatedData.logo_url && !isHttpsUrl(validatedData.logo_url)) {
+      return NextResponse.json({ error: 'logo_url must be an https URL' }, { status: 400 });
+    }
+
+    const supabase = createAdminClient();
 
     // Get current manufacturer
     const { data: existing, error: fetchError } = await supabase
@@ -191,7 +207,7 @@ export async function DELETE(
     const csrfError = await requireCsrf(request);
     if (csrfError) return csrfError;
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Get manufacturer name for logging
     const { data: manufacturer, error: fetchError } = await supabase

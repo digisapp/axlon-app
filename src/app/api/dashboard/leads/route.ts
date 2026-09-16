@@ -34,7 +34,7 @@ export const GET = withAuth(async (request, { user, supabase }) => {
   return NextResponse.json(data);
 }, { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:dashboard-leads' } });
 
-export const POST = withAuth(async (request, { supabase }) => {
+export const POST = withAuth(async (request, { user, supabase }) => {
   const body = await request.json();
 
   let validatedData;
@@ -52,7 +52,6 @@ export const POST = withAuth(async (request, { supabase }) => {
 
   const {
     listing_id,
-    user_id,
     buyer_name,
     buyer_email,
     buyer_phone,
@@ -63,7 +62,9 @@ export const POST = withAuth(async (request, { supabase }) => {
     .from('leads')
     .insert({
       listing_id,
-      user_id,
+      // Owner is always the authenticated user — a body-supplied user_id let
+      // anyone create leads inside another account's dashboard.
+      user_id: user.id,
       buyer_name,
       buyer_email,
       buyer_phone,

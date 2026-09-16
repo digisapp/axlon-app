@@ -54,6 +54,8 @@ import {
   Copy,
   Eye,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
@@ -455,6 +457,35 @@ export default function AdminStaffPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Pagination — the API pages at 20, so without these only the first page was reachable */}
+        {pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Page {pagination.page} of {pagination.totalPages} — {pagination.total.toLocaleString()} staff members
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagination.page <= 1 || isLoading}
+                onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagination.page >= pagination.totalPages || isLoading}
+                onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+              >
+                Next
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
 
       {/* Unlock Dialog */}
       <Dialog open={actionDialog === 'unlock'} onOpenChange={() => setActionDialog(null)}>

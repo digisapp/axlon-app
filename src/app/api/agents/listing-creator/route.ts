@@ -5,6 +5,7 @@ import { matchToManufacturerProduct, formatSpecsForListing } from '@/lib/ai/spec
 import { estimatePrice } from '@/lib/ai/pricing';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
+import { requireCsrf } from '@/lib/security/csrf';
 
 interface Step {
   name: string;
@@ -37,13 +38,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
+    // Cookie-authenticated, cost-bearing POST — guard it like other session routes.
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
+
     const body = await request.json();
-    const { imageUrls, manualSpecs } = body as {
-      imageUrls: string[];
+    const { imageUrls: rawImageUrls, manualSpecs } = body as {
+      imageUrls: unknown;
       manualSpecs?: Record<string, string>;
     };
 
-    if (!imageUrls || imageUrls.length === 0) {
+    // Every URL here fans out into vision calls, so the shape and the count
+    // both have to be validated before anything is spent.
+    if (!Array.isArray(rawImageUrls) || !rawImageUrls.every((u): u is string => typeof u === 'string')) {
+      return NextResponse.json({ error: 'imageUrls must be an array of strings' }, { status: 400 });
+    }
+
+    const imageUrls = rawImageUrls.slice(0, 10);
+
+    if (imageUrls.length === 0) {
       return NextResponse.json({ error: 'At least one image URL is required' }, { status: 400 });
     }
 

@@ -109,7 +109,7 @@ export function Header() {
   ];
 
   const isMarketplaceActive = pathname.startsWith('/search') || pathname.startsWith('/new-trailers') || pathname.startsWith('/dealers') || pathname.startsWith('/categories');
-  const isForDealersActive = pathname === '/how-it-works' || pathname === '/voice' || pathname === '/pricing' || pathname === '/transform' || pathname === '/get-started';
+  const isForDealersActive = pathname === '/how-it-works' || pathname === '/voice' || pathname === '/for-business' || pathname === '/transform' || pathname === '/get-started';
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -221,13 +221,13 @@ export function Header() {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/pricing" className="flex items-center gap-3">
+                  <Link href="/for-business" className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                       <DollarSign className="w-4 h-4 text-primary" />
                     </div>
                     <div>
                       <p className="font-medium">Pricing</p>
-                      <p className="text-xs text-muted-foreground">Free to list — Platform from $499/mo</p>
+                      <p className="text-xs text-muted-foreground">Free to list — plans for dealers</p>
                     </div>
                   </Link>
                 </DropdownMenuItem>
@@ -461,10 +461,10 @@ export function Header() {
                       </span>
                     </Link>
                     <Link
-                      href="/pricing"
+                      href="/for-business"
                       onClick={() => setIsOpen(false)}
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                        pathname === '/pricing'
+                        pathname === '/for-business'
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-muted'
                       }`}

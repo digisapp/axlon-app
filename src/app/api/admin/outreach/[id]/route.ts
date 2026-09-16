@@ -81,6 +81,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
+
     const supabase = await createClient();
     const { id } = await params;
 

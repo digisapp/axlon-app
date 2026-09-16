@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, adminVoiceAgentUpdateSchema } from '@/lib/validations/api';
@@ -67,8 +68,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // dealer_voice_agents RLS is dealer-own only, so the session client would show
+    // (and write) just this admin's own row. Admin verified above.
+    const db = createAdminClient();
+
     // Get the voice agent
-    const { data: agent, error } = await supabase
+    const { data: agent, error } = await db
       .from('dealer_voice_agents')
       .select(`
         *,
@@ -84,12 +89,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Get call stats for this agent
-    const { count: totalCalls } = await supabase
+    const { count: totalCalls } = await db
       .from('call_logs')
       .select('*', { count: 'exact', head: true })
       .eq('dealer_voice_agent_id', id);
 
-    const { data: durationData } = await supabase
+    const { data: durationData } = await db
       .from('call_logs')
       .select('duration_seconds')
       .eq('dealer_voice_agent_id', id)
@@ -145,6 +150,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (!profile?.is_admin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
+
+    // dealer_voice_agents RLS is dealer-own only, so the session client would show
+    // (and write) just this admin's own row. Admin verified above.
+    const db = createAdminClient();
 
     const body = await request.json();
     let validatedData;
@@ -223,7 +235,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // Auto-set activated_at when activating
     if (validatedData.is_active === true) {
-      const { data: current } = await supabase
+      const { data: current } = await db
         .from('dealer_voice_agents')
         .select('activated_at')
         .eq('id', id)
@@ -239,7 +251,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Update voice agent
-    const { data: agent, error } = await supabase
+    const { data: agent, error } = await db
       .from('dealer_voice_agents')
       .update(updates)
       .eq('id', id)
@@ -298,8 +310,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const csrfError = await requireCsrf(request);
     if (csrfError) return csrfError;
 
+    // dealer_voice_agents RLS is dealer-own only, so the session client would show
+    // (and write) just this admin's own row. Admin verified above.
+    const db = createAdminClient();
+
     // Delete voice agent
-    const { error } = await supabase
+    const { error } = await db
       .from('dealer_voice_agents')
       .delete()
       .eq('id', id);

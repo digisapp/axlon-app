@@ -63,8 +63,9 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
   const body = await request.json();
   const { status } = body;
 
-  // Validate status value
-  const allowedStatuses = ['active', 'closed', 'archived'];
+  // Validate status value — must match the chat_conversations.status CHECK
+  // constraint (migration 006); 'archived' was accepted here but always 500'd.
+  const allowedStatuses = ['active', 'closed', 'converted'];
   if (!status || !allowedStatuses.includes(status)) {
     return NextResponse.json(
       { error: `Invalid status. Must be one of: ${allowedStatuses.join(', ')}` },

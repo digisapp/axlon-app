@@ -442,6 +442,19 @@ async function queryListings(query: string): Promise<{ listings: ListingResult[]
   const filters = extractEquipmentType(query);
   const q = query.toLowerCase();
 
+  // Resolve the category slug to an id up front: PostgREST does not filter parent
+  // rows on an embedded column of a left join (`.eq('category.slug', ...)` was a
+  // no-op), so "cheapest lowboy" returned listings of any category.
+  let categoryId: string | null = null;
+  if (filters.category) {
+    const { data: categoryData } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('slug', filters.category)
+      .single();
+    categoryId = categoryData?.id ?? null;
+  }
+
   let dbQuery = supabase
     .from('listings')
     .select(`
@@ -452,8 +465,8 @@ async function queryListings(query: string): Promise<{ listings: ListingResult[]
     .not('price', 'is', null);
 
   // Apply filters
-  if (filters.category) {
-    dbQuery = dbQuery.eq('category.slug', filters.category);
+  if (categoryId) {
+    dbQuery = dbQuery.eq('category_id', categoryId);
   }
   if (filters.make) {
     dbQuery = dbQuery.ilike('make', `%${filters.make}%`);
@@ -498,17 +511,8 @@ async function queryListings(query: string): Promise<{ listings: ListingResult[]
     .eq('status', 'active')
     .not('price', 'is', null);
 
-  if (filters.category) {
-    // Need to join for category filter in stats
-    const { data: categoryData } = await supabase
-      .from('categories')
-      .select('id')
-      .eq('slug', filters.category)
-      .single();
-
-    if (categoryData) {
-      statsQuery = statsQuery.eq('category_id', categoryData.id);
-    }
+  if (categoryId) {
+    statsQuery = statsQuery.eq('category_id', categoryId);
   }
 
   const { data: priceData } = await statsQuery;

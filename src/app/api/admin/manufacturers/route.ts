@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { checkIsAdmin, logAdminAction } from '@/lib/admin/check-admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import { validateBody, ValidationError, manufacturerSchema } from '@/lib/validations/api';
 import { requireCsrf } from '@/lib/security/csrf';
+
+/** manufacturers.logo_url is rendered as an image src — only https is safe to store. */
+function isHttpsUrl(value: string): boolean {
+  try {
+    return new URL(value).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,7 +41,10 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
 
-    const supabase = await createClient();
+    // manufacturers RLS only grants writes to service_role and public SELECT is
+    // limited to is_active = true, so the admin console needs the admin client to
+    // see (and later deactivate) inactive makers. Admin is verified above.
+    const supabase = createAdminClient();
 
     let query = supabase
       .from('manufacturers')
@@ -155,10 +167,15 @@ export async function POST(request: NextRequest) {
       feature_expires_at,
     } = validatedData;
 
+    if (logo_url && !isHttpsUrl(logo_url)) {
+      return NextResponse.json({ error: 'logo_url must be an https URL' }, { status: 400 });
+    }
+
     // Generate slug if not provided
     const finalSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-    const supabase = await createClient();
+    // Service-role client: manufacturers RLS allows writes to service_role only.
+    const supabase = createAdminClient();
 
     // Check for duplicate slug
     const { data: existing } = await supabase

@@ -7,6 +7,11 @@ import { logger } from '@/lib/logger';
 const TRANSLATION_CACHE_KEY = 'translate:';
 const TRANSLATION_TTL = 60 * 60 * 24; // 24 hours
 
+// Hard caps on what is sent to the model — a pathologically long listing
+// description would otherwise blow up token cost per translation call.
+const MAX_TITLE_CHARS = 300;
+const MAX_DESCRIPTION_CHARS = 4000;
+
 // Supported languages for translation
 export const SUPPORTED_LANGUAGES = [
   'en', 'es', 'fr', 'de', 'pt', 'zh', 'ja', 'ko', 'ar', 'ru',
@@ -82,6 +87,9 @@ export async function translateListing(
   }
 
   try {
+    const promptTitle = (listing.title || '').slice(0, MAX_TITLE_CHARS);
+    const promptDescription = (listing.description || '').slice(0, MAX_DESCRIPTION_CHARS);
+
     // Translate using Grok
     const { text } = await generateText({
       model: xai('grok-4-1-fast-non-reasoning'),
@@ -89,8 +97,8 @@ export async function translateListing(
 Keep it natural and professional. Preserve any technical terms, brand names, measurements, and numbers.
 Return ONLY a JSON object with "title" and "description" keys, no other text.
 
-Title: ${listing.title}
-Description: ${listing.description || 'No description'}
+Title: ${promptTitle}
+Description: ${promptDescription || 'No description'}
 
 JSON output:`,
     });

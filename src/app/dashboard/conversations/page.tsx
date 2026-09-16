@@ -112,10 +112,17 @@ export default function ConversationsPage() {
     }
   };
 
+  // The API's `total` counts every conversation matching the current filter, so
+  // it is exact for that status only; the other two can only be derived from the
+  // rows on this page — label them that way instead of implying a full count.
   const stats = {
     total: totalConversations,
-    active: conversations.filter((c) => c.status === 'active').length,
-    converted: conversations.filter((c) => c.status === 'converted').length,
+    active: filter === 'active'
+      ? totalConversations
+      : conversations.filter((c) => c.status === 'active').length,
+    converted: filter === 'converted'
+      ? totalConversations
+      : conversations.filter((c) => c.status === 'converted').length,
   };
 
   return (
@@ -134,7 +141,9 @@ export default function ConversationsPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Chats</p>
+                <p className="text-sm text-muted-foreground">
+                  {filter === 'all' ? 'Total Chats' : 'Matching Chats'}
+                </p>
                 <p className="text-3xl font-bold">{stats.total}</p>
               </div>
               <MessageCircle className="w-10 h-10 text-muted-foreground/30" />
@@ -145,7 +154,9 @@ export default function ConversationsPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Active Now</p>
+                <p className="text-sm text-muted-foreground">
+                  {filter === 'active' ? 'Active Now' : 'Active Now (this page)'}
+                </p>
                 <p className="text-3xl font-bold text-green-600">{stats.active}</p>
               </div>
               <Bot className="w-10 h-10 text-green-500/30" />
@@ -156,7 +167,9 @@ export default function ConversationsPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Leads Captured</p>
+                <p className="text-sm text-muted-foreground">
+                  {filter === 'converted' ? 'Leads Captured' : 'Leads Captured (this page)'}
+                </p>
                 <p className="text-3xl font-bold text-blue-600">{stats.converted}</p>
               </div>
               <UserCheck className="w-10 h-10 text-blue-500/30" />

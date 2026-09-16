@@ -4,6 +4,13 @@ import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } f
 import { logger } from '@/lib/logger';
 import { PUBLIC_LISTING_COLUMNS } from '@/lib/listings/public-columns';
 
+/** A non-numeric ?limit / ?min_discount used to become NaN, which silently filtered every deal out. */
+function parseIntParam(value: string | null, fallback: number, min: number, max: number): number {
+  const n = Number.parseInt(value ?? '', 10);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+
 export async function GET(request: NextRequest) {
   const identifier = getClientIdentifier(request);
   const rateLimitResult = await checkRateLimit(identifier, {
@@ -19,8 +26,8 @@ export async function GET(request: NextRequest) {
 
   // Parse query parameters
   const category = searchParams.get('category');
-  const limit = parseInt(searchParams.get('limit') || '10');
-  const minDiscount = parseInt(searchParams.get('min_discount') || '5'); // Minimum % below market
+  const limit = parseIntParam(searchParams.get('limit'), 10, 1, 100);
+  const minDiscount = parseIntParam(searchParams.get('min_discount'), 5, 0, 100); // Minimum % below market
   const shuffle = searchParams.get('shuffle') === 'true'; // Randomize results
 
   // Build query for deals (price < ai_price_estimate)

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AdminListingCard } from '@/components/admin/AdminListingCard';
@@ -9,36 +10,77 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 const PAGE_SIZE = 50;
 const ALL_STATUSES = ['active', 'draft', 'sold', 'expired', 'deleted'] as const;
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 interface PageProps {
-  searchParams: Promise<{ page?: string; status?: string }>;
+  searchParams: Promise<{ page?: string; status?: string; user?: string }>;
 }
 
 export default async function AdminListingsPage({ searchParams }: PageProps) {
-  const { page: pageParam, status: statusFilter } = await searchParams;
-  const currentPage = Math.max(1, parseInt(pageParam || '1', 10));
+  const { page: pageParam, status: statusFilter, user: userParam } = await searchParams;
+  // `?page=abc` parses to NaN, which would reach .range(NaN, NaN) and error the query
+  const parsedPage = parseInt(pageParam || '1', 10);
+  const currentPage = Number.isNaN(parsedPage) ? 1 : Math.max(1, parsedPage);
   const offset = (currentPage - 1) * PAGE_SIZE;
+  // /admin/onboarding links here with ?user=<uuid> — ignore anything that isn't a uuid
+  const userFilter = userParam && UUID_RE.test(userParam) ? userParam : undefined;
 
   const supabase = await createClient();
 
-  // Single query for all status counts — replaces 4 separate COUNT queries
-  const { data: allStatuses } = await supabase
-    .from('listings')
-    .select('status, deleted_at');
-
-  const statusCounts: Record<string, number> = { active: 0, draft: 0, sold: 0, expired: 0, deleted: 0 };
-  let grandTotal = 0;
-  for (const row of allStatuses ?? []) {
-    grandTotal++;
-    if (row.deleted_at) {
-      statusCounts.deleted = (statusCounts.deleted || 0) + 1;
+  // Counts come from COUNT queries: a plain select is capped at 1,000 rows by Supabase,
+  // which silently under-counted every tab (and broke pagination) past 1k listings.
+  const statusCountQuery = (status: string) => {
+    let q = supabase.from('listings').select('*', { count: 'exact', head: true });
+    if (status === 'deleted') {
+      q = q.not('deleted_at', 'is', null);
     } else {
-      const s = row.status as keyof typeof statusCounts;
-      if (s in statusCounts) statusCounts[s]++;
+      q = q.eq('status', status).is('deleted_at', null);
     }
-  }
+    if (userFilter) q = q.eq('user_id', userFilter);
+    return q;
+  };
+
+  const allCountQuery = () => {
+    let q = supabase
+      .from('listings')
+      .select('*', { count: 'exact', head: true })
+      .is('deleted_at', null);
+    if (userFilter) q = q.eq('user_id', userFilter);
+    return q;
+  };
+
+  const [
+    { count: activeCount },
+    { count: draftCount },
+    { count: soldCount },
+    { count: expiredCount },
+    { count: deletedCount },
+    { count: nonDeletedCount },
+  ] = await Promise.all([
+    statusCountQuery('active'),
+    statusCountQuery('draft'),
+    statusCountQuery('sold'),
+    statusCountQuery('expired'),
+    statusCountQuery('deleted'),
+    allCountQuery(),
+  ]);
+
+  const statusCounts: Record<string, number> = {
+    active: activeCount ?? 0,
+    draft: draftCount ?? 0,
+    sold: soldCount ?? 0,
+    expired: expiredCount ?? 0,
+    deleted: deletedCount ?? 0,
+  };
+  const allTotal = nonDeletedCount ?? 0;
+
+  // listing_images RLS only exposes images for active or self-owned listings, so the
+  // Draft/Sold/Expired/Deleted tabs lose their thumbnails under the session client.
+  // This page is admin-only (proxy + admin layout both gate it), so read rows as service role.
+  const adminSupabase = createAdminClient();
 
   // Build paginated query
-  let query = supabase
+  let query = adminSupabase
     .from('listings')
     .select(`
       id, title, price, status, views_count, created_at, deleted_at, user_id,
@@ -55,21 +97,22 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
     // "All" tab — show non-deleted only (deleted has its own tab)
     query = query.is('deleted_at', null);
   }
+  if (userFilter) query = query.eq('user_id', userFilter);
 
   const { data: listings } = await query;
 
-  // Get total count for current filter (for pagination)
+  // Total count for current filter (for pagination)
   let filteredTotal: number;
   if (statusFilter === 'deleted') {
     filteredTotal = statusCounts.deleted;
   } else if (statusFilter) {
     filteredTotal = statusCounts[statusFilter] ?? 0;
   } else {
-    filteredTotal = grandTotal - statusCounts.deleted;
+    filteredTotal = allTotal;
   }
 
   // Resolve seller profiles in one query
-  const userIds = [...new Set(listings?.map((l) => l.user_id) || [])];
+  const userIds = [...new Set((listings ?? []).map((l) => l.user_id as string))];
   const { data: profiles } = userIds.length > 0
     ? await supabase
         .from('profiles')
@@ -105,6 +148,7 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
     const params = new URLSearchParams();
     if (p > 1) params.set('page', p.toString());
     if (s) params.set('status', s);
+    if (userFilter) params.set('user', userFilter);
     const qs = params.toString();
     return `/admin/listings${qs ? `?${qs}` : ''}`;
   };
@@ -121,7 +165,7 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
 
       {/* Status Filters */}
       <div className="flex flex-wrap gap-2">
-        <Link href="/admin/listings">
+        <Link href={buildHref(1)}>
           <Badge
             className={`cursor-pointer px-3 py-1 ${
               !statusFilter
@@ -129,7 +173,7 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
-            All ({(grandTotal - statusCounts.deleted).toLocaleString()})
+            All ({allTotal.toLocaleString()})
           </Badge>
         </Link>
         {ALL_STATUSES.map((s) => (

@@ -133,6 +133,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
+
     const body = await request.json();
     let validatedData;
     try {
@@ -154,9 +157,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       updates.locked_until = null;
       updates.failed_attempts = 0;
     } else if (validatedData.action === 'reset_pin') {
-      // Generate new PIN and hash it
+      // Generate new PIN and hash it. Only the hash is persisted — writing the
+      // plaintext alongside it defeats the hashing (and verify falls back to
+      // voice_pin whenever it is set).
       const newPin = generatePin();
-      updates.voice_pin = newPin;
+      updates.voice_pin = null;
       updates.pin_hash = hashPin(newPin, id);
       updates.failed_attempts = 0;
       updates.locked_until = null;

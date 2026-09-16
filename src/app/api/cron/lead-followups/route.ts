@@ -5,6 +5,7 @@ import { sendEmail } from '@/lib/email/resend';
 import { generateFollowUpEmail, type FollowUpContext } from '@/lib/ai/lead-nurture';
 import { escapeHtml, escapeAttribute } from '@/lib/utils/html-escape';
 import { verifyCronRequest } from '@/lib/security/cron-auth';
+import { filterDealersWithFeature } from '@/lib/entitlements-server';
 
 // Slow per-run work (queries + xAI generate + Resend). Give it Vercel's max.
 export const maxDuration = 300;
@@ -69,6 +70,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, processed: 0 });
     }
 
+    // The AI follow-up sequence is a paid feature: a dealer whose trial lapsed back
+    // to free must not keep generating xAI emails on our tab.
+    const entitledDealers = await filterDealersWithFeature(
+      pendingFollowups.map(f => f.dealer_id),
+      'aiAssistant'
+    );
+
     let sent = 0;
     let failed = 0;
     let skipped = 0;
@@ -91,6 +99,15 @@ export async function GET(request: NextRequest) {
 
         if (!claimed || claimed.length === 0) {
           // Another run already claimed it (or it changed status) — skip.
+          continue;
+        }
+
+        if (!entitledDealers.has(followup.dealer_id)) {
+          await supabase
+            .from('lead_followup_queue')
+            .update({ status: 'skipped' })
+            .eq('id', followup.id);
+          skipped++;
           continue;
         }
 
@@ -165,14 +182,21 @@ export async function GET(request: NextRequest) {
         // For steps 2+, find similar listings to suggest
         let similarListings: FollowUpContext['similarListings'] = [];
         if (followup.step >= 2 && followup.equipment_interest) {
-          const { data: similar } = await supabase
+          let similarQuery = supabase
             .from('listings')
             .select('id, title, price, year, make, model')
             .eq('user_id', followup.dealer_id)
             .eq('status', 'active')
-            .not('id', 'in', `(${(followup.listing_ids || []).join(',')})`)
-            .textSearch('title', followup.equipment_interest.split(' ').join(' | '), { type: 'websearch' })
-            .limit(3);
+            // websearch syntax uses the word "or", not ' | ' (which it ANDs), and an
+            // empty exclusion list produced a malformed `in.()` filter.
+            .textSearch('title', followup.equipment_interest.split(/\s+/).filter(Boolean).join(' or '), { type: 'websearch' });
+
+          const excludeIds = (followup.listing_ids || []).filter(Boolean);
+          if (excludeIds.length > 0) {
+            similarQuery = similarQuery.not('id', 'in', `(${excludeIds.join(',')})`);
+          }
+
+          const { data: similar } = await similarQuery.limit(3);
           if (similar) {
             similarListings = similar;
           }
@@ -205,6 +229,21 @@ export async function GET(request: NextRequest) {
           category: 'marketing',
         });
 
+        // sendEmail returns null when the buyer is on the suppression list — nothing
+        // was sent, so don't record it as 'sent' or tell the dealer we followed up.
+        if (!result) {
+          await supabase
+            .from('lead_followup_queue')
+            .update({ status: 'skipped' })
+            .eq('id', followup.id);
+          skipped++;
+          logger.info('Follow-up skipped: recipient suppressed', {
+            followupId: followup.id,
+            step: followup.step,
+          });
+          continue;
+        }
+
         // Mark as sent
         await supabase
           .from('lead_followup_queue')
@@ -213,7 +252,7 @@ export async function GET(request: NextRequest) {
             sent_at: new Date().toISOString(),
             email_subject: email.subject,
             email_html: email.html,
-            resend_email_id: result?.id || null,
+            resend_email_id: result.id || null,
           })
           .eq('id', followup.id);
 

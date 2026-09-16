@@ -151,6 +151,19 @@ export default function EditListingPage({ params }: PageProps) {
         .eq('id', id)
         .single();
 
+      // Don't render a prefilled editable form for a listing the visitor
+      // doesn't own (the API correctly 403s on save, but the form implied
+      // otherwise), and don't leave a blank form behind for a missing id.
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) {
+        router.push(`/login?redirect=/dashboard/listings/${id}/edit`);
+        return;
+      }
+      if (!listing || listing.user_id !== currentUser.id) {
+        router.push('/dashboard/listings');
+        return;
+      }
+
       if (listing) {
         setFormData({
           title: listing.title || '',
@@ -204,7 +217,7 @@ export default function EditListingPage({ params }: PageProps) {
     };
 
     fetchData();
-  }, [id, supabase]);
+  }, [id, supabase, router]);
 
   // Poll for AI video preview status
   useEffect(() => {

@@ -152,6 +152,10 @@ export async function calculateLeadScoreWithAI(params: {
     // Use Grok to analyze message sentiment and intent
     const { text } = await generateText({
       model: xai('grok-4-1-fast-non-reasoning'),
+      // Hard timeout: the lead INSERT happens after scoring, so a hung xAI request
+      // would drop the lead entirely.
+      abortSignal: AbortSignal.timeout(20_000),
+      maxOutputTokens: 300,
       prompt: `Analyze this buyer inquiry for a truck/equipment listing and respond with ONLY a JSON object:
 
 Listing: "${params.listingTitle || 'Equipment listing'}"

@@ -3,7 +3,7 @@ import { HowItWorksContent } from '@/components/how-it-works/HowItWorksContent';
 
 export const metadata: Metadata = {
   title: 'AI Platform for Equipment Businesses',
-  description: 'The AI operating system for equipment businesses. Sales assistant, CRM, voice agents, and automation — all in one platform. Starting at $399/mo.',
+  description: 'The AI operating system for equipment businesses. Sales assistant, CRM, voice agents, and automation — all in one platform.',
   alternates: {
     canonical: '/how-it-works',
   },
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'AI Platform for Equipment Businesses | Axleyard',
-    description: 'Sales assistant, CRM, voice agents, and automation — all in one platform. Starting at $399/mo.',
+    description: 'Sales assistant, CRM, voice agents, and automation — all in one platform.',
   },
 };
 

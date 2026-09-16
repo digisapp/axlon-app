@@ -5,6 +5,7 @@ import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } f
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, tradeInOfferSchema } from '@/lib/validations/api';
 import { requireCsrf } from '@/lib/security/csrf';
+import { escapeHtml } from '@/lib/utils/html-escape';
 
 export async function POST(
   request: NextRequest,
@@ -55,13 +56,26 @@ export async function POST(
       }
       throw err;
     }
-    const { offer_amount, message, email } = validatedData;
+    const { offer_amount, message } = validatedData;
+
+    // The recipient comes from the trade-in row, never from the request body —
+    // a body-supplied address would turn this into an open relay for
+    // AXLON-branded offer mail.
+    const { data: tradeIn } = await supabase
+      .from('trade_in_requests')
+      .select('contact_email')
+      .eq('id', id)
+      .single();
+
+    if (!tradeIn?.contact_email) {
+      return NextResponse.json({ error: 'Trade-in request not found' }, { status: 404 });
+    }
 
     // Send email
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'AXLON AI <noreply@axlon.ai>',
-      to: email,
+      to: tradeIn.contact_email,
       subject: 'Trade-In Offer from AXLON AI',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -71,7 +85,7 @@ export async function POST(
           <div style="padding: 30px; background: #ffffff;">
             <h2 style="color: #333; margin-bottom: 20px;">Trade-In Valuation</h2>
             <div style="white-space: pre-line; color: #555; line-height: 1.6;">
-              ${(message || '').replace(/\n/g, '<br/>')}
+              ${escapeHtml(message || '').replace(/\n/g, '<br/>')}
             </div>
             <div style="margin-top: 30px; padding: 20px; background: #f5f5f5; border-radius: 8px; text-align: center;">
               <p style="color: #666; margin-bottom: 10px;">Our Offer</p>

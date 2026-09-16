@@ -233,6 +233,9 @@ Return JSON: {"subject": "...", "body": "..."}`;
       model: xai('grok-4-1-fast-non-reasoning'),
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
+      // Bound the call so a hung xAI request can't stall the lead pipeline.
+      abortSignal: AbortSignal.timeout(30_000),
+      maxOutputTokens: 1500,
     });
 
     const cleaned = text.replace(/```json\n?|\n?```/g, '').trim();

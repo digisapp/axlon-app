@@ -73,7 +73,8 @@ export async function classifyAndDraftReply(email: {
   const truncatedBody = bodyContent.slice(0, 3000);
 
   const { text } = await generateText({
-    model: xai('grok-3-mini-fast'),
+    // grok-3-mini-fast is retired; use the same model id as the other AI libs.
+    model: xai('grok-4-1-fast-non-reasoning'),
     system: `You are the AI email assistant for AXLON — a heavy haul trailer and semi truck marketplace (axleyard.com). You classify inbound emails and draft professional replies.
 
 AXLON helps dealers list and sell lowboy trailers, flatbeds, step decks, semi trucks, and other heavy haul equipment. Services include: equipment listings, AI-powered search, dealer storefronts, financing tools, trade-in valuations, and transport coordination.
@@ -105,6 +106,8 @@ BODY:
 ${truncatedBody}`,
     temperature: 0.3,
     maxOutputTokens: 1500,
+    // Bound the call — a hung xAI request would stall inbound email processing.
+    abortSignal: AbortSignal.timeout(30_000),
   });
 
   try {

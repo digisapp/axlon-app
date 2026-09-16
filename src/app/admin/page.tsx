@@ -35,8 +35,9 @@ export default async function AdminDashboardPage() {
     { count: todayCalls },
   ] = await Promise.all([
     supabase.from('messages').select('*', { count: 'exact', head: true }),
-    supabase.from('listings').select('*', { count: 'exact', head: true }),
-    supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+    // deleted_at IS NULL so these match the /admin/listings tabs (soft-deleted rows excluded)
+    supabase.from('listings').select('*', { count: 'exact', head: true }).is('deleted_at', null),
+    supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'active').is('deleted_at', null),
     supabase.from('call_logs').select('*', { count: 'exact', head: true }),
     supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_business', true),
     supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('business_status', 'pending'),
@@ -44,7 +45,7 @@ export default async function AdminDashboardPage() {
     supabase.from('trade_in_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.rpc('get_total_views_count'),
     supabase.from('profiles').select('id, email, company_name, is_business, created_at').order('created_at', { ascending: false }).limit(5),
-    supabase.from('listings').select('id, title, status, created_at, user_id').order('created_at', { ascending: false }).limit(5),
+    supabase.from('listings').select('id, title, status, created_at, user_id').is('deleted_at', null).order('created_at', { ascending: false }).limit(5),
     supabase.from('leads').select('*', { count: 'exact', head: true }).gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
     supabase.from('call_logs').select('*', { count: 'exact', head: true }).gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
   ]);

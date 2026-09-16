@@ -176,19 +176,25 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Clear old alerts (older than 7 days or already dismissed)
+    // Clear stale alerts older than 7 days. Dismissed rows are deliberately KEPT as
+    // tombstones — they used to be deleted here and then re-inserted the next morning
+    // for any condition that persists (aging inventory, an upcoming curtailment), so
+    // a dismissal never stuck.
     await supabase
       .from('floor_plan_alerts')
       .delete()
-      .or(`is_dismissed.eq.true,created_at.lt.${new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()}`);
+      .eq('is_dismissed', false)
+      .lt('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
 
     // Insert new alerts, deduplicating by (floor_plan_id, alert_type)
+    let alertsInserted = 0;
     if (alertsToCreate.length > 0) {
       // Build unique (floor_plan_id, alert_type) pairs for a single batch delete
       // instead of looping N individual DELETEs
       const fpIds = [...new Set(alertsToCreate.map((a) => a.floor_plan_id).filter(Boolean))];
       const alertTypes = [...new Set(alertsToCreate.map((a) => a.alert_type))];
 
+      const dismissedKeys = new Set<string>();
       if (fpIds.length > 0) {
         await supabase
           .from('floor_plan_alerts')
@@ -196,14 +202,35 @@ export async function GET(request: NextRequest) {
           .in('floor_plan_id', fpIds)
           .in('alert_type', alertTypes)
           .eq('is_dismissed', false);
+
+        // Anything the dealer already dismissed for this unit + alert type stays
+        // dismissed rather than reappearing on the next run.
+        const { data: dismissed } = await supabase
+          .from('floor_plan_alerts')
+          .select('floor_plan_id, alert_type')
+          .in('floor_plan_id', fpIds)
+          .in('alert_type', alertTypes)
+          .eq('is_dismissed', true);
+
+        for (const row of dismissed || []) {
+          dismissedKeys.add(`${row.floor_plan_id}:${row.alert_type}`);
+        }
       }
 
-      const { error: insertError } = await supabase
-        .from('floor_plan_alerts')
-        .insert(alertsToCreate);
+      const newAlerts = alertsToCreate.filter(
+        (a) => !dismissedKeys.has(`${a.floor_plan_id}:${a.alert_type}`)
+      );
 
-      if (insertError) {
-        logger.error('Error inserting alerts', { error: insertError });
+      if (newAlerts.length > 0) {
+        const { error: insertError } = await supabase
+          .from('floor_plan_alerts')
+          .insert(newAlerts);
+
+        if (insertError) {
+          logger.error('Error inserting alerts', { error: insertError });
+        } else {
+          alertsInserted = newAlerts.length;
+        }
       }
     }
 
@@ -264,12 +291,27 @@ export async function GET(request: NextRequest) {
         .eq('is_dismissed', false);
     }
     if (creditAlertsToCreate.length > 0) {
-      await supabase.from('floor_plan_alerts').insert(creditAlertsToCreate);
+      // Same rule as above: a dismissed credit-limit warning isn't re-raised.
+      const { data: dismissedCredit } = await supabase
+        .from('floor_plan_alerts')
+        .select('dealer_id')
+        .in('dealer_id', creditAlertsToCreate.map((a) => a.dealer_id))
+        .eq('alert_type', 'credit_limit_warning')
+        .eq('is_dismissed', true);
+
+      const dismissedDealers = new Set((dismissedCredit || []).map((r) => r.dealer_id));
+      const newCreditAlerts = creditAlertsToCreate.filter(
+        (a) => !dismissedDealers.has(a.dealer_id)
+      );
+
+      if (newCreditAlerts.length > 0) {
+        await supabase.from('floor_plan_alerts').insert(newCreditAlerts);
+      }
     }
 
     return NextResponse.json({
       success: true,
-      alertsGenerated: alertsToCreate.length,
+      alertsGenerated: alertsInserted,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

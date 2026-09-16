@@ -41,7 +41,7 @@ export function VoiceContent() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button size="lg" className="rounded-full gap-2 bg-cyan-600 hover:bg-cyan-700" asChild>
-              <Link href="/get-started?plan=suite">
+              <Link href="/get-started">
                 Start 30-Day Free Trial
                 <ArrowRight className="w-4 h-4" />
               </Link>
@@ -296,13 +296,13 @@ export function VoiceContent() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="p-4 rounded-lg border text-center">
                   <p className="text-xs text-muted-foreground mb-1">Voice Agent add-on</p>
-                  <p className="text-2xl font-bold">$499<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-                  <p className="text-xs text-muted-foreground mt-1">+ Platform ($399/mo)</p>
+                  <p className="text-2xl font-bold">$299<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
+                  <p className="text-xs text-muted-foreground mt-1">+ Platform ($499/mo)</p>
                 </div>
                 <div className="p-4 rounded-lg border-2 border-emerald-500/30 bg-emerald-50/30 dark:bg-emerald-950/10 text-center">
                   <p className="text-xs text-emerald-600 font-medium mb-1">Best Value — AI Suite</p>
                   <p className="text-2xl font-bold text-emerald-600">$699<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-                  <p className="text-xs text-muted-foreground mt-1">Platform + Voice — save $199</p>
+                  <p className="text-xs text-muted-foreground mt-1">Platform + Voice — save $99</p>
                 </div>
               </div>
               <p className="text-xs text-center text-muted-foreground">
@@ -310,13 +310,13 @@ export function VoiceContent() {
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" size="lg" asChild>
-                  <Link href="/get-started?plan=suite">
+                  <Link href="/get-started">
                     Start Free Trial — AI Suite
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>
                 </Button>
                 <Button variant="outline" className="flex-1" size="lg" asChild>
-                  <Link href="/transform">
+                  <Link href="/for-business">
                     Compare Plans
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>

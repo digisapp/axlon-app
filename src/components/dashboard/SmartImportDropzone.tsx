@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { toListingCondition } from '@/lib/listing-condition';
 
 // Types matching the API response
 interface ParsedRow {
@@ -209,7 +210,9 @@ export function SmartImportDropzone({ compact, onComplete }: SmartImportDropzone
             title: row.title || `${row.year || ''} ${row.make || ''} ${row.model || ''}`.trim() || 'Untitled Listing',
             category: row.category || 'trailers',
             price: row.price || 0,
-            condition: row.condition || 'good',
+            // listings.condition only allows new|used|certified|salvage —
+            // 'good' (the old default) made the API reject most rows with a 400.
+            condition: toListingCondition(row.condition),
             year: row.year,
             make: row.make,
             model: row.model,

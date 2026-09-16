@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { cookies } from 'next/headers';
 import { recordViewBatch, isRedisConfigured } from '@/lib/cache';
 import { checkRateLimit, getClientIdentifier } from '@/lib/security/rate-limit';
@@ -102,7 +103,10 @@ export async function POST(
     } else {
       // Direct DB update as fallback
       try {
-        await supabase.rpc('increment_views', { listing_id: listingId });
+        // Service role: increment_views is no longer executable by anon or
+        // authenticated (migration 072), otherwise anyone could inflate the
+        // view counts that /api/listings sorts on.
+        await createAdminClient().rpc('increment_views', { listing_id: listingId });
       } catch {
         // Fallback if RPC doesn't exist - ignore errors
       }

@@ -64,7 +64,8 @@ export const POST = withAuth(async (request, { user, supabase }) => {
       role: validatedData.role || 'sales',
       phone_number: validatedData.phone_number || null,
       email: validatedData.email || null,
-      voice_pin: null,
+      // voice_pin is intentionally omitted — only the salted pin_hash is stored, and
+      // inserting an explicit null broke against the NOT NULL column.
       access_level: validatedData.access_level || 'standard',
       can_view_costs: validatedData.can_view_costs || false,
       can_view_margins: validatedData.can_view_margins || false,

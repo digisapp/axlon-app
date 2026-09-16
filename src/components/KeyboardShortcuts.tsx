@@ -17,12 +17,14 @@ interface ShortcutGroup {
   }[];
 }
 
+// Only list shortcuts that actually have a handler: the ⌘K quick search and the
+// S / C listing shortcuts were never implemented. Gallery keys live in
+// src/components/listings/ImageGallery.tsx, '?' is handled below.
 const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
-    title: 'Navigation',
+    title: 'General',
     shortcuts: [
-      { keys: ['⌘', 'K'], description: 'Open quick search' },
-      { keys: ['Esc'], description: 'Close dialogs / Go back' },
+      { keys: ['Esc'], description: 'Close dialogs' },
       { keys: ['?'], description: 'Show keyboard shortcuts' },
     ],
   },
@@ -33,14 +35,8 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ['→'], description: 'Next image' },
       { keys: ['+'], description: 'Zoom in' },
       { keys: ['-'], description: 'Zoom out' },
+      { keys: ['0'], description: 'Reset zoom' },
       { keys: ['Esc'], description: 'Close lightbox' },
-    ],
-  },
-  {
-    title: 'Listings',
-    shortcuts: [
-      { keys: ['S'], description: 'Save / Unsave listing' },
-      { keys: ['C'], description: 'Add to compare' },
     ],
   },
 ];

@@ -37,9 +37,17 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Environment variable, not shell interpolation: the input is
+          # reachable from the admin API, and `${{ }}` inside `run:` would let
+          # a crafted value execute commands on a runner holding these keys.
+          MANUFACTURER_INPUT: ${{ github.event.inputs.manufacturer }}
         run: |
-          if [ -n "${{ github.event.inputs.manufacturer }}" ]; then
-            node scripts/scrape-all-manufacturers.mjs --manufacturer="${{ github.event.inputs.manufacturer }}"
+          if [ -n "$MANUFACTURER_INPUT" ]; then
+            if ! printf '%s' "$MANUFACTURER_INPUT" | grep -Eq '^[a-z0-9-]{1,60}$'; then
+              echo "Invalid manufacturer slug: $MANUFACTURER_INPUT" >&2
+              exit 1
+            fi
+            node scripts/scrape-all-manufacturers.mjs --manufacturer="$MANUFACTURER_INPUT"
           else
             node scripts/scrape-all-manufacturers.mjs
           fi

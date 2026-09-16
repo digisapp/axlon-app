@@ -18,8 +18,8 @@ export default function SearchError({
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
       <div className="mb-4 text-5xl">&#128269;</div>
-      <h2 className="mb-2 text-2xl font-bold text-gray-900">Something went wrong</h2>
-      <p className="mb-6 max-w-md text-gray-600">
+      <h2 className="mb-2 text-2xl font-bold">Something went wrong</h2>
+      <p className="mb-6 max-w-md text-muted-foreground">
         We couldn&apos;t load search results. This might be a temporary issue — please try again.
       </p>
       <div className="flex gap-3">

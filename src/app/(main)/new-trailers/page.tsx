@@ -5,6 +5,8 @@ import { Truck, ChevronRight, ArrowLeft } from 'lucide-react';
 import { ProductCard } from '@/components/new-trailers/ProductCard';
 import type { ManufacturerProduct } from '@/types';
 import { jsonLdString } from '@/lib/seo/json-ld';
+import { Suspense } from 'react';
+import { CatalogSkeleton } from './CatalogSkeleton';
 
 // The full catalog is ~390 products; rendering every card on the index made
 // this a 2 MB page. Show a preview per manufacturer and link to the
@@ -91,8 +93,20 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   };
 }
 
+// A segment-level loading.tsx would also wrap /new-trailers/[manufacturer]/
+// [product] and stream a 200 shell before that page can call notFound(), so
+// missing products would index as soft-404s. Keep the skeleton, but as an
+// in-page boundary that only covers this index.
 export default async function NewTrailersPage({ searchParams }: PageProps) {
   const slug = slugOf((await searchParams).manufacturer);
+  return (
+    <Suspense fallback={<CatalogSkeleton />}>
+      <CatalogContent slug={slug} />
+    </Suspense>
+  );
+}
+
+async function CatalogContent({ slug }: { slug: string | null }) {
   const supabase = createSupabase();
 
   const manufacturers = await fetchManufacturers(slug);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { estimatePrice } from '@/lib/price-estimator';
 import {
   cacheGet,
@@ -297,6 +298,9 @@ export async function POST(request: NextRequest) {
       .insert({
         ...listingData,
         user_id: user.id,
+        // Stamp the publish time server-side; it was previously never set, so
+        // active listings shipped with a null published_at.
+        published_at: listingData.status === 'active' ? new Date().toISOString() : null,
       })
       .select()
       .single();
@@ -345,7 +349,9 @@ export async function POST(request: NextRequest) {
         });
 
         if (estimate.estimate !== null && estimate.confidence >= 0.3) {
-          await supabase
+          // Service role: ai_price_* are frozen against owner writes at the DB
+          // level (migration 072) so they can only come from this estimator.
+          await createAdminClient()
             .from('listings')
             .update({
               ai_price_estimate: estimate.estimate,

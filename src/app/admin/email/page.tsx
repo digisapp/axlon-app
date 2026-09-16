@@ -218,13 +218,18 @@ export default function AdminEmailPage() {
       status: activeTab === 'inbox' ? 'received' : 'open',
       ...(search && { search }),
     });
-    const response = await csrfFetch(`/api/emails?${params}`);
-    if (response.ok) {
+    // Without try/finally a rejected fetch left the spinner up forever
+    try {
+      const response = await csrfFetch(`/api/emails?${params}`);
+      if (!response.ok) throw new Error(`Request failed (${response.status})`);
       const result = await response.json();
       setThreads(result.data || []);
-      setPagination(result.pagination);
+      setPagination(result.pagination ?? { page, limit: 30, total: 0, totalPages: 0 });
+    } catch {
+      toast.error('Failed to load emails');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, [activeTab, searchQuery]);
 
   useEffect(() => { fetchThreads(1, searchQuery); }, [activeTab]); // eslint-disable-line
@@ -252,13 +257,23 @@ export default function AdminEmailPage() {
     setLoadingThread(true);
     setShowReply(false);
     setReplyText('');
-    const response = await csrfFetch(`/api/emails/${thread.id}`);
-    if (response.ok) {
+    try {
+      const response = await csrfFetch(`/api/emails/${thread.id}`);
+      if (!response.ok) {
+        // Drop the previous thread's messages — otherwise they render under this header
+        setThreadEmails([]);
+        toast.error('Failed to open conversation');
+        return;
+      }
       const { data } = await response.json();
-      setThreadEmails(data.emails);
+      setThreadEmails(data.emails || []);
       fetchThreads(pagination.page, searchQuery);
+    } catch {
+      setThreadEmails([]);
+      toast.error('Failed to open conversation');
+    } finally {
+      setLoadingThread(false);
     }
-    setLoadingThread(false);
   };
 
   // ─── Reply ────────────────────────────────────────
@@ -271,25 +286,30 @@ export default function AdminEmailPage() {
     const isRawHtml = !!htmlOverride;
     const html = isRawHtml ? content : `<p>${content.replace(/\n/g, '<br/>')}</p>`;
 
-    const response = await csrfFetch(`/api/emails/${selectedThread.id}/reply`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ html }),
-    });
+    try {
+      const response = await csrfFetch(`/api/emails/${selectedThread.id}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html }),
+      });
 
-    if (response.ok) {
-      setReplyText('');
-      setShowReply(false);
-      toast.success('Reply sent');
-      const refreshRes = await csrfFetch(`/api/emails/${selectedThread.id}`);
-      if (refreshRes.ok) {
-        const { data } = await refreshRes.json();
-        setThreadEmails(data.emails);
+      if (response.ok) {
+        setReplyText('');
+        setShowReply(false);
+        toast.success('Reply sent');
+        const refreshRes = await csrfFetch(`/api/emails/${selectedThread.id}`);
+        if (refreshRes.ok) {
+          const { data } = await refreshRes.json();
+          setThreadEmails(data.emails || []);
+        }
+      } else {
+        toast.error('Failed to send reply');
       }
-    } else {
+    } catch {
       toast.error('Failed to send reply');
+    } finally {
+      setSending(false);
     }
-    setSending(false);
   };
 
   // ─── Compose ──────────────────────────────────────
@@ -298,25 +318,30 @@ export default function AdminEmailPage() {
     e.preventDefault();
     setComposeSending(true);
     const fd = new FormData(e.currentTarget);
-    const response = await csrfFetch('/api/emails', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to: fd.get('to'),
-        toName: fd.get('toName'),
-        subject: fd.get('subject'),
-        html: `<p>${(fd.get('body') as string).replace(/\n/g, '<br/>')}</p>`,
-      }),
-    });
-    if (response.ok) {
-      setComposeOpen(false);
-      setActiveTab('sent');
-      fetchThreads(1, searchQuery);
-      toast.success('Email sent');
-    } else {
+    try {
+      const response = await csrfFetch('/api/emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: fd.get('to'),
+          toName: fd.get('toName'),
+          subject: fd.get('subject'),
+          html: `<p>${(fd.get('body') as string).replace(/\n/g, '<br/>')}</p>`,
+        }),
+      });
+      if (response.ok) {
+        setComposeOpen(false);
+        setActiveTab('sent');
+        fetchThreads(1, searchQuery);
+        toast.success('Email sent');
+      } else {
+        toast.error('Failed to send email');
+      }
+    } catch {
       toast.error('Failed to send email');
+    } finally {
+      setComposeSending(false);
     }
-    setComposeSending(false);
   };
 
   // ─── Bulk Actions ─────────────────────────────────

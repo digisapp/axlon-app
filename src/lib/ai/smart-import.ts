@@ -2,6 +2,7 @@ import { createXai } from '@ai-sdk/xai';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { toListingCondition } from '@/lib/listing-condition';
 
 // Lazy initialization to avoid build-time errors
 function getXai() {
@@ -233,7 +234,14 @@ Raw data:
 ${JSON.stringify(chunk, null, 2)}`,
     });
 
-    allParsed.push(...object.rows);
+    // The model grades condition as excellent/good/fair, but listings.condition
+    // only allows new|used|certified|salvage — normalize before anything posts it.
+    allParsed.push(
+      ...object.rows.map((row) => ({
+        ...row,
+        condition: row.condition ? toListingCondition(row.condition) : undefined,
+      }))
+    );
     if (object.unmappedColumns.length > 0) {
       unmappedColumns = object.unmappedColumns;
     }

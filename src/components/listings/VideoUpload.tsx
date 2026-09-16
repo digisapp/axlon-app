@@ -26,6 +26,10 @@ interface VideoUploadProps {
   listingId?: string;
 }
 
+// Walkaround videos have their own public bucket (migration 072).
+// `listing-images` caps uploads at 10 MB and image mime types only, and the
+// `listings` bucket these uploads originally targeted never existed.
+const VIDEO_BUCKET = 'listing-videos';
 const MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB (up from 100MB)
 const ALLOWED_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
 
@@ -67,15 +71,17 @@ export function VideoUpload({ value, onChange, listingId }: VideoUploadProps) {
     setUploadProgress(0);
 
     try {
-      const ext = file.name.split('.').pop() || 'mp4';
-      const fileName = `${listingId || 'temp'}-${Date.now()}.${ext}`;
-      const filePath = `videos/${fileName}`;
-
       // Get auth for XHR upload with progress
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const uploadUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/listings/${filePath}`;
+      const ext = file.name.split('.').pop() || 'mp4';
+      const fileName = `${listingId || 'temp'}-${Date.now()}.${ext}`;
+      // First path segment must be the user id to satisfy the bucket's
+      // policies key ownership off the first path segment (= the user's id).
+      const filePath = `${session.user.id}/videos/${fileName}`;
+
+      const uploadUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/${VIDEO_BUCKET}/${filePath}`;
 
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -100,7 +106,7 @@ export function VideoUpload({ value, onChange, listingId }: VideoUploadProps) {
       });
 
       const { data: urlData } = supabase.storage
-        .from('listings')
+        .from(VIDEO_BUCKET)
         .getPublicUrl(filePath);
 
       onChange(urlData.publicUrl);
@@ -124,9 +130,9 @@ export function VideoUpload({ value, onChange, listingId }: VideoUploadProps) {
   const handleRemove = async () => {
     if (previewUrl && previewUrl.includes('supabase')) {
       try {
-        const path = previewUrl.split('/listings/')[1];
+        const path = previewUrl.split(`/${VIDEO_BUCKET}/`)[1];
         if (path) {
-          await supabase.storage.from('listings').remove([path]);
+          await supabase.storage.from(VIDEO_BUCKET).remove([path]);
         }
       } catch (err) {
         logger.error('Delete error', { error: err });

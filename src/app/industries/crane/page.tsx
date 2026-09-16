@@ -104,7 +104,7 @@ export default function CranePage() {
                 <Link href="/get-started?industry=crane">Get Started Free</Link>
               </Button>
               <Button asChild variant="outline" size="lg">
-                <Link href="/search?category=crane">Browse Crane Equipment</Link>
+                <Link href="/search?category=cranes">Browse Crane Equipment</Link>
               </Button>
             </div>
           </div>
@@ -165,7 +165,7 @@ export default function CranePage() {
       {/* Footer */}
       <footer className="border-t py-8">
         <div className="max-w-6xl mx-auto px-4 flex items-center justify-between">
-          <Image src="/images/axlonai-logo.png" alt="AXLON AI" width={80} height={30} />
+          <Image src="/images/axlonai-logo.png" alt="Axleyard" width={80} height={30} />
           <div className="flex gap-4 text-sm text-muted-foreground">
             <Link href="/industries/transport" className="hover:text-foreground">Transport</Link>
             <Link href="/industries/rigging" className="hover:text-foreground">Rigging</Link>

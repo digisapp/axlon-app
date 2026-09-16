@@ -25,7 +25,7 @@ import {
 export const metadata: Metadata = {
   title: 'AI Transformation Program',
   description:
-    'We partner with 12–15 heavy haul and equipment companies per year. We embed directly into your operations, deploy custom AI systems, and integrate your inventory into the Axlon Marketplace.',
+    'We partner with 12–15 heavy haul and equipment companies per year. We embed directly into your operations, deploy custom AI systems, and integrate your inventory into the Axleyard marketplace.',
   alternates: { canonical: '/transform' },
   openGraph: {
     title: 'AI Transformation Program | Axleyard',
@@ -143,7 +143,7 @@ const phases = [
     borderColor: 'border-emerald-500',
     items: [
       'Full analytics dashboard and AI performance reporting',
-      'Complete Axlon Marketplace integration — we handle everything',
+      'Complete Axleyard marketplace integration — we handle everything',
       'AI-Ready Dealer Certification',
       'Custom AI systems built specifically for your niche',
     ],
@@ -152,10 +152,10 @@ const phases = [
 
 const certificationBenefits = [
   '"AI-Ready Certified" badge on every marketplace listing',
-  'Dedicated landing page on Axlon with SEO advantage',
+  'Dedicated landing page on Axleyard with SEO advantage',
   'Buyers can filter specifically for certified dealers',
-  'Priority placement in Axlon search results',
-  'Case study feature on Axlon marketing channels',
+  'Priority placement in Axleyard search results',
+  'Case study feature on Axleyard marketing channels',
 ];
 
 const results = [
@@ -185,7 +185,7 @@ export default function TransformPage() {
             <p className="text-slate-300 text-lg md:text-xl max-w-2xl mb-8 leading-relaxed">
               We partner with only 12–15 companies each year. We embed directly into your operations,
               deploy custom AI systems that eliminate waste and drive revenue, and integrate your
-              inventory into the Axlon Marketplace.
+              inventory into the Axleyard marketplace.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button size="lg" className="rounded-full gap-2 group" asChild>

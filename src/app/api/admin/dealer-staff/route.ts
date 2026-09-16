@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
@@ -34,6 +35,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // dealer_staff RLS is dealer-own only, so the session client would list just
+    // this admin's own staff. Admin verified above.
+    const db = createAdminClient();
+
     // Parse query params
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
@@ -45,7 +50,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Build query
-    let query = supabase
+    let query = db
       .from('dealer_staff')
       .select(`
         *,
@@ -84,7 +89,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get summary stats
-    const { data: allStaff } = await supabase
+    const { data: allStaff } = await db
       .from('dealer_staff')
       .select('is_active, locked_until');
 

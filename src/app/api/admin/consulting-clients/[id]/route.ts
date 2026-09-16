@@ -16,7 +16,7 @@ const patchSchema = z.object({
   contact_name: z.string().max(100).optional(),
   contact_email: z.string().email().optional(),
   contact_phone: z.string().max(30).nullable().optional(),
-}).passthrough();
+}).strict(); // the parsed object is spread straight into .update() — unknown keys must not reach the DB
 
 const milestoneSchema = z.object({
   milestone_id: z.string().uuid(),

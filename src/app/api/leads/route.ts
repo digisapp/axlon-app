@@ -67,27 +67,57 @@ export async function POST(request: NextRequest) {
       message,
     } = parseResult.data;
 
-    // Check if routing to AXLON AI (no seller specified)
-    const isAxlonAILead = !seller_id;
-
     // Get listing info for scoring
     let listingState: string | null = null;
     let listingTitle: string | null = null;
     let listingPrice: number | null = null;
     let sourceDealerId: string | null = null;
+    // The seller is NEVER taken from the request body — a caller-supplied
+    // seller_id would let anyone inject leads into another dealer's inbox and
+    // relay AXLON-branded email through their account. It is either derived
+    // from the listing's owner or validated as a real business profile below.
+    let sellerId: string | null = null;
+
     if (listing_id) {
       const { data: listing } = await supabase
         .from('listings')
-        .select('title, state, price, source_dealer_id')
+        .select('user_id, title, state, price, source_dealer_id')
         .eq('id', listing_id)
         .single();
-      if (listing) {
-        listingState = listing.state;
-        listingTitle = listing.title;
-        listingPrice = listing.price;
-        sourceDealerId = listing.source_dealer_id;
+
+      if (!listing) {
+        return NextResponse.json({ error: 'Listing not found' }, { status: 400 });
       }
+
+      listingState = listing.state;
+      listingTitle = listing.title;
+      listingPrice = listing.price;
+      sourceDealerId = listing.source_dealer_id;
+      sellerId = listing.user_id || null;
+
+      if (seller_id && seller_id !== sellerId) {
+        return NextResponse.json(
+          { error: 'seller_id does not match the listing owner' },
+          { status: 400 }
+        );
+      }
+    } else if (seller_id) {
+      // No listing to derive ownership from: only an existing business profile
+      // may be addressed directly.
+      const { data: sellerProfile } = await supabase
+        .from('profiles')
+        .select('id, is_business')
+        .eq('id', seller_id)
+        .maybeSingle();
+
+      if (!sellerProfile?.is_business) {
+        return NextResponse.json({ error: 'Invalid seller' }, { status: 400 });
+      }
+      sellerId = sellerProfile.id;
     }
+
+    // Routing to AXLON AI when no seller could be validated
+    const isAxlonAILead = !sellerId;
 
     // Calculate lead score with AI
     const { score, factors, priority } = await calculateLeadScoreWithAI({
@@ -103,7 +133,7 @@ export async function POST(request: NextRequest) {
       .from('leads')
       .insert({
         listing_id: listing_id || null,
-        user_id: seller_id || null, // null for AXLON AI leads
+        user_id: sellerId, // null for AXLON AI leads
         buyer_name,
         buyer_email,
         buyer_phone: buyer_phone || null,
@@ -150,11 +180,11 @@ export async function POST(request: NextRequest) {
       notificationEmail = AXLONAI_ADMIN_EMAIL;
       sellerCompanyName = 'AXLON AI';
       sellerEmail = AXLONAI_ADMIN_EMAIL;
-    } else if (seller_id) {
+    } else if (sellerId) {
       const { data: seller } = await supabase
         .from('profiles')
         .select('email, company_name, phone, city, state')
-        .eq('id', seller_id)
+        .eq('id', sellerId)
         .single();
       if (seller) {
         notificationEmail = seller.email || null;
@@ -169,7 +199,7 @@ export async function POST(request: NextRequest) {
       const { data: aiSettings } = await supabase
         .from('dealer_ai_settings')
         .select('specialties')
-        .eq('dealer_id', seller_id)
+        .eq('dealer_id', sellerId)
         .single();
       if (aiSettings?.specialties) {
         sellerSpecialties = aiSettings.specialties;
@@ -255,7 +285,7 @@ export async function POST(request: NextRequest) {
 
           // Always save to AI inbox for full audit trail
           await supabase.from('ai_inbox_items').insert({
-            dealer_id: seller_id,
+            dealer_id: sellerId,
             lead_id: lead.id,
             channel: 'form',
             from_name: buyer_name,

@@ -104,7 +104,9 @@ export function CreateDealSheet({
       const res = await csrfFetch('/api/dashboard/leads?status=qualified&limit=50');
       if (res.ok) {
         const data = await res.json();
-        setLeads(data.data || []);
+        // GET /api/dashboard/leads returns a bare array — `data.data` was always
+        // undefined, so the "From Lead" dropdown came back empty every time.
+        setLeads(Array.isArray(data) ? data : data.data ?? []);
       }
     } catch (error) {
       logger.error('Failed to fetch leads', { error });

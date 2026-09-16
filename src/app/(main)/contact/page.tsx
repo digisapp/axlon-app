@@ -108,10 +108,10 @@ export default async function ContactPage({ searchParams }: PageProps) {
                 <div>
                   <p className="text-sm font-medium">Email</p>
                   <a
-                    href="mailto:hello@axlon.ai"
+                    href="mailto:sales@axlon.ai"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    hello@axlon.ai
+                    sales@axlon.ai
                   </a>
                 </div>
               </div>

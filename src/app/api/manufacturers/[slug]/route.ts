@@ -3,6 +3,28 @@ import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 import { CATALOG_CACHE_HEADERS } from '@/lib/api/cache-headers';
 
+interface CategoryCount {
+  category_id: string;
+  name: string | null;
+  slug: string | null;
+  count: number;
+}
+
+interface CategoryCountRow {
+  category_id: string | null;
+  category: { name: string | null; slug: string | null } | { name: string | null; slug: string | null }[] | null;
+}
+
+/**
+ * `?limit=abc` used to parse to NaN and reach .range(NaN, NaN), which PostgREST
+ * rejects with a 500; an uncapped limit also let one request pull the whole table.
+ */
+function parseIntParam(value: string | null, fallback: number, min: number, max: number): number {
+  const n = Number.parseInt(value ?? '', 10);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ slug: string }> }
@@ -10,8 +32,8 @@ export async function GET(
   try {
     const { slug } = await params;
     const { searchParams } = new URL(request.url);
-    const listingsLimit = parseInt(searchParams.get('listings_limit') || '12');
-    const listingsOffset = parseInt(searchParams.get('listings_offset') || '0');
+    const listingsLimit = parseIntParam(searchParams.get('listings_limit'), 12, 1, 100);
+    const listingsOffset = parseIntParam(searchParams.get('listings_offset'), 0, 0, 100_000);
     const category = searchParams.get('category');
 
     const supabase = await createClient();
@@ -76,17 +98,41 @@ export async function GET(
       logger.error('Error fetching listings', { listingsError });
     }
 
-    // Get listing count by category for this manufacturer
-    const { data: categoryCounts } = await supabase
-      .rpc('get_manufacturer_category_counts', { make_name: manufacturer.canonical_name })
-      .select('*');
+    // Get listing count by category for this manufacturer. The
+    // get_manufacturer_category_counts RPC this used to call does not exist in any
+    // migration (PostgREST 404), so aggregate in JS from a capped row scan instead.
+    const { data: categoryRows } = await supabase
+      .from('listings')
+      .select('category_id, category:categories!left(name, slug)')
+      .ilike('make', manufacturer.canonical_name)
+      .eq('status', 'active')
+      .not('category_id', 'is', null)
+      .limit(1000);
+
+    const countsByCategory = new Map<string, CategoryCount>();
+    for (const row of (categoryRows || []) as CategoryCountRow[]) {
+      if (!row.category_id) continue;
+      const existing = countsByCategory.get(row.category_id);
+      if (existing) {
+        existing.count += 1;
+        continue;
+      }
+      const cat = Array.isArray(row.category) ? row.category[0] : row.category;
+      countsByCategory.set(row.category_id, {
+        category_id: row.category_id,
+        name: cat?.name ?? null,
+        slug: cat?.slug ?? null,
+        count: 1,
+      });
+    }
+    const categoryCounts = Array.from(countsByCategory.values()).sort((a, b) => b.count - a.count);
 
     return NextResponse.json(
       {
         data: manufacturer,
         listings: listings || [],
         listing_count: listingCount || 0,
-        category_counts: categoryCounts || [],
+        category_counts: categoryCounts,
       },
       { headers: CATALOG_CACHE_HEADERS }
     );

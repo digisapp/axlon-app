@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { checkIsAdmin } from '@/lib/admin/check-admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { logger } from '@/lib/logger';
+
+const ALLOWED_RANGES = [7, 30, 90, 365] as const;
+
+/** `?range=abc` used to reach setDate(NaN), making toISOString() throw a 500. */
+function parseRange(value: string | null): number {
+  const n = Number.parseInt(value ?? '', 10);
+  return (ALLOWED_RANGES as readonly number[]).includes(n) ? n : 30;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,12 +32,13 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const range = searchParams.get('range') || '30'; // days
 
-    const supabase = await createClient();
+    // Platform-wide counts: `messages` (and other) RLS scopes reads to the caller's
+    // own rows, so the session client under-reports every stat. Admin verified above.
+    const supabase = createAdminClient();
 
     // Calculate date range
-    const daysAgo = parseInt(range);
+    const daysAgo = parseRange(searchParams.get('range'));
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysAgo);
     const startDateStr = startDate.toISOString();

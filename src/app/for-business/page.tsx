@@ -181,7 +181,7 @@ export default function ForBusinessPage() {
         <div className="relative max-w-6xl mx-auto px-4 py-16 md:py-24">
           <div className="flex items-center justify-center mb-6">
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/images/axlonai-logo.png" alt="AXLON AI" width={36} height={36} className="w-9 h-9" />
+              <Image src="/images/axlonai-logo.png" alt="Axleyard" width={36} height={36} className="w-9 h-9" />
               <span className="font-bold text-lg text-white">Axleyard</span>
             </Link>
           </div>
@@ -463,7 +463,7 @@ export default function ForBusinessPage() {
       <footer className="py-8 px-4 border-t">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2">
-            <Image src="/images/axlonai-logo.png" alt="AXLON AI" width={20} height={20} className="w-5 h-5" />
+            <Image src="/images/axlonai-logo.png" alt="Axleyard" width={20} height={20} className="w-5 h-5" />
             <p className="text-xs text-muted-foreground">&copy; 2026 Axleyard. All rights reserved.</p>
           </div>
           <div className="flex gap-6">

@@ -2,6 +2,7 @@ import { createXai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 import { logger } from '@/lib/logger';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { escapeHtml } from '@/lib/utils/html-escape';
 
 function getSupabase() {
   return createAdminClient();
@@ -378,9 +379,11 @@ export function buildMarketReportEmail(report: MarketReport): { subject: string;
 
   const subject = `AXLON Market Report — ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} | ${report.dealer_name}`;
 
+  // Listing titles, the dealer name and the model-written analysis below are
+  // all dynamic text landing in dealer-branded mail — escape every one.
   const overpricedRows = stats.overpriced.map(l =>
     `<tr>
-      <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${l.title}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(l.title)}</td>
       <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">$${l.price.toLocaleString()}</td>
       <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">$${l.marketAvg.toLocaleString()}</td>
       <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #dc2626;">+${l.percentAbove}%</td>
@@ -394,7 +397,7 @@ export function buildMarketReportEmail(report: MarketReport): { subject: string;
 
   <div style="background: #111; color: #fff; padding: 20px; border-radius: 12px 12px 0 0;">
     <h1 style="margin: 0; font-size: 20px;">AXLON Market Report</h1>
-    <p style="margin: 4px 0 0; opacity: 0.7; font-size: 14px;">${report.dealer_name} · Week of ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+    <p style="margin: 4px 0 0; opacity: 0.7; font-size: 14px;">${escapeHtml(report.dealer_name)} · Week of ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
   </div>
 
   <div style="background: #fff; padding: 20px; border: 1px solid #e5e7eb; border-top: none;">
@@ -419,7 +422,7 @@ export function buildMarketReportEmail(report: MarketReport): { subject: string;
     <div style="margin-bottom: 24px;">
       <h2 style="font-size: 16px; margin: 0 0 12px;">Market Analysis</h2>
       <div style="font-size: 14px; line-height: 1.6; color: #374151;">
-        ${report.ai_insights.split('\n').map(p => `<p style="margin: 0 0 12px;">${p}</p>`).join('')}
+        ${report.ai_insights.split('\n').map(p => `<p style="margin: 0 0 12px;">${escapeHtml(p)}</p>`).join('')}
       </div>
     </div>
 
@@ -444,7 +447,7 @@ export function buildMarketReportEmail(report: MarketReport): { subject: string;
     <div style="background: #ecfdf5; border: 1px solid #059669; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
       <h3 style="font-size: 14px; margin: 0 0 8px; color: #059669;">Recommended Actions</h3>
       <ul style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.6;">
-        ${report.recommendations.map(r => `<li>${r}</li>`).join('')}
+        ${report.recommendations.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
       </ul>
     </div>
     ` : ''}

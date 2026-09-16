@@ -3,14 +3,25 @@ import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 import { CATALOG_CACHE_HEADERS } from '@/lib/api/cache-headers';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
+
+/**
+ * `?limit=abc` used to parse to NaN and reach .range(NaN, NaN), which PostgREST
+ * rejects with a 500; an uncapped limit also let one request pull the whole table.
+ */
+function parseIntParam(value: string | null, fallback: number, min: number, max: number): number {
+  const n = Number.parseInt(value ?? '', 10);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get('q') || '';
     const equipmentType = searchParams.get('equipment_type');
     const featuredOnly = searchParams.get('featured_only') === 'true';
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const limit = parseIntParam(searchParams.get('limit'), 50, 1, 100);
+    const offset = parseIntParam(searchParams.get('offset'), 0, 0, 100_000);
 
     const supabase = await createClient();
 

@@ -3,6 +3,10 @@ import { createClient } from '@/lib/supabase/server';
 import { checkIsAdmin } from '@/lib/admin/check-admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { buildClaimUrl } from '@/lib/claims/token';
+import { requireCsrf } from '@/lib/security/csrf';
+
+// Slug shape accepted by the scrape-dealers workflow input
+const DEALER_SLUG_REGEX = /^[a-z0-9-]{1,60}$/;
 
 /**
  * GET /api/admin/scrape-dealers — List dealer sources and their status
@@ -75,8 +79,16 @@ export async function POST(request: NextRequest) {
     const { isAdmin } = await checkIsAdmin();
     if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
 
+    const csrfError = await requireCsrf(request);
+    if (csrfError) return csrfError;
+
     const body = await request.json().catch(() => ({}));
-    const dealer = body.dealer || '';
+    // Forwarded verbatim as a GitHub workflow_dispatch input — restrict it to
+    // the slug shape the workflow expects. Empty/absent still means "all dealers".
+    const dealer = typeof body.dealer === 'string' ? body.dealer.trim() : '';
+    if (dealer && !DEALER_SLUG_REGEX.test(dealer)) {
+      return NextResponse.json({ error: 'Invalid dealer slug' }, { status: 400 });
+    }
 
     const githubToken = process.env.GITHUB_PAT;
     if (!githubToken) {

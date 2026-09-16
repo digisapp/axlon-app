@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
@@ -52,7 +53,13 @@ export async function POST(request: NextRequest) {
     // Get current user if logged in
     const { data: { user } } = await supabase.auth.getUser();
 
-    const { data, error } = await supabase
+    // Service-role insert: the submitter is usually anonymous and SELECT on
+    // contact_submissions is admin-only, so `INSERT ... RETURNING` (the
+    // .select() below) fails with 42501 under the session client and every
+    // public submission 500'd before the admin email went out. Input is already
+    // rate-limited, CSRF-checked and Zod-validated above (same as /api/trade-in).
+    const adminClient = createAdminClient();
+    const { data, error } = await adminClient
       .from('contact_submissions')
       .insert({
         name: validatedData.name,

@@ -74,16 +74,22 @@ const planSchema = z.object({
 
 // Bound the request body — an uncapped message/history drives unbounded
 // model token usage
+const MAX_HISTORY_MESSAGES = 20;
+const MAX_HISTORY_CONTENT = 4000;
+
 const requestSchema = z.object({
   message: z.string().min(1).max(2000),
   conversationHistory: z
     .array(
       z.object({
         role: z.enum(['user', 'assistant']),
-        content: z.string().max(4000),
+        // Truncate an over-long turn instead of rejecting the whole request.
+        content: z.string().transform(c => c.slice(0, MAX_HISTORY_CONTENT)),
       })
     )
-    .max(20)
+    // Accept a long transcript and trim to the most recent turns below; the old
+    // .max(20) here 400'd the widget after ~10 exchanges.
+    .max(200)
     .optional(),
 });
 
@@ -108,7 +114,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const { message, conversationHistory = [] } = parsed.data;
+    const { message, conversationHistory: history = [] } = parsed.data;
+    // Only the most recent turns are sent to the model, so token usage stays bounded.
+    const conversationHistory = history.slice(-MAX_HISTORY_MESSAGES);
 
     const xai = getXai();
 

@@ -3,6 +3,7 @@ import { withAuth } from '@/lib/auth/with-auth';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { uploadFileToCollection } from '@/lib/ai/collections';
 import { logger } from '@/lib/logger';
+import { enforceFeature } from '@/lib/entitlements';
 
 const ALLOWED_MIME_TYPES = [
   'application/pdf',
@@ -32,6 +33,10 @@ export const GET = withAuth(async (_request, { user, supabase }) => {
 
 // POST - Upload a document
 export const POST = withAuth(async (request, { user, supabase }) => {
+  // Same gate the other knowledge-base routes apply — uploads bill xAI collections.
+  const gateError = await enforceFeature(supabase, user.id, 'aiAssistant');
+  if (gateError) return gateError;
+
   // Get KB settings
   const { data: settings } = await supabase
     .from('dealer_ai_settings')

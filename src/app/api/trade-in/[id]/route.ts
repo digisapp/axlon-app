@@ -1,6 +1,29 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth/with-auth';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
+import { z } from 'zod';
+
+// Statuses the trade_in_requests table uses (migration 061; 'valued' comes from
+// the 011 base schema and is still set by the timestamp tracking below).
+const TRADE_IN_STATUSES = [
+  'pending',
+  'reviewing',
+  'contacted',
+  'valued',
+  'offered',
+  'accepted',
+  'rejected',
+  'completed',
+] as const;
+
+// Defined inline (not in lib/validations) so this route validates what it
+// actually writes: raw body fields were previously spread into .update().
+const tradeInPatchSchema = z.object({
+  status: z.enum(TRADE_IN_STATUSES).optional(),
+  estimated_value: z.number().nonnegative().nullable().optional(),
+  valuation_notes: z.string().max(5000).nullable().optional(),
+  assigned_dealer_id: z.string().uuid().nullable().optional(),
+});
 
 export const GET = withAuth(async (request, { user, supabase }) => {
   const url = new URL(request.url);
@@ -38,7 +61,7 @@ export const GET = withAuth(async (request, { user, supabase }) => {
 export const PATCH = withAuth(async (request, { user, supabase }) => {
   const url = new URL(request.url);
   const id = url.pathname.split('/').at(-1);
-  const body = await request.json();
+  const rawBody = await request.json();
 
   // Check if user is dealer/admin
   const { data: profile } = await supabase
@@ -50,6 +73,15 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
   if (!profile?.is_business && !profile?.is_admin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   }
+
+  const parsed = tradeInPatchSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', details: parsed.error.issues },
+      { status: 400 }
+    );
+  }
+  const body = parsed.data;
 
   const updateData: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
@@ -65,7 +97,7 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
   if (body.status === 'valued') {
     updateData.valued_at = new Date().toISOString();
   }
-  if (['valued', 'accepted', 'rejected'].includes(body.status)) {
+  if (body.status && ['valued', 'accepted', 'rejected'].includes(body.status)) {
     updateData.responded_at = new Date().toISOString();
   }
 

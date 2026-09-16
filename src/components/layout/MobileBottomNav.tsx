@@ -29,7 +29,7 @@ const SHOW_ON_PREFIXES = [
   '/tools',
   '/how-it-works',
   '/about',
-  '/pricing',
+  '/for-business',
   '/contact',
 ];
 

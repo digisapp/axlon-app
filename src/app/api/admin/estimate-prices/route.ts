@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { backfillEstimates, updateListingEstimate } from '@/lib/price-estimator';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
@@ -43,7 +44,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const limit = Math.max(1, Math.min(parseInt(body.limit ?? 100), 1000));
 
-    const result = await backfillEstimates(limit);
+    // Service-role client: the backfill writes estimates onto other dealers'
+    // listings, which owner-only RLS would silently drop (0 rows, reported OK).
+    const result = await backfillEstimates(limit, createAdminClient());
 
     return NextResponse.json({
       success: true,
@@ -100,7 +103,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const estimate = await updateListingEstimate(listingId);
+    // Service-role client: admin may re-estimate any dealer's listing.
+    const estimate = await updateListingEstimate(listingId, createAdminClient());
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,6 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyInternalRequest } from '@/lib/security/internal-auth';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { verifyPinSchema, validateBody, ValidationError } from '@/lib/validations/api';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
@@ -16,6 +17,18 @@ const LOCKOUT_MINUTES = 15;
 function hashPin(pin: string, salt: string): string {
   const data = `${salt}:${pin}`;
   return crypto.createHash('sha256').update(data).digest('hex');
+}
+
+/**
+ * Replace a legacy plaintext PIN with its hash. Service-role client:
+ * dealer_staff is owner-only under RLS and there is no user session here.
+ */
+async function migratePinToHash(pin: string, staffId: string): Promise<void> {
+  const { error } = await createAdminClient()
+    .from('dealer_staff')
+    .update({ pin_hash: hashPin(pin, staffId), voice_pin: null })
+    .eq('id', staffId);
+  if (error) throw error;
 }
 
 /**
@@ -48,13 +61,7 @@ function verifyPin(inputPin: string, staff: { id: string; voice_pin?: string; pi
       if (matches) {
         // Auto-migrate: hash the PIN and clear the plaintext
         // This happens asynchronously - don't block the response
-        createClient().then(async (supabase) => {
-          const hashedPin = hashPin(inputPin, staff.id);
-          await supabase
-            .from('dealer_staff')
-            .update({ pin_hash: hashedPin, voice_pin: null })
-            .eq('id', staff.id);
-        }).catch((err: unknown) => {
+        migratePinToHash(inputPin, staff.id).catch((err: unknown) => {
           logger.error('PIN hash migration failed', { staffId: staff.id, error: err });
         });
         return true;
@@ -83,7 +90,20 @@ export async function POST(request: NextRequest) {
       return rateLimitResponse(rateLimitResult);
     }
 
-    const supabase = await createClient();
+    // Server-to-server only (the AI voice agent). The HMAC signature is the
+    // sole authentication here, and it must be checked before the service-role
+    // client below touches the dealer's staff records.
+    if (!verifyInternalRequest(request)) {
+      return NextResponse.json(
+        { error: 'Unauthorized - internal requests only' },
+        { status: 401 }
+      );
+    }
+
+    // Service-role client: dealer_staff and dealer_staff_access_logs are
+    // owner-only under RLS, so the anon client read no staff rows at all and
+    // every PIN verification failed.
+    const supabase = createAdminClient();
     const body = await request.json();
 
     // Validate input with Zod

@@ -10,29 +10,105 @@ export const paginationSchema = z.object({
   offset: z.coerce.number().int().min(0).default(0),
 });
 
-// Listing validation
-export const createListingSchema = z.object({
+// ─── Listing validation ────────────────────────────────────────────────────
+// The listing forms (new / edit / Snap & List / bulk import / smart import)
+// submit every field as a string and use '' for "not set". These fields
+// therefore coerce instead of rejecting: `price: "85000"` and
+// `category_id: ""` used to fail validation, so "Save Changes" on the edit
+// page returned 400 for every dealer with no indication why.
+//
+// `undefined` is passed through untouched so a partial update can tell
+// "omitted" from "explicitly cleared".
+const coerceEmpty = (v: unknown) => (v === undefined ? undefined : v === '' || v === null ? null : v);
+
+const optionalNumber = (inner: z.ZodNumber) =>
+  z.preprocess((v) => {
+    if (v === undefined) return undefined;
+    if (v === '' || v === null) return null;
+    if (typeof v === 'string') {
+      const n = Number(v.replace(/,/g, '').trim());
+      return Number.isNaN(n) ? v : n;
+    }
+    return v;
+  }, inner.nullable().optional());
+
+const optionalText = (max: number) =>
+  z.preprocess(coerceEmpty, z.string().max(max).nullable().optional());
+
+const optionalUuid = z.preprocess(coerceEmpty, uuidSchema.nullable().optional());
+
+const optionalTimestamp = z.preprocess(coerceEmpty, z.string().max(40).nullable().optional());
+
+// The DB CHECK allows fixed|negotiable|auction|call and the forms send 'call';
+// 'contact' was an older spelling that the DB rejects, so normalize it here
+// rather than 500ing on insert.
+const priceTypeField = z.preprocess(
+  (v) => (v === 'contact' ? 'call' : coerceEmpty(v)),
+  z.enum(['fixed', 'negotiable', 'auction', 'call']).nullable().optional()
+);
+
+const conditionField = z.preprocess(
+  coerceEmpty,
+  z.enum(['new', 'used', 'certified', 'salvage']).nullable().optional()
+);
+
+const listingTypeField = z.preprocess(
+  coerceEmpty,
+  z.enum(['sale', 'rent', 'sale_or_rent']).nullable().optional()
+);
+
+const listingStatusValues = ['draft', 'active', 'sold', 'expired'] as const;
+
+// Fields a client may write. ai_price_estimate, ai_price_confidence,
+// is_featured, featured_until and views_count are deliberately absent: they
+// are server-owned. A seller who could set ai_price_estimate would be able to
+// fake a "90% below market value" badge and top the /deals page.
+const listingWritableFields = {
   title: z.string().min(3, 'Title must be at least 3 characters').max(200, 'Title too long'),
-  description: z.string().max(10000, 'Description too long').optional(),
-  price: z.number().min(0, 'Price cannot be negative').max(100000000, 'Price too high').optional().nullable(),
-  price_type: z.enum(['fixed', 'negotiable', 'contact', 'auction']).optional().nullable(),
-  year: z.number().int().min(1900).max(new Date().getFullYear() + 2).optional().nullable(),
-  make: z.string().max(100).optional().nullable(),
-  model: z.string().max(100).optional().nullable(),
-  vin: z.string().max(17).optional().nullable(),
-  mileage: z.number().int().min(0).max(10000000).optional().nullable(),
-  hours: z.number().int().min(0).max(1000000).optional().nullable(),
-  condition: z.enum(['new', 'used', 'certified', 'salvage']).optional().nullable(),
-  category_id: uuidSchema.optional().nullable(),
-  city: z.string().max(100).optional().nullable(),
-  state: z.string().max(100).optional().nullable(),
-  zip_code: z.string().max(20).optional().nullable(),
-  status: z.enum(['draft', 'active', 'sold', 'expired']).default('draft'),
+  description: optionalText(10000),
+  price: optionalNumber(z.number().min(0, 'Price cannot be negative').max(100000000, 'Price too high')),
+  price_type: priceTypeField,
+  // DB CHECK is `year > 1900`, so 1900 itself must be rejected here.
+  year: optionalNumber(z.number().int().min(1901).max(new Date().getFullYear() + 2)),
+  make: optionalText(100),
+  model: optionalText(100),
+  vin: optionalText(17),
+  mileage: optionalNumber(z.number().int().min(0).max(10000000)),
+  hours: optionalNumber(z.number().int().min(0).max(1000000)),
+  condition: conditionField,
+  category_id: optionalUuid,
+  city: optionalText(100),
+  state: optionalText(100),
+  zip_code: optionalText(20),
+  stock_number: optionalText(100),
+  // Previously missing from the schema, so the create/update routes silently
+  // dropped them: a dealer could pick "For Rent", enter rates and a video and
+  // get a sale listing with neither.
+  video_url: optionalText(2000),
+  listing_type: listingTypeField,
+  rental_rate_daily: optionalNumber(z.number().min(0).max(10000000)),
+  rental_rate_weekly: optionalNumber(z.number().min(0).max(10000000)),
+  rental_rate_monthly: optionalNumber(z.number().min(0).max(10000000)),
+  publish_at: optionalTimestamp,
+  unpublish_at: optionalTimestamp,
   industries: z.array(uuidSchema).optional(),
   specs: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
+};
+
+export const createListingSchema = z.object({
+  ...listingWritableFields,
+  status: z.enum(listingStatusValues).default('draft'),
 });
 
-export const updateListingSchema = createListingSchema.partial();
+// Built from the field map rather than `createListingSchema.partial()`: in
+// Zod 4 `.partial()` KEEPS `.default()`, so an update that omitted `status`
+// came back as 'draft' and silently unpublished the listing.
+export const updateListingSchema = z
+  .object({
+    ...listingWritableFields,
+    status: z.enum(listingStatusValues).optional(),
+  })
+  .partial();
 
 // Lead validation
 export const createLeadSchema = z.object({
@@ -143,14 +219,17 @@ export const stripeCheckoutSchema = z.object({
 export const chatMessageSchema = z.object({
   dealerId: z.string().uuid(),
   message: z.string().min(1, 'Message is required').max(5000, 'Message too long'),
-  conversationId: z.string().optional(),
+  // The storefront widget has no conversation yet on the first message and
+  // sends null; rejecting null 400'd EVERY message, so the widget could never
+  // start a conversation at all.
+  conversationId: z.string().nullish(),
   chatSettings: z.record(z.string(), z.unknown()).optional(),
 });
 
 // Chat lead capture validation
 export const chatLeadSchema = z.object({
   dealerId: z.string().uuid(),
-  conversationId: z.string().optional(),
+  conversationId: z.string().nullish(),
   name: z.string().min(1).max(100),
   email: z.string().email(),
   phone: z.string().max(20).optional(),
@@ -277,7 +356,14 @@ export const listingImagesSchema = z.object({
     url: trustedImageUrl,
     thumbnail_url: trustedImageUrl.optional().nullable(),
     is_primary: z.boolean().optional(),
-    ai_analysis: z.string().max(2000).optional().nullable(),
+    sort_order: z.number().int().min(0).optional(),
+    // /api/ai/analyze returns an object and both upload paths forward it
+    // verbatim into a JSONB column; demanding a string here rejected the whole
+    // images array, so photos were never attached whenever analysis succeeded.
+    ai_analysis: z
+      .union([z.string().max(4000), z.record(z.string(), z.unknown())])
+      .nullable()
+      .optional(),
   })).min(1).max(50),
 });
 
@@ -297,7 +383,9 @@ export const conversationReplySchema = z.object({
 // Dashboard lead creation (different from public createLeadSchema)
 export const dashboardCreateLeadSchema = z.object({
   listing_id: uuidSchema.optional(),
-  user_id: uuidSchema,
+  // Optional and ignored: the route forces the authenticated user's id.
+  // Trusting the body let any account create leads in another dealer's pipeline.
+  user_id: uuidSchema.optional(),
   buyer_name: z.string().min(1, 'Name is required').max(100),
   buyer_email: z.string().email('Invalid email address'),
   buyer_phone: z.string().max(20).optional().nullable(),
@@ -339,12 +427,17 @@ export const tradeInRequestSchema = z.object({
   equipment_vin: z.string().max(17).optional().nullable(),
   equipment_mileage: z.number().int().min(0).optional().nullable(),
   equipment_hours: z.number().int().min(0).optional().nullable(),
-  equipment_condition: z.enum(['excellent', 'good', 'fair', 'poor']).optional().nullable(),
-  equipment_description: z.string().max(5000).optional().nullable(),
+  // The form initialises these to '' — which is neither undefined nor null —
+  // so every /trade-in submission was rejected with 400.
+  equipment_condition: z.preprocess(
+    coerceEmpty,
+    z.enum(['excellent', 'good', 'fair', 'poor']).nullable().optional()
+  ),
+  equipment_description: optionalText(5000),
   photos: z.array(z.string().url()).optional(),
-  interested_listing_id: uuidSchema.optional().nullable(),
-  interested_category_id: uuidSchema.optional().nullable(),
-  purchase_timeline: z.string().max(100).optional().nullable(),
+  interested_listing_id: optionalUuid,
+  interested_category_id: optionalUuid,
+  purchase_timeline: optionalText(100),
 });
 
 // Admin voice agent create (includes dealer_id)
@@ -452,7 +545,20 @@ export const createCrmContactSchema = z.object({
   deal_value: z.coerce.number().min(0).max(999999999999).default(0),
 });
 
-export const updateCrmContactSchema = createCrmContactSchema.partial();
+// NOT `createCrmContactSchema.partial()`: Zod 4 keeps `.default()` through
+// `.partial()`, so a kanban drag that sent only `{status}` also wrote
+// deal_value 0 and source 'manual' — wiping the value and provenance of the
+// contact it was moving.
+export const updateCrmContactSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(200).optional(),
+  email: z.string().email('Invalid email').max(254).optional().or(z.literal('')),
+  phone: z.string().max(30).optional().or(z.literal('')),
+  company: z.string().max(200).optional().or(z.literal('')),
+  status: z.enum(['new', 'contacted', 'qualified', 'proposal', 'won', 'lost']).optional(),
+  source: z.enum(['manual', 'ai_chat', 'website', 'storefront', 'outreach', 'referral']).optional(),
+  notes: z.string().max(5000).optional().or(z.literal('')),
+  deal_value: z.coerce.number().min(0).max(999999999999).optional(),
+});
 
 export const createCrmActivitySchema = z.object({
   contact_id: z.string().uuid(),

@@ -8,6 +8,7 @@ import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } f
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, dealerAiConversationSchema } from '@/lib/validations/api';
 import { searchCollection, SearchResult } from '@/lib/ai/collections';
+import { dealerHasFeature } from '@/lib/entitlements-server';
 
 // httpOnly cookie that binds an anonymous visitor to the conversations they
 // created (stored as chat_conversations.visitor_fingerprint)
@@ -396,6 +397,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // The widget is public, so the plan gate has to be enforced here: a dealer whose
+    // trial lapsed back to free keeps the is_enabled row, and every answer bills us
+    // for xAI and emails them a lead. Same response the widget handles for disabled.
+    if (!(await dealerHasFeature(dealerId, 'aiAssistant'))) {
+      return NextResponse.json(
+        { error: 'Dealer AI assistant is not enabled' },
+        { status: 404 }
+      );
+    }
+
     // If asking about a specific listing, fetch its details
     let specificListing: ListingResult | null = null;
     const queryListingId = listingId || extractListingId(query);
@@ -595,18 +606,34 @@ Based on this inventory, help the customer find what they need. Only recommend e
         // Only write to a conversation that actually belongs to this dealer.
         const { data: convo } = await admin
           .from('chat_conversations')
-          .select('id, dealer_id')
+          .select('id, dealer_id, visitor_fingerprint')
           .eq('id', conversationId)
           .maybeSingle();
 
-        if (convo && convo.dealer_id === dealerId) {
+        // Same ownership check PUT applies: without the httpOnly fingerprint cookie
+        // bound to this conversation at creation, anyone who guesses a conversation
+        // id could inject transcript turns and inflate the dealer's message count.
+        const cookieToken = request.cookies.get(VISITOR_COOKIE)?.value;
+        const visitorToken = cookieToken && UUID_REGEX.test(cookieToken) ? cookieToken : null;
+        const ownsConversation =
+          !!convo &&
+          convo.dealer_id === dealerId &&
+          !!visitorToken &&
+          !!convo.visitor_fingerprint &&
+          tokensMatch(convo.visitor_fingerprint, visitorToken);
+
+        if (ownsConversation) {
           await admin.from('chat_messages').insert([
             { conversation_id: conversationId, role: 'user', content: query },
             { conversation_id: conversationId, role: 'assistant', content: finalResponse },
           ]);
+          await admin.rpc('increment_dealer_ai_messages', { p_dealer_id: dealerId });
+        } else {
+          logger.warn('Rejected dealer chat transcript write: visitor fingerprint mismatch', {
+            conversationId,
+            dealerId,
+          });
         }
-
-        await admin.rpc('increment_dealer_ai_messages', { p_dealer_id: dealerId });
       } catch (persistError) {
         logger.warn('Failed to persist dealer chat transcript', { error: persistError, conversationId });
       }

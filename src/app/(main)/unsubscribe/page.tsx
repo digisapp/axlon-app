@@ -60,12 +60,12 @@ function UnsubscribeContent() {
         {status === 'success' ? (
           <p className="text-center text-muted-foreground">
             You have been unsubscribed. You will no longer receive market reports
-            or follow-up emails from AXLON.
+            or follow-up emails from Axleyard.
           </p>
         ) : status === 'invalid' ? (
           <p className="text-center text-sm text-muted-foreground">
             This unsubscribe link is missing or has an invalid token. Please use
-            the unsubscribe link from a recent AXLON email, or contact{' '}
+            the unsubscribe link from a recent Axleyard email, or contact{' '}
             <a href="mailto:sales@axlon.ai" className="underline">
               sales@axlon.ai
             </a>{' '}
@@ -75,7 +75,7 @@ function UnsubscribeContent() {
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground text-center">
               Unsubscribe <span className="font-medium text-foreground">{email}</span>{' '}
-              from all AXLON automated emails?
+              from all Axleyard automated emails?
             </p>
             <Button
               className="w-full"

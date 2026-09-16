@@ -103,7 +103,7 @@ export function HowItWorksContent() {
                     'Dispatch & load matching automation',
                     'Document AI for BOLs, invoices & titles',
                     'Sales team AI assistant & CRM',
-                    'Full Axlon Marketplace integration',
+                    'Full Axleyard marketplace integration',
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
                       <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
@@ -126,7 +126,7 @@ export function HowItWorksContent() {
                 <div className="w-10 h-10 rounded-xl bg-cyan-600/10 flex items-center justify-center mb-2">
                   <Headphones className="w-5 h-5 text-cyan-600" />
                 </div>
-                <CardTitle className="text-lg">Axlon Marketplace</CardTitle>
+                <CardTitle className="text-lg">Axleyard</CardTitle>
                 <CardDescription className="text-sm">
                   Buy and sell heavy haul equipment and trailers.
                 </CardDescription>

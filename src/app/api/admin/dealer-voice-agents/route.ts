@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';import { validateBody, ValidationError, adminVoiceAgentCreateSchema } from '@/lib/validations/api';
@@ -36,6 +37,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // dealer_voice_agents RLS is dealer-own only, so the session client would show
+    // (and write) just this admin's own row. Admin verified above.
+    const db = createAdminClient();
+
     // Parse query params
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status'); // 'active', 'inactive', 'all'
@@ -44,7 +49,7 @@ export async function GET(request: NextRequest) {
     const perPage = parseInt(searchParams.get('per_page') || '20');
 
     // Build query
-    let query = supabase
+    let query = db
       .from('dealer_voice_agents')
       .select(`
         *,
@@ -139,8 +144,12 @@ export async function POST(request: NextRequest) {
       throw err;
     }
 
+    // dealer_voice_agents RLS is dealer-own only, so the session client would show
+    // (and write) just this admin's own row. Admin verified above.
+    const db = createAdminClient();
+
     // Check if dealer exists
-    const { data: dealer } = await supabase
+    const { data: dealer } = await db
       .from('profiles')
       .select('id, company_name')
       .eq('id', validatedData.dealer_id)
@@ -151,7 +160,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if dealer already has a voice agent
-    const { data: existing } = await supabase
+    const { data: existing } = await db
       .from('dealer_voice_agents')
       .select('id')
       .eq('dealer_id', validatedData.dealer_id)
@@ -162,7 +171,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create voice agent
-    const { data: agent, error } = await supabase
+    const { data: agent, error } = await db
       .from('dealer_voice_agents')
       .insert({
         dealer_id: validatedData.dealer_id,

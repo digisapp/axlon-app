@@ -11,6 +11,10 @@ interface RouteParams {
 }
 
 // GET - List documents for a deal
+// Deal paperwork lives in a private bucket; links are signed for a year so a
+// stored URL keeps working for the life of the deal.
+const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 365;
+
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const identifier = getClientIdentifier(request);
@@ -147,12 +151,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
       }
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
+      // Signed URL, not public: the `documents` bucket is private as of
+      // migration 072 (deal paperwork was readable by anyone with the URL).
+      const { data: urlData } = await supabase.storage
         .from('documents')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS);
 
-      fileUrl = urlData.publicUrl;
+      fileUrl = urlData?.signedUrl ?? null;
       fileName = file.name;
       fileSize = file.size;
       mimeType = file.type;

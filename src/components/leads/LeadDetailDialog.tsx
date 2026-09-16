@@ -32,6 +32,7 @@ import {
   Bell,
   Loader2,
 } from 'lucide-react';
+import { formatDateOnly } from '@/lib/dates';
 
 interface Lead {
   id: string;
@@ -269,7 +270,7 @@ export const LeadDetailDialog = memo(function LeadDetailDialog({
             {followUpDate && (
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Bell className="w-3 h-3" />
-                Reminder set for {new Date(followUpDate).toLocaleDateString()}
+                Reminder set for {formatDateOnly(followUpDate)}
               </p>
             )}
           </div>

@@ -33,8 +33,7 @@ export function useGeolocation() {
 
       // Reverse geocode via free API
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
-        { headers: { 'User-Agent': 'AxlonApp/1.0' } }
+        `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`
       );
 
       if (!res.ok) throw new Error('Geocoding failed');

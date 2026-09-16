@@ -12,6 +12,10 @@ interface RouteParams {
 }
 
 // POST - Generate quote PDF
+// Deal paperwork lives in a private bucket; links are signed for a year so a
+// stored URL keeps working for the life of the deal.
+const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 365;
+
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const identifier = getClientIdentifier(request);
@@ -96,10 +100,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       // Continue anyway - return the PDF directly
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
+    // Signed URL, not public: the `documents` bucket is private as of
+    // migration 072 (deal paperwork was readable by anyone with the URL).
+    const { data: urlData } = await supabase.storage
       .from('documents')
-      .getPublicUrl(filePath);
+      .createSignedUrl(filePath, SIGNED_URL_TTL_SECONDS);
 
     // Mark previous quote versions as not current
     await supabase
@@ -126,7 +131,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         deal_id: id,
         document_type: 'quote',
         title: `Quote - Version ${newVersion}`,
-        file_url: urlData?.publicUrl,
+        file_url: urlData?.signedUrl ?? null,
         file_name: filename,
         file_size: pdfBuffer.byteLength,
         mime_type: 'application/pdf',

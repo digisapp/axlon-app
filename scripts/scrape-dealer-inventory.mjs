@@ -15,19 +15,25 @@ import {
   createPage,
   ensureDealerSource,
   updateDealerSourceStats,
+  countActiveListings,
+  retireUnseenListings,
+  stableSourceListingId,
   processListing,
   cleanText,
   sleep,
   printBanner,
   printSummary,
 } from './lib/dealer-scraper-utils.mjs';
-import { DEALER_CONFIGS, getDealerBySlug } from './dealer-configs.mjs';
+import { DEALER_CONFIGS, getDealerBySlug, getActiveDealers } from './dealer-configs.mjs';
 
 // ─── CLI args ──────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
 const dealerSlug = args.find((a, i) => args[i - 1] === '--dealer');
 const dryRun = args.includes('--dry-run');
 const verbose = args.includes('--verbose') || args.includes('-v');
+// Units missing from a clean crawl are marked sold (see retireUnseenListings).
+// --no-retire keeps the old add-only behaviour for one-off partial runs.
+const noRetire = args.includes('--no-retire');
 
 // ─── Main ──────────────────────────────────────────────────────────────────
 
@@ -43,9 +49,14 @@ async function main() {
       console.log('Available dealers:', DEALER_CONFIGS.map(d => d.slug).join(', '));
       process.exit(1);
     }
+    if (dealer.active === false) {
+      console.warn(`⚠ ${dealer.slug} is marked inactive in dealer-configs; scraping anyway because it was requested explicitly.`);
+    }
     dealers = [dealer];
   } else {
-    dealers = DEALER_CONFIGS;
+    // Only sites that actually let us in. Inactive entries (bot-blocked)
+    // used to be attempted anyway and burned run time on guaranteed failures.
+    dealers = getActiveDealers();
   }
 
   console.log(`\n🚀 AXLON Dealer Inventory Scraper`);
@@ -53,7 +64,7 @@ async function main() {
   console.log(`   Mode: ${dryRun ? 'DRY RUN' : 'LIVE'}\n`);
 
   const browser = await createBrowser();
-  const totalStats = { found: 0, created: 0, skipped: 0, errors: 0 };
+  const totalStats = { found: 0, created: 0, skipped: 0, retired: 0, errors: 0 };
 
   for (const dealer of dealers) {
     try {
@@ -61,6 +72,7 @@ async function main() {
       totalStats.found += stats.found;
       totalStats.created += stats.created;
       totalStats.skipped += stats.skipped;
+      totalStats.retired += stats.retired || 0;
       totalStats.errors += stats.errors;
     } catch (err) {
       console.error(`❌ Fatal error scraping ${dealer.name}:`, err.message);
@@ -75,6 +87,7 @@ async function main() {
   console.log(`   Found: ${totalStats.found}`);
   console.log(`   Created: ${totalStats.created}`);
   console.log(`   Skipped: ${totalStats.skipped}`);
+  console.log(`   Retired: ${totalStats.retired}`);
   console.log(`   Errors: ${totalStats.errors}`);
   console.log('═'.repeat(60) + '\n');
 }
@@ -83,7 +96,12 @@ async function main() {
 
 async function scrapeDealer(browser, supabase, dealer) {
   printBanner(dealer.name, dealer.inventoryUrl || dealer.website);
-  const stats = { found: 0, created: 0, skipped: 0, errors: 0 };
+  // `seen` collects the stable id of every unit the crawl encountered
+  // (created, skipped or failed) so retirement only touches units that are
+  // genuinely gone from the site. `pageErrors` counts crawl-level failures
+  // (navigation, selectors) — any of those means the run was incomplete and
+  // must not retire anything.
+  const stats = { found: 0, created: 0, skipped: 0, errors: 0, pageErrors: 0, seen: new Set() };
 
   // Register dealer source in DB
   let dealerSourceId;
@@ -123,6 +141,8 @@ async function scrapeDealer(browser, supabase, dealer) {
       const raw = rawListings[i];
       console.log(`   [${i + 1}/${rawListings.length}] ${raw.title || 'Untitled'}`);
 
+      stats.seen.add(stableSourceListingId(raw));
+
       if (dryRun) {
         if (verbose) console.log(`     Preview:`, JSON.stringify(raw, null, 2));
         stats.created++;
@@ -157,13 +177,32 @@ async function scrapeDealer(browser, supabase, dealer) {
   } catch (err) {
     console.error(`   ✗ Page error: ${err.message}`);
     stats.errors++;
+    stats.pageErrors++;
   } finally {
     await page.close();
   }
 
-  // Update dealer source stats
   if (!dryRun && dealerSourceId) {
-    await updateDealerSourceStats(supabase, dealerSourceId, stats.created);
+    // Retire units that vanished from the dealer's site — only after a
+    // complete crawl, and never more than half the inventory at once.
+    if (noRetire) {
+      console.log('   ↷ Retirement disabled (--no-retire)');
+    } else if (stats.pageErrors > 0) {
+      console.log('   ↷ Skipping retirement: crawl had page-level errors');
+    } else {
+      try {
+        const result = await retireUnseenListings(supabase, dealerSourceId, stats.seen);
+        stats.retired = result.retired;
+        if (result.skipped) console.warn(`   ⚠ Retirement skipped: ${result.reason}`);
+        else if (result.retired > 0) console.log(`   ⏏ Retired ${result.retired} unit(s) no longer on the site`);
+      } catch (err) {
+        console.error(`   ✗ Retirement failed: ${err.message}`);
+        stats.errors++;
+      }
+    }
+
+    const activeTotal = await countActiveListings(supabase, dealerSourceId);
+    await updateDealerSourceStats(supabase, dealerSourceId, stats.created, activeTotal);
   }
 
   printSummary(dealer.name, stats);
@@ -348,6 +387,7 @@ async function scrapeAdditionalPages(page, browser, supabase, dealer, dealerSour
 
     for (let i = 0; i < moreListings.length; i++) {
       const raw = moreListings[i];
+      stats.seen.add(stableSourceListingId(raw));
       if (dryRun) {
         stats.created++;
         continue;

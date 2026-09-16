@@ -101,9 +101,12 @@ export default async function InventoryPage() {
               Floor Plan
             </Link>
           </Button>
-          <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            Export
+          {/* Had no handler at all — send dealers to the working CSV export */}
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/dashboard/bulk">
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Link>
           </Button>
           <Button size="sm" asChild>
             <Link href="/dashboard/listings/new">

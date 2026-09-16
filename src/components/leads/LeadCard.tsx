@@ -24,6 +24,7 @@ import {
   TrendingUp,
   Bell,
 } from 'lucide-react';
+import { formatDateOnly, parseDateOnly } from '@/lib/dates';
 
 interface Lead {
   id: string;
@@ -67,6 +68,8 @@ const nextStatus: Record<string, string> = {
   new: 'contacted',
   contacted: 'qualified',
   qualified: 'won',
+  // Lost leads sit in their own column — give them a way back into the pipeline.
+  lost: 'contacted',
 };
 
 function getScoreDisplay(score?: number) {
@@ -192,9 +195,11 @@ export const LeadCard = memo(function LeadCard({
           <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded">
             <Bell className="w-3 h-3" />
             <span>
-              {new Date(lead.follow_up_date) <= new Date()
+              {/* parseDateOnly: a bare 'YYYY-MM-DD' is UTC midnight to new Date(),
+                  which reads as the day before west of UTC. */}
+              {parseDateOnly(lead.follow_up_date) <= new Date()
                 ? 'Follow-up due!'
-                : `Follow-up: ${new Date(lead.follow_up_date).toLocaleDateString()}`}
+                : `Follow-up: ${formatDateOnly(lead.follow_up_date)}`}
             </span>
           </div>
         )}

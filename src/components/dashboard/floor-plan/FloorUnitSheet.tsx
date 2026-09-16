@@ -25,12 +25,15 @@ import { toast } from 'sonner';
 import type { FloorPlanAccount } from '@/types/floor-plan';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { parseDateOnly } from '@/lib/dates';
 
 interface Listing {
   id: string;
   title: string;
+  status?: string;
   stock_number?: string;
   price?: number;
+  floor_plan_unit_id?: string | null;
 }
 
 interface FloorUnitSheetProps {
@@ -68,11 +71,18 @@ export function FloorUnitSheet({
   const fetchAvailableListings = async () => {
     setLoadingListings(true);
     try {
-      // Fetch listings that are not already floored
-      const response = await csrfFetch('/api/listings?status=active&has_floor_plan=false&limit=100');
+      // /api/listings is the PUBLIC marketplace feed — it ignored both params and
+      // returned other dealers' newest 20 listings. Use the dealer-scoped route.
+      const response = await csrfFetch('/api/dashboard/listings?status=active&limit=100');
       if (response.ok) {
         const data = await response.json();
-        setListings(data.data || []);
+        const own: Listing[] = data.listings || [];
+        setListings(
+          own.filter(
+            (l) =>
+              (!l.status || l.status === 'active') && !l.floor_plan_unit_id
+          )
+        );
       }
     } catch (error) {
       logger.error('Failed to fetch listings', { error });
@@ -131,7 +141,7 @@ export function FloorUnitSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-lg">
+      <SheetContent className="w-full sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>Floor a Unit</SheetTitle>
           <SheetDescription>
@@ -256,7 +266,7 @@ export function FloorUnitSheet({
                   <span className="text-muted-foreground">First Curtailment</span>
                   <span>
                     {new Date(
-                      new Date(floorDate).getTime() + selectedAccount.curtailment_days * 24 * 60 * 60 * 1000
+                      parseDateOnly(floorDate).getTime() + selectedAccount.curtailment_days * 24 * 60 * 60 * 1000
                     ).toLocaleDateString()}
                   </span>
                 </div>

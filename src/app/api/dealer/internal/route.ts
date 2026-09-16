@@ -1,9 +1,11 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import { verifyInternalRequest } from '@/lib/security/internal-auth';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // POST - Query internal dealer data (for authenticated staff via AI)
 // This endpoint requires internal API secret authentication (called by voice agent service)
@@ -23,7 +25,10 @@ export async function POST(request: NextRequest) {
       return rateLimitResponse(rateLimitResult);
     }
 
-    const supabase = await createClient();
+    // Service-role client: the internal HMAC signature above is the only auth
+    // (there is no user session), and dealer_staff / leads / access logs are
+    // owner-only under RLS — the anon client returned nothing for every query.
+    const supabase = createAdminClient();
     const body = await request.json();
 
     const {
@@ -111,7 +116,7 @@ export async function POST(request: NextRequest) {
 
 // Query inventory
 async function queryInventory(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   dealerId: string,
   staff: Record<string, unknown>,
   query?: string,
@@ -189,7 +194,7 @@ async function queryInventory(
 
 // Query leads
 async function queryLeads(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   dealerId: string,
   staff: Record<string, unknown>,
   query?: string,
@@ -246,7 +251,7 @@ async function queryLeads(
 
 // Query specific customer
 async function queryCustomer(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   dealerId: string,
   staff: Record<string, unknown>,
   query?: string
@@ -305,7 +310,7 @@ async function queryCustomer(
 
 // Query pricing info for a listing
 async function queryPricing(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   dealerId: string,
   staff: Record<string, unknown>,
   query?: string
@@ -314,11 +319,19 @@ async function queryPricing(
     return { type: 'pricing', error: 'Stock number or listing ID required' };
   }
 
+  // Only add the `id.eq.` branch for actual UUIDs — Postgres rejects the whole
+  // filter with 22P02 (invalid input syntax for uuid) when a stock number is
+  // compared against the uuid `id` column.
+  const needle = sanitizeSearchFilter(query || "");
+  const orFilter = UUID_REGEX.test(needle)
+    ? `stock_number.eq.${needle},id.eq.${needle}`
+    : `stock_number.eq.${needle}`;
+
   const { data: listing } = await supabase
     .from('listings')
     .select('id, title, price, ai_price_estimate, acquisition_cost, stock_number')
     .eq('user_id', dealerId)
-    .or(`stock_number.eq.${sanitizeSearchFilter(query || "")},id.eq.${sanitizeSearchFilter(query || "")}`)
+    .or(orFilter)
     .single();
 
   if (!listing) {
@@ -362,7 +375,7 @@ async function queryPricing(
 
 // Query dealer stats
 async function queryStats(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   dealerId: string,
   staff: Record<string, unknown>
 ) {

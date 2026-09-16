@@ -30,6 +30,9 @@ export async function analyzeImage(imageUrl: string): Promise<AIImageAnalysis> {
   const { object } = await generateObject({
     model: xai('grok-4-1-fast-non-reasoning'),
     schema: imageAnalysisSchema,
+    // Bound the call — a hung xAI request would otherwise stall the caller.
+    abortSignal: AbortSignal.timeout(30_000),
+    maxOutputTokens: 1024,
     messages: [
       {
         role: 'user',
@@ -80,6 +83,8 @@ export async function generateListingDescription(
     schema: z.object({
       description: z.string().describe('Professional listing description'),
     }),
+    abortSignal: AbortSignal.timeout(30_000),
+    maxOutputTokens: 1024,
     messages: [
       {
         role: 'user',

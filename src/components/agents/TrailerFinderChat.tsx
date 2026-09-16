@@ -79,7 +79,9 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
     setIsLoading(true);
 
     try {
-      const conversationHistory = messages.map(m => ({
+      // The API caps history at 20 messages — trim client-side so long chats
+      // don't get rejected (or silently truncated) mid-conversation.
+      const conversationHistory = messages.slice(-20).map(m => ({
         role: m.role,
         content: m.content,
       }));

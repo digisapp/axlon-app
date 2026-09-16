@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { estimatePrice } from '@/lib/price-estimator';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, updateListingSchema } from '@/lib/validations/api';
@@ -65,15 +66,18 @@ export async function PUT(
   // Verify listing ownership and get current data
   const { data: existingListing } = await supabase
     .from('listings')
-    .select('user_id, price, ai_price_estimate')
+    .select('user_id, price, ai_price_estimate, deleted_at')
     .eq('id', id)
     .single();
 
   if (!existingListing || existingListing.user_id !== user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+  if (existingListing.deleted_at) {
+    return NextResponse.json({ error: 'Listing has been deleted' }, { status: 410 });
+  }
 
-  const body = await request.json();
+  const body = (await request.json()) as Record<string, unknown>;
 
   let validatedData;
   try {
@@ -88,37 +92,32 @@ export async function PUT(
     throw err;
   }
 
-  const updateData: Record<string, unknown> = {
-    title: validatedData.title,
-    category_id: validatedData.category_id ?? null,
-    price: validatedData.price != null ? parseFloat(String(validatedData.price)) : null,
-    price_type: validatedData.price_type ?? null,
-    condition: validatedData.condition ?? null,
-    year: validatedData.year != null ? parseInt(String(validatedData.year)) : null,
-    make: validatedData.make ?? null,
-    model: validatedData.model ?? null,
-    vin: validatedData.vin ?? null,
-    mileage: validatedData.mileage != null ? parseInt(String(validatedData.mileage)) : null,
-    hours: validatedData.hours != null ? parseInt(String(validatedData.hours)) : null,
-    description: validatedData.description ?? null,
-    status: validatedData.status,
-    updated_at: new Date().toISOString(),
-  };
+  // Write ONLY the columns the client actually sent. The previous version
+  // assigned every core column unconditionally, so a partial update nulled
+  // price/make/model/... and an omitted `status` unpublished the listing.
+  // ai_price_estimate / ai_price_confidence are absent on purpose: they are
+  // computed below from the server's own estimator, never taken from the body
+  // (a seller could otherwise fake a "below market value" deal badge).
+  const WRITABLE_COLUMNS = [
+    'title', 'description', 'price', 'price_type', 'year', 'make', 'model', 'vin',
+    'mileage', 'hours', 'condition', 'category_id', 'city', 'state', 'zip_code',
+    'stock_number', 'video_url', 'listing_type', 'rental_rate_daily',
+    'rental_rate_weekly', 'rental_rate_monthly', 'publish_at', 'unpublish_at',
+    'specs', 'status',
+  ] as const;
 
-  // Only overwrite these fields when the client explicitly sends them —
-  // omitting them from the request body preserves the existing DB values.
-  if (body.city !== undefined) updateData.city = validatedData.city ?? null;
-  if (body.state !== undefined) updateData.state = validatedData.state ?? null;
-  if (body.zip_code !== undefined) updateData.zip_code = validatedData.zip_code ?? null;
-  if (body.specs !== undefined) updateData.specs = validatedData.specs ?? {};
-  if (body.ai_price_estimate !== undefined) updateData.ai_price_estimate = body.ai_price_estimate ?? null;
-  if (body.ai_price_confidence !== undefined) updateData.ai_price_confidence = body.ai_price_confidence ?? null;
-  if (body.publish_at !== undefined) updateData.publish_at = body.publish_at ?? null;
-  if (body.unpublish_at !== undefined) updateData.unpublish_at = body.unpublish_at ?? null;
+  const validated = validatedData as Record<string, unknown>;
+  const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  for (const column of WRITABLE_COLUMNS) {
+    if (body[column] !== undefined) {
+      updateData[column] = validated[column] ?? null;
+    }
+  }
+  if (updateData.specs === null) updateData.specs = {};
 
-  // If publishing for the first time, set published_at
-  if (validatedData.status === 'active' && !body.published_at) {
-    (updateData as Record<string, unknown>).published_at = new Date().toISOString();
+  // If publishing, stamp published_at (server clock, not client-supplied)
+  if (validatedData.status === 'active') {
+    updateData.published_at = new Date().toISOString();
   }
 
   const { data: listing, error } = await supabase
@@ -134,7 +133,7 @@ export async function PUT(
   }
 
   // Re-estimate price if price changed or no estimate exists
-  const newPrice = body.price ? parseFloat(body.price) : null;
+  const newPrice = validatedData.price ?? null;
   const priceChanged = newPrice !== existingListing.price;
   const needsEstimate = newPrice && newPrice > 0 && (priceChanged || !existingListing.ai_price_estimate);
 
@@ -151,7 +150,9 @@ export async function PUT(
       });
 
       if (estimate.estimate !== null && estimate.confidence >= 0.3) {
-        await supabase
+        // Service role: ai_price_* are frozen against owner writes at the DB
+        // level (migration 072) so they can only come from this estimator.
+        await createAdminClient()
           .from('listings')
           .update({
             ai_price_estimate: estimate.estimate,

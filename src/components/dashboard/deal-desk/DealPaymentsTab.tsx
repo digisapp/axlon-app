@@ -16,6 +16,7 @@ import {
 import { CreditCard, Check, X } from 'lucide-react';
 import type { Deal } from '@/types/deals';
 import { formatCurrency } from '@/lib/format-currency';
+import { formatDateOnly } from '@/lib/dates';
 
 interface DealPaymentsTabProps {
   deal: Deal;
@@ -59,7 +60,7 @@ export const DealPaymentsTab = memo(function DealPaymentsTab({ deal, saving, onA
             <div>
               <p className="font-medium capitalize">{payment.payment_type}</p>
               <p className="text-xs text-muted-foreground">
-                {new Date(payment.payment_date).toLocaleDateString()} via {payment.payment_method}
+                {formatDateOnly(payment.payment_date)} via {payment.payment_method}
               </p>
             </div>
             <div className="flex items-center gap-2">

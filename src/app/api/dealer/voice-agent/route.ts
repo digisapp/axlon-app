@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, voiceAgentSchema } from '@/lib/validations/api';
@@ -136,8 +137,10 @@ export async function POST(request: NextRequest) {
       throw err;
     }
 
-    // Create voice agent with defaults
-    const { data: agent, error } = await supabase
+    // Create voice agent with defaults. dealer_voice_agents has no dealer INSERT
+    // policy, so the session client always failed here — insert with the service
+    // role and pin dealer_id to the authenticated user so scope is unchanged.
+    const { data: agent, error } = await createAdminClient()
       .from('dealer_voice_agents')
       .insert({
         dealer_id: user.id,

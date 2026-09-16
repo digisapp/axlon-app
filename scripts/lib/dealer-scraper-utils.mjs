@@ -121,15 +121,93 @@ export async function ensureDealerSource(supabase, dealer) {
 /**
  * Update dealer source after a scrape run.
  */
-export async function updateDealerSourceStats(supabase, dealerSourceId, count) {
+export async function updateDealerSourceStats(supabase, dealerSourceId, count, totalListings = null) {
+  const patch = {
+    last_scraped_at: new Date().toISOString(),
+    last_scrape_count: count,
+    updated_at: new Date().toISOString(),
+  };
+  // total_listings was never written (always 0 in admin); record the live
+  // active count so the dealer-sources page and claim emails are truthful.
+  if (typeof totalListings === 'number') patch.total_listings = totalListings;
   await supabase
     .from('dealer_sources')
-    .update({
-      last_scraped_at: new Date().toISOString(),
-      last_scrape_count: count,
-      updated_at: new Date().toISOString(),
-    })
+    .update(patch)
     .eq('id', dealerSourceId);
+}
+
+/**
+ * Active, non-deleted listings currently attributed to a dealer source.
+ */
+export async function countActiveListings(supabase, dealerSourceId) {
+  const { count } = await supabase
+    .from('listings')
+    .select('id', { count: 'exact', head: true })
+    .eq('source_dealer_id', dealerSourceId)
+    .eq('status', 'active')
+    .is('deleted_at', null);
+  return count ?? 0;
+}
+
+/**
+ * Retire units that no longer appear on the dealer's site.
+ *
+ * Until this existed a scraped listing stayed `active` forever, so buyers
+ * (and AXLON) kept pitching trailers the dealer sold months ago. After a
+ * dealer's crawl completes cleanly, every active listing for that source
+ * whose source_listing_id was NOT seen this run is marked `sold`.
+ *
+ * Guard rails: nothing is retired when the run saw nothing, and a run that
+ * would retire more than `maxRetireRatio` of the dealer's inventory is
+ * treated as a broken crawl (site redesign, selector drift, pagination
+ * stopping early) and skipped with a warning instead.
+ */
+export async function retireUnseenListings(supabase, dealerSourceId, seenIds, { maxRetireRatio = 0.5 } = {}) {
+  if (!seenIds || seenIds.size === 0) {
+    return { retired: 0, active: 0, skipped: true, reason: 'nothing seen this run' };
+  }
+
+  // Supabase caps responses at 1,000 rows — page explicitly.
+  const active = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from('listings')
+      .select('id, source_listing_id')
+      .eq('source_dealer_id', dealerSourceId)
+      .eq('status', 'active')
+      .is('deleted_at', null)
+      .range(from, from + 999);
+    if (error) throw new Error(`Failed to load active listings for retirement: ${error.message}`);
+    active.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+
+  const unseen = active.filter((l) => !seenIds.has(l.source_listing_id));
+  if (unseen.length === 0) {
+    return { retired: 0, active: active.length, skipped: false };
+  }
+
+  const ratio = unseen.length / active.length;
+  if (ratio > maxRetireRatio) {
+    return {
+      retired: 0,
+      active: active.length,
+      skipped: true,
+      reason: `${unseen.length} of ${active.length} active units unseen (${Math.round(ratio * 100)}%) — looks like a broken crawl, not sales`,
+    };
+  }
+
+  const now = new Date().toISOString();
+  for (let i = 0; i < unseen.length; i += 100) {
+    const ids = unseen.slice(i, i + 100).map((l) => l.id);
+    const { error } = await supabase
+      .from('listings')
+      .update({ status: 'sold', updated_at: now })
+      .in('id', ids);
+    if (error) throw new Error(`Failed to retire listings: ${error.message}`);
+  }
+
+  return { retired: unseen.length, active: active.length, skipped: false };
 }
 
 // ─── Deduplication ─────────────────────────────────────────────────────────
@@ -275,7 +353,7 @@ export async function upsertListing(supabase, dealerSourceId, listing) {
   // Check for existing
   const existingId = await findExistingListing(supabase, dealerSourceId, sourceListingId);
   if (existingId) {
-    return { id: existingId, action: 'skipped' };
+    return { id: existingId, action: 'skipped', sourceListingId };
   }
 
   const categoryId = CATEGORY_MAP[listing.category_slug] || DEFAULT_CATEGORY_ID;
@@ -317,13 +395,13 @@ export async function upsertListing(supabase, dealerSourceId, listing) {
   if (error) {
     // Handle unique constraint (dedup race condition)
     if (error.code === '23505') {
-      return { id: null, action: 'skipped' };
+      return { id: null, action: 'skipped', sourceListingId };
     }
     console.error(`  ✗ Error inserting listing "${listing.title}":`, error.message);
-    return { id: null, action: 'error' };
+    return { id: null, action: 'error', sourceListingId };
   }
 
-  return { id: data.id, action: 'created' };
+  return { id: data.id, action: 'created', sourceListingId };
 }
 
 /**
@@ -362,14 +440,25 @@ export async function insertListingImages(supabase, listingId, imageUrls) {
  * Returns { id, action }
  */
 export async function processListing(supabase, dealerSourceId, rawListing) {
+  // 0. Dedup BEFORE the AI call. The stable id derives from the raw href /
+  //    VIN / stock number, so an already-imported unit costs one indexed
+  //    lookup instead of an xAI round-trip — previously every existing unit
+  //    was re-normalized on every run (hundreds of wasted calls, and most of
+  //    the 30-minute workflow budget).
+  const rawSourceListingId = stableSourceListingId(rawListing);
+  const alreadyImportedId = await findExistingListing(supabase, dealerSourceId, rawSourceListingId);
+  if (alreadyImportedId) {
+    return { id: alreadyImportedId, action: 'skipped', sourceListingId: rawSourceListingId };
+  }
+
   // 1. Normalize with AI
   const normalized = await normalizeWithAI(rawListing);
 
-  // 2-3. Upsert (includes dedup check)
-  const { id, action } = await upsertListing(supabase, dealerSourceId, normalized);
+  // 2-3. Upsert (includes a second dedup check on the normalized id)
+  const { id, action, sourceListingId } = await upsertListing(supabase, dealerSourceId, normalized);
 
   if (!id || action === 'skipped') {
-    return { id, action };
+    return { id, action, sourceListingId };
   }
 
   // 4-5. Download images and store
@@ -386,7 +475,7 @@ export async function processListing(supabase, dealerSourceId, rawListing) {
     }
   }
 
-  return { id, action };
+  return { id, action, sourceListingId };
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -421,6 +510,7 @@ export function printSummary(dealerName, stats) {
   console.log(`   Found: ${stats.found || 0}`);
   console.log(`   Created: ${stats.created || 0}`);
   console.log(`   Skipped (existing): ${stats.skipped || 0}`);
+  if (typeof stats.retired === 'number') console.log(`   Retired (gone from site): ${stats.retired}`);
   console.log(`   Errors: ${stats.errors || 0}`);
   console.log('='.repeat(60) + '\n');
 }

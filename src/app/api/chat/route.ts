@@ -210,16 +210,19 @@ export async function POST(request: NextRequest) {
     // Get conversation history for context
     let conversationHistory = '';
     if (activeConversationId) {
+      // Order DESC so the LIMIT keeps the MOST RECENT turns — ordering ascending
+      // pinned the context to the first 6 messages of the conversation, so the
+      // model stopped seeing new turns after message 10.
       const { data: history } = await supabase
         .from('chat_messages')
         .select('role, content')
         .eq('conversation_id', activeConversationId)
-        .order('created_at', { ascending: true })
-        .limit(10);
+        .order('created_at', { ascending: false })
+        .limit(6);
 
       if (history && history.length > 0) {
-        conversationHistory = history
-          .slice(-6) // Last 6 messages for context
+        conversationHistory = [...history]
+          .reverse() // back to chronological order for the prompt
           .map((m) => `${m.role === 'user' ? 'Customer' : 'Assistant'}: ${m.content}`)
           .join('\n');
       }

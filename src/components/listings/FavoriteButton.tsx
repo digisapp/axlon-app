@@ -51,7 +51,12 @@ export function FavoriteButton({
     checkFavorite();
   }, [listingId]);
 
-  const handleToggle = async () => {
+  const handleToggle = async (e: React.MouseEvent) => {
+    // Rendered inside listing-card <Link>s — without this, tapping the heart
+    // navigates to the listing instead of saving it (mirrors CompareButton).
+    e.preventDefault();
+    e.stopPropagation();
+
     if (isToggling) return; // Prevent rapid double-clicks
 
     const supabase = createClient();

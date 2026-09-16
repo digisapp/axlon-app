@@ -31,29 +31,48 @@ export default async function OnboardingPage() {
     .order('created_at', { ascending: false })
     .limit(100);
 
-  // Get listing counts for each profile
-  const profileIds = placeholderProfiles?.map(p => p.id) || [];
+  // Supabase caps every response at 1,000 rows regardless of .range(), so both of the
+  // aggregates below page through a single column and are tallied in JS. The previous
+  // version inlined ~1,000 uuids into .in() (request too large) and only ever saw the
+  // first 1,000 listings, so the counts were wrong.
+  const PAGE = 1000;
 
-  const { data: listingCounts } = await supabase
-    .from('listings')
-    .select('user_id')
-    .in('user_id', profileIds);
-
-  // Count listings per profile
+  // Active listing counts per user
   const listingCountMap: Record<string, number> = {};
-  listingCounts?.forEach(l => {
-    listingCountMap[l.user_id] = (listingCountMap[l.user_id] || 0) + 1;
-  });
+  for (let from = 0; from < 500_000; from += PAGE) {
+    const { data: rows, error } = await supabase
+      .from('listings')
+      .select('user_id')
+      .eq('status', 'active')
+      .is('deleted_at', null)
+      .range(from, from + PAGE - 1);
+    if (error || !rows || rows.length === 0) break;
+    for (const row of rows) {
+      listingCountMap[row.user_id] = (listingCountMap[row.user_id] || 0) + 1;
+    }
+    if (rows.length < PAGE) break;
+  }
 
-  // Get stats
-  const { count: withListings } = await supabase
+  // How many placeholder profiles actually have listings
+  let withListings = 0;
+  for (let from = 0; from < 500_000; from += PAGE) {
+    const { data: rows, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .like('email', '%@dealers.axlon.ai')
+      .eq('is_business', false)
+      .range(from, from + PAGE - 1);
+    if (error || !rows || rows.length === 0) break;
+    withListings += rows.filter((r) => (listingCountMap[r.id] || 0) > 0).length;
+    if (rows.length < PAGE) break;
+  }
+
+  // Active businesses — was hardcoded to 17
+  const { count: activeBusinesses } = await supabase
     .from('profiles')
-    .select('id', { count: 'exact', head: true })
-    .like('email', '%@dealers.axlon.ai')
-    .eq('is_business', false)
-    .in('id',
-      (await supabase.from('listings').select('user_id')).data?.map(l => l.user_id) || []
-    );
+    .select('*', { count: 'exact', head: true })
+    .eq('is_business', true)
+    .not('is_suspended', 'is', true);
 
   return (
     <div className="space-y-6">
@@ -79,7 +98,7 @@ export default async function OnboardingPage() {
             <div className="flex items-center justify-between mb-2">
               <Package className="w-5 h-5 text-blue-500" />
             </div>
-            <p className="text-3xl font-bold">{withListings || 0}</p>
+            <p className="text-3xl font-bold">{withListings}</p>
             <p className="text-sm text-muted-foreground">With Listings</p>
           </CardContent>
         </Card>
@@ -89,7 +108,7 @@ export default async function OnboardingPage() {
             <div className="flex items-center justify-between mb-2">
               <Building2 className="w-5 h-5 text-green-500" />
             </div>
-            <p className="text-3xl font-bold">17</p>
+            <p className="text-3xl font-bold">{activeBusinesses || 0}</p>
             <p className="text-sm text-muted-foreground">Active Businesses</p>
           </CardContent>
         </Card>

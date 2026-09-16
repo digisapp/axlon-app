@@ -38,6 +38,8 @@ import {
   XCircle,
   Search,
   Mic,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { DealerVoiceAgent } from '@/types';
 import { logger } from '@/lib/logger';
@@ -58,6 +60,8 @@ const PLAN_TIERS = [
   { value: 'pro', label: 'Pro (500 min)', minutes: 500 },
   { value: 'unlimited', label: 'Unlimited', minutes: 99999 },
 ];
+
+const PER_PAGE = 100;
 
 interface DealerWithAgent extends DealerVoiceAgent {
   dealer?: {
@@ -81,6 +85,8 @@ export default function AdminVoiceAgentsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [counts, setCounts] = useState({ total: 0, active: 0, inactive: 0 });
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -99,7 +105,9 @@ export default function AdminVoiceAgentsPage() {
   async function fetchAgents() {
     setIsLoading(true);
     try {
-      let url = `/api/admin/dealer-voice-agents?status=${statusFilter}`;
+      // The API defaults to 20 per page — ask for a real page size and paginate,
+      // otherwise only the first 20 agents are ever visible.
+      let url = `/api/admin/dealer-voice-agents?status=${statusFilter}&page=${page}&per_page=${PER_PAGE}`;
       if (searchQuery) {
         url += `&search=${encodeURIComponent(searchQuery)}`;
       }
@@ -107,13 +115,15 @@ export default function AdminVoiceAgentsPage() {
       if (response.ok) {
         const data = await response.json();
         setAgents(data.data || []);
-        // Calculate counts
-        const all = data.total || 0;
-        const active = (data.data || []).filter((a: DealerWithAgent) => a.is_active).length;
+        setTotalPages(data.total_pages || 1);
+        // data.total is the count for the current filter, so it is exact for the matching
+        // card; the other card falls back to the rows on this page.
+        const total = data.total || 0;
+        const activeOnPage = (data.data || []).filter((a: DealerWithAgent) => a.is_active).length;
         setCounts({
-          total: all,
-          active: active,
-          inactive: all - active,
+          total,
+          active: statusFilter === 'active' ? total : activeOnPage,
+          inactive: statusFilter === 'inactive' ? total : total - activeOnPage,
         });
       }
     } catch (error) {
@@ -125,7 +135,7 @@ export default function AdminVoiceAgentsPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchAgents flips isLoading synchronously before awaiting; standard fetch-on-change pattern
     fetchAgents();
-  }, [statusFilter, searchQuery]);
+  }, [statusFilter, searchQuery, page]);
 
   const openEditDialog = (agent: DealerWithAgent) => {
     setSelectedAgent(agent);
@@ -223,7 +233,7 @@ export default function AdminVoiceAgentsPage() {
         <div className="grid grid-cols-3 gap-4">
           <Card
             className={`cursor-pointer transition-colors ${statusFilter === 'all' ? 'border-primary' : ''}`}
-            onClick={() => setStatusFilter('all')}
+            onClick={() => { setStatusFilter('all'); setPage(1); }}
           >
             <CardContent className="p-4 flex items-center gap-4">
               <div className="p-2 bg-blue-100 rounded-lg">
@@ -238,7 +248,7 @@ export default function AdminVoiceAgentsPage() {
 
           <Card
             className={`cursor-pointer transition-colors ${statusFilter === 'active' ? 'border-primary' : ''}`}
-            onClick={() => setStatusFilter('active')}
+            onClick={() => { setStatusFilter('active'); setPage(1); }}
           >
             <CardContent className="p-4 flex items-center gap-4">
               <div className="p-2 bg-green-100 rounded-lg">
@@ -253,7 +263,7 @@ export default function AdminVoiceAgentsPage() {
 
           <Card
             className={`cursor-pointer transition-colors ${statusFilter === 'inactive' ? 'border-primary' : ''}`}
-            onClick={() => setStatusFilter('inactive')}
+            onClick={() => { setStatusFilter('inactive'); setPage(1); }}
           >
             <CardContent className="p-4 flex items-center gap-4">
               <div className="p-2 bg-gray-100 rounded-lg">
@@ -274,7 +284,7 @@ export default function AdminVoiceAgentsPage() {
             <Input
               placeholder="Search by business name or phone..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
               className="pl-10"
             />
           </div>
@@ -368,6 +378,35 @@ export default function AdminVoiceAgentsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Page {page} of {totalPages} — {counts.total.toLocaleString()} agents
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1 || isLoading}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages || isLoading}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
 
       {/* Edit Dialog */}
       <Dialog open={isEditing} onOpenChange={setIsEditing}>

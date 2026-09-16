@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import {
   cacheGet,
@@ -32,9 +33,16 @@ interface ListingForEstimate {
 }
 
 /**
- * Estimate price for a listing by comparing to similar listings in the database
+ * Estimate price for a listing by comparing to similar listings in the database.
+ *
+ * `client` lets callers supply a service-role client — admin/cron paths write
+ * estimates onto listings they don't own, which owner-only RLS silently drops
+ * when the request-scoped session client is used.
  */
-export async function estimatePrice(listing: ListingForEstimate): Promise<PriceEstimate> {
+export async function estimatePrice(
+  listing: ListingForEstimate,
+  client?: SupabaseClient
+): Promise<PriceEstimate> {
   // Check cache first
   if (isRedisConfigured()) {
     const cacheKey = generatePriceCacheKey({
@@ -52,7 +60,7 @@ export async function estimatePrice(listing: ListingForEstimate): Promise<PriceE
     }
   }
 
-  const supabase = await createClient();
+  const supabase = client ?? (await createClient());
 
   // Try to find exact matches first (same make, similar year)
   if (listing.make && listing.year) {
@@ -204,8 +212,11 @@ function calculateMedian(numbers: number[]): number {
 /**
  * Update a listing with its price estimate
  */
-export async function updateListingEstimate(listingId: string): Promise<PriceEstimate> {
-  const supabase = await createClient();
+export async function updateListingEstimate(
+  listingId: string,
+  client?: SupabaseClient
+): Promise<PriceEstimate> {
+  const supabase = client ?? (await createClient());
 
   // Get the listing
   const { data: listing } = await supabase
@@ -219,7 +230,7 @@ export async function updateListingEstimate(listingId: string): Promise<PriceEst
   }
 
   // Get estimate
-  const estimate = await estimatePrice(listing);
+  const estimate = await estimatePrice(listing, client);
 
   // Update the listing if we have an estimate
   if (estimate.estimate !== null) {
@@ -238,12 +249,15 @@ export async function updateListingEstimate(listingId: string): Promise<PriceEst
 /**
  * Batch update estimates for listings missing them
  */
-export async function backfillEstimates(limit: number = 100): Promise<{
+export async function backfillEstimates(
+  limit: number = 100,
+  client?: SupabaseClient
+): Promise<{
   processed: number;
   updated: number;
   skipped: number;
 }> {
-  const supabase = await createClient();
+  const supabase = client ?? (await createClient());
 
   // Find listings with price but no estimate
   const { data: listings } = await supabase
@@ -263,7 +277,7 @@ export async function backfillEstimates(limit: number = 100): Promise<{
   let skipped = 0;
 
   for (const listing of listings) {
-    const estimate = await estimatePrice(listing);
+    const estimate = await estimatePrice(listing, client);
 
     if (estimate.estimate !== null && estimate.confidence >= 0.3) {
       await supabase
