@@ -156,8 +156,9 @@ export default function SnapListPage() {
   const handleVideoInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 500 * 1024 * 1024) {
-      toast.error('Video must be under 500MB');
+    // 50 MiB is the project's global upload ceiling; anything larger 413s.
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('Video must be under 50MB');
       return;
     }
     setVideoFile(file);

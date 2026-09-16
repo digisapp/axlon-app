@@ -30,7 +30,10 @@ interface VideoUploadProps {
 // `listing-images` caps uploads at 10 MB and image mime types only, and the
 // `listings` bucket these uploads originally targeted never existed.
 const VIDEO_BUCKET = 'listing-videos';
-const MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB (up from 100MB)
+// 50 MiB is this Supabase project's global upload ceiling. A larger bucket
+// limit is accepted by raw SQL but never honoured: the platform answers 413
+// regardless, and the dealer just saw "Failed to upload video. Please try again."
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
 const ALLOWED_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
 
 export function VideoUpload({ value, onChange, listingId }: VideoUploadProps) {
@@ -216,7 +219,7 @@ export function VideoUpload({ value, onChange, listingId }: VideoUploadProps) {
               <Video className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
               <p className="font-medium mb-1">Record or upload a walk-around video</p>
               <p className="text-sm text-muted-foreground mb-4">
-                MP4, WebM, MOV (max 500MB)
+                MP4, WebM, MOV, AVI (max 50MB)
               </p>
               <div className="flex flex-wrap gap-2 justify-center">
                 {isMobile && (
