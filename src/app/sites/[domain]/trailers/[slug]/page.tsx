@@ -31,7 +31,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     `Specs, capacity and pricing for the ${product.name}.`;
 
   return {
-    title,
+    // Already ends in "| <site name>"; without `absolute` the root layout
+    // appends its own suffix on top, producing "… | XL Trailers | Axleyard".
+    title: { absolute: title },
     description,
     alternates: { canonical: `https://${site.domain}/trailers/${product.slug}` },
     openGraph: { title, description, url: `https://${site.domain}/trailers/${product.slug}` },

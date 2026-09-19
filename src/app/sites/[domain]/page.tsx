@@ -28,7 +28,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     `Compare trailers and request pricing from ${site.name}.`;
 
   return {
-    title,
+    // `absolute` escapes the root layout's "%s | Axleyard" template. A
+    // microsite is not presented as Axleyard — it suppresses Axleyard's
+    // JSON-LD for the same reason — and the suffix also pushed these titles
+    // past the ~60 characters a search result will show, truncating the part
+    // that was actually chosen for the snippet.
+    title: { absolute: title },
     description,
     alternates: { canonical: `https://${site.domain}/` },
     openGraph: {
