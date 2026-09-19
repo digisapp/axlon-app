@@ -70,6 +70,31 @@ a parked host indexed.
 | Product type filter | Narrows the catalog, e.g. `lowboy` |
 | Show live inventory | Adds an "Available now" grid of active marketplace listings |
 | Marketplace make filter | Which listings count as this site's niche (`ILIKE %make%`) |
+| Marketplace categories | `listing_category_slugs`, e.g. `{tag-trailers,tilt-trailers}` — inner-joins listings to `categories.slug` |
+
+A site is built around **either a brand or a category**, and the two filters
+behave accordingly:
+
+- `listing_make` alone — a manufacturer site. If it is blank the linked
+  manufacturer's name is used, so xltrailers.com lists XL Specialized units
+  without anyone typing the make twice.
+- `listing_category_slugs` — a category site. "Tag trailer" is a kind of
+  trailer, not a brand, so no value of `listing_make` can express it. When
+  categories are set the manufacturer fallback is **switched off**: otherwise
+  tagtrailer.com, which shows Felling's catalog, would AND `make ILIKE
+  '%Felling%'` onto the category filter and list almost nothing — when what it
+  should show is every make of tag trailer, Interstate and Talbert included.
+  An explicitly entered `listing_make` still narrows the set.
+
+Both are ANDed when both are set. An empty array is rejected by a CHECK
+constraint, because it would inner-join to nothing and empty the grid with no
+error — the exact failure this replaced.
+
+Category slugs are not foreign keys (Postgres cannot FK an array element), so a
+typo yields an empty grid rather than an error. Migration 076 guards its own
+slugs with a `DO` block that raises on an unknown one; do the same in any
+migration that sets them, and prefer picking from `categories` in the admin UI
+over typing a slug by hand.
 
 Every page carries a quote form above the fold, plus its own
 `/sitemap.xml` and `/robots.txt` at the conventional paths.

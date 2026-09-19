@@ -36,6 +36,18 @@ const updateSchema = z.object({
   manufacturer_id: z.string().uuid().nullish(),
   product_type: nullableText(60),
   listing_make: nullableText(120),
+  listing_category_slugs: z
+    .array(
+      z
+        .string()
+        .trim()
+        .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Category must be a slug like tag-trailers')
+    )
+    .max(20)
+    .nullish()
+    // The DB CHECK rejects an empty array, and an empty array would inner-join
+    // to nothing and silently empty the grid. "None selected" means no filter.
+    .transform((value) => (value && value.length > 0 ? value : null)),
   show_listings: z.boolean().optional(),
   headline: nullableText(200),
   subheadline: nullableText(500),

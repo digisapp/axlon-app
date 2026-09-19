@@ -17,6 +17,7 @@ export interface Microsite {
   manufacturer_id: string | null;
   product_type: string | null;
   listing_make: string | null;
+  listing_category_slugs: string[] | null;
   show_listings: boolean;
   headline: string | null;
   subheadline: string | null;
@@ -53,6 +54,7 @@ const LISTINGS_TTL_SECONDS = 60;
 
 const SELECT = `
   id, domain, name, status, manufacturer_id, product_type, listing_make,
+  listing_category_slugs,
   show_listings, headline, subheadline, hero_image_url, accent_color, cta_label,
   phone, disclaimer, lead_recipient_email, assigned_user_id, meta_title,
   meta_description,
@@ -228,12 +230,25 @@ export interface MicrositeListing {
  * trailers is far more credible with real units on it than with a catalog
  * alone, and these are the listings a lead can actually be sold against.
  */
-async function fetchListings(make: string, limit: number): Promise<MicrositeListing[]> {
+async function fetchListings(
+  make: string,
+  categories: string[],
+  limit: number
+): Promise<MicrositeListing[]> {
   const supabase = createAdminClient();
+
+    // Filtering on a category slug requires the embed to be an INNER join —
+    // a plain embed would return every listing with a null category rather
+    // than restricting the set.
+    const columns =
+      'id, title, price, year, make, model, city, state, condition, images:listing_images(url, sort_order)';
+    const select = categories.length
+      ? `${columns}, category:categories!inner(slug)`
+      : columns;
 
     let query = supabase
       .from('listings')
-      .select('id, title, price, year, make, model, city, state, condition, images:listing_images(url, sort_order)')
+      .select(select)
       .eq('status', 'active')
       .is('deleted_at', null)
       .order('is_featured', { ascending: false })
@@ -244,6 +259,7 @@ async function fetchListings(make: string, limit: number): Promise<MicrositeList
       .limit(limit);
 
     if (make) query = query.ilike('make', `%${make}%`);
+    if (categories.length) query = query.in('category.slug', categories);
 
     const { data, error } = await query;
     if (error) throw new Error(`microsite listings query failed: ${error.message}`);
@@ -254,20 +270,33 @@ export const getMicrositeListings = cache(
   async (site: Microsite, limit = 12): Promise<MicrositeListing[]> => {
     if (!site.show_listings) return [];
 
+    const categories = site.listing_category_slugs ?? [];
+
+    // A site built around a category is not built around a brand. Falling back
+    // to the linked manufacturer's name would AND the two together and empty
+    // the grid — tagtrailer.com shows Felling's catalog but must still list
+    // Interstate, Talbert and Load King tag trailers. So the manufacturer
+    // fallback applies only when no category filter is set; an explicitly
+    // entered listing_make still narrows either way.
+    const rawMake = categories.length
+      ? site.listing_make || ''
+      : site.listing_make || site.manufacturer?.name || '';
     // Admin-entered, but a stray % or _ in a make name silently turns this
     // into a much broader match than the admin asked for. Normalize before
     // it becomes part of the cache key, so two spellings can't key apart.
-    const rawMake = site.listing_make || site.manufacturer?.name || '';
     const make = rawMake ? sanitizeSearchFilter(rawMake).replace(/[%_]/g, (c) => `\\${c}`) : '';
+
+    // Sorted so two orderings of the same filter share one cache entry.
+    const categoryKey = [...categories].sort().join(',');
 
     try {
       return await unstable_cache(
-        () => fetchListings(make, limit),
-        ['microsite-listings', make, String(limit)],
+        () => fetchListings(make, categories, limit),
+        ['microsite-listings', make, categoryKey, String(limit)],
         { tags: [MICROSITES_CACHE_TAG], revalidate: LISTINGS_TTL_SECONDS }
       )();
     } catch (error) {
-      logger.error('Microsite listings fetch failed', { error, make });
+      logger.error('Microsite listings fetch failed', { error, make, categories });
       return [];
     }
   }
