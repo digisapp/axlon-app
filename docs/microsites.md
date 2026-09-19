@@ -124,11 +124,39 @@ Descriptive, factual use of a maker's name to say what is being sold is the
 line this stays on.
 
 
-## Performance note
+## Caching
 
-Every microsite request currently hits the database (one query to resolve the
-host, plus the catalog/listing reads). That is fine at today's traffic and
-keeps status changes instant, but it is the first thing to revisit if a site
-starts ranking. Static rendering is not available while the root layout reads
-`headers()` for the CSP nonce; the realistic options are a short-lived cache
-inside `getMicrositeByHost` or moving the nonce out of the root layout.
+Microsite pages render per request — static rendering is not available while
+the root layout reads `headers()` for the CSP nonce. So the *data* is cached
+rather than the page:
+
+| Read | Cached | TTL |
+|---|---|---|
+| Resolve host → microsite row | **No** | — |
+| Manufacturer catalog (grid + detail) | Yes | 10 min |
+| Live marketplace listings | Yes | 60 s |
+
+The host resolver is deliberately uncached. That row carries `status`, and a
+TTL on it would mean flipping a site live takes effect minutes later. It is
+also the cheapest of the three — one unique-index hit on `domain`.
+
+Saving a microsite in the admin calls `revalidateTag(MICROSITES_CACHE_TAG,
+{ expire: 0 })`, so an edit shows up on the next request rather than after the
+TTL. Next 16 requires that second cache-life argument; a bare
+`revalidateTag(tag)` still purges but logs a deprecation warning every time.
+
+Failed queries are thrown, not swallowed, so a transient database error can't
+be stored as an empty catalog for the whole TTL. The caller logs it and
+degrades for that request only.
+
+If a domain starts ranking, the next step is CDN-caching the HTML with
+`s-maxage`. That requires dropping the per-request CSP nonce on `/sites/*`,
+because a nonce shared across cached responses is not a nonce. It is a real
+security tradeoff — make it deliberately, not by default.
+
+## Previewing before you publish
+
+A draft site redirects to the marketplace, so there is no preview mode. You do
+not need one: until DNS points at Vercel the domain is unreachable regardless
+of status. Add the domain in Vercel, flip the site live, open it directly to
+review the copy, and only then point DNS.

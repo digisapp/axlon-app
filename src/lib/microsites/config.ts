@@ -43,16 +43,6 @@ export function isAppHost(rawHost: string | null | undefined): boolean {
   return false;
 }
 
-/**
- * Local-dev escape hatch: microsite domains don't resolve to localhost, so
- * `?__site=xltrailers.com` on the app host renders that microsite instead.
- * Honoured only outside production.
- */
-export const SITE_PREVIEW_PARAM = '__site';
-
-export function isPreviewAllowed(): boolean {
-  return process.env.NODE_ENV !== 'production';
-}
 
 /**
  * Whether a normalized host is safe to interpolate into a rewrite path.

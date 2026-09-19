@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { MICROSITES_CACHE_TAG } from '@/lib/microsites/resolve';
 import { checkIsAdmin, logAdminAction } from '@/lib/admin/check-admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { requireCsrf } from '@/lib/security/csrf';
@@ -105,8 +106,13 @@ export async function PATCH(
 
     await logAdminAction(userId, 'update', 'microsite', id, { fields: Object.keys(updates) });
 
-    // The public pages are cached for an hour; an admin edit should show up
-    // immediately rather than whenever the window happens to roll over.
+    // The pages themselves render per request, but the catalog and listing
+    // reads sit in the data cache behind a TTL. Drop them so an edit is
+    // visible on the next request instead of up to ten minutes later.
+    // Next 16 requires a cache-life profile; `{ expire: 0 }` is the explicit
+    // "purge now". A bare revalidateTag(tag) still purges but logs a
+    // deprecation warning on every admin save.
+    revalidateTag(MICROSITES_CACHE_TAG, { expire: 0 });
     revalidatePath(`/sites/${data.domain}`, 'layout');
 
     return NextResponse.json({ success: true, microsite: data });
@@ -162,6 +168,9 @@ export async function DELETE(
     if (!data) return NextResponse.json({ error: 'Microsite not found' }, { status: 404 });
 
     await logAdminAction(userId, 'delete', 'microsite', id, { domain: data.domain });
+
+    revalidateTag(MICROSITES_CACHE_TAG, { expire: 0 });
+    revalidatePath(`/sites/${data.domain}`, 'layout');
 
     return NextResponse.json({ success: true });
   } catch (error) {

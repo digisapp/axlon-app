@@ -1,6 +1,8 @@
 import 'server-only';
 import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
 import type { ManufacturerProduct } from '@/types';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import { normalizeHost } from './config';
@@ -36,6 +38,19 @@ export interface Microsite {
   } | null;
 }
 
+/**
+ * Tag every cached microsite read, so one admin save can drop all of them.
+ * Edits are rare and manual — per-site invalidation would buy nothing but a
+ * more fragile key.
+ */
+export const MICROSITES_CACHE_TAG = 'microsites';
+
+// The manufacturer catalog changes only when a scraper runs; live inventory
+// changes whenever a dealer posts. Nothing here is per-visitor, so both are
+// safe to share across requests.
+const CATALOG_TTL_SECONDS = 600;
+const LISTINGS_TTL_SECONDS = 60;
+
 const SELECT = `
   id, domain, name, status, manufacturer_id, product_type, listing_make,
   show_listings, headline, subheadline, hero_image_url, accent_color, cta_label,
@@ -50,6 +65,12 @@ const SELECT = `
  * Config is read with the service-role client: the table holds lead-routing
  * addresses and is not readable by anon, and this runs only on the server.
  * `cache()` dedupes the lookup across layout/page/metadata in one request.
+ *
+ * Deliberately NOT in the cross-request data cache. This row carries `status`,
+ * and a TTL here would mean flipping a site live takes effect minutes later —
+ * the exact confusion the setup doc warns about. It is also the cheapest read
+ * of the three: one unique-index hit on `domain`. The heavy reads below are
+ * the ones worth caching.
  */
 export const getMicrositeByHost = cache(
   async (rawHost: string): Promise<Microsite | null> => {
@@ -93,11 +114,17 @@ export interface MicrositeProduct extends Omit<ManufacturerProduct, 'images'> {
   images?: { url: string; alt_text: string | null; is_primary: boolean | null }[];
 }
 
-/** Catalog products this microsite shows, most prominent first. */
-export const getMicrositeProducts = cache(
-  async (site: Microsite, limit = 24): Promise<MicrositeProduct[]> => {
-    if (!site.manufacturer_id) return [];
-    const supabase = createAdminClient();
+/**
+ * Keyed on the primitives the query actually uses, never on the Microsite
+ * object: the object carries headline/colour/etc., so keying on it would drop
+ * the catalog cache every time someone edited a word of copy.
+ */
+async function fetchProducts(
+  manufacturerId: string,
+  productType: string | null,
+  limit: number
+): Promise<MicrositeProduct[]> {
+  const supabase = createAdminClient();
 
     let query = supabase
       .from('manufacturer_products')
@@ -107,37 +134,79 @@ export const getMicrositeProducts = cache(
         axle_count, gooseneck_type, gvwr_lbs, is_featured, sort_order,
         images:manufacturer_product_images(url, alt_text, is_primary)
       `)
-      .eq('manufacturer_id', site.manufacturer_id)
+      .eq('manufacturer_id', manufacturerId)
       .eq('is_active', true)
       .order('is_featured', { ascending: false })
       .order('sort_order', { ascending: true })
       .order('name', { ascending: true })
       .limit(limit);
 
-    if (site.product_type) query = query.eq('product_type', site.product_type);
+    if (productType) query = query.eq('product_type', productType);
 
-    const { data } = await query;
+    const { data, error } = await query;
+    // Throw rather than returning []: unstable_cache stores whatever resolves,
+    // so swallowing a transient failure here would pin an empty catalog on the
+    // page for the full TTL. The caller logs and degrades for this request only.
+    if (error) throw new Error(`microsite products query failed: ${error.message}`);
     return (data ?? []) as unknown as MicrositeProduct[];
+}
+
+/** Catalog products this microsite shows, most prominent first. */
+export const getMicrositeProducts = cache(
+  async (site: Microsite, limit = 24): Promise<MicrositeProduct[]> => {
+    if (!site.manufacturer_id) return [];
+    const manufacturerId = site.manufacturer_id;
+    const productType = site.product_type;
+
+    try {
+      return await unstable_cache(
+        () => fetchProducts(manufacturerId, productType, limit),
+        ['microsite-products', manufacturerId, productType ?? '', String(limit)],
+        { tags: [MICROSITES_CACHE_TAG], revalidate: CATALOG_TTL_SECONDS }
+      )();
+    } catch (error) {
+      logger.error('Microsite products fetch failed', { error, manufacturerId });
+      return [];
+    }
   }
 );
 
-/** One catalog product on this microsite, by slug. */
-export const getMicrositeProduct = cache(
-  async (site: Microsite, slug: string): Promise<MicrositeProduct | null> => {
-    if (!site.manufacturer_id) return null;
-    const supabase = createAdminClient();
-    const { data } = await supabase
+async function fetchProduct(
+  manufacturerId: string,
+  slug: string
+): Promise<MicrositeProduct | null> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
       .from('manufacturer_products')
       .select(`
         *,
         images:manufacturer_product_images(url, alt_text, is_primary, sort_order),
         specs:manufacturer_product_specs(spec_category, spec_key, spec_value, spec_unit, sort_order)
       `)
-      .eq('manufacturer_id', site.manufacturer_id)
+      .eq('manufacturer_id', manufacturerId)
       .eq('slug', slug)
       .eq('is_active', true)
       .maybeSingle();
-    return (data as unknown as MicrositeProduct) ?? null;
+  if (error) throw new Error(`microsite product query failed: ${error.message}`);
+  return (data as unknown as MicrositeProduct) ?? null;
+}
+
+/** One catalog product on this microsite, by slug. */
+export const getMicrositeProduct = cache(
+  async (site: Microsite, slug: string): Promise<MicrositeProduct | null> => {
+    if (!site.manufacturer_id) return null;
+    const manufacturerId = site.manufacturer_id;
+
+    try {
+      return await unstable_cache(
+        () => fetchProduct(manufacturerId, slug),
+        ['microsite-product', manufacturerId, slug],
+        { tags: [MICROSITES_CACHE_TAG], revalidate: CATALOG_TTL_SECONDS }
+      )();
+    } catch (error) {
+      logger.error('Microsite product fetch failed', { error, manufacturerId, slug });
+      return null;
+    }
   }
 );
 
@@ -159,10 +228,8 @@ export interface MicrositeListing {
  * trailers is far more credible with real units on it than with a catalog
  * alone, and these are the listings a lead can actually be sold against.
  */
-export const getMicrositeListings = cache(
-  async (site: Microsite, limit = 12): Promise<MicrositeListing[]> => {
-    if (!site.show_listings) return [];
-    const supabase = createAdminClient();
+async function fetchListings(make: string, limit: number): Promise<MicrositeListing[]> {
+  const supabase = createAdminClient();
 
     let query = supabase
       .from('listings')
@@ -176,17 +243,33 @@ export const getMicrositeListings = cache(
       .order('sort_order', { referencedTable: 'listing_images', ascending: true })
       .limit(limit);
 
-    const rawMake = site.listing_make || site.manufacturer?.name;
-    if (rawMake) {
-      // Admin-entered, but a stray % or _ in a make name silently turns this
-      // into a much broader match than the admin asked for.
-      const make = sanitizeSearchFilter(rawMake).replace(/[%_]/g, (c) => `\\${c}`);
-      if (make) query = query.ilike('make', `%${make}%`);
-    }
+    if (make) query = query.ilike('make', `%${make}%`);
 
     const { data, error } = await query;
-    if (error || !data) return [];
-    return data as unknown as MicrositeListing[];
+    if (error) throw new Error(`microsite listings query failed: ${error.message}`);
+    return (data ?? []) as unknown as MicrositeListing[];
+}
+
+export const getMicrositeListings = cache(
+  async (site: Microsite, limit = 12): Promise<MicrositeListing[]> => {
+    if (!site.show_listings) return [];
+
+    // Admin-entered, but a stray % or _ in a make name silently turns this
+    // into a much broader match than the admin asked for. Normalize before
+    // it becomes part of the cache key, so two spellings can't key apart.
+    const rawMake = site.listing_make || site.manufacturer?.name || '';
+    const make = rawMake ? sanitizeSearchFilter(rawMake).replace(/[%_]/g, (c) => `\\${c}`) : '';
+
+    try {
+      return await unstable_cache(
+        () => fetchListings(make, limit),
+        ['microsite-listings', make, String(limit)],
+        { tags: [MICROSITES_CACHE_TAG], revalidate: LISTINGS_TTL_SECONDS }
+      )();
+    } catch (error) {
+      logger.error('Microsite listings fetch failed', { error, make });
+      return [];
+    }
   }
 );
 
