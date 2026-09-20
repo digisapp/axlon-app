@@ -92,12 +92,18 @@ export default async function MicrositeLandingPage({ params }: PageProps) {
             <div className="absolute inset-0 bg-slate-950/70" />
           </>
         )}
+        {/* Three grid children, ordered differently per breakpoint. On mobile
+            the form comes second, straight after the headline — with the trust
+            row above it the quote box started below the fold on a phone, which
+            is where most of this traffic reads. On lg the form spans both rows
+            of the right column, so the left column reads headline → trust row
+            as before. */}
         <div
-          className={`relative mx-auto grid max-w-6xl gap-10 px-4 py-14 lg:grid-cols-[1.1fr_440px] lg:py-20 ${
+          className={`relative mx-auto grid max-w-6xl gap-x-10 gap-y-8 px-4 py-14 lg:grid-cols-[1.1fr_440px] lg:py-20 ${
             site.hero_image_url ? 'text-white' : ''
           }`}
         >
-          <div className="flex flex-col justify-center">
+          <div className="order-1 flex flex-col justify-center lg:order-none">
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
               {headline}
             </h1>
@@ -109,7 +115,9 @@ export default async function MicrositeLandingPage({ params }: PageProps) {
               {subheadline}
             </p>
 
-            <ul className="mt-8 grid gap-3 sm:grid-cols-3">
+          </div>
+
+          <ul className="order-3 grid gap-3 sm:grid-cols-3 lg:order-none lg:self-start">
               {[
                 { icon: Clock, label: 'Pricing within one business day' },
                 { icon: ShieldCheck, label: 'Vetted dealer network' },
@@ -125,12 +133,14 @@ export default async function MicrositeLandingPage({ params }: PageProps) {
                   </span>
                 </li>
               ))}
-            </ul>
-          </div>
+          </ul>
 
           {/* The form is above the fold on every screen size. This is a
               lead-gen page; the quote request is the primary content. */}
-          <div id="quote" className="scroll-mt-20 rounded-xl border bg-background p-5 text-foreground shadow-xl sm:p-6">
+          <div
+            id="quote"
+            className="order-2 scroll-mt-20 rounded-xl border bg-background p-5 text-foreground shadow-xl sm:p-6 lg:order-none lg:row-span-2 lg:self-center"
+          >
             <h2 className="text-xl font-semibold">Request pricing</h2>
             <p className="mb-4 mt-1 text-sm text-muted-foreground">
               Tell us what you need and we&apos;ll come back with real numbers.
@@ -230,13 +240,18 @@ export default async function MicrositeLandingPage({ params }: PageProps) {
               {listings.map((listing) => {
                 const image = listing.images?.[0];
                 return (
-                  <a
+                  <div
                     key={listing.id}
-                    href={`https://axleyard.com/listing/${listing.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-lg"
+                    className="group flex flex-col overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-lg"
                   >
+                    {/* Primary action is the quote, not the marketplace. A
+                        visitor clicking a unit here is at peak intent; sending
+                        them to axleyard.com in a new tab spent that intent on
+                        a different domain and left this site with nothing. */}
+                    <Link
+                      href={`/?unit=${encodeURIComponent(listing.title)}#quote`}
+                      className="flex flex-1 flex-col"
+                    >
                     <div className="relative aspect-[4/3] bg-muted">
                       {image ? (
                         <Image
@@ -267,7 +282,29 @@ export default async function MicrositeLandingPage({ params }: PageProps) {
                         </p>
                       )}
                     </div>
-                  </a>
+                    </Link>
+
+                    <div className="mt-auto flex items-center justify-between gap-2 border-t px-4 py-2.5">
+                      <Link
+                        href={`/?unit=${encodeURIComponent(listing.title)}#quote`}
+                        className="inline-flex items-center gap-1 text-sm font-semibold hover:underline"
+                        style={{ color: 'var(--ms-accent)' }}
+                      >
+                        Get a price
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                      {/* Kept, but secondary: some buyers want every photo and
+                          spec before they'll talk to anyone. */}
+                      <a
+                        href={`https://axleyard.com/listing/${listing.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-muted-foreground hover:underline"
+                      >
+                        Full details
+                      </a>
+                    </div>
+                  </div>
                 );
               })}
             </div>

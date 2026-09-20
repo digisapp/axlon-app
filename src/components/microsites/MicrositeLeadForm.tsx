@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { csrfFetch } from '@/lib/csrf-fetch';
 import { getSessionId, readAttribution } from '@/lib/microsites/attribution';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2, X } from 'lucide-react';
 
 interface Props {
   micrositeId: string;
@@ -25,6 +26,27 @@ export function MicrositeLeadForm({
 }: Props) {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [error, setError] = useState<string | null>(null);
+
+  // A visitor who clicked a specific unit in "Available now" arrives here with
+  // ?unit=<title>. Naming the unit back to them is the whole point: the
+  // request stops being a generic enquiry and becomes "this one, how much",
+  // which is also what makes the lead worth something to whoever answers it.
+  //
+  // useSearchParams rather than window.location: clicking a second card is a
+  // client-side navigation (pushState), which fires no popstate event, so a
+  // listener-based read would show the first unit forever. This hook does
+  // re-render on that navigation. It needs no Suspense boundary here because
+  // the root layout reads headers() for the CSP nonce, which already makes
+  // the whole route tree dynamic.
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const unit = searchParams.get('unit')?.slice(0, 160) || null;
+
+  function clearUnit() {
+    // replace, not push, so Back doesn't walk through every unit they viewed.
+    router.replace(pathname, { scroll: false });
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -54,7 +76,7 @@ export function MicrositeLeadForm({
           buyer_phone: (data.get('buyer_phone') as string)?.trim() || null,
           message: (data.get('message') as string)?.trim() || null,
           product_interest:
-            productInterest || (data.get('product_interest') as string) || null,
+            productInterest || unit || (data.get('product_interest') as string) || null,
           timeframe: (data.get('timeframe') as string) || null,
           landing_path: window.location.pathname,
           referrer: document.referrer || null,
@@ -93,6 +115,28 @@ export function MicrositeLeadForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
+      {unit && (
+        <div
+          className="flex items-start justify-between gap-2 rounded-md border px-3 py-2"
+          style={{ borderColor: 'var(--ms-accent)', backgroundColor: 'color-mix(in srgb, var(--ms-accent) 8%, transparent)' }}
+        >
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted-foreground">Asking about</p>
+            <p className="truncate text-sm font-semibold" title={unit}>
+              {unit}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={clearUnit}
+            aria-label="Clear selected trailer"
+            className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       <div className={compact ? 'space-y-3' : 'grid gap-3 sm:grid-cols-2'}>
         <div>
           <label htmlFor="ms-name" className="mb-1 block text-sm font-medium">
@@ -127,7 +171,7 @@ export function MicrositeLeadForm({
         </div>
       </div>
 
-      {!productInterest && productOptions.length > 0 && (
+      {!productInterest && !unit && productOptions.length > 0 && (
         <div>
           <label htmlFor="ms-product" className="mb-1 block text-sm font-medium">
             Trailer of interest
