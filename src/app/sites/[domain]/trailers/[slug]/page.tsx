@@ -58,6 +58,8 @@ export default async function MicrositeProductPage({ params }: PageProps) {
 
   const related = (await getMicrositeProducts(site, 7)).filter((p) => p.id !== product.id).slice(0, 3);
 
+  const maker = Array.isArray(product.manufacturer) ? product.manufacturer[0] : product.manufacturer;
+
   const images = [...(product.images ?? [])].sort((a, b) => {
     if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
     return 0;
@@ -128,7 +130,14 @@ export default async function MicrositeProductPage({ params }: PageProps) {
             </div>
           )}
 
-          <h1 className="mt-8 text-3xl font-bold tracking-tight">{product.name}</h1>
+          {maker?.name && !site.manufacturer_id && (
+        <p className="mt-8 text-sm font-medium uppercase tracking-wide text-muted-foreground">
+          {maker.name}
+        </p>
+      )}
+      <h1 className={`text-3xl font-bold tracking-tight ${maker?.name && !site.manufacturer_id ? 'mt-1' : 'mt-8'}`}>
+        {product.name}
+      </h1>
           {product.tagline && <p className="mt-2 text-lg text-muted-foreground">{product.tagline}</p>}
 
           {headlineSpecs.length > 0 && (

@@ -7,6 +7,7 @@ import {
   getMicrositeByHost,
   getMicrositeProducts,
   getMicrositeListings,
+  catalogScope,
 } from '@/lib/microsites/resolve';
 import { MicrositeLeadForm } from '@/components/microsites/MicrositeLeadForm';
 import { isOptimizerBlockedImage } from '@/lib/images/optimizer-blocked-hosts';
@@ -68,6 +69,16 @@ export default async function MicrositeLandingPage({ params }: PageProps) {
     getMicrositeProducts(site, 24),
     getMicrositeListings(site, 9),
   ]);
+
+  // A category site draws from every manufacturer, so each card has to say
+  // whose trailer it is — otherwise 16 makers' products read as one range.
+  const { spansManufacturers } = catalogScope(site);
+
+  const manufacturerCount = new Set(
+    products
+      .map((p) => (Array.isArray(p.manufacturer) ? p.manufacturer[0] : p.manufacturer)?.name)
+      .filter(Boolean)
+  ).size;
 
   const headline = site.headline || `${site.name} For Sale`;
   const subheadline =
@@ -160,10 +171,14 @@ export default async function MicrositeLandingPage({ params }: PageProps) {
           <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-2xl font-bold tracking-tight">
-                {site.manufacturer?.name ?? site.name} models
+                {spansManufacturers ? 'Compare models' : `${site.manufacturer?.name ?? site.name} models`}
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                {products.length} model{products.length === 1 ? '' : 's'} — tap any one for full specs and pricing.
+                {products.length} model{products.length === 1 ? '' : 's'}
+                {spansManufacturers && manufacturerCount > 1
+                  ? ` from ${manufacturerCount} manufacturers`
+                  : ''}{' '}
+                — tap any one for full specs and pricing.
               </p>
             </div>
           </div>
@@ -173,6 +188,9 @@ export default async function MicrositeLandingPage({ params }: PageProps) {
               const image =
                 product.images?.find((i) => i.is_primary) || product.images?.[0];
               const ton = tonnage(product.tonnage_min, product.tonnage_max);
+              const maker = Array.isArray(product.manufacturer)
+                ? product.manufacturer[0]
+                : product.manufacturer;
               return (
                 <Link
                   key={product.id}
@@ -196,6 +214,11 @@ export default async function MicrositeLandingPage({ params }: PageProps) {
                     )}
                   </div>
                   <div className="p-4">
+                    {spansManufacturers && maker?.name && (
+                      <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        {maker.name}
+                      </p>
+                    )}
                     <h3 className="font-semibold leading-tight group-hover:underline">
                       {product.name}
                     </h3>

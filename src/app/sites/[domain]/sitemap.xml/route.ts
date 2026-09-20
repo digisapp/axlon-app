@@ -28,9 +28,14 @@ export async function GET(
   const base = `https://${site.domain}`;
   const today = new Date().toISOString().split('T')[0];
 
+  // `slug` is unique per manufacturer, not globally, so a category site
+  // spanning makers can carry the same slug twice. Both resolve to one URL —
+  // emitting it twice would put duplicate <loc> entries in the sitemap.
+  const productSlugs = [...new Set(products.map((p) => p.slug))];
+
   const urls = [
     { loc: `${base}/`, priority: '1.0' },
-    ...products.map((p) => ({ loc: `${base}/trailers/${p.slug}`, priority: '0.8' })),
+    ...productSlugs.map((slug) => ({ loc: `${base}/trailers/${slug}`, priority: '0.8' })),
   ];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

@@ -6,6 +6,9 @@ import { logger } from '@/lib/logger';
 import type { ManufacturerProduct } from '@/types';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import { normalizeHost } from './config';
+import { catalogScope } from './catalog-scope';
+
+export { catalogScope } from './catalog-scope';
 
 export type MicrositeStatus = 'draft' | 'live' | 'paused';
 
@@ -18,6 +21,8 @@ export interface Microsite {
   product_type: string | null;
   listing_make: string | null;
   listing_category_slugs: string[] | null;
+  /** Null until migration 079 is applied; see SELECT_WITH_CATALOG_TYPES. */
+  catalog_product_types: string[] | null;
   show_listings: boolean;
   headline: string | null;
   subheadline: string | null;
@@ -52,7 +57,7 @@ export const MICROSITES_CACHE_TAG = 'microsites';
 const CATALOG_TTL_SECONDS = 600;
 const LISTINGS_TTL_SECONDS = 60;
 
-const SELECT = `
+const SELECT_BASE = `
   id, domain, name, status, manufacturer_id, product_type, listing_make,
   listing_category_slugs,
   show_listings, headline, subheadline, hero_image_url, accent_color, cta_label,
@@ -60,6 +65,29 @@ const SELECT = `
   meta_description,
   manufacturer:manufacturers(id, name, slug, website, short_description)
 `;
+
+const SELECT_WITH_CATALOG_TYPES = `${SELECT_BASE}, catalog_product_types`;
+
+/**
+ * Whether `microsites.catalog_product_types` (migration 079) exists yet.
+ *
+ * This code and the migration reach production through different doors, and
+ * five domains are already serving live traffic. Naming a column that isn't
+ * there yet fails the whole select, which would resolve every host to null and
+ * bounce every visitor to the marketplace — the site would be down, quietly,
+ * for as long as the two were out of step. So the first query probes, and the
+ * answer is remembered for the life of the instance.
+ *
+ * null = not yet determined.
+ */
+let catalogTypesColumnExists: boolean | null = null;
+
+/** PostgREST codes for "you asked for a column/field that does not exist". */
+function isMissingColumnError(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  if (error.code === '42703' || error.code === 'PGRST204') return true;
+  return /column .* does not exist|does not exist on table/i.test(error.message ?? '');
+}
 
 /**
  * Look up a microsite by host.
@@ -80,12 +108,28 @@ export const getMicrositeByHost = cache(
     if (!domain || !domain.includes('.')) return null;
 
     const supabase = createAdminClient();
-    const { data } = await supabase
-      .from('microsites')
-      .select(SELECT)
-      .eq('domain', domain)
-      .maybeSingle();
 
+    const runQuery = (select: string) =>
+      supabase.from('microsites').select(select).eq('domain', domain).maybeSingle();
+
+    let { data, error } = await runQuery(
+      catalogTypesColumnExists === false ? SELECT_BASE : SELECT_WITH_CATALOG_TYPES
+    );
+
+    if (error && catalogTypesColumnExists !== false && isMissingColumnError(error)) {
+      // Migration 079 hasn't landed on this database yet. Fall back for the
+      // life of this instance rather than failing the request.
+      catalogTypesColumnExists = false;
+      logger.warn('microsites.catalog_product_types missing; migration 079 not applied');
+      ({ data, error } = await runQuery(SELECT_BASE));
+    } else if (!error && catalogTypesColumnExists === null) {
+      catalogTypesColumnExists = true;
+    }
+
+    if (error) {
+      logger.error('Microsite resolve failed', { error, domain });
+      return null;
+    }
     if (!data) return null;
 
     // PostgREST returns a many-to-one embed as an object, but the generated
@@ -97,6 +141,7 @@ export const getMicrositeByHost = cache(
     };
     const site: Microsite = {
       ...row,
+      catalog_product_types: row.catalog_product_types ?? null,
       manufacturer: Array.isArray(row.manufacturer) ? (row.manufacturer[0] ?? null) : (row.manufacturer ?? null),
     };
 
@@ -122,8 +167,8 @@ export interface MicrositeProduct extends Omit<ManufacturerProduct, 'images'> {
  * the catalog cache every time someone edited a word of copy.
  */
 async function fetchProducts(
-  manufacturerId: string,
-  productType: string | null,
+  manufacturerId: string | null,
+  productTypes: string[],
   limit: number
 ): Promise<MicrositeProduct[]> {
   const supabase = createAdminClient();
@@ -134,16 +179,19 @@ async function fetchProducts(
         id, name, slug, series, tagline, short_description, product_type,
         tonnage_min, tonnage_max, deck_height_inches, deck_length_feet,
         axle_count, gooseneck_type, gvwr_lbs, is_featured, sort_order,
-        images:manufacturer_product_images(url, alt_text, is_primary)
+        images:manufacturer_product_images(url, alt_text, is_primary),
+        manufacturer:manufacturers(name, slug)
       `)
-      .eq('manufacturer_id', manufacturerId)
       .eq('is_active', true)
       .order('is_featured', { ascending: false })
       .order('sort_order', { ascending: true })
       .order('name', { ascending: true })
       .limit(limit);
 
-    if (productType) query = query.eq('product_type', productType);
+    // A brand site pins one maker; a category site spans all of them. One of
+    // the two is always set — getMicrositeProducts returns early otherwise.
+    if (manufacturerId) query = query.eq('manufacturer_id', manufacturerId);
+    if (productTypes.length) query = query.in('product_type', productTypes);
 
     const { data, error } = await query;
     // Throw rather than returning []: unstable_cache stores whatever resolves,
@@ -154,55 +202,68 @@ async function fetchProducts(
 }
 
 /** Catalog products this microsite shows, most prominent first. */
+
 export const getMicrositeProducts = cache(
   async (site: Microsite, limit = 24): Promise<MicrositeProduct[]> => {
-    if (!site.manufacturer_id) return [];
-    const manufacturerId = site.manufacturer_id;
-    const productType = site.product_type;
+    const { manufacturerId, productTypes } = catalogScope(site);
+    if (!manufacturerId && !productTypes.length) return [];
 
     try {
       return await unstable_cache(
-        () => fetchProducts(manufacturerId, productType, limit),
-        ['microsite-products', manufacturerId, productType ?? '', String(limit)],
+        () => fetchProducts(manufacturerId, productTypes, limit),
+        ['microsite-products', manufacturerId ?? '', productTypes.join(','), String(limit)],
         { tags: [MICROSITES_CACHE_TAG], revalidate: CATALOG_TTL_SECONDS }
       )();
     } catch (error) {
-      logger.error('Microsite products fetch failed', { error, manufacturerId });
+      logger.error('Microsite products fetch failed', { error, manufacturerId, productTypes });
       return [];
     }
   }
 );
 
 async function fetchProduct(
-  manufacturerId: string,
+  manufacturerId: string | null,
+  productTypes: string[],
   slug: string
 ): Promise<MicrositeProduct | null> {
   const supabase = createAdminClient();
-  const { data, error } = await supabase
+  let query = supabase
       .from('manufacturer_products')
       .select(`
         *,
         images:manufacturer_product_images(url, alt_text, is_primary, sort_order),
-        specs:manufacturer_product_specs(spec_category, spec_key, spec_value, spec_unit, sort_order)
+        specs:manufacturer_product_specs(spec_category, spec_key, spec_value, spec_unit, sort_order),
+        manufacturer:manufacturers(name, slug)
       `)
-      .eq('manufacturer_id', manufacturerId)
       .eq('slug', slug)
-      .eq('is_active', true)
-      .maybeSingle();
+      .eq('is_active', true);
+
+  if (manufacturerId) query = query.eq('manufacturer_id', manufacturerId);
+  if (productTypes.length) query = query.in('product_type', productTypes);
+
+  // `slug` is unique per manufacturer, not globally, so a category site
+  // spanning makers can match more than one row (today: "lowboy-trailers",
+  // owned by both Globe and Etnyre). maybeSingle() would throw on that.
+  // Order so the winner is stable across requests rather than whatever the
+  // planner happens to return first.
+  const { data, error } = await query
+    .order('manufacturer_id', { ascending: true })
+    .limit(1);
+
   if (error) throw new Error(`microsite product query failed: ${error.message}`);
-  return (data as unknown as MicrositeProduct) ?? null;
+  return (data?.[0] as unknown as MicrositeProduct) ?? null;
 }
 
 /** One catalog product on this microsite, by slug. */
 export const getMicrositeProduct = cache(
   async (site: Microsite, slug: string): Promise<MicrositeProduct | null> => {
-    if (!site.manufacturer_id) return null;
-    const manufacturerId = site.manufacturer_id;
+    const { manufacturerId, productTypes } = catalogScope(site);
+    if (!manufacturerId && !productTypes.length) return null;
 
     try {
       return await unstable_cache(
-        () => fetchProduct(manufacturerId, slug),
-        ['microsite-product', manufacturerId, slug],
+        () => fetchProduct(manufacturerId, productTypes, slug),
+        ['microsite-product', manufacturerId ?? '', productTypes.join(','), slug],
         { tags: [MICROSITES_CACHE_TAG], revalidate: CATALOG_TTL_SECONDS }
       )();
     } catch (error) {
