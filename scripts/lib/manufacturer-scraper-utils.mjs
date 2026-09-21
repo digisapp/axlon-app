@@ -74,7 +74,49 @@ export async function getManufacturerId(supabase, slug) {
 /**
  * Upsert a manufacturer product. Returns the product ID.
  */
+/**
+ * Names that mean "the scraper followed a dead link", not "this is a trailer".
+ *
+ * Six of these reached production and rendered as real product cards on the
+ * marketplace and on the lead-gen microsites ("Page Not Found", "404",
+ * "Sorry About That", "Oops!Page Not Found" from Felling, Faymonville, Globe,
+ * Kaufman and Etnyre). A scraper that follows a stale link gets the site's 404
+ * page, reads its <h1>, and upserts it like any other product — nothing
+ * downstream can tell the difference, because by then it is just a row.
+ *
+ * Matched on the whole trimmed name, not as a substring: a real model could
+ * legitimately contain "404" (a part number) or the word "error".
+ */
+const DEAD_PAGE_NAMES = [
+  /^(oops[!,.]?\s*)?page\s*not\s*found$/i,
+  /^(error\s*)?404(\s*[-–—:]?\s*(page\s*)?not\s*found)?$/i,
+  /^not\s*found$/i,
+  /^sorry\s*about\s*that[!.]?$/i,
+  /^(page\s*)?(unavailable|does\s*not\s*exist)$/i,
+  /^(we(&#39;|')?re\s*sorry|oops)[!.]?$/i,
+  /^(access\s*denied|forbidden|just\s*a\s*moment)[!.]?$/i,
+  /^(untitled|coming\s*soon|under\s*construction)$/i,
+];
+
+/**
+ * True when a scraped name looks like an error page rather than a product.
+ * Exported so individual scrapers can skip early, before doing image work.
+ */
+export function isDeadPageName(name) {
+  const trimmed = cleanText(name || '').replace(/\s+/g, ' ').trim();
+  if (!trimmed) return true;
+  return DEAD_PAGE_NAMES.some((re) => re.test(trimmed));
+}
+
 export async function upsertProduct(supabase, manufacturerId, product) {
+  // Refuse the row rather than letting a scraped 404 become a product. This
+  // is the last common chokepoint before the database, so one check here
+  // covers every manufacturer scraper.
+  if (isDeadPageName(product.name)) {
+    console.warn(`  Skipping "${product.name}" — looks like an error page, not a product (${product.source_url || 'no source url'})`);
+    return null;
+  }
+
   const slug = slugify(product.name);
 
   const row = {
