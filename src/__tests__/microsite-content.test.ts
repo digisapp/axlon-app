@@ -74,6 +74,17 @@ describe('productMetaDescription', () => {
     expect(d).not.toMatch(/\s…$/);
   });
 
+  it('does not stutter when maker and product both end in "Trailers"', () => {
+    const d = productMetaDescription(
+      { ...thinProduct, name: 'Custom Trailers' } as MicrositeProduct,
+      'XL Specialized Trailers',
+      'XL Trailers'
+    );
+    // Was: "XL Specialized Trailers Custom Trailers lowboy trailer."
+    expect(d).toMatch(/^XL Specialized Custom Trailers — a lowboy\./);
+    expect((d.match(/trailers?/gi) ?? []).length).toBeLessThanOrEqual(3);
+  });
+
   it('works with no manufacturer name', () => {
     expect(productMetaDescription(thinProduct, null, 'Hale Trailers')).toContain('XL Power Tail');
   });

@@ -134,7 +134,14 @@ export function productMetaDescription(
   const parts: string[] = [];
   const type = productTypeExplainer(product.product_type);
 
-  const lead = [makerName, product.name].filter(Boolean).join(' ');
+  // "XL Specialized Trailers Custom Trailers lowboy trailer" — maker names
+  // and product names both tend to end in "Trailers", and the type noun adds
+  // a third. Drop the maker's trailing noun and the type noun when the
+  // product name already carries one; keep the product name verbatim.
+  const maker = (makerName ?? '').replace(/\s+trailers?$/i, '').trim();
+  const nameHasNoun = /\btrailers?$/i.test(product.name.trim());
+  const lead = [maker || null, product.name].filter(Boolean).join(' ');
+  const typeNoun = nameHasNoun ? type.label.toLowerCase() : `${type.label.toLowerCase()} trailer`;
   const specs = [
     product.tonnage_max ? `${product.tonnage_max}-ton` : null,
     product.axle_count ? `${product.axle_count}-axle` : null,
@@ -143,8 +150,10 @@ export function productMetaDescription(
 
   parts.push(
     specs.length
-      ? `${lead}: ${specs.join(', ')} ${type.label.toLowerCase()} trailer.`
-      : `${lead} ${type.label.toLowerCase()} trailer.`
+      ? `${lead}: ${specs.join(', ')} ${typeNoun}.`
+      : nameHasNoun
+        ? `${lead} — a ${typeNoun}.`
+        : `${lead} ${typeNoun}.`
   );
 
   const own = (product.short_description || '').trim();
