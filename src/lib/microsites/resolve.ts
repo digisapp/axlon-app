@@ -183,8 +183,16 @@ async function fetchProducts(
         manufacturer:manufacturers(name, slug)
       `)
       .eq('is_active', true)
+      // is_featured is false and sort_order is 0 on every one of the 380
+      // catalog rows, so ordering by them was ordering by name — and names
+      // that start with a digit ("20 Ton …") led every grid. Lead with stated
+      // capacity instead: it is what a heavy-haul buyer scans for, and rows
+      // the scraper recovered nothing for (no tonnage, no description) fall
+      // to the back rather than the front row. Featured stays first so a
+      // deliberate pin still wins if one is ever set.
       .order('is_featured', { ascending: false })
-      .order('sort_order', { ascending: true })
+      .order('tonnage_max', { ascending: false, nullsFirst: false })
+      .order('description', { ascending: true, nullsFirst: false })
       .order('name', { ascending: true })
       .limit(limit);
 

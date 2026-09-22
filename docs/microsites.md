@@ -233,3 +233,36 @@ Things the audit fixed that are easy to regress:
   dealers were approved at the time; the replacement reads live state counts.
 - Copy in `short_description` is shown on cards. Four XL products carried
   wheel-marketing boilerplate ("Aluminum Durabright Wheels…") and were nulled.
+
+## Catalog data quality (the part the templates can't fix)
+
+The manufacturer catalog is scraped, and two kinds of scraper error reach the
+microsites directly:
+
+- **Non-products stored as products.** Six 404 pages were live as models until
+  2026-09-20. `isDeadPageName` in `scripts/lib/manufacturer-scraper-utils.mjs`
+  now refuses them at `upsertProduct`, the last chokepoint before the database.
+- **Wrong `product_type`.** Half of the rows whose name states a type
+  disagreed with the stored one — tag-alongs, sliding-axle carriers and freight
+  flatbeds filed as `lowboy`, mostly from scrapers falling through to the
+  default. On a category site that put a 20-ton tag-along at the top of the
+  heavy-haul grid. 26 rows were retyped by hand on 2026-09-21 and
+  `inferProductTypeFromName` now derives the type from the name at upsert, for
+  the *distinct* types only. RGN/lowboy/extendable overlap (an RGN is a
+  lowboy; extendable is a property) and are left to the scraper on purpose.
+
+The scraper upserts every column on re-scrape, so a manual data fix survives
+only if the guard reproduces it. `scraper-dead-page-names.test.ts` locks all
+26 name→type pairs for exactly that reason — if you retype a row by hand, add
+it there or the next scrape reverts it.
+
+Grid order on every microsite is `is_featured desc, tonnage_max desc nulls
+last, description nulls last, name`. `is_featured` and `sort_order` carry no
+signal (false / 0 on all 380 rows), so the old order was alphabetical and
+digit-led names always won the first row.
+
+Known but deliberately untouched: several Loadstar and Faymonville "products"
+are scraped page titles ("Premium Quality Engineered Lowboy Trailer", "Heavy
+Trailer Services including Lowboy, Heavy Tag, and…") rather than model names.
+They are real content, just verbose; deactivating them is a judgment call on
+marketing copy, not a clear-cut error like a 404 page.

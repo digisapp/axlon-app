@@ -108,6 +108,46 @@ export function isDeadPageName(name) {
   return DEAD_PAGE_NAMES.some((re) => re.test(trimmed));
 }
 
+/**
+ * Product types a name can state unambiguously.
+ *
+ * Half of the catalog rows whose name declares a type disagreed with the
+ * stored product_type — tag-alongs, sliding-axle carriers and flatbeds all
+ * filed under "lowboy", mostly from scrapers falling through to the default.
+ * On a category microsite that puts a 20-ton tag-along at the top of a
+ * heavy-haul lowboy grid.
+ *
+ * Only DISTINCT types are inferred here. lowboy / rgn / extendable overlap
+ * (an RGN is a lowboy; extendable is a property) and are left to the scraper.
+ * Whole-word patterns only: a loose "\bsd\b" once matched a side-dump
+ * trailer's model code as a step deck.
+ */
+const NAME_TYPE_RULES = [
+  // Bare "Tag" is a category claim too (XL's tag-along model is named
+  // simply "XL Tag"); only "tag axle" — a lift axle — is excluded.
+  ['tag-along',      /\btag[\s-]*a[\s-]*long\b|\btagalong\b|\btag\b(?!\s*axle)/i],
+  ['traveling-axle', /\btravel+ing[\s-]*axle\b|\bslid(e|ing)[\s-]*axle\b|\brollback\b/i],
+  ['double-drop',    /\bdouble[\s-]*drop\b/i],
+  ['step-deck',      /\bstep[\s-]*deck\b|\bdrop[\s-]*deck\b|\bdrop[\s-]*flat\b/i],
+  ['flatbed',        /\bflat[\s-]*bed\b/i],
+  ['modular',        /\bmodular\b/i],
+];
+
+/**
+ * The type the name states, or null when it states none of the distinct ones.
+ * A detachable double drop is an RGN as much as a double drop, so a name that
+ * also says detach/RGN yields null and the scraper's choice stands.
+ */
+export function inferProductTypeFromName(name) {
+  const n = cleanText(name || '');
+  if (!n) return null;
+  if (/\b(detach\w*|rgn|removable\s+gooseneck)\b/i.test(n) && /\bdouble[\s-]*drop\b/i.test(n)) return null;
+  for (const [type, re] of NAME_TYPE_RULES) {
+    if (re.test(n)) return type;
+  }
+  return null;
+}
+
 export async function upsertProduct(supabase, manufacturerId, product) {
   // Refuse the row rather than letting a scraped 404 become a product. This
   // is the last common chokepoint before the database, so one check here
@@ -128,7 +168,10 @@ export async function upsertProduct(supabase, manufacturerId, product) {
     tagline: product.tagline || null,
     description: product.description || null,
     short_description: product.short_description || null,
-    product_type: product.product_type || 'lowboy',
+    // A name that unambiguously states a distinct type wins over whatever the
+    // scraper set — usually the 'lowboy' fallback, sometimes an explicit wrong
+    // value. See inferProductTypeFromName for what counts as unambiguous.
+    product_type: inferProductTypeFromName(product.name) || product.product_type || 'lowboy',
     tonnage_min: product.tonnage_min || null,
     tonnage_max: product.tonnage_max || null,
     deck_height_inches: product.deck_height_inches || null,
