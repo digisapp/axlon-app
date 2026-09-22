@@ -186,6 +186,17 @@ not need one: until DNS points at Vercel the domain is unreachable regardless
 of status. Add the domain in Vercel, flip the site live, open it directly to
 review the copy, and only then point DNS.
 
+## Applying a migration the resolver depends on
+
+`getMicrositeByHost` probes once per serverless instance for columns added by
+a later migration (currently `catalog_product_types`, migration 079) and
+remembers the answer for the instance's lifetime. That is what lets the code
+ship before the schema without taking the sites down — but it also means that
+**after the migration lands, instances that already probed keep answering
+"missing" until they recycle.** Redeploy (`vercel redeploy <latest-url>`) to
+reset them; it takes about a minute. Symptom if you forget: the column exists,
+the seeds are correct, and the category sites still show zero products.
+
 ## What each page carries (Sep 2026 audit)
 
 Landing page, top to bottom: header with click-to-call → hero (headline,
