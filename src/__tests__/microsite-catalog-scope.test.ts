@@ -8,6 +8,7 @@ describe('catalogScope', () => {
     expect(catalogScope({ ...base, manufacturer_id: 'xl' })).toEqual({
       manufacturerId: 'xl',
       productTypes: [],
+      primaryType: null,
       spansManufacturers: false,
     });
   });
@@ -16,6 +17,7 @@ describe('catalogScope', () => {
     expect(catalogScope({ ...base, manufacturer_id: 'xl', product_type: 'lowboy' })).toEqual({
       manufacturerId: 'xl',
       productTypes: ['lowboy'],
+      primaryType: 'lowboy',
       spansManufacturers: false,
     });
   });
@@ -24,6 +26,7 @@ describe('catalogScope', () => {
     expect(catalogScope({ ...base, catalog_product_types: ['lowboy', 'rgn'] })).toEqual({
       manufacturerId: null,
       productTypes: ['lowboy', 'rgn'],
+      primaryType: 'lowboy',
       spansManufacturers: true,
     });
   });
@@ -57,7 +60,17 @@ describe('catalogScope', () => {
     expect(catalogScope({ ...base, manufacturer_id: 'xl', catalog_product_types: [] })).toEqual({
       manufacturerId: 'xl',
       productTypes: [],
+      primaryType: null,
       spansManufacturers: false,
     });
+  });
+});
+
+describe('catalogScope primaryType', () => {
+  it('keeps the admin\'s first-listed type as primary while sorting the key', () => {
+    // tagtrailers.com lists tag-along first on purpose: it is the site's namesake.
+    const scope = catalogScope({ ...base, catalog_product_types: ['traveling-axle', 'tag-along'] });
+    expect(scope.productTypes).toEqual(['tag-along', 'traveling-axle']); // sorted → stable cache key
+    expect(scope.primaryType).toBe('traveling-axle'); // but the lead is what was listed first
   });
 });

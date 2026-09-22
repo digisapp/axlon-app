@@ -14,7 +14,15 @@ export interface CatalogScopeInput {
 
 export interface CatalogScope {
   manufacturerId: string | null;
+  /** Sorted, so two orderings of the same filter share one cache key. */
   productTypes: string[];
+  /**
+   * The FIRST type as the admin listed it — the one the site is named for.
+   * tagtrailers.com lists ['tag-along', 'traveling-axle']: tag-alongs are the
+   * point, sliding-axle carriers are the neighbours. The grid leads with this
+   * type; the sorted `productTypes` stays the cache key.
+   */
+  primaryType: string | null;
   /** True when the grid can contain more than one manufacturer's products. */
   spansManufacturers: boolean;
 }
@@ -33,12 +41,14 @@ export function catalogScope(site: CatalogScopeInput): CatalogScope {
     return {
       manufacturerId: null,
       productTypes: [...types].sort(),
+      primaryType: types[0],
       spansManufacturers: true,
     };
   }
   return {
     manufacturerId: site.manufacturer_id,
     productTypes: site.product_type ? [site.product_type] : [],
+    primaryType: site.product_type ?? null,
     spansManufacturers: false,
   };
 }

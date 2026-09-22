@@ -256,10 +256,22 @@ only if the guard reproduces it. `scraper-dead-page-names.test.ts` locks all
 26 name→type pairs for exactly that reason — if you retype a row by hand, add
 it there or the next scrape reverts it.
 
-Grid order on every microsite is `is_featured desc, tonnage_max desc nulls
-last, description nulls last, name`. `is_featured` and `sort_order` carry no
-signal (false / 0 on all 380 rows), so the old order was alphabetical and
-digit-led names always won the first row.
+Grid order: featured, then **the site's primary type** (the first entry in
+`catalog_product_types` — list the namesake type first), then stated capacity
+descending, then rows with a description, then name. Category sites fetch
+their whole scope and rank in code because PostgREST can't put one type ahead
+of another in ORDER BY; brand sites are ordered by the database. `is_featured`
+and `sort_order` carry no signal (false / 0 on all 380 rows) — without this
+the order was alphabetical and digit-led names always won the first row, and
+with capacity alone 40–55 t sliding-axle carriers outranked every tag-along on
+tagtrailers.com.
+
+**Verifying a change behind the data cache:** `unstable_cache` is
+stale-while-revalidate. The first request after the TTL still returns the old
+value and only *triggers* the refresh; the next request gets the new one. So
+fetch twice, and don't be alarmed when two sites sharing a cache key disagree
+for a few seconds — the first fetch got stale, the second got fresh. The cache
+also survives redeploys.
 
 Known but deliberately untouched: several Loadstar and Faymonville "products"
 are scraped page titles ("Premium Quality Engineered Lowboy Trailer", "Heavy

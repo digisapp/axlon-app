@@ -166,12 +166,46 @@ export interface MicrositeProduct extends Omit<ManufacturerProduct, 'images'> {
  * object: the object carries headline/colour/etc., so keying on it would drop
  * the catalog cache every time someone edited a word of copy.
  */
+/**
+ * Rank a category site's catalog: the type the site is named for first, then
+ * stated capacity, then rows that have a description, then name.
+ *
+ * PostgREST can't express "this type before the others" in ORDER BY, so a
+ * category site fetches its whole scope (at most a few hundred rows, cached
+ * ten minutes) and ranks here. Without the type-first rule, tonnage alone put
+ * 40–55 t sliding-axle carriers above every tag-along on tagtrailers.com — the
+ * namesake product buried beneath the neighbours.
+ */
+function rankCatalog(rows: MicrositeProduct[], primaryType: string | null): MicrositeProduct[] {
+  return [...rows].sort((a, b) => {
+    if (a.is_featured !== b.is_featured) return a.is_featured ? -1 : 1;
+    if (primaryType) {
+      const ap = a.product_type === primaryType, bp = b.product_type === primaryType;
+      if (ap !== bp) return ap ? -1 : 1;
+    }
+    const at = a.tonnage_max ?? -1, bt = b.tonnage_max ?? -1;
+    if (at !== bt) return bt - at;
+    const ad = (a.description ?? '').length > 0, bd = (b.description ?? '').length > 0;
+    if (ad !== bd) return ad ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+// A category site spans up to ~260 rows today; this is the ceiling on what
+// one grid request will pull before ranking.
+const CATEGORY_SCOPE_CEILING = 500;
+
 async function fetchProducts(
   manufacturerId: string | null,
   productTypes: string[],
+  primaryType: string | null,
   limit: number
 ): Promise<MicrositeProduct[]> {
   const supabase = createAdminClient();
+  // Brand sites are ordered by the database and cut at `limit`. Category sites
+  // need the whole scope so the primary type can lead — see rankCatalog.
+  const spansManufacturers = !manufacturerId && productTypes.length > 0;
+  const fetchLimit = spansManufacturers ? CATEGORY_SCOPE_CEILING : limit;
 
     let query = supabase
       .from('manufacturer_products')
@@ -194,7 +228,7 @@ async function fetchProducts(
       .order('tonnage_max', { ascending: false, nullsFirst: false })
       .order('description', { ascending: true, nullsFirst: false })
       .order('name', { ascending: true })
-      .limit(limit);
+      .limit(fetchLimit);
 
     // A brand site pins one maker; a category site spans all of them. One of
     // the two is always set — getMicrositeProducts returns early otherwise.
@@ -206,20 +240,23 @@ async function fetchProducts(
     // so swallowing a transient failure here would pin an empty catalog on the
     // page for the full TTL. The caller logs and degrades for this request only.
     if (error) throw new Error(`microsite products query failed: ${error.message}`);
-    return (data ?? []) as unknown as MicrositeProduct[];
+    const rows = (data ?? []) as unknown as MicrositeProduct[];
+    return spansManufacturers ? rankCatalog(rows, primaryType).slice(0, limit) : rows;
 }
 
 /** Catalog products this microsite shows, most prominent first. */
 
 export const getMicrositeProducts = cache(
   async (site: Microsite, limit = 24): Promise<MicrositeProduct[]> => {
-    const { manufacturerId, productTypes } = catalogScope(site);
+    const { manufacturerId, productTypes, primaryType } = catalogScope(site);
     if (!manufacturerId && !productTypes.length) return [];
 
     try {
       return await unstable_cache(
-        () => fetchProducts(manufacturerId, productTypes, limit),
-        ['microsite-products', manufacturerId ?? '', productTypes.join(','), String(limit)],
+        () => fetchProducts(manufacturerId, productTypes, primaryType, limit),
+        // primaryType is in the key: two sites with the same type set but a
+        // different lead type must not share one ranked result.
+        ['microsite-products', manufacturerId ?? '', productTypes.join(','), primaryType ?? '', String(limit)],
         { tags: [MICROSITES_CACHE_TAG], revalidate: CATALOG_TTL_SECONDS }
       )();
     } catch (error) {
