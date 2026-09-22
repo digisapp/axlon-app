@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isDirectAppHostRequest } from '@/lib/microsites/guard';
-import { getMicrositeByHost, getMicrositeProducts } from '@/lib/microsites/resolve';
+import { getMicrositeByHost, getMicrositeCatalogUncached } from '@/lib/microsites/resolve';
 
 // The proxy rewrites https://<domain>/sitemap.xml to /sites/<domain>/sitemap.xml,
 // so each microsite serves its own sitemap at the conventional path.
@@ -24,7 +24,8 @@ export async function GET(
   const site = await getMicrositeByHost(domain);
   if (!site) return new NextResponse('Not found', { status: 404 });
 
-  const products = await getMicrositeProducts(site, 500);
+  // Uncached on purpose — see getMicrositeCatalogUncached.
+  const products = await getMicrositeCatalogUncached(site, 500);
   const base = `https://${site.domain}`;
   const today = new Date().toISOString().split('T')[0];
 
@@ -51,7 +52,10 @@ ${urls
   return new NextResponse(xml, {
     headers: {
       'Content-Type': 'application/xml',
-      'Cache-Control': 'public, max-age=0, s-maxage=3600',
+      // Next rewrites Cache-Control on dynamic route handlers (this one reads
+      // headers() for the app-host guard), so an s-maxage here never reached
+      // the CDN — x-vercel-cache was MISS with the header set. Say what is true.
+      'Cache-Control': 'public, max-age=0',
     },
   });
 }

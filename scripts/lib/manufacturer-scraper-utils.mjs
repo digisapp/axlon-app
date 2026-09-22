@@ -5,6 +5,7 @@
  * and upsert products into the manufacturer_products table.
  */
 
+import crypto from 'crypto';
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { createClient } from '@supabase/supabase-js';
@@ -328,6 +329,59 @@ export async function updateProductCount(supabase, manufacturerId) {
 /**
  * Sleep for a given number of milliseconds (default 300ms)
  */
+/**
+ * Sign a request the way src/lib/security/internal-auth.ts verifies it (v2:
+ * the signature covers timestamp.METHOD.path, so it cannot be replayed
+ * against a different endpoint). Kept in sync by a contract test that runs
+ * this signer through the app's own verifier.
+ */
+export function signInternalRequest(method, path, secret = process.env.INTERNAL_API_SECRET) {
+  if (!secret) throw new Error('INTERNAL_API_SECRET not configured');
+  const timestamp = Date.now().toString();
+  const signature = crypto
+    .createHmac('sha256', secret)
+    .update(`${timestamp}.${method.toUpperCase()}.${path}`)
+    .digest('hex');
+  return { 'x-internal-signature': signature, 'x-internal-timestamp': timestamp };
+}
+
+/**
+ * Tell the app the catalog changed so the microsites drop their cached grids.
+ *
+ * Without this a scrape rewrites hundreds of rows and the sites keep serving
+ * the old catalog until the ten-minute TTL — or indefinitely for a key whose
+ * background refresh was lost. Never throws: a failed notification must not
+ * fail a successful scrape. Returns true when the app acknowledged.
+ */
+export async function notifyCatalogChanged() {
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || '').trim().replace(/\/+$/, '');
+  const path = '/api/internal/revalidate';
+  if (!appUrl || !process.env.INTERNAL_API_SECRET) {
+    console.warn('  ⚠️  Skipping cache revalidation: NEXT_PUBLIC_APP_URL or INTERNAL_API_SECRET not set');
+    return false;
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const res = await fetch(`${appUrl}${path}`, {
+      method: 'POST',
+      headers: signInternalRequest('POST', path),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      console.warn(`  ⚠️  Cache revalidation returned HTTP ${res.status}`);
+      return false;
+    }
+    console.log('  🔄 Microsite caches revalidated');
+    return true;
+  } catch (error) {
+    console.warn(`  ⚠️  Cache revalidation failed: ${error.message}`);
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export function sleep(ms = 300) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

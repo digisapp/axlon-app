@@ -246,6 +246,28 @@ async function fetchProducts(
 
 /** Catalog products this microsite shows, most prominent first. */
 
+/**
+ * The whole catalog scope, straight from the database — no data cache.
+ *
+ * For the sitemap. It is the one reader whose cache entry was observed to go
+ * stale and stay stale: route-handler background revalidation is unreliable
+ * on Vercel, and a key hit only by crawlers never gets the retry that a
+ * frequently-polled page key does. A sitemap is fetched rarely and the query
+ * is cheap, so caching it bought nothing and cost correctness.
+ */
+export const getMicrositeCatalogUncached = cache(
+  async (site: Microsite, limit = 500): Promise<MicrositeProduct[]> => {
+    const { manufacturerId, productTypes, primaryType } = catalogScope(site);
+    if (!manufacturerId && !productTypes.length) return [];
+    try {
+      return await fetchProducts(manufacturerId, productTypes, primaryType, limit);
+    } catch (error) {
+      logger.error('Microsite catalog (uncached) fetch failed', { error, manufacturerId, productTypes });
+      return [];
+    }
+  }
+);
+
 export const getMicrositeProducts = cache(
   async (site: Microsite, limit = 24): Promise<MicrositeProduct[]> => {
     const { manufacturerId, productTypes, primaryType } = catalogScope(site);

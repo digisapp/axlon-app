@@ -266,12 +266,27 @@ the order was alphabetical and digit-led names always won the first row, and
 with capacity alone 40–55 t sliding-axle carriers outranked every tag-along on
 tagtrailers.com.
 
-**Verifying a change behind the data cache:** `unstable_cache` is
-stale-while-revalidate. The first request after the TTL still returns the old
-value and only *triggers* the refresh; the next request gets the new one. So
-fetch twice, and don't be alarmed when two sites sharing a cache key disagree
-for a few seconds — the first fetch got stale, the second got fresh. The cache
-also survives redeploys.
+**How the data cache actually behaves:** `unstable_cache` is
+stale-while-revalidate, it survives redeploys, and on Vercel the background
+refresh it kicks off can be lost when the serverless instance recycles — so a
+key that is hit rarely may never refresh on its own. Three consequences:
+
+- Verify a change by fetching twice; the first request after the TTL serves
+  the old value and only triggers the refresh.
+- The **sitemap reads the catalog uncached** (`getMicrositeCatalogUncached`).
+  It was the one key observed to go stale and stay stale; crawlers hit it
+  rarely and the query is cheap, so caching bought nothing.
+- **A scrape run invalidates explicitly.** `scrape-all-manufacturers.mjs`
+  finishes by calling `POST /api/internal/revalidate`, signed with the app's
+  HMAC v2 internal signature (`INTERNAL_API_SECRET`, bound to method + path),
+  which drops every microsite cache entry. The signer and the verifier are
+  held together by `internal-revalidate-contract.test.ts`. Editing catalog
+  rows by hand in Supabase does *not* trigger this — save any microsite in
+  the admin afterwards, which calls the same `revalidateTag`, or wait out the
+  ten-minute TTL.
+
+Don't "change the cache key" to force freshness: it works exactly once and
+leaves no mechanism behind.
 
 Known but deliberately untouched: several Loadstar and Faymonville "products"
 are scraped page titles ("Premium Quality Engineered Lowboy Trailer", "Heavy

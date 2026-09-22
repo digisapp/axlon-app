@@ -14,6 +14,7 @@
  * lifecycle and Supabase upserts via the shared utility library.
  */
 
+import { notifyCatalogChanged } from './lib/manufacturer-scraper-utils.mjs';
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -196,6 +197,13 @@ async function main() {
   }
 
   console.log('═'.repeat(60) + '\n');
+
+  // Anything that succeeded rewrote catalog rows the microsites cache. Tell
+  // the app so the grids refresh on the next request rather than after the
+  // TTL. Best-effort: never lets a failed notification fail the run.
+  if (succeeded > 0) {
+    await notifyCatalogChanged();
+  }
 
   // Exit with error code if any failed
   if (failed > 0) {
