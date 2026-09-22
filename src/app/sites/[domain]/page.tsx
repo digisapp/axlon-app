@@ -2,13 +2,16 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Truck, ShieldCheck, Clock, Gauge, ArrowRight, MapPin } from 'lucide-react';
+import { Truck, Clock, Gauge, ArrowRight, MapPin, Phone } from 'lucide-react';
 import {
   getMicrositeByHost,
   getMicrositeProducts,
   getMicrositeListings,
+  getMarketplaceStats,
   catalogScope,
 } from '@/lib/microsites/resolve';
+import { landingFaqs, landingJsonLd } from '@/lib/microsites/content';
+import { JsonLd } from '@/components/microsites/JsonLd';
 import { MicrositeLeadForm } from '@/components/microsites/MicrositeLeadForm';
 import { isOptimizerBlockedImage } from '@/lib/images/optimizer-blocked-hosts';
 
@@ -65,10 +68,13 @@ export default async function MicrositeLandingPage({ params }: PageProps) {
   const site = await getMicrositeByHost(domain);
   if (!site) notFound();
 
-  const [products, listings] = await Promise.all([
+  const [products, listings, stats] = await Promise.all([
     getMicrositeProducts(site, 24),
     getMicrositeListings(site, 9),
+    getMarketplaceStats(),
   ]);
+  const faqs = landingFaqs(site);
+  const telHref = site.phone ? `tel:${site.phone.replace(/[^\d+]/g, '')}` : null;
 
   // A category site draws from every manufacturer, so each card has to say
   // whose trailer it is — otherwise 16 makers' products read as one range.
@@ -87,6 +93,8 @@ export default async function MicrositeLandingPage({ params }: PageProps) {
 
   return (
     <>
+      <JsonLd data={landingJsonLd(site, products, faqs)} />
+
       {/* Hero */}
       <section className="relative overflow-hidden border-b">
         {site.hero_image_url && (
@@ -96,6 +104,7 @@ export default async function MicrositeLandingPage({ params }: PageProps) {
               alt=""
               fill
               priority
+              fetchPriority="high"
               sizes="100vw"
               className="object-cover"
               unoptimized={isOptimizerBlockedImage(site.hero_image_url)}
@@ -126,12 +135,30 @@ export default async function MicrositeLandingPage({ params }: PageProps) {
               {subheadline}
             </p>
 
+            {telHref && (
+              <p className={`mt-5 text-base ${site.hero_image_url ? 'text-slate-200' : 'text-muted-foreground'}`}>
+                Prefer to talk?{' '}
+                <a
+                  href={telHref}
+                  className="inline-flex items-center gap-1.5 font-semibold underline-offset-4 hover:underline"
+                  style={{ color: site.hero_image_url ? '#fff' : 'var(--ms-accent)' }}
+                >
+                  <Phone className="h-4 w-4" />
+                  {site.phone}
+                </a>
+              </p>
+            )}
           </div>
 
           <ul className="order-3 grid gap-3 sm:grid-cols-3 lg:order-none lg:self-start">
               {[
                 { icon: Clock, label: 'Pricing within one business day' },
-                { icon: ShieldCheck, label: 'Vetted dealer network' },
+                {
+                  icon: MapPin,
+                  // "Vetted dealer network" was here, with zero approved dealers
+                  // behind it. Say something that is true and specific instead.
+                  label: stats.states > 0 ? `Inventory across ${stats.states} states` : 'Dealer inventory nationwide',
+                },
                 { icon: Gauge, label: 'Specs compared side by side' },
               ].map(({ icon: Icon, label }) => (
                 <li key={label} className="flex items-start gap-2 text-sm">
@@ -165,9 +192,33 @@ export default async function MicrositeLandingPage({ params }: PageProps) {
         </div>
       </section>
 
+      {/* Numbers a buyer can check, not adjectives. Hidden entirely if the
+          stats query failed rather than printing "0 trailers listed". */}
+      {stats.listings > 0 && (
+        <section className="border-b bg-muted/30">
+          <dl className="mx-auto grid max-w-6xl grid-cols-3 divide-x px-4 py-5 text-center">
+            {[
+              { value: stats.listings.toLocaleString('en-US'), label: 'trailers listed' },
+              { value: String(stats.manufacturers), label: 'manufacturers' },
+              { value: String(stats.states), label: 'states' },
+            ].map(({ value, label }) => (
+              <div key={label} className="px-2">
+                <dt className="sr-only">{label}</dt>
+                <dd>
+                  <span className="block text-2xl font-bold tabular-nums sm:text-3xl" style={{ color: 'var(--ms-accent)' }}>
+                    {value}
+                  </span>
+                  <span className="text-xs uppercase tracking-wide text-muted-foreground sm:text-sm">{label}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+
       {/* Catalog */}
       {products.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 py-14">
+        <section id="models" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-14">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-2xl font-bold tracking-tight">
@@ -331,6 +382,24 @@ export default async function MicrositeLandingPage({ params }: PageProps) {
                 );
               })}
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* FAQ. Answers the objections that stop a form submission, and is
+          emitted as FAQPage schema above for the same questions in search. */}
+      {faqs.length > 0 && (
+        <section className="border-t">
+          <div className="mx-auto max-w-3xl px-4 py-14">
+            <h2 className="text-2xl font-bold tracking-tight">Common questions</h2>
+            <dl className="mt-6 divide-y">
+              {faqs.map((f) => (
+                <div key={f.q} className="py-5">
+                  <dt className="font-semibold">{f.q}</dt>
+                  <dd className="mt-2 text-muted-foreground">{f.a}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
         </section>
       )}

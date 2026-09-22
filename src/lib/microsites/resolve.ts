@@ -313,6 +313,10 @@ async function fetchListings(
       .eq('status', 'active')
       .is('deleted_at', null)
       .order('is_featured', { ascending: false })
+      // A real number anchors interest; "Call for price" is on 76% of active
+      // listings, so without this the whole strip can read as eighteen of
+      // them in a row. Priced units first, then newest.
+      .order('price', { ascending: true, nullsFirst: false })
       .order('published_at', { ascending: false, nullsFirst: false })
       // Without this the embedded photos come back unordered and a card can
       // lead with a detail shot instead of the primary image.
@@ -375,3 +379,52 @@ export function disclaimerFor(site: Microsite): string {
   }
   return `${site.name} is an independent marketplace operated by Axleyard. All trademarks and product names are the property of their respective owners.`;
 }
+
+export interface MarketplaceStats {
+  listings: number;
+  manufacturers: number;
+  states: number;
+}
+
+async function fetchMarketplaceStats(): Promise<MarketplaceStats> {
+  const supabase = createAdminClient();
+  const [listings, manufacturers, states] = await Promise.all([
+    supabase
+      .from('listings')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'active')
+      .is('deleted_at', null),
+    supabase
+      .from('manufacturers')
+      .select('id', { count: 'exact', head: true })
+      .gt('product_count', 0)
+      .eq('is_active', true),
+    supabase.from('listings').select('state').eq('status', 'active').is('deleted_at', null).limit(2000),
+  ]);
+  if (listings.error) throw new Error(`stats listings: ${listings.error.message}`);
+  if (manufacturers.error) throw new Error(`stats manufacturers: ${manufacturers.error.message}`);
+  if (states.error) throw new Error(`stats states: ${states.error.message}`);
+  const stateSet = new Set((states.data ?? []).map((r) => r.state).filter(Boolean));
+  return {
+    listings: listings.count ?? 0,
+    manufacturers: manufacturers.count ?? 0,
+    states: stateSet.size,
+  };
+}
+
+/**
+ * Live marketplace figures for the trust strip. Every microsite shows the same
+ * numbers, so one cache entry serves all of them. A failure returns zeros and
+ * the strip hides itself rather than printing "0 trailers listed".
+ */
+export const getMarketplaceStats = cache(async (): Promise<MarketplaceStats> => {
+  try {
+    return await unstable_cache(fetchMarketplaceStats, ['marketplace-stats'], {
+      tags: [MICROSITES_CACHE_TAG],
+      revalidate: 3600,
+    })();
+  } catch (error) {
+    logger.error('Marketplace stats fetch failed', { error });
+    return { listings: 0, manufacturers: 0, states: 0 };
+  }
+});

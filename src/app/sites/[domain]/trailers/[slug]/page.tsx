@@ -2,13 +2,15 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Truck } from 'lucide-react';
+import { ChevronRight, Truck } from 'lucide-react';
 import {
   getMicrositeByHost,
   getMicrositeProduct,
   getMicrositeProducts,
 } from '@/lib/microsites/resolve';
 import { MicrositeLeadForm } from '@/components/microsites/MicrositeLeadForm';
+import { JsonLd } from '@/components/microsites/JsonLd';
+import { productJsonLd, productMetaDescription, productTypeExplainer } from '@/lib/microsites/content';
 import { isOptimizerBlockedImage } from '@/lib/images/optimizer-blocked-hosts';
 
 
@@ -24,11 +26,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const product = await getMicrositeProduct(site, slug);
   if (!product) return { robots: { index: false, follow: false } };
 
+  const maker = Array.isArray(product.manufacturer) ? product.manufacturer[0] : product.manufacturer;
   const title = `${product.name} — Specs & Pricing | ${site.name}`;
-  const description =
-    product.short_description ||
-    product.tagline ||
-    `Specs, capacity and pricing for the ${product.name}.`;
+  // Previously short_description || tagline, which for a third of the catalog
+  // was empty or a scraped two-word tagline ("Detachable Gooseneck") shown
+  // under the search result. Built from what we actually know instead.
+  const description = productMetaDescription(product, maker?.name, site.name);
 
   return {
     // Already ends in "| <site name>"; without `absolute` the root layout
@@ -59,6 +62,7 @@ export default async function MicrositeProductPage({ params }: PageProps) {
   const related = (await getMicrositeProducts(site, 7)).filter((p) => p.id !== product.id).slice(0, 3);
 
   const maker = Array.isArray(product.manufacturer) ? product.manufacturer[0] : product.manufacturer;
+  const explainer = productTypeExplainer(product.product_type);
 
   const images = [...(product.images ?? [])].sort((a, b) => {
     if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
@@ -85,13 +89,15 @@ export default async function MicrositeProductPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <Link
-        href="/"
-        className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        All {site.manufacturer?.name ?? site.name} models
-      </Link>
+      <JsonLd data={productJsonLd(site, product, maker?.name)} />
+
+      <nav aria-label="Breadcrumb" className="mb-6 flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+        <Link href="/" className="hover:text-foreground">{site.name}</Link>
+        <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+        <Link href="/#models" className="hover:text-foreground">Models</Link>
+        <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+        <span className="text-foreground" aria-current="page">{product.name}</span>
+      </nav>
 
       <div className="grid gap-10 lg:grid-cols-[1fr_400px]">
         <div>
@@ -185,6 +191,23 @@ export default async function MicrositeProductPage({ params }: PageProps) {
               </div>
             </div>
           )}
+          {/* Substantive on every product, however little the scraper recovered.
+              54% of the catalog has zero spec rows and 31% no description — a
+              detail page that is title + photos + form is too thin to rank and
+              reads as a doorway page. This section is about the trailer TYPE,
+              so it is accurate for every product that carries the type. */}
+          <section className="mt-10 rounded-xl border bg-muted/30 p-6">
+            <h2 className="text-xl font-semibold">About {explainer.plural}</h2>
+            <p className="mt-3 leading-relaxed text-muted-foreground">{explainer.body}</p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Not sure this is the right type for your load?{' '}
+              <a href="#quote" className="font-medium underline-offset-4 hover:underline" style={{ color: 'var(--ms-accent)' }}>
+                Tell us what you are hauling
+              </a>{' '}
+              and we will recommend a capacity and deck.
+            </p>
+          </section>
+
         </div>
 
         {/* Quote form tracks alongside the specs on desktop. */}

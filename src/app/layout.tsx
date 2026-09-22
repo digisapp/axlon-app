@@ -142,7 +142,6 @@ export const metadata: Metadata = {
     ],
     apple: "/apple-touch-icon.png",
   },
-  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -202,19 +201,35 @@ export default async function RootLayout({
         >
           <QueryProvider>
             <CsrfProvider>
-            <NotificationProvider>
-              <CompareProvider>
+              {/* Microsites (xltrailers.com, ...) get the shell only. The
+                  marketplace providers below open realtime channels, call
+                  auth.getUser() and bind global shortcuts on every page view —
+                  for an anonymous visitor on a lead-gen page that is a
+                  websocket and ~65 KB of JS doing nothing. Nothing rendered
+                  under /sites consumes these contexts, so dropping the
+                  providers is safe; axlon.ai keeps them, unchanged. */}
+              {isMicrositeHost ? (
+                <>
                   {children}
-                  {isMarketplaceHost && <MobileBottomNav />}
-                  {isMarketplaceHost && <CompareBar />}
-                  {isMarketplaceHost && <FloatingCallButton />}
-                  <KeyboardShortcuts />
-                  <PWACleanup />
                   <div aria-live="polite" aria-atomic="true">
                     <Toaster position="top-right" richColors closeButton />
                   </div>
-              </CompareProvider>
-            </NotificationProvider>
+                </>
+              ) : (
+                <NotificationProvider>
+                  <CompareProvider>
+                    {children}
+                    {isMarketplaceHost && <MobileBottomNav />}
+                    {isMarketplaceHost && <CompareBar />}
+                    {isMarketplaceHost && <FloatingCallButton />}
+                    <KeyboardShortcuts />
+                    <PWACleanup />
+                    <div aria-live="polite" aria-atomic="true">
+                      <Toaster position="top-right" richColors closeButton />
+                    </div>
+                  </CompareProvider>
+                </NotificationProvider>
+              )}
             </CsrfProvider>
           </QueryProvider>
         </ThemeProvider>

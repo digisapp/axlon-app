@@ -185,3 +185,40 @@ A draft site redirects to the marketplace, so there is no preview mode. You do
 not need one: until DNS points at Vercel the domain is unreachable regardless
 of status. Add the domain in Vercel, flip the site live, open it directly to
 review the copy, and only then point DNS.
+
+## What each page carries (Sep 2026 audit)
+
+Landing page, top to bottom: header with click-to-call → hero (headline,
+sub-headline, phone, quote form above the fold on every breakpoint) → three
+true trust bullets → live stats strip (trailers listed / manufacturers /
+states) → model grid → "Available now" inventory, priced units first → FAQ →
+closing CTA → footer with the affiliation disclaimer.
+
+Structured data is emitted on both templates via `JsonLd` and built in
+`src/lib/microsites/content.ts` (pure, unit-tested):
+
+| Page | Schema |
+|---|---|
+| Landing | `WebSite` (publisher: Axleyard — never the manufacturer), `ItemList` of models, `FAQPage` |
+| Detail | `Product` (brand, images, category, specs as `PropertyValue`; **no `offers`** — prices are quoted per deal), `BreadcrumbList` |
+
+Detail pages always render an "About <type> trailers" section from
+`productTypeExplainer`. This is deliberate: 54% of catalog products have zero
+spec rows and 31% no description, and a page that is title + photos + form is
+too thin to rank. The explainer is about the trailer *type*, so it is accurate
+for every product carrying that type regardless of what the scraper found.
+
+Things the audit fixed that are easy to regress:
+
+- The root layout only mounts `NotificationProvider`, `CompareProvider`,
+  `KeyboardShortcuts` and `PWACleanup` off microsite hosts. They opened two
+  realtime channels and called `auth.getUser()` on every anonymous page view.
+- `metadata.manifest` was removed from the root layout: no manifest exists
+  anywhere, so it 404'd on every page (marketplace included) and cost
+  Best-Practices points.
+- The hero image sets `fetchPriority="high"` explicitly. `priority` alone
+  emitted the preload but no priority hint; mobile LCP was 3.5s.
+- Trust bullets must be true. "Vetted dealer network" was removed because zero
+  dealers were approved at the time; the replacement reads live state counts.
+- Copy in `short_description` is shown on cards. Four XL products carried
+  wheel-marketing boilerplate ("Aluminum Durabright Wheels…") and were nulled.
