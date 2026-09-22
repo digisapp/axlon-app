@@ -280,7 +280,13 @@ key that is hit rarely may never refresh on its own. Three consequences:
   finishes by calling `POST /api/internal/revalidate`, signed with the app's
   HMAC v2 internal signature (`INTERNAL_API_SECRET`, bound to method + path),
   which drops every microsite cache entry. The signer and the verifier are
-  held together by `internal-revalidate-contract.test.ts`. Editing catalog
+  held together by `internal-revalidate-contract.test.ts` — but that proves
+  the *format* agrees, not the *secret*. The scraper signs with
+  `INTERNAL_API_SECRET` from `.env`, which is a Vercel pull and can be a
+  stale or dev-environment value; production found it different on
+  2026-09-22 and answered 401. Run the scraper with the production secret
+  (`vercel env pull .env --environment=production`); a 401 from the
+  revalidation call now says exactly this. Editing catalog
   rows by hand in Supabase does *not* trigger this — save any microsite in
   the admin afterwards, which calls the same `revalidateTag`, or wait out the
   ten-minute TTL.

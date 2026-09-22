@@ -369,7 +369,12 @@ export async function notifyCatalogChanged() {
       signal: controller.signal,
     });
     if (!res.ok) {
-      console.warn(`  ⚠️  Cache revalidation returned HTTP ${res.status}`);
+      // 401 here has one cause in practice: this machine's INTERNAL_API_SECRET
+      // is not the one production verifies with (a stale or dev-environment
+      // .env). The format is held together by a contract test; the value is
+      // not. Pull it: `vercel env pull .env --environment=production`.
+      const hint = res.status === 401 ? ' — INTERNAL_API_SECRET does not match production; pull the production env' : '';
+      console.warn(`  ⚠️  Cache revalidation returned HTTP ${res.status}${hint}`);
       return false;
     }
     console.log('  🔄 Microsite caches revalidated');
