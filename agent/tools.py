@@ -374,6 +374,29 @@ async def increment_dealer_minutes(dealer_agent_id: str, minutes: int) -> bool:
         return False
 
 
+_KEYWORD_STOPWORDS = {
+    "a", "an", "the", "any", "for", "sale", "with", "and", "or", "of", "in",
+    "trailer", "trailers", "used", "new",
+}
+
+
+def _title_keywords(keywords: Optional[str]) -> list[str]:
+    """Words every matching title must contain: "55-ton lowboys" -> 55, ton, lowboy."""
+    if not keywords:
+        return []
+    words = re.sub(r"[^a-z0-9 ]", " ", keywords.lower().replace("-", " ")).split()
+    out = []
+    for w in words:
+        if w in _KEYWORD_STOPWORDS:
+            continue
+        if w == "tons":
+            w = "ton"
+        elif len(w) > 4 and w.endswith("s"):
+            w = w[:-1]  # lowboys -> lowboy
+        out.append(w)
+    return out[:5]
+
+
 class InventoryTools:
     """Tools for searching and retrieving inventory from Supabase."""
 
@@ -393,6 +416,7 @@ class InventoryTools:
         max_price: Optional[int] = None,
         condition: Optional[str] = None,
         limit: int = 5,
+        keywords: Optional[str] = None,
     ) -> str:
         """Search inventory based on filters."""
         try:
@@ -401,7 +425,7 @@ class InventoryTools:
             # Build query with category join
             query = supabase.table("listings").select(
                 "id, title, price, year, make, model, condition, mileage, city, state, category:categories(slug)"
-            ).eq("status", "active")
+            ).eq("status", "active").is_("deleted_at", "null")
 
             # If dealer_id is set, filter to only their inventory
             if self.dealer_id:
@@ -409,19 +433,27 @@ class InventoryTools:
 
             # Apply filters
             if category:
-                # First look up category ID by slug
-                cat_result = supabase.table("categories").select("id").eq("slug", category).single().execute()
-                if cat_result.data:
-                    query = query.eq("category_id", cat_result.data['id'])
-                else:
-                    # Try partial match on category name
+                # Exact slug first, then partial ("lowboy" -> lowboy-trailers).
+                cat_result = supabase.table("categories").select("id").eq("slug", category).execute()
+                if not cat_result.data:
                     cat_result = supabase.table("categories").select("id").ilike("slug", f"%{category}%").execute()
-                    if cat_result.data:
-                        cat_ids = [c['id'] for c in cat_result.data]
-                        query = query.in_("category_id", cat_ids)
+                if cat_result.data:
+                    cat_ids = [c['id'] for c in cat_result.data]
+                    # Listings are filed under the child ("lowboy-trailers"),
+                    # not the parent ("trailers"). Matching the parent alone
+                    # hid every lowboy from a search for trailers.
+                    children = supabase.table("categories").select("id").in_("parent_id", cat_ids).execute()
+                    cat_ids += [c['id'] for c in (children.data or [])]
+                    query = query.in_("category_id", cat_ids)
 
             if make:
                 query = query.ilike("make", f"%{make}%")
+
+            # Type and capacity live only in the title ("2028 XL Specialized
+            # 55 Ton Lowboy Trailer"). Without this a caller asking for a
+            # 55-ton lowboy got the five newest trailers of any kind.
+            for word in _title_keywords(keywords):
+                query = query.ilike("title", f"%{word}%")
 
             if min_price:
                 query = query.gte("price", min_price)
@@ -446,14 +478,14 @@ class InventoryTools:
 
             for i, listing in enumerate(listings, 1):
                 price_str = f"${listing['price']:,}" if listing.get('price') else "Call for price"
-                year = listing.get('year', '')
-                make = listing.get('make', '')
-                model = listing.get('model', '')
-                condition = listing.get('condition', '')
-                location = f"{listing.get('city', '')}, {listing.get('state', '')}".strip(', ')
+                name = listing.get('title') or " ".join(
+                    str(listing.get(k) or '') for k in ('year', 'make', 'model')
+                ).strip()
+                condition = listing.get('condition') or ''
+                location = f"{listing.get('city') or ''}, {listing.get('state') or ''}".strip(', ')
 
                 response_parts.append(
-                    f"{i}. {year} {make} {model}, {condition}, {price_str}"
+                    f"{i}. {name}, {condition}, {price_str}"
                     + (f", located in {location}" if location else "")
                 )
 

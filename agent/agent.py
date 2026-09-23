@@ -86,7 +86,6 @@ class AxlonAgent(Agent):
         self.equipment_type = None
         self.intent = None
         self.is_staff_authenticated = False
-        self.session = None  # Will be set after session starts
 
     @function_tool()
     async def search_inventory(
@@ -98,10 +97,16 @@ class AxlonAgent(Agent):
         max_price: int | None = None,
         condition: str | None = None,
         limit: int = 5,
+        keywords: str | None = None,
     ) -> str:
         """Search available inventory based on criteria.
 
+        Put the trailer type and capacity the caller asked for in keywords
+        (e.g. "55 ton lowboy", "RGN", "step deck"); without them the search
+        returns the newest units of any kind.
+
         Args:
+            keywords: Words the listing title must contain, e.g. "55 ton lowboy"
             category: Type of equipment (trailers, trucks, heavy-equipment)
             make: Manufacturer name (e.g., Great Dane, Peterbilt, Kenworth)
             min_price: Minimum price filter
@@ -116,6 +121,7 @@ class AxlonAgent(Agent):
             max_price=max_price,
             condition=condition,
             limit=limit,
+            keywords=keywords,
         )
         return results
 
@@ -599,13 +605,18 @@ Do not search inventory or provide detailed information - just capture the lead.
         'dealer_voice_agent_id': dealer_voice_agent_id,
     }
 
-    # Start recording if Supabase is configured
-    if os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_SERVICE_ROLE_KEY"):
+    # Recording is off until real Supabase S3 access keys exist. The upload
+    # below signs with the project ref + service-role key, which Supabase S3
+    # rejects (InvalidAccessKeyId, verified 2026-09-23), so every call started
+    # an egress that failed at upload. Turning it on needs: S3 access keys
+    # (Dashboard > Storage > S3), those credentials used in start_recording,
+    # and transcription reading the private bucket instead of a plain GET.
+    if os.getenv("CALL_RECORDING_ENABLED") == "true":
         egress_id = await start_recording(ctx)
         if egress_id:
             active_calls[ctx.room.name]['egress_id'] = egress_id
     else:
-        logger.info("Recording disabled - Supabase not configured")
+        logger.info("Call recording disabled (CALL_RECORDING_ENABLED is not set)")
 
     # Create xAI Realtime model with voice from settings
     model = xai.realtime.RealtimeModel(
@@ -627,6 +638,14 @@ Do not search inventory or provide detailed information - just capture the lead.
     # Create session with xAI model
     session = AgentSession(llm=model)
 
+    # AgentSession has no wait(). Calling it raised AttributeError straight
+    # after the greeting, so the cleanup below (stop recording, finish the
+    # call log, attach the recording to the lead) ran seconds into every call
+    # instead of when the caller hung up. The session emits "close" when the
+    # caller leaves; wait for that.
+    session_closed = asyncio.Event()
+    session.on("close", lambda _event: session_closed.set())
+
     # Start the session
     await session.start(room=ctx.room, agent=agent)
 
@@ -643,7 +662,7 @@ Do not search inventory or provide detailed information - just capture the lead.
 
     # Wait for the session to end
     try:
-        await session.wait()
+        await session_closed.wait()
     except asyncio.CancelledError:
         pass
     finally:
