@@ -32,6 +32,7 @@ from tools import (
     StaffAuthTools,
     get_ai_agent_settings,
     with_axleyard_brand,
+    written_brand,
     get_dealer_voice_agent_by_phone,
     build_dealer_instructions,
     increment_dealer_minutes,
@@ -62,6 +63,23 @@ async def off_loop(fn, *args, **kwargs):
     return await asyncio.to_thread(asyncio.run, fn(*args, **kwargs))
 
 
+def call_transcript(session: AgentSession) -> str:
+    """The conversation as text, from the session's own history.
+
+    The realtime model transcribes both sides as it goes, so the transcript
+    is complete the moment the caller hangs up. It used to depend on a call
+    recording that never uploaded, so no call ever got a transcript.
+    """
+    lines = []
+    for item in session.history.items:
+        if getattr(item, "type", None) != "message" or item.role not in ("user", "assistant"):
+            continue
+        text = (item.text_content or "").strip()
+        if text:
+            lines.append(f"{'Caller' if item.role == 'user' else 'Agent'}: {written_brand(text)}")
+    return "\n".join(lines)
+
+
 class AxlonAgent(Agent):
     """Voice AI agent for AxlonAI marketplace."""
 
@@ -88,7 +106,7 @@ class AxlonAgent(Agent):
 
         # Initialize tools with dealer context if this is a dealer call
         self.inventory_tools = InventoryTools(dealer_id=dealer_id)
-        self.lead_tools = LeadTools(dealer_id=dealer_id, business_name=business_name)
+        self.lead_tools = LeadTools(dealer_id=dealer_id, business_name=business_name, call_sid=room_name)
         self.staff_auth_tools = StaffAuthTools(dealer_id=dealer_id) if dealer_id else None
 
         self.captured_lead_id = None
@@ -519,7 +537,9 @@ async def entrypoint(ctx: JobContext):
     await ctx.connect()
 
     # Get caller phone from SIP participant
-    caller_phone = get_caller_phone(ctx)
+    # TEST_CALLER_PHONE lets a local test worker exercise the call-log path
+    # without a SIP leg. Never set in LiveKit Cloud.
+    caller_phone = get_caller_phone(ctx) or os.getenv("TEST_CALLER_PHONE")
     logger.info(f"Caller phone: {caller_phone}")
 
     # Get the called number (DID) to determine which agent to use
@@ -702,11 +722,11 @@ Do not search inventory or provide detailed information - just capture the lead.
 
         # Update dealer minutes used (for billing)
         if dealer_voice_agent_id:
-            await increment_dealer_minutes(dealer_voice_agent_id, call_minutes)
+            await off_loop(increment_dealer_minutes, dealer_voice_agent_id, call_minutes)
 
         # Update lead with recording info
         if lead_id and (recording_url or call_duration):
-            await update_lead_with_recording(
+            await off_loop(update_lead_with_recording, 
                 lead_id=lead_id,
                 recording_url=recording_url,
                 duration_seconds=call_duration,
@@ -715,8 +735,10 @@ Do not search inventory or provide detailed information - just capture the lead.
             logger.info(f"Updated lead {lead_id} with recording info")
 
         # Update call log with all info
+        transcript = call_transcript(session)
         if call_log_id:
-            await call_log_tools.update_call_log(
+            await off_loop(
+                call_log_tools.update_call_log,
                 call_log_id=call_log_id,
                 caller_name=agent.caller_name,
                 duration_seconds=call_duration,
@@ -725,12 +747,19 @@ Do not search inventory or provide detailed information - just capture the lead.
                 equipment_type=agent.equipment_type,
                 intent=agent.intent,
                 lead_id=lead_id,
+                transcript=transcript or None,
                 status="completed",
             )
-            logger.info(f"Updated call log {call_log_id}")
+            logger.info(f"Updated call log {call_log_id} (transcript: {len(transcript)} chars)")
 
-            # Transcribe recording in background (don't block cleanup)
-            if recording_url and call_duration and call_duration > 5:
+            # The summary is what a salesperson reads on the lead; the call
+            # log's lead_id is how /admin/leads finds it.
+            if transcript:
+                summary = await off_loop(summarize_call, call_log_id, transcript)
+                logger.info(f"Call summary {'saved' if summary else 'FAILED'} for {call_log_id}")
+
+            # Recording-based transcription is only a fallback now.
+            if not transcript and recording_url and call_duration and call_duration > 5:
                 # Only transcribe calls longer than 5 seconds
                 asyncio.create_task(
                     transcribe_and_summarize(call_log_id, recording_url)

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { CallTranscript } from '@/components/admin/CallTranscript';
 import {
   Phone,
   User,
@@ -145,7 +146,8 @@ export default async function AdminCallLogsPage() {
               {callLogs.map((call) => (
                 <div
                   key={call.id}
-                  className="p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                  id={`call-${call.id}`}
+                  className="p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors scroll-mt-20"
                 >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     {/* Call Info */}
@@ -172,11 +174,15 @@ export default async function AdminCallLogsPage() {
                         )}
                       </div>
 
-                      {call.interest && (
+                      {call.summary ? (
+                        <p className="text-sm">{call.summary}</p>
+                      ) : call.interest ? (
                         <p className="text-sm text-muted-foreground line-clamp-1">
                           {call.interest}
                         </p>
-                      )}
+                      ) : null}
+
+                      {call.transcript && <CallTranscript transcript={call.transcript} />}
 
                       {/* Recording */}
                       {call.recording_url && (
@@ -206,7 +212,7 @@ export default async function AdminCallLogsPage() {
                       </span>
                       {call.lead_id && (
                         <Link
-                          href={`/admin/leads`}
+                          href={`/admin/leads?source=phone_call`}
                           className="text-xs text-primary hover:underline"
                         >
                           View Lead

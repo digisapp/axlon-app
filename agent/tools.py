@@ -177,6 +177,7 @@ Common equipment types:
 # "Axleyard" came out wrong on calls, so everything the agent speaks spells
 # it the way it is said: two words, "Axle Yard". The admin copy can keep the
 # normal spelling; the conversion happens here.
+BRAND = "Axleyard"
 SPOKEN_BRAND = "Axle Yard"
 _OLD_BRAND = re.compile(r"\b(?:axles|axlon)[\s-]?ai\b|\baxlon\b", re.IGNORECASE)
 # In a greeting "Axles" can only be the old name, never the part.
@@ -193,6 +194,13 @@ def _spoken(text: str) -> str:
     text = _OLD_BRAND.sub(SPOKEN_BRAND, text)
     text = _WEBSITE.sub(f"{SPOKEN_BRAND} dot com", text)
     return _WRITTEN_BRAND.sub(SPOKEN_BRAND, text)
+
+
+def written_brand(text: str) -> str:
+    """The spoken "Axle Yard" / "Axle Yard dot com" back in written form, for
+    transcripts and summaries people read."""
+    text = re.sub(r"\baxle yard dot com\b", "axleyard.com", text, flags=re.IGNORECASE)
+    return re.sub(r"\baxle yard\b", BRAND, text, flags=re.IGNORECASE)
 
 
 def with_axleyard_brand(settings: Dict[str, Any]) -> Dict[str, Any]:
@@ -601,14 +609,21 @@ class InventoryTools:
 class LeadTools:
     """Tools for capturing and managing leads."""
 
-    def __init__(self, dealer_id: Optional[str] = None, business_name: Optional[str] = None):
+    def __init__(
+        self,
+        dealer_id: Optional[str] = None,
+        business_name: Optional[str] = None,
+        call_sid: Optional[str] = None,
+    ):
         """Initialize with optional dealer_id to assign leads directly.
 
         Args:
             dealer_id: If provided, assign all leads to this dealer
             business_name: Name of the business for response messages
+            call_sid: The LiveKit room of this call, stored on the lead
         """
         self.dealer_id = dealer_id
+        self.call_sid = call_sid
         self.business_name = business_name
 
     async def capture(
@@ -665,6 +680,10 @@ class LeadTools:
                 "buyer_phone": phone,
                 "buyer_email": email or "",
                 "message": interest,
+                # Without a source the column defaults to 'website', so phone
+                # leads never showed under the Phone tab in /admin/leads.
+                "source": "phone_call",
+                "call_sid": self.call_sid,
                 "status": "new",
                 "intent": intent,  # buy, lease, rent
                 "equipment_type": equipment_type,
@@ -1265,14 +1284,22 @@ async def summarize_call(
                     "messages": [
                         {
                             "role": "system",
-                            "content": "You are a helpful assistant that summarizes phone calls. Create a brief 2-3 sentence summary of the call, highlighting the caller's main interest and any key outcomes."
+                            "content": (
+                                "You summarize calls to Axleyard, a heavy-haul trailer and truck marketplace, "
+                                "for the salesperson who will call the buyer back. In 2 to 4 plain sentences, state: "
+                                "who called; what they need (equipment type, capacity, what they are hauling and its weight); "
+                                "whether they want to buy, sell or finance; any units or prices discussed; their timeline; "
+                                "and the agreed next step. Only state what the transcript says; leave out anything it does not. "
+                                "Refer to the caller by name or as \"the caller\"; never guess their gender. "
+                                "Spell the company Axleyard. No preamble, no headings."
+                            )
                         },
                         {
                             "role": "user",
-                            "content": f"Please summarize this phone call transcript:\n\n{transcript[:4000]}"
+                            "content": f"Call transcript:\n\n{transcript[-12000:]}"
                         }
                     ],
-                    "max_tokens": 200,
+                    "max_tokens": 300,
                 },
                 timeout=30.0,
             )
@@ -1282,7 +1309,7 @@ async def summarize_call(
                 return None
 
             result = response.json()
-            summary = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+            summary = written_brand(result.get("choices", [{}])[0].get("message", {}).get("content", ""))
 
             if summary:
                 supabase = get_supabase()
@@ -1355,6 +1382,7 @@ class CallLogTools:
         intent: Optional[str] = None,
         lead_id: Optional[str] = None,
         summary: Optional[str] = None,
+        transcript: Optional[str] = None,
         status: str = "completed",
     ) -> bool:
         """Update call log when call ends."""
@@ -1382,6 +1410,9 @@ class CallLogTools:
                 update_data["lead_id"] = lead_id
             if summary:
                 update_data["summary"] = summary
+            if transcript:
+                update_data["transcript"] = transcript
+                update_data["transcript_status"] = "completed"
 
             result = supabase.table("call_logs").update(update_data).eq("id", call_log_id).execute()
 

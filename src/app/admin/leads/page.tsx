@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { CallTranscript } from '@/components/admin/CallTranscript';
 import {
   Phone,
   Mail,
@@ -127,6 +128,17 @@ export default async function AdminLeadsPage({
   ]);
 
   const leads = (leadRows ?? []) as unknown as LeadRow[];
+
+  // A phone lead's summary and transcript live on its call log (the voice
+  // agent writes them when the caller hangs up), linked by call_logs.lead_id.
+  const phoneLeadIds = leads.filter((l) => l.source === 'phone_call').map((l) => l.id);
+  const { data: phoneCalls } = phoneLeadIds.length
+    ? await supabase
+        .from('call_logs')
+        .select('id, lead_id, summary, transcript')
+        .in('lead_id', phoneLeadIds)
+    : { data: [] };
+  const callByLead = new Map((phoneCalls ?? []).map((c) => [c.lead_id as string, c]));
 
   const formatDuration = (seconds: number | null) => {
     if (!seconds) return null;
@@ -361,6 +373,16 @@ export default async function AdminLeadsPage({
                           <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
                             {lead.message}
                           </p>
+                        )}
+
+                        {callByLead.get(lead.id)?.summary && (
+                          <p className="mt-2 rounded-md border bg-background p-2 text-sm">
+                            <span className="font-medium">Call summary: </span>
+                            {callByLead.get(lead.id)?.summary}
+                          </p>
+                        )}
+                        {callByLead.get(lead.id)?.transcript && (
+                          <CallTranscript transcript={callByLead.get(lead.id)!.transcript as string} />
                         )}
 
                         {lead.call_recording_url && (
