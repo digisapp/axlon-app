@@ -158,8 +158,11 @@ export function productSummary(
   const list =
     details.length > 1 ? `${details.slice(0, -1).join(', ')} and ${details[details.length - 1]}` : details[0];
 
+  // "an 80-ton", "an 18-ton", "an 11-ton" — the article follows the sound.
+  const lead = cap ?? typeNoun;
+  const article = /^(8|11(?!\d)|18(?!\d))/.test(lead) || /^[aeiou]/i.test(lead) ? 'an' : 'a';
   const sentences = [
-    `${subject} is ${cap ? `a ${cap} ${typeNoun}` : `a ${typeNoun}`}${list ? ` with ${list}` : ''}.`,
+    `${subject} is ${article} ${cap ? `${cap} ${typeNoun}` : typeNoun}${list ? ` with ${list}` : ''}.`,
   ];
   if (product.gvwr_lbs) {
     sentences.push(`Gross vehicle weight rating is ${product.gvwr_lbs.toLocaleString('en-US')} lb.`);

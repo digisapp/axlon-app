@@ -199,6 +199,13 @@ describe('productSummary', () => {
     );
   });
 
+  it('uses "an" before a vowel sound', () => {
+    expect(productSummary({ ...base, tonnage_max: 80 }, 'X')).toMatch(/is an 80-ton RGN/);
+    expect(productSummary({ ...base, tonnage_max: 18 }, 'X')).toMatch(/is an 18-ton/);
+    expect(productSummary({ ...base, tonnage_max: 55 }, 'X')).toMatch(/is a 55-ton/);
+    expect(productSummary({ ...base, tonnage_max: 800 }, 'X')).toMatch(/is an 800-ton/);
+  });
+
   it('returns null with nothing to say', () => {
     expect(
       productSummary({ ...base, tonnage_max: undefined, axle_count: undefined, deck_length_feet: undefined, deck_height_inches: undefined }, 'X')
