@@ -41,6 +41,7 @@ from tools import (
     validate_e164_phone,
     transcribe_call_recording,
     summarize_call,
+    send_call_alert,
 )
 
 load_dotenv()
@@ -559,10 +560,12 @@ async def entrypoint(ctx: JobContext):
     can_transfer = False
     transfer_number = None
     is_after_hours = False
+    dealer_email = None
 
     if dealer_agent:
         # This is a dealer's dedicated line
         dealer_id = dealer_agent.get('dealer_id')
+        dealer_email = (dealer_agent.get('dealer') or {}).get('email')
         dealer_voice_agent_id = dealer_agent.get('id')
         business_name = dealer_agent.get('business_name') or dealer_agent.get('dealer', {}).get('company_name')
 
@@ -754,9 +757,26 @@ Do not search inventory or provide detailed information - just capture the lead.
 
             # The summary is what a salesperson reads on the lead; the call
             # log's lead_id is how /admin/leads finds it.
+            summary = None
             if transcript:
                 summary = await off_loop(summarize_call, call_log_id, transcript)
                 logger.info(f"Call summary {'saved' if summary else 'FAILED'} for {call_log_id}")
+
+            # Alert whoever follows up, but only if the caller said something:
+            # a ring-and-hang-up is noise, not a lead.
+            if "Caller:" in transcript:
+                await off_loop(
+                    send_call_alert,
+                    caller_phone=caller_phone,
+                    caller_name=agent.caller_name,
+                    interest=agent.interest,
+                    summary=summary,
+                    transcript=transcript,
+                    lead_id=lead_id,
+                    call_log_id=call_log_id,
+                    duration_seconds=call_duration,
+                    dealer_email=dealer_email,
+                )
 
             # Recording-based transcription is only a fallback now.
             if not transcript and recording_url and call_duration and call_duration > 5:

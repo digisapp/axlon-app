@@ -1252,6 +1252,102 @@ async def transcribe_call_recording(
         return None
 
 
+def _format_phone(phone: Optional[str]) -> str:
+    digits = re.sub(r"\D", "", phone or "")
+    if len(digits) == 11 and digits.startswith("1"):
+        digits = digits[1:]
+    if len(digits) == 10:
+        return f"({digits[:3]}) {digits[3:6]}-{digits[6:]}"
+    return phone or "unknown"
+
+
+async def send_call_alert(
+    *,
+    caller_phone: Optional[str],
+    caller_name: Optional[str],
+    interest: Optional[str],
+    summary: Optional[str],
+    transcript: str,
+    lead_id: Optional[str],
+    call_log_id: Optional[str],
+    duration_seconds: Optional[int],
+    dealer_email: Optional[str] = None,
+) -> bool:
+    """Email the call to whoever follows up, the moment it ends.
+
+    Sent for every call where the caller spoke, not only captured leads:
+    caller ID means even a caller who never gave their name can be called
+    back. Recipients: LEAD_ALERT_EMAIL (the main line) and, on a dealer's own
+    line, that dealer. Silently skipped when Resend isn't configured.
+    """
+    import html
+    import httpx
+
+    api_key = (os.getenv("RESEND_API_KEY") or "").strip()
+    recipients = [e for e in {(os.getenv("LEAD_ALERT_EMAIL") or "").strip(), (dealer_email or "").strip()} if e]
+    if not api_key or not recipients:
+        logger.info("Call alert skipped: RESEND_API_KEY or LEAD_ALERT_EMAIL not set")
+        return False
+
+    esc = lambda v: html.escape(str(v)) if v else ""
+    phone = _format_phone(caller_phone)
+    digits = re.sub(r"\D", "", caller_phone or "")
+    who = caller_name or phone
+    subject = (
+        f"New phone lead: {who}" + (f" ({interest})" if interest else "")
+        if lead_id
+        else f"Call from {phone} (no details left)"
+    )
+    app_url = (os.getenv("APP_URL") or "https://axleyard.com").rstrip("/")
+    link = f"{app_url}/admin/leads?source=phone_call" if lead_id else f"{app_url}/admin/calls#call-{call_log_id}"
+    minutes = f"{max(1, round((duration_seconds or 0) / 60))} min" if duration_seconds else ""
+
+    rows = [
+        ("Name", esc(caller_name)),
+        ("Phone", f'<a href="tel:+1{digits[-10:]}">{esc(phone)}</a>' if len(digits) >= 10 else esc(phone)),
+        ("Looking for", esc(interest)),
+        ("Call length", esc(minutes)),
+    ]
+    transcript_html = "<br>".join(
+        f"<b>{esc(line.split(':', 1)[0])}:</b>{esc(line.split(':', 1)[1]) if ':' in line else ''}"
+        for line in transcript.splitlines() if line.strip()
+    )
+    body = f"""
+      <div style="font-family:-apple-system,Segoe UI,Arial,sans-serif;font-size:15px;color:#0f172a;max-width:600px">
+        <h2 style="margin:0 0 4px">{esc(subject)}</h2>
+        <p style="margin:0 0 16px;color:#475569">{'Captured by the phone agent.' if lead_id else 'The caller hung up without leaving details. Caller ID below.'}</p>
+        <table cellpadding="6" style="border-collapse:collapse;margin-bottom:16px">
+          {''.join(f'<tr><td style="color:#64748b">{k}</td><td><b>{v}</b></td></tr>' for k, v in rows if v)}
+        </table>
+        {f'<p style="background:#f1f5f9;border-radius:8px;padding:12px;margin:0 0 16px"><b>Summary:</b> {esc(summary)}</p>' if summary else ''}
+        <p><a href="{link}" style="background:#0284c7;color:#fff;padding:10px 16px;border-radius:999px;text-decoration:none;display:inline-block">Open in admin</a></p>
+        <h3 style="margin:24px 0 8px;font-size:15px">Transcript</h3>
+        <div style="font-size:14px;line-height:1.6;color:#334155">{transcript_html}</div>
+      </div>"""
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json={
+                    "from": os.getenv("LEAD_ALERT_FROM", "Axleyard Leads <leads@axleyard.com>").strip(),
+                    "to": recipients,
+                    "subject": subject,
+                    "html": body,
+                },
+                timeout=15.0,
+            )
+        if response.status_code >= 300:
+            logger.error(f"Call alert email failed: {response.status_code} {response.text[:300]}")
+            return False
+        logger.info(f"Call alert emailed to {len(recipients)} recipient(s)")
+        return True
+    except Exception as e:
+        logger.error(f"Call alert email error: {e}")
+        return False
+
+
 async def summarize_call(
     call_log_id: str,
     transcript: str,
