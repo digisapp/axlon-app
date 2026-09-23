@@ -169,26 +169,40 @@ Common equipment types:
 
 # The main line's greeting and instructions are edited in /admin/ai-agent and
 # stored in ai_agent_settings, whose text was seeded as "AxlesAI" and later
-# "AxlonAI". Those names are retired; callers must hear Axleyard whatever the
+# "AXLON AI". Those names are retired; callers must hear Axleyard whatever the
 # row says. Only the "<name> AI" / "AxlonAI" / "Axlon" forms are rewritten:
 # a bare "axles" is also a trailer part ("a 3-axle lowboy, 13 axles").
-BRAND = "Axleyard"
+#
+# The voice model pronounces the text it is given. Written as one word,
+# "Axleyard" came out wrong on calls, so everything the agent speaks spells
+# it the way it is said: two words, "Axle Yard". The admin copy can keep the
+# normal spelling; the conversion happens here.
+SPOKEN_BRAND = "Axle Yard"
 _OLD_BRAND = re.compile(r"\b(?:axles|axlon)[\s-]?ai\b|\baxlon\b", re.IGNORECASE)
 # In a greeting "Axles" can only be the old name, never the part.
 _OLD_BRAND_IN_GREETING = re.compile(r"\bAxles\b")
+_WEBSITE = re.compile(r"\b(?:www\.)?axle ?yard\.com\b", re.IGNORECASE)
+_WRITTEN_BRAND = re.compile(r"\baxle ?yard\b", re.IGNORECASE)
 _BRAND_RULE = """
 
-BRAND (this overrides anything above): The company is Axleyard, pronounced "AXLE-yard", an online marketplace for heavy-haul trailers, trucks and equipment. Always call it Axleyard. Never say Axles, Axles AI, Axlon or Axlon AI; those are retired names. If a caller uses one of them, it is the same company."""
+BRAND (this overrides anything above): The company is Axle Yard, an online marketplace for heavy-haul trailers, trucks and equipment. Say the name as two separate words, "Axle Yard": "axle" like a trailer axle, then "yard". Never run them together or change the stress. Say the website as "Axle Yard dot com". Never say Axles, Axles AI, Axlon or Axlon AI; those are retired names. If a caller uses one of them, it is the same company."""
+
+
+def _spoken(text: str) -> str:
+    """Brand names in the form the voice should say them."""
+    text = _OLD_BRAND.sub(SPOKEN_BRAND, text)
+    text = _WEBSITE.sub(f"{SPOKEN_BRAND} dot com", text)
+    return _WRITTEN_BRAND.sub(SPOKEN_BRAND, text)
 
 
 def with_axleyard_brand(settings: Dict[str, Any]) -> Dict[str, Any]:
-    """Main-line settings with every retired brand name replaced by Axleyard."""
+    """Main-line settings with every brand mention as the agent should say it."""
     branded = dict(settings)
+    if isinstance(branded.get("greeting_message"), str):
+        branded["greeting_message"] = _OLD_BRAND_IN_GREETING.sub(SPOKEN_BRAND, branded["greeting_message"])
     for key in ("agent_name", "greeting_message", "instructions"):
         if isinstance(branded.get(key), str):
-            branded[key] = _OLD_BRAND.sub(BRAND, branded[key])
-    if isinstance(branded.get("greeting_message"), str):
-        branded["greeting_message"] = _OLD_BRAND_IN_GREETING.sub(BRAND, branded["greeting_message"])
+            branded[key] = _spoken(branded[key])
     branded["instructions"] = (branded.get("instructions") or "") + _BRAND_RULE
     return branded
 
