@@ -8,6 +8,12 @@ import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import { normalizeHost } from './config';
 import { catalogScope } from './catalog-scope';
 import { withoutJunkImages } from '@/lib/images/catalog-junk-images';
+import {
+  cleanCopy,
+  cleanProductName,
+  isHiddenProduct,
+  isOffNicheForHeavyHaul,
+} from '@/lib/catalog/quality';
 
 export { catalogScope } from './catalog-scope';
 
@@ -192,9 +198,25 @@ function rankCatalog(rows: MicrositeProduct[], primaryType: string | null): Micr
   });
 }
 
-/** Logos and icons the scrapers filed as product photos — see catalog-junk-images. */
-function cleanImages(product: MicrositeProduct): MicrositeProduct {
-  return { ...product, images: withoutJunkImages(product.images) };
+/**
+ * Scraper debris out, display copy tidied: logos filed as photos
+ * (catalog-junk-images), SEO page titles as names, cookie banners and
+ * breadcrumbs as descriptions (catalog/quality).
+ */
+function cleanProduct(product: MicrositeProduct): MicrositeProduct {
+  return {
+    ...product,
+    name: cleanProductName(product.name),
+    short_description: cleanCopy(product.short_description) ?? undefined,
+    description: cleanCopy(product.description) ?? undefined,
+    images: withoutJunkImages(product.images),
+  };
+}
+
+/** Rows a microsite must never show: non-product pages, and off-niche types on a category site. */
+function isShowable(product: MicrositeProduct, spansManufacturers: boolean): boolean {
+  if (isHiddenProduct(product.id)) return false;
+  return !(spansManufacturers && isOffNicheForHeavyHaul(product.name));
 }
 
 // A category site spans up to ~260 rows today; this is the ceiling on what
@@ -246,7 +268,9 @@ async function fetchProducts(
     // so swallowing a transient failure here would pin an empty catalog on the
     // page for the full TTL. The caller logs and degrades for this request only.
     if (error) throw new Error(`microsite products query failed: ${error.message}`);
-    const rows = ((data ?? []) as unknown as MicrositeProduct[]).map(cleanImages);
+    const rows = ((data ?? []) as unknown as MicrositeProduct[])
+      .filter((p) => isShowable(p, spansManufacturers))
+      .map(cleanProduct);
     return spansManufacturers ? rankCatalog(rows, primaryType).slice(0, limit) : rows;
 }
 
@@ -284,7 +308,7 @@ export const getMicrositeProducts = cache(
         () => fetchProducts(manufacturerId, productTypes, primaryType, limit),
         // primaryType is in the key: two sites with the same type set but a
         // different lead type must not share one ranked result.
-        ['microsite-products', manufacturerId ?? '', productTypes.join(','), primaryType ?? '', String(limit)],
+        ['microsite-products-v2', manufacturerId ?? '', productTypes.join(','), primaryType ?? '', String(limit)],
         { tags: [MICROSITES_CACHE_TAG], revalidate: CATALOG_TTL_SECONDS }
       )();
     } catch (error) {
@@ -325,7 +349,8 @@ async function fetchProduct(
 
   if (error) throw new Error(`microsite product query failed: ${error.message}`);
   const row = data?.[0] as unknown as MicrositeProduct | undefined;
-  return row ? cleanImages(row) : null;
+  const spansManufacturers = !manufacturerId && productTypes.length > 0;
+  return row && isShowable(row, spansManufacturers) ? cleanProduct(row) : null;
 }
 
 /** One catalog product on this microsite, by slug. */
@@ -337,7 +362,7 @@ export const getMicrositeProduct = cache(
     try {
       return await unstable_cache(
         () => fetchProduct(manufacturerId, productTypes, slug),
-        ['microsite-product', manufacturerId ?? '', productTypes.join(','), slug],
+        ['microsite-product-v2', manufacturerId ?? '', productTypes.join(','), slug],
         { tags: [MICROSITES_CACHE_TAG], revalidate: CATALOG_TTL_SECONDS }
       )();
     } catch (error) {
@@ -381,28 +406,51 @@ async function fetchListings(
       ? `${columns}, category:categories!inner(slug)`
       : columns;
 
+    // Pull a pool and rank it here. Ordering by price ascending (the old
+    // rule, to get priced units first) surfaced the cheapest things in the
+    // category — on haletrailers.com, a $5,950 flatbed, a dry van and a
+    // pallet of wheels misfiled as a "lowboy" led a heavy-haul page.
     let query = supabase
       .from('listings')
       .select(select)
       .eq('status', 'active')
       .is('deleted_at', null)
       .order('is_featured', { ascending: false })
-      // A real number anchors interest; "Call for price" is on 76% of active
-      // listings, so without this the whole strip can read as eighteen of
-      // them in a row. Priced units first, then newest.
-      .order('price', { ascending: true, nullsFirst: false })
       .order('published_at', { ascending: false, nullsFirst: false })
       // Without this the embedded photos come back unordered and a card can
       // lead with a detail shot instead of the primary image.
       .order('sort_order', { referencedTable: 'listing_images', ascending: true })
-      .limit(limit);
+      .limit(Math.min(limit * 6, 60));
 
     if (make) query = query.ilike('make', `%${make}%`);
     if (categories.length) query = query.in('category.slug', categories);
 
     const { data, error } = await query;
     if (error) throw new Error(`microsite listings query failed: ${error.message}`);
-    return (data ?? []) as unknown as MicrositeListing[];
+    return rankListings(data as unknown as MicrositeListing[] | null, limit);
+}
+
+/**
+ * Titles that are never a heavy-haul unit, whatever category they were filed
+ * under: parts, and van/reefer/dump bodies. A category filter can't catch
+ * these while the rows themselves are misfiled.
+ */
+const NOT_A_UNIT = /\b(wheels?|rims?|misc|parts?|reefer|dry van|dump)\b/i;
+
+/**
+ * Photo first — a card with no picture reads as a dead listing — then a
+ * stated price, since a real number anchors interest and "Call for price" is
+ * on three quarters of active listings. Within each tier, the database order
+ * (featured, then newest) stands.
+ */
+function rankListings(rows: MicrositeListing[] | null, limit: number): MicrositeListing[] {
+  const tier = (l: MicrositeListing) => (l.images?.length ? 0 : 2) + (l.price ? 0 : 1);
+  return (rows ?? [])
+    .filter((l) => !NOT_A_UNIT.test(l.title))
+    .map((l, i) => ({ l, i }))
+    .sort((a, b) => tier(a.l) - tier(b.l) || a.i - b.i)
+    .slice(0, limit)
+    .map(({ l }) => l);
 }
 
 export const getMicrositeListings = cache(
@@ -431,7 +479,7 @@ export const getMicrositeListings = cache(
     try {
       return await unstable_cache(
         () => fetchListings(make, categories, limit),
-        ['microsite-listings', make, categoryKey, String(limit)],
+        ['microsite-listings-v2', make, categoryKey, String(limit)],
         { tags: [MICROSITES_CACHE_TAG], revalidate: LISTINGS_TTL_SECONDS }
       )();
     } catch (error) {

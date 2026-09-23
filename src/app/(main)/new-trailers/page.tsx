@@ -7,6 +7,8 @@ import type { ManufacturerProduct } from '@/types';
 import { jsonLdString } from '@/lib/seo/json-ld';
 import { Suspense } from 'react';
 import { CatalogSkeleton } from './CatalogSkeleton';
+import { withBrandBannersLast } from '@/lib/images/catalog-junk-images';
+import { HIDDEN_PRODUCT_FILTER, cleanProductName } from '@/lib/catalog/quality';
 
 // The full catalog is ~390 products; rendering every card on the index made
 // this a 2 MB page. Show a preview per manufacturer and link to the
@@ -113,8 +115,9 @@ async function CatalogContent({ slug }: { slug: string | null }) {
   const manufacturerIds = manufacturers.map((m) => m.id);
 
   // Select only what ProductCard and the JSON-LD render — select('*')
-  // shipped full descriptions/specs for every product. Only the primary
-  // (or first) image per product is embedded.
+  // shipped full descriptions/specs for every product. A few images per
+  // product are embedded, so a logo filed as the primary photo can be
+  // skipped for the next real one; only one survives to render.
   const { data: products } = manufacturerIds.length
     ? await supabase
         .from('manufacturer_products')
@@ -125,15 +128,20 @@ async function CatalogContent({ slug }: { slug: string | null }) {
           images:manufacturer_product_images(url, alt_text, is_primary)
         `)
         .eq('is_active', true)
+        .not('id', 'in', HIDDEN_PRODUCT_FILTER)
         .in('manufacturer_id', manufacturerIds)
         .order('is_primary', { referencedTable: 'images', ascending: false })
         .order('sort_order', { referencedTable: 'images', ascending: true })
-        .limit(1, { referencedTable: 'images' })
+        .limit(6, { referencedTable: 'images' })
         .order('sort_order', { ascending: true })
         .order('name', { ascending: true })
     : { data: [] };
 
-  const productRows = (products ?? []) as unknown as ProductRow[];
+  const productRows = ((products ?? []) as unknown as ProductRow[]).map((p) => ({
+    ...p,
+    name: cleanProductName(p.name),
+    images: withBrandBannersLast(p.images).slice(0, 1),
+  }));
 
   const grouped: ManufacturerWithProducts[] = [];
   for (const mfr of manufacturers) {

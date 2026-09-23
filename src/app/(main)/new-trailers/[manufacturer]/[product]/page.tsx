@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { jsonLdString } from '@/lib/seo/json-ld';
 import { isOptimizerBlockedImage } from '@/lib/images/optimizer-blocked-hosts';
+import { isBrandBanner, withBrandBannersLast } from '@/lib/images/catalog-junk-images';
+import { HIDDEN_PRODUCT_FILTER, cleanCopy, cleanProductName, isHiddenProduct } from '@/lib/catalog/quality';
 
 function createSupabase() {
   return createClient(
@@ -91,7 +93,9 @@ async function getProduct(manufacturerSlug: string, productSlug: string) {
     .eq('is_active', true)
     .single();
 
-  if (!product) return null;
+  // Scraped non-product pages (a consultation form, a colour chart, a 404)
+  // 404 here too, not just drop out of the index.
+  if (!product || isHiddenProduct(product.id)) return null;
 
   // Get related products from same manufacturer
   const { data: relatedProducts } = await supabase
@@ -103,14 +107,24 @@ async function getProduct(manufacturerSlug: string, productSlug: string) {
     .eq('manufacturer_id', manufacturer.id)
     .eq('is_active', true)
     .neq('id', product.id)
+    .not('id', 'in', HIDDEN_PRODUCT_FILTER)
     .order('sort_order')
     .limit(4);
 
   return {
     ...product,
+    name: cleanProductName(product.name),
+    short_description: cleanCopy(product.short_description) ?? undefined,
+    description: cleanCopy(product.description) ?? undefined,
+    // Gallery order, with logos dropped and brand banners behind real photos.
+    images: withBrandBannersLast<ProductImage>(
+      [...(product.images || [])].sort((a: ProductImage, b: ProductImage) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    ),
     manufacturer,
     relatedProducts: (relatedProducts || []).map((rp: RelatedProduct) => ({
       ...rp,
+      name: cleanProductName(rp.name),
+      images: withBrandBannersLast(rp.images),
       manufacturer,
     })),
   };
@@ -153,8 +167,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const primaryImage = product.images?.find((img: ProductImage) => img.is_primary) || product.images?.[0];
-  const sortedImages = [...(product.images || [])].sort((a: ProductImage, b: ProductImage) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  // is_primary is often the brand banner; prefer it only when it isn't one.
+  const flagged = product.images?.find((img: ProductImage) => img.is_primary);
+  const primaryImage = (flagged && !isBrandBanner(flagged.url) ? flagged : null) || product.images?.[0];
+  const sortedImages: ProductImage[] = product.images || [];
 
   // Group specs by category
   const specsByCategory: Record<string, ProductSpec[]> = {};
@@ -468,7 +484,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
             <h2 className="text-xl font-bold mb-6">More from {product.manufacturer.name}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {product.relatedProducts.map((rp: RelatedProduct) => {
-                const rpImage = rp.images?.find((i: RelatedProductImage) => i.is_primary) || rp.images?.[0];
+                const rpImage = rp.images?.find((i: RelatedProductImage) => i.is_primary && !isBrandBanner(i.url)) || rp.images?.[0];
                 return (
                   <Link key={rp.id} href={`/new-trailers/${product.manufacturer.slug}/${rp.slug}`}>
                     <Card className="h-full overflow-hidden hover:shadow-md transition-shadow cursor-pointer group">

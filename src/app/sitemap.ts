@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { HIDDEN_PRODUCT_FILTER } from '@/lib/catalog/quality';
 
 // Use a simple client without cookies for sitemap generation
 function createStaticClient() {
@@ -307,6 +308,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .from('manufacturer_products')
         .select('slug, updated_at, manufacturers!inner(slug)')
         .eq('is_active', true)
+        .not('id', 'in', HIDDEN_PRODUCT_FILTER)
         .order('updated_at', { ascending: false })
         .range(i * SUPABASE_PAGE_SIZE, (i + 1) * SUPABASE_PAGE_SIZE - 1);
 

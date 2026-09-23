@@ -1,6 +1,7 @@
 import { logger } from '@/lib/logger';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
+import { HIDDEN_PRODUCT_FILTER } from '@/lib/catalog/quality';
 
 function getSupabase() {
   return createAdminClient();
@@ -107,7 +108,8 @@ export async function searchNewTrailers(params: {
       manufacturer:manufacturers!inner(name, slug),
       specs:manufacturer_product_specs(spec_key, spec_value)
     `)
-    .eq('is_active', true);
+    .eq('is_active', true)
+    .not('id', 'in', HIDDEN_PRODUCT_FILTER);
 
   if (params.manufacturer) query = query.ilike('manufacturers.name', `%${sanitizeSearchFilter(params.manufacturer)}%`);
   if (params.minTonnage) query = query.gte('tonnage_max', params.minTonnage);

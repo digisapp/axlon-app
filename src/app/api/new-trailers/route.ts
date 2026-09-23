@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { newTrailersQuerySchema } from '@/lib/validations/api';
 import { logger } from '@/lib/logger';
 import { CATALOG_CACHE_HEADERS } from '@/lib/api/cache-headers';
+import { withBrandBannersLast } from '@/lib/images/catalog-junk-images';
+import { HIDDEN_PRODUCT_FILTER, cleanProductName } from '@/lib/catalog/quality';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -50,6 +52,7 @@ export async function GET(request: NextRequest) {
         manufacturer_product_images!left(url, alt_text)
       `, { count: 'exact' })
       .eq('is_active', true)
+      .not('id', 'in', HIDDEN_PRODUCT_FILTER)
       .eq('manufacturer_product_images.is_primary', true);
 
     // Filter by manufacturer slug
@@ -136,7 +139,13 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       {
-        data: data || [],
+        // A logo filed as the primary image leaves the product imageless
+        // here rather than showing the logo.
+        data: (data || []).map((p) => ({
+          ...p,
+          name: cleanProductName(p.name),
+          manufacturer_product_images: withBrandBannersLast(p.manufacturer_product_images),
+        })),
         total,
         page,
         total_pages: Math.ceil(total / limit),

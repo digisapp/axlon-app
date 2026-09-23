@@ -166,7 +166,14 @@ export default async function MicrositeProductPage({ params }: PageProps) {
           {product.description && (
             <div className="mt-8">
               <h2 className="text-xl font-semibold">Overview</h2>
-              <p className="mt-2 whitespace-pre-line leading-relaxed text-muted-foreground">
+              {/* The maker's own words, often in the first person. Say whose
+                  they are, so "we" is never read as this site. */}
+              {maker?.name && (
+                <p className="mt-1 text-xs font-medium uppercase tracking-[0.12em] text-slate-500">
+                  From {maker.name}
+                </p>
+              )}
+              <p className="mt-3 whitespace-pre-line leading-relaxed text-slate-600">
                 {product.description}
               </p>
             </div>

@@ -4,6 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import type { MicrositeProduct } from '@/lib/microsites/resolve';
 import { isOptimizerBlockedImage } from '@/lib/images/optimizer-blocked-hosts';
 import { TrailerArt } from './TrailerArt';
+import { isBrandBoilerplate, isFirstPerson } from '@/lib/catalog/quality';
 
 export function tonnageLabel(min?: number | null, max?: number | null): string | null {
   if (min && max && min !== max) return `${min}–${max} Ton`;
@@ -28,6 +29,15 @@ export function MicrositeProductCard({
   const image = primaryImage(product);
   const ton = tonnageLabel(product.tonnage_min, product.tonnage_max);
   const maker = Array.isArray(product.manufacturer) ? product.manufacturer[0] : product.manufacturer;
+  // Maker copy in the first person, or the same brand paragraph on every
+  // model, says nothing about this trailer — and "we" on an unattributed card
+  // reads as this site talking. Better no line than that one.
+  const blurb =
+    product.short_description &&
+    !isFirstPerson(product.short_description) &&
+    !isBrandBoilerplate(product.short_description, maker?.name)
+      ? product.short_description
+      : null;
   const chips = [
     product.axle_count ? `${product.axle_count} axle` : null,
     product.deck_length_feet ? `${product.deck_length_feet}′ deck` : null,
@@ -77,10 +87,8 @@ export function MicrositeProductCard({
         <h3 className={`font-semibold leading-snug text-slate-900 ${compact ? 'text-sm' : 'text-base'}`}>
           {product.name}
         </h3>
-        {!compact && product.short_description && (
-          <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-slate-600">
-            {product.short_description}
-          </p>
+        {!compact && blurb && (
+          <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-slate-600">{blurb}</p>
         )}
         {!compact && chips.length > 0 && (
           <ul className="mt-3 flex flex-wrap gap-1.5 text-xs">

@@ -1,5 +1,6 @@
 import { logger } from '@/lib/logger';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { HIDDEN_PRODUCT_FILTER } from '@/lib/catalog/quality';
 
 interface ManufacturerProduct {
   id: string;
@@ -79,7 +80,8 @@ export async function matchToManufacturerProduct(
   let query = supabase
     .from('manufacturer_products')
     .select(PRODUCT_SELECT)
-    .eq('is_active', true);
+    .eq('is_active', true)
+    .not('id', 'in', HIDDEN_PRODUCT_FILTER);
 
   // Filter by manufacturer if make is detected
   if (detected.make) {
@@ -191,6 +193,7 @@ async function matchByCategory(
     .from('manufacturer_products')
     .select(PRODUCT_SELECT)
     .eq('is_active', true)
+    .not('id', 'in', HIDDEN_PRODUCT_FILTER)
     .limit(200);
 
   if (error || !products) return [];

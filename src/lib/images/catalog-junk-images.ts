@@ -14,7 +14,8 @@
  * 2026-09-22, taking every file attached to 3+ products (160 of them), and
  * reviewing each by eye: 49 are logos, badges, icons, colour bars, maps,
  * truck-model banners or stock scenery — 533 image rows between them. Files
- * shared by sibling models that DO show a trailer were left alone.
+ * shared by sibling models that DO show a trailer were left alone. A second
+ * pass looked at the lead photo of all 252 models the microsites can show.
  *
  * Filtering here rather than deleting rows keeps the call reversible; a
  * scraper-side guard is the durable fix.
@@ -69,17 +70,59 @@ const JUNK_HASH_PREFIXES = new Set([
   '948de5a2', // truck-cab lifestyle photo
   '055a8726', // key-fob lifestyle photo
   '9a6305d2', // truck-interior lifestyle photo
+  // Second pass, reviewing the lead photo of every model a microsite shows.
+  // A brand banner repeated as image #1 across a whole range is not a photo
+  // of any one model — fifteen Magnitude cards led with the same shot.
+  'f9b90e7d', // Kalyn Siebert building sign
+  '318ef40e', // Kalyn Siebert building sign
+  'ac3301ad', // Kalyn Siebert building sign
+  'a10f8dda', // Alabama Forestry Association logo
+]);
+
+/**
+ * Real trailer photos, but a maker's brand shot rather than the model: the
+ * same image leads a whole range (fifteen Magnitude cards in a row). For
+ * several Fontaine models they are the only images there are, so they are a
+ * last resort, not junk — see `withBrandBannersLast`.
+ */
+const BRAND_BANNER_PREFIXES = new Set([
+  '96244619', // Fontaine: truck hauling a wind blade (43 products)
+  '94dc6a20', // trailer line-up in a stadium (41 products)
 ]);
 
 const HASHED_NAME = /-([0-9a-f]{8})\.[a-z0-9]+$/i;
 
-export function isJunkCatalogImage(url: string | null | undefined): boolean {
-  if (!url) return false;
+function hashOf(url: string | null | undefined): string | null {
+  if (!url) return null;
   const match = HASHED_NAME.exec(url.split('?')[0]);
-  return match !== null && JUNK_HASH_PREFIXES.has(match[1].toLowerCase());
+  return match ? match[1].toLowerCase() : null;
 }
 
-/** Drop non-product images from a catalog product's image list. */
+export function isJunkCatalogImage(url: string | null | undefined): boolean {
+  const hash = hashOf(url);
+  return hash !== null && JUNK_HASH_PREFIXES.has(hash);
+}
+
+export function isBrandBanner(url: string | null | undefined): boolean {
+  const hash = hashOf(url);
+  return hash !== null && BRAND_BANNER_PREFIXES.has(hash);
+}
+
+/**
+ * Drop non-product images. Brand banners go too: the microsites draw a
+ * trailer with the model's capacity instead, which reads better than one
+ * banner repeated down the grid.
+ */
 export function withoutJunkImages<T extends { url: string }>(images: T[] | null | undefined): T[] {
-  return (images ?? []).filter((img) => !isJunkCatalogImage(img.url));
+  return (images ?? []).filter((img) => !isJunkCatalogImage(img.url) && !isBrandBanner(img.url));
+}
+
+/**
+ * Drop non-product images but keep brand banners, moved behind every real
+ * model photo. For the marketplace catalog, whose card has no drawn fallback:
+ * a maker's own haul photo beats a grey truck icon.
+ */
+export function withBrandBannersLast<T extends { url: string }>(images: T[] | null | undefined): T[] {
+  const kept = (images ?? []).filter((img) => !isJunkCatalogImage(img.url));
+  return [...kept.filter((i) => !isBrandBanner(i.url)), ...kept.filter((i) => isBrandBanner(i.url))];
 }

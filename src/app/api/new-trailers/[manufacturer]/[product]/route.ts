@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
 import { CATALOG_CACHE_HEADERS } from '@/lib/api/cache-headers';
+import { withBrandBannersLast } from '@/lib/images/catalog-junk-images';
+import { cleanCopy, cleanProductName, isHiddenProduct } from '@/lib/catalog/quality';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,14 +33,25 @@ export async function GET(
       .order('sort_order', { referencedTable: 'manufacturer_product_specs', ascending: true })
       .single();
 
-    if (error || !data) {
+    if (error || !data || isHiddenProduct(data.id)) {
       return NextResponse.json(
         { error: 'Product not found' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ data }, { headers: CATALOG_CACHE_HEADERS });
+    return NextResponse.json(
+      {
+        data: {
+          ...data,
+          name: cleanProductName(data.name),
+          short_description: cleanCopy(data.short_description),
+          description: cleanCopy(data.description),
+          manufacturer_product_images: withBrandBannersLast(data.manufacturer_product_images),
+        },
+      },
+      { headers: CATALOG_CACHE_HEADERS }
+    );
   } catch (error) {
     logger.error('New trailer product detail API error', { error: error });
     return NextResponse.json(
