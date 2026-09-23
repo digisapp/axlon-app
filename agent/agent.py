@@ -31,6 +31,7 @@ from tools import (
     CallLogTools,
     StaffAuthTools,
     get_ai_agent_settings,
+    with_axleyard_brand,
     get_dealer_voice_agent_by_phone,
     build_dealer_instructions,
     increment_dealer_minutes,
@@ -567,9 +568,9 @@ Do not search inventory or provide detailed information - just capture the lead.
                 'is_active': dealer_agent.get('is_active', True),
             }
     else:
-        # This is the main AxlonAI line - use global settings
-        logger.info("Main line call - using global AxlonAI settings")
-        settings = get_ai_agent_settings()
+        # This is the main Axleyard line - use global settings
+        logger.info("Main line call - using global Axleyard settings")
+        settings = with_axleyard_brand(get_ai_agent_settings())
 
     logger.info(f"Using voice: {settings.get('voice')}")
 
@@ -631,7 +632,11 @@ Do not search inventory or provide detailed information - just capture the lead.
 
     # Generate greeting for inbound callers
     greeting = settings.get('greeting_message', 'Hello! How can I help you today?')
-    await session.generate_reply(instructions=greeting)
+    # Passed bare, the greeting was treated as a brief and paraphrased, so the
+    # configured wording (and the brand name in it) was not what callers heard.
+    await session.generate_reply(
+        instructions=f'Greet the caller by saying exactly this, word for word, and nothing else: "{greeting}"'
+    )
 
     logger.info(f"xAI voice agent session started successfully" +
                (f" for {business_name}" if business_name else ""))

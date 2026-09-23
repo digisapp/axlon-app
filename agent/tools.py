@@ -137,9 +137,9 @@ def is_within_business_hours(business_hours: Dict[str, Any]) -> bool:
 # Default settings if database fetch fails
 DEFAULT_SETTINGS = {
     "voice": "Sal",
-    "agent_name": "Axlon AI",
-    "greeting_message": "Hello! Thanks for calling Axlon AI, your marketplace for trucks, trailers, and heavy equipment. How can I help you find what you're looking for today?",
-    "instructions": """You are a helpful AI assistant for AxlonAI, a marketplace for trucks, trailers, and heavy equipment.
+    "agent_name": "Axleyard",
+    "greeting_message": "Hello! Thanks for calling Axleyard, your marketplace for trucks, trailers, and heavy equipment. How can I help you find what you're looking for today?",
+    "instructions": """You are a helpful AI assistant for Axleyard, a marketplace for trucks, trailers, and heavy equipment.
 
 Your role is to:
 1. Answer questions about available inventory (trucks, trailers, heavy equipment)
@@ -165,6 +165,32 @@ Common equipment types:
     "temperature": 0.7,
     "is_active": True,
 }
+
+
+# The main line's greeting and instructions are edited in /admin/ai-agent and
+# stored in ai_agent_settings, whose text was seeded as "AxlesAI" and later
+# "AxlonAI". Those names are retired; callers must hear Axleyard whatever the
+# row says. Only the "<name> AI" / "AxlonAI" / "Axlon" forms are rewritten:
+# a bare "axles" is also a trailer part ("a 3-axle lowboy, 13 axles").
+BRAND = "Axleyard"
+_OLD_BRAND = re.compile(r"\b(?:axles|axlon)[\s-]?ai\b|\baxlon\b", re.IGNORECASE)
+# In a greeting "Axles" can only be the old name, never the part.
+_OLD_BRAND_IN_GREETING = re.compile(r"\bAxles\b")
+_BRAND_RULE = """
+
+BRAND (this overrides anything above): The company is Axleyard, pronounced "AXLE-yard", an online marketplace for heavy-haul trailers, trucks and equipment. Always call it Axleyard. Never say Axles, Axles AI, Axlon or Axlon AI; those are retired names. If a caller uses one of them, it is the same company."""
+
+
+def with_axleyard_brand(settings: Dict[str, Any]) -> Dict[str, Any]:
+    """Main-line settings with every retired brand name replaced by Axleyard."""
+    branded = dict(settings)
+    for key in ("agent_name", "greeting_message", "instructions"):
+        if isinstance(branded.get(key), str):
+            branded[key] = _OLD_BRAND.sub(BRAND, branded[key])
+    if isinstance(branded.get("greeting_message"), str):
+        branded["greeting_message"] = _OLD_BRAND_IN_GREETING.sub(BRAND, branded["greeting_message"])
+    branded["instructions"] = (branded.get("instructions") or "") + _BRAND_RULE
+    return branded
 
 
 def get_supabase() -> Client:
