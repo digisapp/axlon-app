@@ -105,7 +105,20 @@ function isSpam(from: string, subject: string): { isSpam: boolean; reason?: stri
 
 // ─── Delivery Status Handler ────────────────────────────
 
-async function handleDeliveryStatus(type: string, emailId: string, recipients?: string[]) {
+/** Sent from one of our domains (same list as inbound). */
+function isOurSender(from: unknown): boolean {
+  if (typeof from !== 'string' || !from) return false;
+  const address = parseEmailAddress(from).email.toLowerCase();
+  const host = address.slice(address.lastIndexOf('@') + 1);
+  return INBOUND_DOMAINS.some((domain) => host === domain || host.endsWith(`.${domain}`));
+}
+
+async function handleDeliveryStatus(
+  type: string,
+  emailId: string,
+  recipients?: string[],
+  from?: string
+) {
   const supabase = createAdminClient();
 
   const statusMap: Record<string, string> = {
@@ -129,10 +142,15 @@ async function handleDeliveryStatus(type: string, emailId: string, recipients?: 
   // continuing to mail it is what burns the sending domain's reputation.
   if (type === 'email.bounced' || type === 'email.complained') {
     const reason = type === 'email.bounced' ? 'bounced' : 'complained';
+    // Delivery webhooks are account-wide too: a bounce or complaint on another
+    // project's mail must not put that address on OUR suppression list. The
+    // payload's recipients count only when the message was ours (tracked in
+    // `emails`, or sent from one of our domains).
+    const ours = (updated?.length ?? 0) > 0 || isOurSender(from);
     const addresses = new Set<string>(
       [
         ...(updated || []).map((row) => row.to_email as string | null),
-        ...(recipients || []),
+        ...(ours ? recipients || [] : []),
       ].filter((addr): addr is string => Boolean(addr))
     );
 
@@ -225,12 +243,16 @@ async function sendAutoReply(params: {
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'AXLON AI <noreply@axlon.ai>';
 
   try {
-    const { data: sendResult, error: sendError } = await resend.emails.send({
-      from: fromEmail,
-      to: params.to,
-      subject: params.subject,
-      html: brandedHtml,
-    });
+    const { data: sendResult, error: sendError } = await resend.emails.send(
+      {
+        from: fromEmail,
+        to: params.to,
+        subject: params.subject,
+        html: brandedHtml,
+      },
+      // At most one auto-reply per inbound message, even if this runs twice.
+      { idempotencyKey: `auto-reply/${params.inboundEmailId}` }
+    );
 
     if (sendError) {
       logger.error('Auto-reply send failed', { error: sendError });
@@ -302,7 +324,7 @@ export async function POST(request: NextRequest) {
 
     // ─── Delivery Status Events ─────────────────────
     if (['email.delivered', 'email.bounced', 'email.complained', 'email.opened', 'email.clicked'].includes(event.type)) {
-      await handleDeliveryStatus(event.type, event.data.email_id, event.data.to);
+      await handleDeliveryStatus(event.type, event.data.email_id, event.data.to, event.data.from);
       return NextResponse.json({ received: true });
     }
 

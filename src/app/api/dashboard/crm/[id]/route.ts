@@ -41,7 +41,7 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
     .eq('id', id)
     .eq('dealer_id', user.id)
     .select()
-    .single();
+    .maybeSingle(); // no row → 404 below instead of a PGRST116 500
 
   if (error) {
     logger.error('Error updating CRM contact', { error });

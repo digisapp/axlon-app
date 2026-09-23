@@ -257,7 +257,14 @@ export const savedSearchSchema = z.object({
   query: z.string().max(500).optional(),
   filters: z.record(z.string(), z.unknown()).optional(),
   notify_email: z.boolean().optional(),
-  notify_frequency: z.string().max(50).optional(),
+  // DB CHECK (migration 008) allows only these; anything else 500'd on insert.
+  notify_frequency: z.enum(['instant', 'daily', 'weekly']).optional(),
+});
+
+export const updateSavedSearchSchema = z.object({
+  name: z.string().trim().min(1).max(100).optional(),
+  notify_email: z.boolean().optional(),
+  notify_frequency: z.enum(['instant', 'daily', 'weekly']).optional(),
 });
 
 // Dealer staff validation

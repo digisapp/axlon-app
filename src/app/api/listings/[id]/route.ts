@@ -24,7 +24,7 @@ export async function GET(
       ${PUBLIC_LISTING_COLUMNS}, deleted_at,
       category:categories(id, name, slug),
       images:listing_images(id, url, thumbnail_url, is_primary, sort_order),
-      user:profiles!listings_user_id_fkey(id, company_name, phone, email, avatar_url, is_business)
+      user:profiles!listings_user_id_fkey(id, company_name, phone, avatar_url, is_business)
     `)
     .eq('id', id)
     .single();
@@ -66,7 +66,7 @@ export async function PUT(
   // Verify listing ownership and get current data
   const { data: existingListing } = await supabase
     .from('listings')
-    .select('user_id, price, ai_price_estimate, deleted_at')
+    .select('user_id, price, ai_price_estimate, deleted_at, status, published_at')
     .eq('id', id)
     .single();
 
@@ -115,8 +115,13 @@ export async function PUT(
   }
   if (updateData.specs === null) updateData.specs = {};
 
-  // If publishing, stamp published_at (server clock, not client-supplied)
-  if (validatedData.status === 'active') {
+  // Stamp published_at only on the transition to active (server clock). The
+  // edit page sends status:'active' on every save, so stamping unconditionally
+  // re-dated the listing on each edit and floated it to the top of "newest".
+  if (
+    validatedData.status === 'active' &&
+    (existingListing.status !== 'active' || !existingListing.published_at)
+  ) {
     updateData.published_at = new Date().toISOString();
   }
 

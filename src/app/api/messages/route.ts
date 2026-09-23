@@ -6,7 +6,9 @@ import { validateBody, ValidationError, createMessageSchema } from '@/lib/valida
 // GET - Fetch conversations for the current user
 export const GET = withAuth(async (request, { user, supabase }) => {
   const { searchParams } = new URL(request.url);
-  const limit = Math.max(1, Math.min(parseInt(searchParams.get('limit') || '200'), 500));
+  const rawLimit = parseInt(searchParams.get('limit') || '200', 10);
+  // NaN (e.g. ?limit=abc) survives Math.min/max and became `limit=NaN` → 500.
+  const limit = Number.isNaN(rawLimit) ? 200 : Math.max(1, Math.min(rawLimit, 500));
 
   // Get messages where user is sender or recipient (bounded)
   const { data: messages, error } = await supabase

@@ -59,6 +59,25 @@ export async function POST(request: NextRequest) {
     }
     const { product, listingId, successUrl, cancelUrl } = validatedData;
 
+    // Listing products are fulfilled by the webhook only when listing_id is
+    // present AND owned by the buyer — otherwise it logs and skips. Reject
+    // those up front so nobody is charged for a feature/bump that can't apply.
+    if (product === 'featured_week' || product === 'featured_month' || product === 'bump') {
+      if (!listingId) {
+        return NextResponse.json({ error: 'listingId is required for this product' }, { status: 400 });
+      }
+      const { data: ownedListing } = await supabase
+        .from('listings')
+        .select('id')
+        .eq('id', listingId)
+        .eq('user_id', user.id)
+        .is('deleted_at', null)
+        .maybeSingle();
+      if (!ownedListing) {
+        return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
+      }
+    }
+
     // Get or create Stripe customer
     const { data: profile } = await supabase
       .from('profiles')

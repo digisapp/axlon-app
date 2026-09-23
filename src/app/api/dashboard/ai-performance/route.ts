@@ -15,45 +15,65 @@ export const GET = withAuth(async (request, { user, supabase }) => {
   if (gateError) return gateError;
 
   const { searchParams } = new URL(request.url);
-  const days = parseInt(searchParams.get('days') || '30');
+  // Clamp: `?days=abc` made `since` an Invalid Date and toISOString() threw.
+  const parsedDays = parseInt(searchParams.get('days') || '30');
+  const days = Number.isFinite(parsedDays) ? Math.min(Math.max(parsedDays, 1), 365) : 30;
 
   const since = new Date();
   since.setDate(since.getDate() - days);
   const sinceIso = since.toISOString();
+  const prevSince = new Date();
+  prevSince.setDate(prevSince.getDate() - days * 2);
+
+  // Lead counts use head:true count queries. The previous version pulled every
+  // lead row (three times) and counted them in JS, which both scaled with lead
+  // volume and silently capped at PostgREST's 1000-row limit, so dealers past
+  // 1000 leads saw wrong totals, pipeline and conversion rate.
+  const leadCount = (status?: string[]) => {
+    let q = supabase
+      .from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+    if (status) q = q.in('status', status);
+    return q;
+  };
 
   const [
     leadsResult,
     leadsThisPeriodResult,
-    leadsByStatusResult,
+    newCountResult,
+    contactedCountResult,
+    qualifiedCountResult,
+    convertedCountResult,
+    lostCountResult,
     highPriorityResult,
     followUpsResult,
     conversationsResult,
     listingsResult,
     topListingsResult,
+    prevLeadsResult,
   ] = await Promise.all([
-    // All-time lead totals
-    supabase
-      .from('leads')
-      .select('id, status, priority, score, created_at', { count: 'exact' })
-      .eq('user_id', user.id),
+    // All-time lead total
+    leadCount(),
 
-    // Leads in current period
+    // Leads in current period (only score is needed)
     supabase
       .from('leads')
-      .select('id, status, priority, score, created_at', { count: 'exact' })
+      .select('score', { count: 'exact' })
       .eq('user_id', user.id)
       .gte('created_at', sinceIso),
 
     // Lead breakdown by status (all time)
-    supabase
-      .from('leads')
-      .select('status')
-      .eq('user_id', user.id),
+    leadCount(['new']),
+    leadCount(['contacted']),
+    leadCount(['qualified']),
+    leadCount(['converted', 'won']),
+    leadCount(['lost']),
 
     // High priority leads this period
     supabase
       .from('leads')
-      .select('id', { count: 'exact' })
+      .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .eq('priority', 'high')
       .gte('created_at', sinceIso),
@@ -77,7 +97,8 @@ export const GET = withAuth(async (request, { user, supabase }) => {
     supabase
       .from('listings')
       .select('id, status, views_count, created_at')
-      .eq('user_id', user.id),
+      .eq('user_id', user.id)
+      .is('deleted_at', null),
 
     // Top performing listings
     supabase
@@ -85,28 +106,37 @@ export const GET = withAuth(async (request, { user, supabase }) => {
       .select('id, title, views_count, status')
       .eq('user_id', user.id)
       .eq('status', 'active')
+      .is('deleted_at', null)
       .order('views_count', { ascending: false })
       .limit(5),
+
+    // Previous period, for the trend
+    supabase
+      .from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', prevSince.toISOString())
+      .lt('created_at', sinceIso),
   ]);
 
-  const allLeads = leadsResult.data || [];
+  const totalLeads = leadsResult.count || 0;
   const periodLeads = leadsThisPeriodResult.data || [];
-  const allStatuses = leadsByStatusResult.data || [];
+  const periodLeadCount = leadsThisPeriodResult.count ?? periodLeads.length;
   const followUps = followUpsResult.data || [];
   const conversations = conversationsResult.data || [];
   const listings = listingsResult.data || [];
 
   // Lead pipeline counts
   const pipeline = {
-    new: allStatuses.filter(l => l.status === 'new').length,
-    contacted: allStatuses.filter(l => l.status === 'contacted').length,
-    qualified: allStatuses.filter(l => l.status === 'qualified').length,
-    converted: allStatuses.filter(l => l.status === 'converted' || l.status === 'won').length,
-    lost: allStatuses.filter(l => l.status === 'lost').length,
+    new: newCountResult.count || 0,
+    contacted: contactedCountResult.count || 0,
+    qualified: qualifiedCountResult.count || 0,
+    converted: convertedCountResult.count || 0,
+    lost: lostCountResult.count || 0,
   };
 
   // Auto-replies sent = every lead gets one now, so equals period lead count
-  const autoRepliesSent = periodLeads.length;
+  const autoRepliesSent = periodLeadCount;
 
   // Follow-up steps breakdown
   const followUpsByStep = [1, 2, 3, 4].map(step => ({
@@ -122,9 +152,9 @@ export const GET = withAuth(async (request, { user, supabase }) => {
   const totalViews = listings.reduce((sum, l) => sum + (l.views_count || 0), 0);
 
   // Average lead score this period
-  const scoredLeads = periodLeads.filter(l => l.score > 0);
+  const scoredLeads = periodLeads.filter(l => (l.score || 0) > 0);
   const avgScore = scoredLeads.length > 0
-    ? Math.round(scoredLeads.reduce((sum, l) => sum + l.score, 0) / scoredLeads.length)
+    ? Math.round(scoredLeads.reduce((sum, l) => sum + (l.score || 0), 0) / scoredLeads.length)
     : 0;
 
   // High priority leads count
@@ -142,29 +172,21 @@ export const GET = withAuth(async (request, { user, supabase }) => {
   const hoursSaved = Math.round(minutesSaved / 60);
 
   // Conversion rate
-  const conversionRate = allLeads.length > 0
-    ? Math.round((pipeline.converted / allLeads.length) * 100)
+  const conversionRate = totalLeads > 0
+    ? Math.round((pipeline.converted / totalLeads) * 100)
     : 0;
 
-  // Previous period comparison for leads
-  const prevSince = new Date();
-  prevSince.setDate(prevSince.getDate() - days * 2);
-  const { count: prevLeadCount } = await supabase
-    .from('leads')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .gte('created_at', prevSince.toISOString())
-    .lt('created_at', sinceIso);
+  const prevLeadCount = prevLeadsResult.count;
 
   const leadTrend = (prevLeadCount || 0) > 0
-    ? Math.round(((periodLeads.length - (prevLeadCount || 0)) / (prevLeadCount || 1)) * 100)
+    ? Math.round(((periodLeadCount - (prevLeadCount || 0)) / (prevLeadCount || 1)) * 100)
     : 0;
 
   return NextResponse.json({
     period: { days, since: sinceIso },
     summary: {
-      totalLeadsAllTime: allLeads.length,
-      leadsThisPeriod: periodLeads.length,
+      totalLeadsAllTime: totalLeads,
+      leadsThisPeriod: periodLeadCount,
       leadTrend,
       highPriorityLeads: highPriorityCount,
       avgLeadScore: avgScore,

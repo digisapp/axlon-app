@@ -227,6 +227,9 @@ export async function GET(request: NextRequest) {
           subject: email.subject,
           html: email.html,
           category: 'marketing',
+          // If the 'sent' update below fails, the stale-'sending' recovery
+          // re-queues this row 15 min later; the key stops a second email.
+          idempotencyKey: `lead-followup/${followup.id}`,
         });
 
         // sendEmail returns null when the buyer is on the suppression list — nothing
@@ -316,6 +319,7 @@ export async function GET(request: NextRequest) {
             to: dealer.email,
             subject: `New Lead: ${lead.visitor_name || 'Anonymous'} — ${lead.equipment_interest || 'Equipment inquiry'}`,
             html: buildDealerAlertHtml(dealer.company_name || 'Your company', lead, followup.conversation_summary),
+            idempotencyKey: `lead-followup-alert/${followup.id}`,
           });
         } else {
           // Nothing sent (missing dealer/lead) — release the claim so a later run

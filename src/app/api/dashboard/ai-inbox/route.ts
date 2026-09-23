@@ -5,6 +5,7 @@ import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { Resend } from 'resend';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { escapeHtml } from '@/lib/utils/html-escape';
 
 const actionSchema = z.object({
   action: z.enum(['approve', 'reject', 'edit', 'feedback']),
@@ -101,6 +102,13 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
     return NextResponse.json(data);
   }
 
+  // Approve/edit/reject only make sense for a draft still awaiting review.
+  // Without this, a second Approve (another tab, a stale list, a retried
+  // request) emailed the buyer the same reply again.
+  if (item.status !== 'pending') {
+    return NextResponse.json({ error: 'This draft has already been handled' }, { status: 409 });
+  }
+
   if (action === 'reject') {
     const { data, error } = await supabase
       .from('ai_inbox_items')
@@ -118,6 +126,22 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
   const finalHtml = (action === 'edit' && edited_draft)
     ? buildSimpleHtml(edited_draft, item.from_name)
     : item.ai_draft_html;
+
+  // Claim the send atomically so two concurrent approvals can't both email
+  // the buyer: only the request that flips sent_at from NULL proceeds.
+  const claimedAt = new Date().toISOString();
+  const { data: claimed, error: claimError } = await supabase
+    .from('ai_inbox_items')
+    .update({ sent_at: claimedAt })
+    .eq('id', id)
+    .eq('dealer_id', user.id)
+    .eq('status', 'pending')
+    .is('sent_at', null)
+    .select('id');
+  if (claimError) throw claimError;
+  if (!claimed || claimed.length === 0) {
+    return NextResponse.json({ error: 'This draft has already been handled' }, { status: 409 });
+  }
 
   // Get seller profile for reply-to
   const { data: profile } = await supabase
@@ -139,12 +163,18 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
     }
   } catch (sendError) {
     logger.error('Failed to send AI inbox email', { error: sendError });
+    // Release the claim so the dealer can retry.
+    await supabase
+      .from('ai_inbox_items')
+      .update({ sent_at: null })
+      .eq('id', id)
+      .eq('sent_at', claimedAt);
     return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
   }
 
   const updatePayload: Record<string, unknown> = {
     status: action === 'edit' ? 'edited' : 'approved',
-    sent_at: new Date().toISOString(),
+    sent_at: claimedAt,
     reviewed_at: new Date().toISOString(),
     feedback: 'positive', // implicit positive feedback for approvals
   };
@@ -167,7 +197,7 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
 function buildSimpleHtml(plainText: string, fromName: string): string {
   const bodyHtml = plainText
     .split('\n')
-    .map(line => line.trim() === '' ? '<br>' : `<p style="margin:0 0 10px 0;line-height:1.6;color:#1f2937;">${line}</p>`)
+    .map(line => line.trim() === '' ? '<br>' : `<p style="margin:0 0 10px 0;line-height:1.6;color:#1f2937;">${escapeHtml(line)}</p>`)
     .join('');
   return `<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:580px;margin:0 auto;padding:24px;">${bodyHtml}<p style="font-size:12px;color:#9ca3af;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:12px;">Sent via <a href="https://axleyard.com" style="color:#9ca3af;">AXLON AI</a></p></body></html>`;
 }

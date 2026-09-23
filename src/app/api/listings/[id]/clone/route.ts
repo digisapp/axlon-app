@@ -41,6 +41,12 @@ export const POST = withAuth(async (request, { user, supabase }) => {
     status: _status,
     is_featured: _isFeatured,
     featured_until: _featuredUntil,
+    // A draft copy was never published/deleted: carrying these over gave the
+    // clone the original's published_at (so publishing it kept the old date)
+    // and copied deleted_by audit data.
+    published_at: _publishedAt,
+    deleted_at: _deletedAt,
+    deleted_by: _deletedBy,
     ...listingData
   } = original;
 

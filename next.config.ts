@@ -55,6 +55,10 @@ const nextConfig: NextConfig = {
     // variants cached for 31 days instead of the short default, which forced
     // frequent origin refetches from Supabase storage.
     minimumCacheTTL: 2678400,
+    // Default deviceSizes run to 3840w, so every card's srcSet listed 2048w
+    // and 3840w variants no layout here ever needs — ~300KB of <img> markup
+    // on /new-trailers alone. 1920 still covers full-width galleries.
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     remotePatterns: [
       // Every image the app renders through next/image is re-hosted in
       // Supabase Storage: listing photos (dealer-imports/...) and the

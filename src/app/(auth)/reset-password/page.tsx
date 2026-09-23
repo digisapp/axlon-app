@@ -27,6 +27,14 @@ function ResetPasswordForm() {
     const handleAuthCallback = async () => {
       const code = searchParams.get('code');
       if (code) {
+        // The browser client (detectSessionInUrl + PKCE) already exchanges
+        // ?code= during its own initialization and then deletes the code
+        // verifier, so a second manual exchange always failed and showed
+        // "expired link" to users whose reset session was actually valid.
+        // getSession() waits for that initialization; only fall back to a
+        // manual exchange when it produced no session.
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) return;
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
           setError('Invalid or expired reset link. Please request a new one.');

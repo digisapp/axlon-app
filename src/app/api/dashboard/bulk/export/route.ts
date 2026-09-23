@@ -12,7 +12,10 @@ export const GET = withAuth(async (request, { user, supabase }) => {
   const status = searchParams.get('status');
   const includeFields = searchParams.getAll('include');
 
-  // Build query
+  // Build query. Paged below: a single select stops at PostgREST's 1000-row
+  // cap, so larger inventories got a silently truncated export. Soft-deleted
+  // listings are excluded — they are gone from the dealer's inventory.
+  const buildQuery = () => {
   let query = supabase
     .from('listings')
     .select(`
@@ -42,20 +45,31 @@ export const GET = withAuth(async (request, { user, supabase }) => {
       category:categories(name, slug)
     `)
     .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: true });
 
   if (status && status !== 'all') {
     query = query.eq('status', status);
   }
+  return query;
+  };
 
-  const { data: listings, error } = await query;
-
-  if (error) {
-    logger.error('Error fetching listings', { error });
-    return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
+  const PAGE_SIZE = 1000;
+  const MAX_ROWS = 20000;
+  type ExportRow = NonNullable<Awaited<ReturnType<typeof buildQuery>>['data']>[number];
+  const listings: ExportRow[] = [];
+  for (let from = 0; from < MAX_ROWS; from += PAGE_SIZE) {
+    const { data: page, error } = await buildQuery().range(from, from + PAGE_SIZE - 1);
+    if (error) {
+      logger.error('Error fetching listings', { error });
+      return NextResponse.json({ error: 'Operation failed' }, { status: 500 });
+    }
+    listings.push(...(page || []));
+    if (!page || page.length < PAGE_SIZE) break;
   }
 
-  if (!listings || listings.length === 0) {
+  if (listings.length === 0) {
     return new NextResponse('No listings to export', { status: 404 });
   }
 

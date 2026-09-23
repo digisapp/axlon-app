@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth/with-auth';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
+import { enforceFeature } from '@/lib/entitlements';
 
 export const GET = withAuth(async (request, { user, supabase }) => {
+  // Same gate as the conversation list: without it a dealer whose plan lacks
+  // the AI assistant could still open and reply to conversations by id.
+  const gateError = await enforceFeature(supabase, user.id, 'aiAssistant');
+  if (gateError) return gateError;
+
   const url = new URL(request.url);
   const segments = url.pathname.split('/');
   const id = segments[segments.indexOf('conversations') + 1];
-  const limit = parseInt(url.searchParams.get('limit') || '50');
-  const offset = parseInt(url.searchParams.get('offset') || '0');
+  const limit = Math.max(1, Math.min(parseInt(url.searchParams.get('limit') || '50') || 50, 200));
+  const offset = Math.max(0, parseInt(url.searchParams.get('offset') || '0') || 0);
 
   // Fetch conversation metadata and lead info
   const { data: conversation, error } = await supabase
@@ -57,6 +63,11 @@ export const GET = withAuth(async (request, { user, supabase }) => {
 
 // Update conversation status
 export const PATCH = withAuth(async (request, { user, supabase }) => {
+  // Same gate as the conversation list: without it a dealer whose plan lacks
+  // the AI assistant could still open and reply to conversations by id.
+  const gateError = await enforceFeature(supabase, user.id, 'aiAssistant');
+  if (gateError) return gateError;
+
   const segments = new URL(request.url).pathname.split('/');
   const id = segments[segments.indexOf('conversations') + 1];
 
@@ -80,10 +91,13 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
     .eq('id', id)
     .eq('dealer_id', user.id)
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error || !conversation) {
+  if (error) {
     return NextResponse.json({ error: 'Failed to update conversation' }, { status: 500 });
+  }
+  if (!conversation) {
+    return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
   }
 
   return NextResponse.json({ conversation });

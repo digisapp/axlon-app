@@ -56,7 +56,8 @@ async function processUnsubscribe(email: string): Promise<void> {
   // case-insensitively — a profile stored with any uppercase (imported/edited)
   // would otherwise keep receiving alerts after a "successful" unsubscribe.
   // Escape LIKE metacharacters (_ and %) so an address containing them can't
-  // match a different profile.
+  // match a different profile / someone else's drips (e.g. a valid token for
+  // "a_b@x.com" must not cancel follow-ups addressed to "axb@x.com").
   const emailPattern = email.replace(/([\\%_])/g, '\\$1');
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
@@ -93,7 +94,7 @@ async function processUnsubscribe(email: string): Promise<void> {
     .from('lead_followup_queue')
     .update({ status: 'cancelled' })
     .eq('status', 'pending')
-    .ilike('email_to', email);
+    .ilike('email_to', emailPattern);
   if (queueError) {
     logger.error('Unsubscribe: failed to cancel follow-ups by email_to', { error: queueError });
   }
@@ -103,7 +104,7 @@ async function processUnsubscribe(email: string): Promise<void> {
   const { data: leads, error: leadsError } = await supabase
     .from('dealer_ai_leads')
     .select('id')
-    .ilike('visitor_email', email);
+    .ilike('visitor_email', emailPattern);
   if (leadsError) {
     logger.error('Unsubscribe: lead lookup failed', { error: leadsError });
   }

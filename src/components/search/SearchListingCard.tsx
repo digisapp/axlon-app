@@ -105,8 +105,8 @@ export const SearchListingCard = memo(function SearchListingCard({
                     {listing.price ? `$${listing.price.toLocaleString()}` : 'Call'}
                   </p>
                   {dealInfo && (
-                    <span className="text-xs text-muted-foreground line-through">
-                      ${listing.ai_price_estimate?.toLocaleString()}
+                    <span className="text-xs text-muted-foreground" title="AI market estimate">
+                      Est. ${listing.ai_price_estimate?.toLocaleString()}
                     </span>
                   )}
                 </div>
@@ -196,7 +196,7 @@ export const SearchListingCard = memo(function SearchListingCard({
               }`}
             >
               {dealInfo.type === 'hot' ? <Flame className="w-2.5 h-2.5 md:w-3 md:h-3 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 md:w-3 md:h-3 mr-0.5" />}
-              {dealInfo.percentage}% Off
+              {dealInfo.percentage}% Below Market
             </Badge>
           )}
           <div className="absolute top-2 right-2 flex gap-2">
@@ -240,8 +240,8 @@ export const SearchListingCard = memo(function SearchListingCard({
               {listing.price ? `$${listing.price.toLocaleString()}` : 'Call'}
             </p>
             {dealInfo && (
-              <span className="text-[10px] md:text-xs text-muted-foreground line-through">
-                ${listing.ai_price_estimate?.toLocaleString()}
+              <span className="text-[10px] md:text-xs text-muted-foreground" title="AI market estimate">
+                Est. ${listing.ai_price_estimate?.toLocaleString()}
               </span>
             )}
           </div>

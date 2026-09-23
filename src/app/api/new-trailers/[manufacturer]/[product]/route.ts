@@ -10,6 +10,8 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// Explicit columns: `*` shipped each product's search_vector tsvector, which
+// roughly doubles the payload and is never used by clients.
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ manufacturer: string; product: string }> }
@@ -20,7 +22,7 @@ export async function GET(
     const { data, error } = await supabase
       .from('manufacturer_products')
       .select(`
-        *,
+        id, manufacturer_id, name, slug, series, model_number, tagline, description, short_description, product_type, tonnage_min, tonnage_max, deck_height_inches, deck_length_feet, overall_length_feet, axle_count, gooseneck_type, empty_weight_lbs, gvwr_lbs, concentrated_capacity_lbs, msrp_low, msrp_high, source_url, last_scraped_at, is_active, is_featured, sort_order, created_at, updated_at,
         manufacturers!inner(id, name, slug, logo_url, website, description, short_description),
         manufacturer_product_images(id, url, alt_text, is_primary, sort_order),
         manufacturer_product_specs(id, spec_category, spec_key, spec_value, spec_unit, sort_order)

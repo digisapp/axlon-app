@@ -11,7 +11,7 @@ export const GET = withAuth(async (request, { user, supabase }) => {
 
   const searchParams = request.nextUrl.searchParams;
   const contactId = searchParams.get('contact_id');
-  const limit = parseInt(searchParams.get('limit') || '20');
+  const limit = Math.max(1, Math.min(parseInt(searchParams.get('limit') || '20') || 20, 200));
 
   let query = supabase
     .from('crm_activities')

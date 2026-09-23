@@ -8,11 +8,11 @@ export async function GET(
 ) {
   // Route handlers don't run the layout, so the app-host guard is repeated
   // here. Without it these files are served under axleyard.com too.
-  if (await isDirectAppHostRequest()) {
+  const { domain } = await params;
+  if (await isDirectAppHostRequest(domain)) {
     return new NextResponse('Not found', { status: 404 });
   }
 
-  const { domain } = await params;
   const site = await getMicrositeByHost(domain);
 
   // A domain with no live microsite must not be crawled at all — otherwise a

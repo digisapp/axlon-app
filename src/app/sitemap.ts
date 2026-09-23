@@ -182,6 +182,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .select('id, updated_at')
         .eq('status', 'active')
         .order('updated_at', { ascending: false })
+        // Unique tiebreaker: without it rows sharing the sort key can shift
+        // between pages, so some URLs appear twice and others never.
+        .order('id', { ascending: true })
         .range(i * SUPABASE_PAGE_SIZE, (i + 1) * SUPABASE_PAGE_SIZE - 1);
 
       if (listings) {
@@ -271,6 +274,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         // A suspended business's storefront 404s, so keep it out of the sitemap.
         .not('is_suspended', 'is', true)
         .order('company_name', { ascending: true })
+        // Unique tiebreaker: without it rows sharing the sort key can shift
+        // between pages, so some URLs appear twice and others never.
+        .order('id', { ascending: true })
         .range(i * SUPABASE_PAGE_SIZE, (i + 1) * SUPABASE_PAGE_SIZE - 1);
 
       if (!batch || batch.length === 0) break;
@@ -310,6 +316,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .eq('is_active', true)
         .not('id', 'in', HIDDEN_PRODUCT_FILTER)
         .order('updated_at', { ascending: false })
+        // Unique tiebreaker: without it rows sharing the sort key can shift
+        // between pages, so some URLs appear twice and others never.
+        .order('id', { ascending: true })
         .range(i * SUPABASE_PAGE_SIZE, (i + 1) * SUPABASE_PAGE_SIZE - 1);
 
       if (!batch || batch.length === 0) break;

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
+import { cache } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Metadata } from 'next';
@@ -51,16 +52,22 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = await params;
+// Shared by generateMetadata and the page — cache() makes it one read per
+// request instead of two.
+const getManufacturer = cache(async (slug: string) => {
   const supabase = await createClient();
-
-  const { data: manufacturer } = await supabase
+  const { data } = await supabase
     .from('manufacturers')
-    .select('name, short_description, equipment_types, logo_url')
+    .select('*')
     .eq('slug', slug)
     .eq('is_active', true)
     .single();
+  return data;
+});
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const manufacturer = await getManufacturer(slug);
 
   if (!manufacturer) {
     return { title: 'Not Found' };
@@ -154,50 +161,44 @@ export default async function ManufacturerPage({ params }: PageProps) {
   const { slug } = await params;
   const supabase = await createClient();
 
-  // Fetch manufacturer
-  const { data: manufacturer } = await supabase
-    .from('manufacturers')
-    .select('*')
-    .eq('slug', slug)
-    .eq('is_active', true)
-    .single();
+  const manufacturer = await getManufacturer(slug);
 
   if (!manufacturer) {
     notFound();
   }
 
-  // Fetch listings for this manufacturer
-  const { data: listings, count: listingCount } = await supabase
-    .from('listings')
-    .select(`
-      id,
-      title,
-      price,
-      year,
-      make,
-      model,
-      condition,
-      mileage,
-      hours,
-      city,
-      state,
-      is_featured,
-      created_at,
-      images:listing_images(id, url, thumbnail_url, is_primary)
-    `, { count: 'exact' })
-    .ilike('make', manufacturer.canonical_name)
-    .eq('status', 'active')
-    .order('is_featured', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(12);
-
-  // Calculate average price
-  const { data: priceData } = await supabase
-    .from('listings')
-    .select('price')
-    .ilike('make', manufacturer.canonical_name)
-    .eq('status', 'active')
-    .not('price', 'is', null);
+  // Listings and the price sample are independent — fetch them in parallel.
+  const [{ data: listings, count: listingCount }, { data: priceData }] = await Promise.all([
+    supabase
+      .from('listings')
+      .select(`
+        id,
+        title,
+        price,
+        year,
+        make,
+        model,
+        condition,
+        mileage,
+        hours,
+        city,
+        state,
+        is_featured,
+        created_at,
+        images:listing_images(id, url, thumbnail_url, is_primary)
+      `, { count: 'exact' })
+      .ilike('make', manufacturer.canonical_name)
+      .eq('status', 'active')
+      .order('is_featured', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(12),
+    supabase
+      .from('listings')
+      .select('price')
+      .ilike('make', manufacturer.canonical_name)
+      .eq('status', 'active')
+      .not('price', 'is', null),
+  ]);
 
   const avgPrice = priceData && priceData.length > 0
     ? Math.round(priceData.reduce((sum, l) => sum + (l.price || 0), 0) / priceData.length)

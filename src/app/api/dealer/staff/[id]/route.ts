@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, updateStaffSchema } from '@/lib/validations/api';
 import crypto from 'crypto';
 import { enforceFeature } from '@/lib/entitlements';
+import { normalizeStaffBody } from '../normalize';
 
 function hashPin(pin: string, salt: string): string {
   const data = `${salt}:${pin}`;
@@ -59,7 +60,7 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
     return NextResponse.json({ error: 'Staff member not found' }, { status: 404 });
   }
 
-  const body = await request.json();
+  const body = normalizeStaffBody(await request.json()) as Record<string, unknown>;
 
   let validatedData;
   try {
@@ -83,6 +84,9 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
   }
   // Also allow is_active from body (not in updateStaffSchema)
   if (body.is_active !== undefined) {
+    if (typeof body.is_active !== 'boolean') {
+      return NextResponse.json({ error: 'is_active must be a boolean' }, { status: 400 });
+    }
     updateData.is_active = body.is_active;
   }
 

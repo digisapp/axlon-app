@@ -12,8 +12,9 @@ export const GET = withAuth(async (request, { user, supabase }) => {
 
   // Parse query params
   const searchParams = request.nextUrl.searchParams;
-  const page = parseInt(searchParams.get('page') || '1');
-  const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
+  // page=0 / NaN produced a negative range and a 500.
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1') || 1);
+  const limit = Math.max(1, Math.min(parseInt(searchParams.get('limit') || '20') || 20, 100));
   const status = searchParams.get('status'); // 'completed', 'missed', 'in_progress'
   const search = searchParams.get('search'); // Search by caller phone or name
 

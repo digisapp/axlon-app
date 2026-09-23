@@ -4,6 +4,7 @@ import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import { PUBLIC_LISTING_COLUMNS } from '@/lib/listings/public-columns';
 import { getImageSrc } from '@/lib/utils';
 import { notFound } from 'next/navigation';
+import { cache } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Metadata } from 'next';
@@ -51,16 +52,29 @@ interface PageProps {
   }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = await params;
+// Dealer profile — explicit public columns only (never expose
+// stripe_customer_id / tax_id / business_license / notification_settings).
+// Shared by generateMetadata and the page through cache(), so it is one read
+// per request, and the metadata honours the same suspension rule as the page
+// (a suspended dealer's name/tagline used to stay in the 404's <title>).
+const getDealer = cache(async (slug: string) => {
   const supabase = await createClient();
-
-  const { data: dealer } = await supabase
+  const { data } = await supabase
     .from('profiles')
-    .select('company_name, tagline, city, state')
+    .select('id, company_name, tagline, about, avatar_url, banner_url, email, phone, website, city, state, social_links, chat_enabled, chat_settings, storefront_views, business_status')
     .eq('slug', slug)
     .eq('is_business', true)
+    // A suspended business must lose its public presence. Admin "suspend" only
+    // sets is_suspended, so without this the storefront kept serving their
+    // phone, email and inventory.
+    .not('is_suspended', 'is', true)
     .single();
+  return data;
+});
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const dealer = await getDealer(slug);
 
   if (!dealer) {
     return { title: 'Not Found' };
@@ -68,7 +82,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   // No brand suffix — the root layout's "%s | Axleyard" template appends it.
   const title = dealer.company_name;
-  const description = dealer.tagline || `Browse inventory from ${dealer.company_name} in ${dealer.city}, ${dealer.state}`;
+  const place = [dealer.city, dealer.state].filter(Boolean).join(', ');
+  const description = dealer.tagline || `Browse inventory from ${dealer.company_name}${place ? ` in ${place}` : ''}`;
 
   return {
     title,
@@ -177,18 +192,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
   const { category, q, sort, minPrice, maxPrice, minYear, maxYear, condition } = await searchParams;
   const supabase = await createClient();
 
-  // Fetch dealer profile — explicit public columns only (never expose
-  // stripe_customer_id / tax_id / business_license / notification_settings).
-  const { data: dealer } = await supabase
-    .from('profiles')
-    .select('id, company_name, tagline, about, avatar_url, banner_url, email, phone, website, city, state, social_links, chat_enabled, chat_settings, storefront_views, business_status')
-    .eq('slug', slug)
-    .eq('is_business', true)
-    // A suspended business must lose its public presence. Admin "suspend" only
-    // sets is_suspended, so without this the storefront kept serving their
-    // phone, email and inventory.
-    .not('is_suspended', 'is', true)
-    .single();
+  const dealer = await getDealer(slug);
 
   if (!dealer) {
     notFound();

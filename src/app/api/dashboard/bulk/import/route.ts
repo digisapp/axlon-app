@@ -32,14 +32,31 @@ export const POST = withAuth(async (request, { user, supabase }) => {
     make,
     model,
     mileage,
+    hours,
     vin,
     description,
+    city,
+    state,
+    stock_number,
   } = validatedData;
-  const category = body.category;
-  const city = body.city;
-  const state = body.state;
-  const stock_number = body.stock_number;
-  const acquisition_cost = body.acquisition_cost;
+  const category = typeof body.category === 'string' ? body.category.trim() : '';
+
+  // acquisition_cost is not in createListingSchema; it was written straight
+  // from the body, so a smart-import row like "$12,500" hit the DECIMAL column
+  // and 500'd the whole row. Coerce it the same way the schema coerces price.
+  let acquisition_cost: number | null = null;
+  if (body.acquisition_cost !== undefined && body.acquisition_cost !== null && body.acquisition_cost !== '') {
+    const n = typeof body.acquisition_cost === 'number'
+      ? body.acquisition_cost
+      : Number(String(body.acquisition_cost).replace(/[$,\s]/g, ''));
+    if (!Number.isFinite(n) || n < 0 || n > 100000000) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: [{ field: 'acquisition_cost', message: 'Invalid acquisition cost' }] },
+        { status: 400 }
+      );
+    }
+    acquisition_cost = n;
+  }
 
   // Validate category is provided
   if (!category) {
@@ -54,7 +71,7 @@ export const POST = withAuth(async (request, { user, supabase }) => {
     .from('categories')
     .select('id')
     .eq('slug', category)
-    .single();
+    .maybeSingle();
 
   if (!categoryData) {
     return NextResponse.json(
@@ -76,6 +93,7 @@ export const POST = withAuth(async (request, { user, supabase }) => {
       make,
       model,
       mileage,
+      hours,
       vin,
       description,
       city,

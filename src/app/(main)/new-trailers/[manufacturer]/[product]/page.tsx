@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { cache } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -67,7 +68,9 @@ interface RelatedProduct {
   images: RelatedProductImage[] | null;
 }
 
-async function getProduct(manufacturerSlug: string, productSlug: string) {
+// cache(): generateMetadata and the page share one set of reads per request
+// instead of running the whole manufacturer → product → related chain twice.
+const getProduct = cache(async function getProduct(manufacturerSlug: string, productSlug: string) {
   const supabase = createSupabase();
 
   // First get the manufacturer
@@ -80,37 +83,38 @@ async function getProduct(manufacturerSlug: string, productSlug: string) {
 
   if (!manufacturer) return null;
 
-  // Then get the product
-  const { data: product } = await supabase
-    .from('manufacturer_products')
-    .select(`
-      *,
-      images:manufacturer_product_images(id, url, alt_text, is_primary, sort_order),
-      specs:manufacturer_product_specs(id, spec_category, spec_key, spec_value, spec_unit, sort_order)
-    `)
-    .eq('manufacturer_id', manufacturer.id)
-    .eq('slug', productSlug)
-    .eq('is_active', true)
-    .single();
+  // The product and its related products only depend on the manufacturer,
+  // so fetch them in parallel (related excludes the current product by its
+  // slug, which is unique per manufacturer, instead of waiting for its id).
+  const [{ data: product }, { data: relatedProducts }] = await Promise.all([
+    supabase
+      .from('manufacturer_products')
+      .select(`
+        *,
+        images:manufacturer_product_images(id, url, alt_text, is_primary, sort_order),
+        specs:manufacturer_product_specs(id, spec_category, spec_key, spec_value, spec_unit, sort_order)
+      `)
+      .eq('manufacturer_id', manufacturer.id)
+      .eq('slug', productSlug)
+      .eq('is_active', true)
+      .single(),
+    supabase
+      .from('manufacturer_products')
+      .select(`
+        id, name, slug, series, product_type, tonnage_max, deck_height_inches, axle_count,
+        images:manufacturer_product_images(url, alt_text, is_primary)
+      `)
+      .eq('manufacturer_id', manufacturer.id)
+      .eq('is_active', true)
+      .neq('slug', productSlug)
+      .not('id', 'in', HIDDEN_PRODUCT_FILTER)
+      .order('sort_order')
+      .limit(4),
+  ]);
 
   // Scraped non-product pages (a consultation form, a colour chart, a 404)
   // 404 here too, not just drop out of the index.
   if (!product || isHiddenProduct(product.id)) return null;
-
-  // Get related products from same manufacturer
-  const { data: relatedProducts } = await supabase
-    .from('manufacturer_products')
-    .select(`
-      id, name, slug, series, product_type, tonnage_max, deck_height_inches, axle_count,
-      images:manufacturer_product_images(url, alt_text, is_primary)
-    `)
-    .eq('manufacturer_id', manufacturer.id)
-    .eq('is_active', true)
-    .neq('id', product.id)
-    .not('id', 'in', HIDDEN_PRODUCT_FILTER)
-    .order('sort_order')
-    .limit(4);
-
   return {
     ...product,
     name: cleanProductName(product.name),
@@ -129,7 +133,7 @@ async function getProduct(manufacturerSlug: string, productSlug: string) {
       manufacturer,
     })),
   };
-}
+});
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { manufacturer, product: productSlug } = await params;

@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth/with-auth';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
+import { enforceFeature } from '@/lib/entitlements';
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, conversationReplySchema } from '@/lib/validations/api';
 
 export const POST = withAuth(async (request, { user, supabase }) => {
+  // Same gate as the conversation list: without it a dealer whose plan lacks
+  // the AI assistant could still open and reply to conversations by id.
+  const gateError = await enforceFeature(supabase, user.id, 'aiAssistant');
+  if (gateError) return gateError;
+
   const segments = new URL(request.url).pathname.split('/');
   const id = segments[segments.indexOf('conversations') + 1];
 

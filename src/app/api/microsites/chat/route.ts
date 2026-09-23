@@ -43,6 +43,8 @@ const chatSchema = z.object({
 const CATALOG_IN_PROMPT = 40;
 const LISTINGS_IN_PROMPT = 12;
 const TURNS_IN_PROMPT = 10;
+/** Model calls one microsite may make per hour, across all visitors. */
+const SITE_CHAT_TURNS_PER_HOUR = 300;
 
 /** Strip characters that could close a quoted field or fake a prompt section. */
 function clean(value: string | null | undefined, max = 300): string {
@@ -201,6 +203,16 @@ export async function POST(request: NextRequest) {
     if (messages[messages.length - 1].role !== 'user') {
       return NextResponse.json({ error: 'Invalid message' }, { status: 400 });
     }
+
+    // The per-IP limit alone does not bound spend: many IPs (a bot on a
+    // proxy pool) can each take 20 model calls a minute from one site. A
+    // per-site hourly ceiling caps the worst case at a known cost.
+    const siteLimit = await checkRateLimit(`site:${microsite_id}`, {
+      limit: SITE_CHAT_TURNS_PER_HOUR,
+      windowSeconds: 3600,
+      prefix: 'ratelimit:ms-chat-site',
+    });
+    if (!siteLimit.success) return rateLimitResponse(siteLimit);
 
     if (!process.env.XAI_API_KEY) {
       logger.error('Microsite chat: XAI_API_KEY is not configured');

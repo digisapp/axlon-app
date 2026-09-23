@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { checkIsAdmin } from '@/lib/admin/check-admin';
+import { notFound } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AdminListingCard } from '@/components/admin/AdminListingCard';
@@ -76,7 +78,12 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
 
   // listing_images RLS only exposes images for active or self-owned listings, so the
   // Draft/Sold/Expired/Deleted tabs lose their thumbnails under the session client.
-  // This page is admin-only (proxy + admin layout both gate it), so read rows as service role.
+  // Read rows as service role — but only after re-checking admin here. Next's
+  // auth guide: a layout's redirect doesn't stop a page segment from rendering
+  // (and layouts don't re-run on client navigation), so the layout gate alone
+  // must not be what stands between a request and a service-role query.
+  const { isAdmin } = await checkIsAdmin();
+  if (!isAdmin) notFound();
   const adminSupabase = createAdminClient();
 
   // Build paginated query

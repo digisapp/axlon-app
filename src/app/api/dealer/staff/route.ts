@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, createStaffSchema } from '@/lib/validations/api';
 import crypto from 'crypto';
 import { enforceFeature } from '@/lib/entitlements';
+import { normalizeStaffBody } from './normalize';
 
 function hashPin(pin: string, salt: string): string {
   const data = `${salt}:${pin}`;
@@ -40,7 +41,7 @@ export const POST = withAuth(async (request, { user, supabase }) => {
   const gateError = await enforceFeature(supabase, user.id, 'voiceAgent');
   if (gateError) return gateError;
 
-  const body = await request.json();
+  const body = normalizeStaffBody(await request.json());
 
   let validatedData;
   try {

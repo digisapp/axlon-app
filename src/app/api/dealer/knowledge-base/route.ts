@@ -82,15 +82,24 @@ export const POST = withAuth(async (request, { user, supabase }) => {
       return NextResponse.json({ message: 'Knowledge base already active' });
     }
 
-    // Mark as creating
-    await supabase
+    // Mark as creating. Upsert, not update: the settings row only exists once
+    // the dealer has saved the AI Assistant settings form. A plain update hit
+    // zero rows for everyone else, so the xAI collection was created (and
+    // billed) but its id was never stored, the status stayed 'none', and every
+    // retry created another orphaned collection.
+    const { error: markError } = await supabase
       .from('dealer_ai_settings')
-      .update({
+      .upsert({
+        dealer_id: user.id,
         xai_collection_status: 'creating',
         knowledge_base_enabled: true,
         xai_collection_error: null,
-      })
-      .eq('dealer_id', user.id);
+      }, { onConflict: 'dealer_id' });
+
+    if (markError) {
+      logger.error('Failed to mark KB as creating', { error: markError, dealerId: user.id });
+      return NextResponse.json({ error: 'Failed to enable knowledge base' }, { status: 500 });
+    }
 
     try {
       const collectionName = `${profile?.company_name || 'Business'} - ${user.id.slice(0, 8)}`;

@@ -123,7 +123,7 @@ async function CatalogContent({ slug }: { slug: string | null }) {
         .from('manufacturer_products')
         .select(`
           id, name, slug, series, gooseneck_type, tonnage_min, tonnage_max,
-          deck_height_inches, axle_count, sort_order, source_url,
+          deck_height_inches, axle_count, source_url,
           manufacturer:manufacturers!manufacturer_id(id, name, slug),
           images:manufacturer_product_images(url, alt_text, is_primary)
         `)
@@ -137,18 +137,29 @@ async function CatalogContent({ slug }: { slug: string | null }) {
         .order('name', { ascending: true })
     : { data: [] };
 
+  // Each row becomes a ProductCard (client component) prop, serialized into
+  // the RSC payload once per card — pass only the fields the card renders.
   const productRows = ((products ?? []) as unknown as ProductRow[]).map((p) => ({
-    ...p,
-    name: cleanProductName(p.name),
-    ...correctedTonnage(p),
-    images: withBrandBannersLast(p.images).slice(0, 1),
+    manufacturerId: p.manufacturer?.id,
+    card: {
+      id: p.id,
+      name: cleanProductName(p.name),
+      slug: p.slug,
+      series: p.series,
+      gooseneck_type: p.gooseneck_type,
+      ...correctedTonnage(p),
+      deck_height_inches: p.deck_height_inches,
+      axle_count: p.axle_count,
+      images: withBrandBannersLast(p.images).slice(0, 1),
+      manufacturer: p.manufacturer ? { name: p.manufacturer.name, slug: p.manufacturer.slug } : null,
+    },
   }));
 
   const grouped: ManufacturerWithProducts[] = [];
   for (const mfr of manufacturers) {
-    const mfrProducts = productRows.filter((p) => p.manufacturer?.id === mfr.id);
+    const mfrProducts = productRows.filter((p) => p.manufacturerId === mfr.id).map((p) => p.card);
     if (mfrProducts.length > 0) {
-      grouped.push({ ...mfr, products: mfrProducts as ManufacturerProduct[] });
+      grouped.push({ ...mfr, products: mfrProducts as unknown as ManufacturerProduct[] });
     }
   }
 

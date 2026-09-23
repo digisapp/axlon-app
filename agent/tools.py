@@ -288,11 +288,13 @@ def get_dealer_voice_agent_by_phone(phone_number: str) -> Optional[Dict[str, Any
                 id, company_name, phone, email
             )
             """
-        ).eq("phone_number", clean_number).eq("is_active", True).single().execute()
+        ).eq("phone_number", clean_number).eq("is_active", True).limit(1).execute()
 
+        # .single() raised on zero rows, which jumped straight to the except
+        # below: the +1 / 1 alternate format was never tried.
         if result.data:
-            logger.info(f"Found dealer voice agent for {clean_number}: {result.data.get('business_name')}")
-            return result.data
+            logger.info(f"Found dealer voice agent for {clean_number}: {result.data[0].get('business_name')}")
+            return result.data[0]
 
         # Try alternate format (+1 vs 1 prefix)
         if clean_number.startswith("+1"):
@@ -310,11 +312,11 @@ def get_dealer_voice_agent_by_phone(phone_number: str) -> Optional[Dict[str, Any
                     id, company_name, phone, email
                 )
                 """
-            ).eq("phone_number", alt_number).eq("is_active", True).single().execute()
+            ).eq("phone_number", alt_number).eq("is_active", True).limit(1).execute()
 
             if result.data:
-                logger.info(f"Found dealer voice agent for {alt_number}: {result.data.get('business_name')}")
-                return result.data
+                logger.info(f"Found dealer voice agent for {alt_number}: {result.data[0].get('business_name')}")
+                return result.data[0]
 
         logger.info(f"No dealer voice agent found for {phone_number}")
         return None
@@ -453,6 +455,12 @@ class InventoryTools:
         keywords: Optional[str] = None,
     ) -> str:
         """Search inventory based on filters."""
+        # The model picks the limit; a large one read dozens of units aloud
+        # and pulled that many rows on every search.
+        try:
+            limit = max(1, min(int(limit or 5), 10))
+        except (TypeError, ValueError):
+            limit = 5
         try:
             supabase = get_supabase()
 
@@ -625,6 +633,9 @@ class LeadTools:
         self.dealer_id = dealer_id
         self.call_sid = call_sid
         self.business_name = business_name
+        # One lead per call: the model calls capture_lead again when the
+        # caller corrects or adds details, which used to insert a second lead.
+        self.lead_id: Optional[str] = None
 
     async def capture(
         self,
@@ -666,13 +677,23 @@ class LeadTools:
             user_id = self.dealer_id  # Start with pre-set dealer_id if any
 
             # If we have a listing_id and no dealer_id set, get from listing
-            if listing_id and not user_id:
-                listing_result = supabase.table("listings").select(
-                    "user_id"
-                ).eq("id", listing_id).single().execute()
-
-                if listing_result.data:
-                    user_id = listing_result.data.get('user_id')
+            # The model supplies listing_id and sometimes passes a title or
+            # stock number. .single() raised on it, and so did the insert's
+            # foreign key, so the whole lead was lost while the caller was
+            # told it was saved. An unknown listing is dropped instead.
+            if listing_id:
+                try:
+                    listing_result = supabase.table("listings").select(
+                        "user_id"
+                    ).eq("id", listing_id).limit(1).execute()
+                    listing_row = listing_result.data[0] if listing_result.data else None
+                except Exception as e:
+                    logger.warning(f"Ignoring invalid listing_id {listing_id!r} on lead: {e}")
+                    listing_row = None
+                if listing_row is None:
+                    listing_id = None
+                elif not user_id:
+                    user_id = listing_row.get('user_id')
 
             # Create the lead with correct field names
             lead_data = {
@@ -695,10 +716,20 @@ class LeadTools:
             if user_id:
                 lead_data["user_id"] = user_id
 
-            result = supabase.table("leads").insert(lead_data).execute()
+            if self.lead_id:
+                lead_data.pop("created_at", None)
+                lead_data.pop("status", None)
+                if not email:
+                    lead_data.pop("buyer_email", None)
+                # Keep what the first capture recorded unless it was restated.
+                lead_data = {k: v for k, v in lead_data.items() if v is not None}
+                result = supabase.table("leads").update(lead_data).eq("id", self.lead_id).execute()
+            else:
+                result = supabase.table("leads").insert(lead_data).execute()
 
             if result.data:
                 lead_id = result.data[0].get('id') if result.data else None
+                self.lead_id = lead_id or self.lead_id
                 logger.info(f"Lead captured successfully: {name} - {phone} - intent: {intent} - dealer: {user_id} - id: {lead_id}")
                 intent_str = f" to {intent}" if intent else ""
 
@@ -1272,6 +1303,7 @@ async def send_call_alert(
     call_log_id: Optional[str],
     duration_seconds: Optional[int],
     dealer_email: Optional[str] = None,
+    call_sid: Optional[str] = None,
 ) -> bool:
     """Email the call to whoever follows up, the moment it ends.
 
@@ -1299,7 +1331,7 @@ async def send_call_alert(
         else f"Call from {phone} (no details left)"
     )
     app_url = (os.getenv("APP_URL") or "https://axleyard.com").rstrip("/")
-    link = f"{app_url}/admin/leads?source=phone_call" if lead_id else f"{app_url}/admin/calls#call-{call_log_id}"
+    link = f"{app_url}/admin/leads?source=phone_call" if lead_id else f"{app_url}/admin/calls" + (f"#call-{call_log_id}" if call_log_id else "")
     minutes = f"{max(1, round((duration_seconds or 0) / 60))} min" if duration_seconds else ""
 
     rows = [
@@ -1329,7 +1361,13 @@ async def send_call_alert(
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 "https://api.resend.com/emails",
-                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                    # One alert per call even if the send is retried or the
+                    # post-call work runs twice (entrypoint + shutdown hook).
+                    **({"Idempotency-Key": f"call-alert/{call_sid or call_log_id}"} if (call_sid or call_log_id) else {}),
+                },
                 json={
                     "from": os.getenv("LEAD_ALERT_FROM", "Axleyard Leads <leads@axleyard.com>").strip(),
                     "to": recipients,

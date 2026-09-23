@@ -13,8 +13,10 @@ export const GET = withAuth(async (request, { user, supabase }) => {
   const searchParams = request.nextUrl.searchParams;
   const status = searchParams.get('status');
   const search = searchParams.get('search');
-  const limit = parseInt(searchParams.get('limit') || '50');
-  const offset = parseInt(searchParams.get('offset') || '0');
+  // Clamp: an unbounded/NaN limit or offset produced an invalid range (500)
+  // or let one request pull every contact.
+  const limit = Math.max(1, Math.min(parseInt(searchParams.get('limit') || '50') || 50, 200));
+  const offset = Math.max(0, parseInt(searchParams.get('offset') || '0') || 0);
 
   // Fetch contacts
   let query = supabase

@@ -15,6 +15,11 @@ interface RouteParams {
 // stored URL keeps working for the life of the deal.
 const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 365;
 
+const MAX_DOCUMENT_BYTES = 25 * 1024 * 1024;
+const ALLOWED_DOCUMENT_EXTENSIONS = new Set([
+  'pdf', 'png', 'jpg', 'jpeg', 'webp', 'heic', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt',
+]);
+
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const identifier = getClientIdentifier(request);
@@ -136,7 +141,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Upload file if provided
     if (file) {
-      const fileExt = file.name.split('.').pop();
+      // No size or type guard existed: any size upload was streamed into
+      // storage, and a client-chosen extension/Content-Type (e.g. .html,
+      // text/html) was stored verbatim and served back via the signed URL.
+      if (file.size > MAX_DOCUMENT_BYTES) {
+        return NextResponse.json({ error: 'File too large (max 25MB)' }, { status: 413 });
+      }
+      const fileExt = (file.name.split('.').pop() || '').toLowerCase();
+      if (!ALLOWED_DOCUMENT_EXTENSIONS.has(fileExt)) {
+        return NextResponse.json(
+          { error: 'Unsupported file type. Upload a PDF, image, Word or Excel document.' },
+          { status: 400 }
+        );
+      }
       const filePath = `deal-documents/${user.id}/${id}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage

@@ -70,6 +70,25 @@ export async function POST(request: NextRequest) {
     const messageParts = [input.message?.trim(), input.timeframe ? `Timeframe: ${input.timeframe}` : null]
       .filter(Boolean);
 
+    const buyerEmail = input.buyer_email.trim().toLowerCase();
+    const leadMessage = messageParts.length ? messageParts.join('\n\n') : null;
+
+    // A resubmit (double tap before the button disabled, a retry after a slow
+    // response, the chat and form both sending the same thing) used to create
+    // a second lead and a second notification email. The same buyer sending
+    // the same message to the same site within 10 minutes is that resubmit.
+    let recent = supabase
+      .from('leads')
+      .select('id')
+      .eq('microsite_id', site.id)
+      .eq('buyer_email', buyerEmail)
+      .gte('created_at', new Date(Date.now() - 10 * 60 * 1000).toISOString());
+    recent = leadMessage === null ? recent.is('message', null) : recent.eq('message', leadMessage);
+    const { data: duplicate } = await recent.limit(1).maybeSingle();
+    if (duplicate) {
+      return NextResponse.json({ success: true, id: duplicate.id });
+    }
+
     const { data: lead, error } = await supabase
       .from('leads')
       .insert({
@@ -78,9 +97,9 @@ export async function POST(request: NextRequest) {
         source: 'microsite',
         status: 'new',
         buyer_name: input.buyer_name.trim(),
-        buyer_email: input.buyer_email.trim().toLowerCase(),
+        buyer_email: buyerEmail,
         buyer_phone: input.buyer_phone?.trim() || null,
-        message: messageParts.length ? messageParts.join('\n\n') : null,
+        message: leadMessage,
         product_interest: input.product_interest?.trim() || null,
         landing_path: input.landing_path || null,
         referrer: input.referrer || null,
@@ -127,13 +146,21 @@ export async function POST(request: NextRequest) {
         <p><a href="https://axleyard.com/admin/leads">Open in admin</a></p>
       `;
 
-      await getResend().emails.send({
-        from: 'Axleyard Leads <leads@axlon.ai>',
-        to: recipient,
-        replyTo: input.buyer_email,
-        subject: `New lead: ${input.buyer_name} — ${site.name}`,
-        html,
-      });
+      // The SDK reports a failed send in `error` instead of throwing, so a
+      // rejected notification used to vanish without a log line.
+      const { error: sendError } = await getResend().emails.send(
+        {
+          from: 'Axleyard Leads <leads@axlon.ai>',
+          to: recipient,
+          replyTo: input.buyer_email,
+          subject: `New lead: ${input.buyer_name} — ${site.name}`,
+          html,
+        },
+        { idempotencyKey: `ms-lead/${lead.id}` }
+      );
+      if (sendError) {
+        logger.error('Microsite lead notification rejected', { sendError, leadId: lead.id });
+      }
     } catch (emailError) {
       logger.error('Microsite lead notification failed', { emailError, leadId: lead.id });
     }

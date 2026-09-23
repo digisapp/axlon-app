@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { postImportRow } from './import-fetch';
 import { toListingCondition } from '@/lib/listing-condition';
 
 // Types matching the API response
@@ -245,11 +246,7 @@ export function SmartImportDropzone({ compact, onComplete }: SmartImportDropzone
           continue;
         }
 
-        const res = await csrfFetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
+        const res = await postImportRow(endpoint, body);
 
         if (res.ok) {
           successCount++;

@@ -22,7 +22,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import Link from 'next/link';
-import { csrfFetch } from '@/lib/csrf-fetch';
+import { postImportRow } from './import-fetch';
 
 interface ParsedRow {
   title: string;
@@ -60,6 +60,12 @@ export function BulkImportWizard() {
     success: number;
     failed: number;
   } | null>(null);
+
+  // Spreadsheet exports quote numbers with thousands separators ("85,000",
+  // "$85,000"). parseFloat stops at the first comma, so a $85,000 trailer was
+  // validated as fine and imported at $85. Strip currency symbols, commas and
+  // spaces before parsing.
+  const parseNum = (v: string | undefined): number => parseFloat((v || '').replace(/[$,\s]/g, ''));
 
   const parseCSV = (text: string): ParsedRow[] => {
     const lines = text.trim().split('\n');
@@ -127,7 +133,7 @@ export function BulkImportWizard() {
           message: 'Category is required',
         });
       }
-      if (!row.price || isNaN(parseFloat(row.price))) {
+      if (!row.price || isNaN(parseNum(row.price))) {
         validationErrors.push({
           row: index + 2,
           field: 'price',
@@ -183,27 +189,23 @@ export function BulkImportWizard() {
       const row = parsedData[i];
 
       try {
-        const response = await csrfFetch('/api/dashboard/bulk/import', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        const response = await postImportRow('/api/dashboard/bulk/import', {
             title: row.title,
             category: row.category,
-            price: parseFloat(row.price),
+            price: parseNum(row.price),
             condition: row.condition.toLowerCase(),
             year: row.year ? parseInt(row.year) : null,
             make: row.make || null,
             model: row.model || null,
-            mileage: row.mileage ? parseInt(row.mileage) : null,
+            mileage: row.mileage ? Math.round(parseNum(row.mileage)) : null,
             vin: row.vin || null,
             description: row.description || null,
             city: row.city || null,
             state: row.state || null,
             stock_number: row.stock_number || null,
             acquisition_cost: row.acquisition_cost
-              ? parseFloat(row.acquisition_cost)
+              ? parseNum(row.acquisition_cost)
               : null,
-          }),
         });
 
         if (response.ok) {

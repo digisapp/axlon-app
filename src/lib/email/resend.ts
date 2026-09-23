@@ -28,6 +28,11 @@ export interface EmailTemplate {
    * to 'transactional' so existing callers are unaffected.
    */
   category?: 'transactional' | 'marketing';
+  /**
+   * Resend idempotency key (honored for 24h). Set it wherever a retry could
+   * send the same message twice, e.g. a cron row re-queued after a timeout.
+   */
+  idempotencyKey?: string;
 }
 
 /**
@@ -69,16 +74,19 @@ export async function sendEmail(template: EmailTemplate) {
     unsubHeaders['List-Unsubscribe'] = `<${baseUrl}/unsubscribe?email=${encodeURIComponent(template.to)}>`;
   }
 
-  const { data, error } = await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL || 'AXLON AI <noreply@axlon.ai>',
-    to: template.to,
-    subject: template.subject,
-    html,
-    headers: {
-      ...unsubHeaders,
-      ...template.headers,
+  const { data, error } = await resend.emails.send(
+    {
+      from: process.env.RESEND_FROM_EMAIL || 'AXLON AI <noreply@axlon.ai>',
+      to: template.to,
+      subject: template.subject,
+      html,
+      headers: {
+        ...unsubHeaders,
+        ...template.headers,
+      },
     },
-  });
+    template.idempotencyKey ? { idempotencyKey: template.idempotencyKey } : undefined
+  );
 
   if (error) {
     logger.error('Email send error', { error });

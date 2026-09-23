@@ -77,7 +77,18 @@ export default async function DealersPage({ searchParams }: PageProps) {
     query = query.eq('state', state.toUpperCase());
   }
 
-  const { data: dealers } = await query;
+  // The state list for the filter doesn't depend on the directory query, so
+  // run the two in parallel.
+  const [{ data: dealers }, { data: statesData }] = await Promise.all([
+    query,
+    supabase
+      .from('profiles')
+      .select('state')
+      .eq('is_business', true)
+      .not('slug', 'is', null)
+      .not('is_suspended', 'is', true)
+      .not('state', 'is', null),
+  ]);
 
   // Get listing counts for each dealer. PostgREST caps every response at 1,000
   // rows regardless of the filter, so aggregating a bare select under-reported
@@ -92,21 +103,14 @@ export default async function DealersPage({ searchParams }: PageProps) {
         .in('user_id', dealerIds)
         .eq('status', 'active')
         .is('deleted_at', null)
+        // Stable order so pages neither overlap nor skip rows.
+        .order('id', { ascending: true })
         .range(from, from + 999);
       if (!batch || batch.length === 0) break;
       for (const l of batch) countMap[l.user_id] = (countMap[l.user_id] || 0) + 1;
       if (batch.length < 1000) break;
     }
   }
-
-  // Get unique states for filter
-  const { data: statesData } = await supabase
-    .from('profiles')
-    .select('state')
-    .eq('is_business', true)
-    .not('slug', 'is', null)
-    .not('is_suspended', 'is', true)
-    .not('state', 'is', null);
 
   const states = [...new Set(statesData?.map(s => s.state).filter(Boolean))].sort();
 

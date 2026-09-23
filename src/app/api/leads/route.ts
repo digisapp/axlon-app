@@ -341,7 +341,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json(lead, { status: 201 });
+    // Anonymous buyer response: return only the id — the full row carries the
+    // seller's user_id and internal scoring (score, score_factors, priority).
+    return NextResponse.json({ id: lead.id }, { status: 201 });
   } catch (error) {
     logger.error('Error in POST /api/leads', { error });
     return NextResponse.json(

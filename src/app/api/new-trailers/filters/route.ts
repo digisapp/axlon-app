@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
 import { CATALOG_CACHE_HEADERS } from '@/lib/api/cache-headers';
+import { HIDDEN_PRODUCT_FILTER } from '@/lib/catalog/quality';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,7 +15,9 @@ export async function GET() {
     const { data: products, error } = await supabase
       .from('manufacturer_products')
       .select('product_type, gooseneck_type, tonnage_min, tonnage_max, axle_count, deck_height_inches')
-      .eq('is_active', true);
+      .eq('is_active', true)
+      // Same exclusion as /api/new-trailers, so facet counts match the list.
+      .not('id', 'in', HIDDEN_PRODUCT_FILTER);
 
     if (error) {
       logger.error('Error fetching filter data', { error: error });

@@ -392,26 +392,30 @@ const sampleListings = [
 
 export async function POST() {
   try {
-    // Security check: Only allow in development or with explicit permission
+    // The previous check was inverted: with ALLOW_SEED set (development, or
+    // ALLOW_DATABASE_SEED=true on a deployed env) it skipped auth entirely, so
+    // any anonymous caller could insert ~20 fake active listings; and in
+    // production (seed "disabled") any admin could still run it. Mirror GET:
+    // disabled unless ALLOW_SEED, and always admin-only.
     if (!ALLOW_SEED) {
-      // In production, require admin authentication
-      const authClient = await createServerClient();
-      const { data: { user } } = await authClient.auth.getUser();
+      return NextResponse.json({ error: 'Seed endpoint disabled' }, { status: 403 });
+    }
 
-      if (!user) {
-        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-      }
+    const authClient = await createServerClient();
+    const { data: { user } } = await authClient.auth.getUser();
 
-      // Check if user is admin
-      const { data: profile } = await authClient
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .single();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
 
-      if (!profile?.is_admin) {
-        return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-      }
+    const { data: profile } = await authClient
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile?.is_admin) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     // Initialize admin client
@@ -429,10 +433,12 @@ export async function POST() {
 
     const categoryMap = new Map(categories?.map(c => [c.slug, c.id]) || []);
 
-    // Create a demo user profile if needed (or use first existing user)
+    // Attach sample listings to the demo account only — "first existing
+    // profile" used to put fake active listings on a real user's account.
     const { data: existingProfiles } = await supabase
       .from('profiles')
       .select('id')
+      .eq('email', 'demo@axlon.ai')
       .limit(1);
 
     let userId: string;

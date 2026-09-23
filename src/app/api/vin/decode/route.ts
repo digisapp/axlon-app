@@ -14,22 +14,27 @@ export async function POST(request: NextRequest) {
       return rateLimitResponse(rateLimitResult);
     }
 
-    const { vin } = await request.json();
+    const body = await request.json().catch(() => null);
+    const rawVin: unknown = body?.vin;
 
-    if (!vin) {
+    if (typeof rawVin !== 'string' || !rawVin.trim()) {
       return NextResponse.json(
         { error: 'VIN is required' },
         { status: 400 }
       );
     }
 
+    // Normalize once and use the cleaned VIN everywhere (including the NHTSA
+    // URL path) — the raw input may contain '/', '?', '#' etc.
+    const vin = rawVin.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     const result = decodeVIN(vin);
 
     // If we have a valid VIN with a make, try to get more details from NHTSA API
     if (result.isValid && result.make) {
       try {
         const nhtsaResponse = await fetch(
-          `https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/${vin}?format=json`
+          `https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/${encodeURIComponent(vin)}?format=json`,
+          { signal: AbortSignal.timeout(8000) }
         );
 
         if (nhtsaResponse.ok) {
@@ -45,7 +50,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({
             success: true,
             data: {
-              vin: vin.toUpperCase(),
+              vin,
               year: parseInt(getField('Model Year')) || result.year,
               make: getField('Make') || result.make,
               model: getField('Model'),
@@ -74,7 +79,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        vin: vin.toUpperCase(),
+        vin,
         ...result,
       },
     });

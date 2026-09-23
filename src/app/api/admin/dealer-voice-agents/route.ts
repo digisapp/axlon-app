@@ -5,6 +5,7 @@ import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } f
 import { logger } from '@/lib/logger';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';import { validateBody, ValidationError, adminVoiceAgentCreateSchema } from '@/lib/validations/api';
 import { requireCsrf } from '@/lib/security/csrf';
+import { validateE164Phone } from './phone';
 
 // GET /api/admin/dealer-voice-agents - List all dealer voice agents
 export async function GET(request: NextRequest) {
@@ -170,12 +171,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Dealer already has a voice agent' }, { status: 400 });
     }
 
+    // Normalize to E.164 the same way PATCH does, so an agent created with
+    // "(555) 123-4567" is stored in the format call routing matches on.
+    let phoneNumber: string | null = null;
+    if (validatedData.phone_number && validatedData.phone_number.trim()) {
+      const { valid, normalized } = validateE164Phone(validatedData.phone_number);
+      if (!valid) {
+        return NextResponse.json(
+          { error: 'Invalid phone number. Please use format: +1-XXX-XXX-XXXX' },
+          { status: 400 }
+        );
+      }
+      phoneNumber = normalized;
+    }
+    let transferPhoneNumber: string | null = null;
+    if (validatedData.transfer_phone_number && validatedData.transfer_phone_number.trim()) {
+      const { valid, normalized } = validateE164Phone(validatedData.transfer_phone_number);
+      if (!valid) {
+        return NextResponse.json(
+          { error: 'Invalid transfer phone number. Please use format: +1-XXX-XXX-XXXX' },
+          { status: 400 }
+        );
+      }
+      transferPhoneNumber = normalized;
+    }
+
     // Create voice agent
     const { data: agent, error } = await db
       .from('dealer_voice_agents')
       .insert({
         dealer_id: validatedData.dealer_id,
-        phone_number: validatedData.phone_number || null,
+        phone_number: phoneNumber,
         phone_number_id: validatedData.phone_number_id || null,
         agent_name: validatedData.agent_name || 'AI Assistant',
         voice: validatedData.voice || 'Sal',
@@ -188,11 +214,11 @@ export async function POST(request: NextRequest) {
         can_search_inventory: validatedData.can_search_inventory ?? true,
         can_capture_leads: validatedData.can_capture_leads ?? true,
         can_transfer_calls: validatedData.can_transfer_calls ?? false,
-        transfer_phone_number: validatedData.transfer_phone_number || null,
+        transfer_phone_number: transferPhoneNumber,
         plan_tier: validatedData.plan_tier || 'starter',
         minutes_included: validatedData.minutes_included || 100,
         is_active: validatedData.is_active ?? false,
-        is_provisioned: !!validatedData.phone_number,
+        is_provisioned: !!phoneNumber,
       })
       .select(`
         *,

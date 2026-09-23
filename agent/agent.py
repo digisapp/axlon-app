@@ -540,7 +540,21 @@ async def entrypoint(ctx: JobContext):
     # Get caller phone from SIP participant
     # TEST_CALLER_PHONE lets a local test worker exercise the call-log path
     # without a SIP leg. Never set in LiveKit Cloud.
-    caller_phone = get_caller_phone(ctx) or os.getenv("TEST_CALLER_PHONE")
+    caller_phone = get_caller_phone(ctx)
+    if not caller_phone and not os.getenv("TEST_CALLER_PHONE"):
+        # The job can be dispatched before the SIP leg has joined. Reading
+        # the participants straight after connect() then found no caller: no
+        # call log, so no transcript, summary or alert, and the dealer line
+        # (called number) was not recognised either.
+        try:
+            await asyncio.wait_for(
+                ctx.wait_for_participant(kind=rtc.ParticipantKind.PARTICIPANT_KIND_SIP),
+                timeout=5,
+            )
+        except asyncio.TimeoutError:
+            logger.warning("No SIP participant joined within 5s")
+        caller_phone = get_caller_phone(ctx)
+    caller_phone = caller_phone or os.getenv("TEST_CALLER_PHONE")
     logger.info(f"Caller phone: {caller_phone}")
 
     # Get the called number (DID) to determine which agent to use
@@ -684,26 +698,12 @@ Do not search inventory or provide detailed information - just capture the lead.
     session_closed = asyncio.Event()
     session.on("close", lambda _event: session_closed.set())
 
-    # Start the session
-    await session.start(room=ctx.room, agent=agent)
+    async def finish_call() -> None:
+        """Everything that must happen once the caller is gone.
 
-    # Generate greeting for inbound callers
-    greeting = settings.get('greeting_message', 'Hello! How can I help you today?')
-    # Passed bare, the greeting was treated as a brief and paraphrased, so the
-    # configured wording (and the brand name in it) was not what callers heard.
-    await session.generate_reply(
-        instructions=f'Greet the caller by saying exactly this, word for word, and nothing else: "{greeting}"'
-    )
-
-    logger.info(f"xAI voice agent session started successfully" +
-               (f" for {business_name}" if business_name else ""))
-
-    # Wait for the session to end
-    try:
-        await session_closed.wait()
-    except asyncio.CancelledError:
-        pass
-    finally:
+        Each step is isolated: a failure in one (a DB error, a slow LLM) used
+        to abort the rest, and the call alert came last.
+        """
         # Calculate call duration
         call_duration = int(time.time() - call_start_time)
         call_minutes = max(1, (call_duration + 59) // 60)  # Round up to nearest minute
@@ -717,54 +717,67 @@ Do not search inventory or provide detailed information - just capture the lead.
         call_log_id = call_info.get('call_log_id')
         dealer_voice_agent_id = call_info.get('dealer_voice_agent_id')
 
-        if egress_id:
-            recording_url, recorded_duration = await stop_recording(egress_id)
-            if recorded_duration:
-                call_duration = recorded_duration
-                call_minutes = max(1, (call_duration + 59) // 60)
+        try:
+            if egress_id:
+                recording_url, recorded_duration = await stop_recording(egress_id)
+                if recorded_duration:
+                    call_duration = recorded_duration
+                    call_minutes = max(1, (call_duration + 59) // 60)
 
-        # Update dealer minutes used (for billing)
-        if dealer_voice_agent_id:
-            await off_loop(increment_dealer_minutes, dealer_voice_agent_id, call_minutes)
+            # Update dealer minutes used (for billing)
+            if dealer_voice_agent_id:
+                await off_loop(increment_dealer_minutes, dealer_voice_agent_id, call_minutes)
 
-        # Update lead with recording info
-        if lead_id and (recording_url or call_duration):
-            await off_loop(update_lead_with_recording, 
-                lead_id=lead_id,
-                recording_url=recording_url,
-                duration_seconds=call_duration,
-                call_sid=ctx.room.name,
-            )
-            logger.info(f"Updated lead {lead_id} with recording info")
+            # Update lead with recording info
+            if lead_id and (recording_url or call_duration):
+                await off_loop(update_lead_with_recording,
+                    lead_id=lead_id,
+                    recording_url=recording_url,
+                    duration_seconds=call_duration,
+                    call_sid=ctx.room.name,
+                )
+                logger.info(f"Updated lead {lead_id} with recording info")
+        except Exception as e:
+            logger.error(f"Post-call recording/billing update failed: {e}")
 
         # Update call log with all info
-        transcript = call_transcript(session)
+        transcript = ""
+        try:
+            transcript = call_transcript(session)
+        except Exception as e:
+            logger.error(f"Could not read the call transcript: {e}")
+
+        summary = None
         if call_log_id:
-            await off_loop(
-                call_log_tools.update_call_log,
-                call_log_id=call_log_id,
-                caller_name=agent.caller_name,
-                duration_seconds=call_duration,
-                recording_url=recording_url,
-                interest=agent.interest,
-                equipment_type=agent.equipment_type,
-                intent=agent.intent,
-                lead_id=lead_id,
-                transcript=transcript or None,
-                status="completed",
-            )
-            logger.info(f"Updated call log {call_log_id} (transcript: {len(transcript)} chars)")
+            try:
+                await off_loop(
+                    call_log_tools.update_call_log,
+                    call_log_id=call_log_id,
+                    caller_name=agent.caller_name,
+                    duration_seconds=call_duration,
+                    recording_url=recording_url,
+                    interest=agent.interest,
+                    equipment_type=agent.equipment_type,
+                    intent=agent.intent,
+                    lead_id=lead_id,
+                    transcript=transcript or None,
+                    status="completed",
+                )
+                logger.info(f"Updated call log {call_log_id} (transcript: {len(transcript)} chars)")
 
-            # The summary is what a salesperson reads on the lead; the call
-            # log's lead_id is how /admin/leads finds it.
-            summary = None
-            if transcript:
-                summary = await off_loop(summarize_call, call_log_id, transcript)
-                logger.info(f"Call summary {'saved' if summary else 'FAILED'} for {call_log_id}")
+                # The summary is what a salesperson reads on the lead; the call
+                # log's lead_id is how /admin/leads finds it.
+                if transcript:
+                    summary = await off_loop(summarize_call, call_log_id, transcript)
+                    logger.info(f"Call summary {'saved' if summary else 'FAILED'} for {call_log_id}")
+            except Exception as e:
+                logger.error(f"Post-call call-log update failed: {e}")
 
-            # Alert whoever follows up, but only if the caller said something:
-            # a ring-and-hang-up is noise, not a lead.
-            if "Caller:" in transcript:
+        # Alert whoever follows up, but only if the caller said something:
+        # a ring-and-hang-up is noise, not a lead. Not gated on the call log:
+        # when that insert failed, a captured lead was never announced.
+        if lead_id or "Caller:" in transcript:
+            try:
                 await off_loop(
                     send_call_alert,
                     caller_phone=caller_phone,
@@ -776,18 +789,74 @@ Do not search inventory or provide detailed information - just capture the lead.
                     call_log_id=call_log_id,
                     duration_seconds=call_duration,
                     dealer_email=dealer_email,
+                    call_sid=ctx.room.name,
                 )
+            except Exception as e:
+                logger.error(f"Call alert failed: {e}")
 
-            # Recording-based transcription is only a fallback now.
-            if not transcript and recording_url and call_duration and call_duration > 5:
-                # Only transcribe calls longer than 5 seconds
-                asyncio.create_task(
-                    transcribe_and_summarize(call_log_id, recording_url)
-                )
+        # Recording-based transcription is only a fallback now.
+        if call_log_id and not transcript and recording_url and call_duration and call_duration > 5:
+            # Only transcribe calls longer than 5 seconds
+            asyncio.create_task(
+                transcribe_and_summarize(call_log_id, recording_url)
+            )
 
         # Cleanup
-        if ctx.room.name in active_calls:
-            del active_calls[ctx.room.name]
+        active_calls.pop(ctx.room.name, None)
+
+    # The post-call work runs once, as its own task. On shutdown the
+    # framework gives the entrypoint 15s and then cancels it; a cancel
+    # landing mid-summary used to skip the call alert. The shutdown callback
+    # awaits the same task, so the job does not exit before it finishes.
+    finish_task: asyncio.Task | None = None
+
+    def start_finish() -> asyncio.Task:
+        nonlocal finish_task
+        if finish_task is None:
+            finish_task = asyncio.create_task(finish_call())
+        return finish_task
+
+    async def finish_on_shutdown(_reason: str) -> None:
+        try:
+            await start_finish()
+        except Exception as e:
+            logger.error(f"Post-call work failed: {e}")
+
+    ctx.add_shutdown_callback(finish_on_shutdown)
+
+    try:
+        # Start the session
+        await session.start(room=ctx.room, agent=agent)
+
+        # Generate greeting for inbound callers
+        greeting = settings.get('greeting_message', 'Hello! How can I help you today?')
+        # Passed bare, the greeting was treated as a brief and paraphrased, so the
+        # configured wording (and the brand name in it) was not what callers heard.
+        try:
+            await session.generate_reply(
+                instructions=f'Greet the caller by saying exactly this, word for word, and nothing else: "{greeting}"'
+            )
+        except Exception as e:
+            # A failed greeting must not end the job: the session is still
+            # live and answers once the caller speaks.
+            logger.error(f"Greeting failed: {e}")
+
+        logger.info(f"xAI voice agent session started successfully" +
+                   (f" for {business_name}" if business_name else ""))
+
+        # Wait for the session to end
+        await session_closed.wait()
+    except asyncio.CancelledError:
+        pass
+    except Exception as e:
+        # session.start failing (e.g. the xAI connection) used to skip all of
+        # the cleanup, leaving the call log in_progress forever.
+        logger.error(f"Voice session failed: {e}", exc_info=True)
+    finally:
+        try:
+            await asyncio.shield(start_finish())
+        except asyncio.CancelledError:
+            pass
 
 
 async def transcribe_and_summarize(call_log_id: str, recording_url: str):

@@ -1,7 +1,6 @@
-import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { getMicrositeByHost, disclaimerFor } from '@/lib/microsites/resolve';
-import { MICROSITE_HOST_HEADER, isAppHost } from '@/lib/microsites/config';
+import { isDirectAppHostRequest } from '@/lib/microsites/guard';
 import { MicrositeHeader } from '@/components/microsites/MicrositeHeader';
 import { MicrositeFooter } from '@/components/microsites/MicrositeFooter';
 import { MicrositeTracker } from '@/components/microsites/MicrositeTracker';
@@ -21,15 +20,13 @@ export default async function MicrositeLayout({
   params: Promise<{ domain: string }>;
 }) {
   const { domain } = await params;
-  const headerList = await headers();
-  const host = headerList.get('host');
 
-  // /sites/<domain> is a real path on the app host too. Serving it there would
-  // publish every microsite twice under axleyard.com — duplicate content
-  // competing with the domain it was built for. Only the proxy rewrite (which
-  // sets x-microsite-host) may reach these pages in production.
-  const viaProxy = headerList.get(MICROSITE_HOST_HEADER) !== null;
-  if (!viaProxy && isAppHost(host) && process.env.NODE_ENV === 'production') {
+  // /sites/<domain> is a real path on the app host (and on every other
+  // microsite host) too. Serving it there would publish every microsite
+  // several times — duplicate content competing with the domain it was built
+  // for. Only the proxy rewrite for this domain (which sets x-microsite-host)
+  // may reach these pages in production.
+  if (await isDirectAppHostRequest(domain)) {
     notFound();
   }
 

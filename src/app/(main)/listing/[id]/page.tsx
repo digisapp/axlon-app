@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { PUBLIC_LISTING_COLUMNS } from '@/lib/listings/public-columns';
 import { notFound } from 'next/navigation';
+import { cache } from 'react';
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { Button } from '@/components/ui/button';
@@ -42,19 +43,27 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-// Generate dynamic metadata for SEO
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { id } = await params;
+// One request-scoped read shared by generateMetadata and the page (React
+// cache() dedupes it), instead of two round-trips to Supabase per view.
+const getListing = cache(async (id: string) => {
   const supabase = await createClient();
-
-  const { data: listing } = await supabase
+  return supabase
     .from('listings')
     .select(`
-      title, description, price, year, make, model, condition, city, state,
-      images:listing_images!left(url, is_primary)
+      ${PUBLIC_LISTING_COLUMNS},
+      source_dealer_id,
+      category:categories!left(id, name, slug),
+      images:listing_images!left(id, url, thumbnail_url, is_primary, sort_order),
+      user:profiles!listings_user_id_fkey(id, company_name, phone, email, avatar_url, is_business, created_at)
     `)
     .eq('id', id)
     .single();
+});
+
+// Generate dynamic metadata for SEO
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const { data: listing } = await getListing(id);
 
   if (!listing) {
     return {
@@ -237,17 +246,7 @@ export default async function ListingPage({ params }: PageProps) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: listing, error } = await supabase
-    .from('listings')
-    .select(`
-      ${PUBLIC_LISTING_COLUMNS},
-      source_dealer_id,
-      category:categories!left(id, name, slug),
-      images:listing_images!left(id, url, thumbnail_url, is_primary, sort_order, ai_analysis),
-      user:profiles!listings_user_id_fkey(id, company_name, phone, email, avatar_url, is_business, created_at)
-    `)
-    .eq('id', id)
-    .single();
+  const { data: listing, error } = await getListing(id);
 
   if (error || !listing) {
     notFound();
@@ -263,15 +262,16 @@ export default async function ListingPage({ params }: PageProps) {
   // only ever sent to the dealer's contact address — never rendered
   // publicly). dealer_sources is admin-only under RLS, so look the name up
   // with the service-role client; only the public company name leaves here.
-  let unclaimedSourceName: string | null = null;
-  if (listing.source_dealer_id) {
-    const { data: dealerSource } = await createAdminClient()
-      .from('dealer_sources')
-      .select('name, claimed_by')
-      .eq('id', listing.source_dealer_id)
-      .maybeSingle();
-    if (dealerSource?.name && !dealerSource.claimed_by) unclaimedSourceName = dealerSource.name;
-  }
+  // Started here, awaited below alongside the similar-listings read so the
+  // two independent round-trips run in parallel.
+  const dealerSourcePromise = listing.source_dealer_id
+    ? createAdminClient()
+        .from('dealer_sources')
+        .select('name, claimed_by')
+        .eq('id', listing.source_dealer_id)
+        .maybeSingle()
+        .then(({ data }) => data)
+    : Promise.resolve(null);
 
   // Capture current time once to avoid impure Date.now() calls during render.
   // eslint-disable-next-line react-hooks/purity -- server component: renders once per request
@@ -306,19 +306,25 @@ export default async function ListingPage({ params }: PageProps) {
         images: { url: string; is_primary?: boolean }[] | null;
       }>
     | null = null;
-  if (similarConditions.length > 0) {
-    const { data } = await supabase
-      .from('listings')
-      .select(`
-        id, title, price, year, make, model, city, state,
-        images:listing_images!left(url, is_primary)
-      `)
-      .eq('status', 'active')
-      .neq('id', id)
-      .or(similarConditions.join(','))
-      .limit(4);
-    similarListings = data;
-  }
+  const similarPromise =
+    similarConditions.length > 0
+      ? supabase
+          .from('listings')
+          .select(`
+            id, title, price, year, make, model, city, state,
+            images:listing_images!left(url, is_primary)
+          `)
+          .eq('status', 'active')
+          .neq('id', id)
+          .or(similarConditions.join(','))
+          .limit(4)
+          .then(({ data }) => data)
+      : Promise.resolve(null);
+
+  const [dealerSource, similarData] = await Promise.all([dealerSourcePromise, similarPromise]);
+  similarListings = similarData;
+  const unclaimedSourceName: string | null =
+    dealerSource?.name && !dealerSource.claimed_by ? dealerSource.name : null;
 
   // Sort images by sort_order, primary first
   const sortedImages = [...(listing.images || [])]

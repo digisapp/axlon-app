@@ -45,9 +45,24 @@ export const POST = withAdmin(
 
     const replySubject = `Re: ${thread.subject}`;
     const headers: Record<string, string> = {};
-    if (lastEmail?.resend_id) {
-      headers['In-Reply-To'] = `<${lastEmail.resend_id}>`;
-      headers['References'] = `<${lastEmail.resend_id}>`;
+    // Threading needs the RFC Message-ID the buyer's mail client assigned,
+    // which the Resend webhook stores in headers.message_id. resend_id is
+    // Resend's own UUID: pointing In-Reply-To at it matched nothing, so every
+    // reply landed in the buyer's inbox as a new conversation.
+    // Our own outbound rows carry no message_id, so take the latest inbound.
+    const { data: lastInbound } = await supabase
+      .from('emails')
+      .select('headers')
+      .eq('thread_id', threadId)
+      .eq('direction', 'inbound')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const rawMessageId = (lastInbound?.headers as { message_id?: unknown } | null)?.message_id;
+    const messageId = typeof rawMessageId === 'string' ? rawMessageId.replace(/[<>\s]/g, '') : '';
+    if (messageId) {
+      headers['In-Reply-To'] = `<${messageId}>`;
+      headers['References'] = `<${messageId}>`;
     }
 
     try {

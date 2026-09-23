@@ -18,6 +18,8 @@ const TRADE_IN_STATUSES = [
 
 // Defined inline (not in lib/validations) so this route validates what it
 // actually writes: raw body fields were previously spread into .update().
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const tradeInPatchSchema = z.object({
   status: z.enum(TRADE_IN_STATUSES).optional(),
   estimated_value: z.number().nonnegative().nullable().optional(),
@@ -27,7 +29,10 @@ const tradeInPatchSchema = z.object({
 
 export const GET = withAuth(async (request, { user, supabase }) => {
   const url = new URL(request.url);
-  const id = url.pathname.split('/').at(-1);
+  const id = url.pathname.split('/').at(-1) ?? '';
+  if (!UUID_REGEX.test(id)) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
 
   const { data, error } = await supabase
     .from('trade_in_requests')
@@ -37,9 +42,13 @@ export const GET = withAuth(async (request, { user, supabase }) => {
       interested_category:categories(id, name)
     `)
     .eq('id', id)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
+  // RLS hides rows the caller can't see — report that as 404, not a 500.
+  if (!data) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
 
   // Check authorization
   if (data.user_id !== user.id && data.assigned_dealer_id !== user.id) {
@@ -60,8 +69,11 @@ export const GET = withAuth(async (request, { user, supabase }) => {
 
 export const PATCH = withAuth(async (request, { user, supabase }) => {
   const url = new URL(request.url);
-  const id = url.pathname.split('/').at(-1);
-  const rawBody = await request.json();
+  const id = url.pathname.split('/').at(-1) ?? '';
+  if (!UUID_REGEX.test(id)) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+  const rawBody = await request.json().catch(() => null);
 
   // Check if user is dealer/admin
   const { data: profile } = await supabase
@@ -106,9 +118,14 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
     .update(updateData)
     .eq('id', id)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
+  // RLS only lets a dealer update trade-ins assigned to them; 0 rows is a
+  // not-found/forbidden, not a server error.
+  if (!data) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
 
   return NextResponse.json({ data });
 }, { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:trade-in' } });

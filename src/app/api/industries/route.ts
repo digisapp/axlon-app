@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import { CATALOG_CACHE_HEADERS } from '@/lib/api/cache-headers';
 
 export async function GET() {
   try {
@@ -13,7 +14,8 @@ export async function GET() {
 
     if (error) throw error;
 
-    return NextResponse.json({ data });
+    // Static reference data — cache at the edge like /api/categories.
+    return NextResponse.json({ data }, { headers: CATALOG_CACHE_HEADERS });
   } catch (error) {
     logger.error('Error fetching industries', { error });
     return NextResponse.json(

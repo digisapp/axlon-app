@@ -5,32 +5,7 @@ import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } f
 import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, adminVoiceAgentUpdateSchema } from '@/lib/validations/api';
 import { requireCsrf } from '@/lib/security/csrf';
-
-/**
- * Validate and normalize phone number to E.164 format
- */
-function validateE164Phone(phone: string): { valid: boolean; normalized: string } {
-  if (!phone) return { valid: false, normalized: '' };
-
-  // Strip all non-digit characters except leading +
-  const cleaned = phone.replace(/[^\d+]/g, '');
-
-  // Handle various formats
-  if (cleaned.startsWith('+')) {
-    const digits = cleaned.slice(1);
-    if (digits.length === 11 && digits.startsWith('1')) {
-      return { valid: true, normalized: cleaned };
-    } else if (digits.length === 10) {
-      return { valid: true, normalized: `+1${digits}` };
-    }
-  } else if (cleaned.startsWith('1') && cleaned.length === 11) {
-    return { valid: true, normalized: `+${cleaned}` };
-  } else if (cleaned.length === 10) {
-    return { valid: true, normalized: `+1${cleaned}` };
-  }
-
-  return { valid: false, normalized: cleaned };
-}
+import { validateE164Phone } from '../phone';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -205,6 +180,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // The edit form sends '' for "no number". phone_number is UNIQUE, so
+    // storing '' meant the second unprovisioned agent an admin saved failed
+    // with a unique violation ("Failed to update voice agent"). Store NULL.
+    for (const field of ['phone_number', 'phone_number_id', 'transfer_phone_number']) {
+      if (typeof updates[field] === 'string' && (updates[field] as string).trim() === '') {
+        updates[field] = null;
+      }
+    }
+
     // Validate and normalize phone numbers if provided
     if (updates.phone_number && typeof updates.phone_number === 'string') {
       const { valid, normalized } = validateE164Phone(updates.phone_number);
@@ -229,7 +213,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Auto-set provisioned if phone number added
-    if (validatedData.phone_number && !validatedData.is_provisioned) {
+    if (updates.phone_number && !validatedData.is_provisioned) {
       updates.is_provisioned = true;
     }
 

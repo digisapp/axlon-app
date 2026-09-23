@@ -11,6 +11,15 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Mail, Lock, ArrowLeft } from 'lucide-react';
 
+const PROBE_ORIGIN = 'https://redirect-check.invalid';
+function isSameOriginPath(path: string): boolean {
+  try {
+    return new URL(path, PROBE_ORIGIN).origin === PROBE_ORIGIN;
+  } catch {
+    return false;
+  }
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -18,10 +27,13 @@ function LoginForm() {
   // Prevent open redirect: only allow same-site relative paths. Reject both //
   // (protocol-relative) and /\ (browsers normalize the backslash to /, so /\evil.com
   // becomes //evil.com and navigates off-site).
+  // The URL parser also strips tab/CR/LF, so "/\t/evil.com" becomes
+  // "//evil.com" once router.push resolves it — check the resolved origin too.
   const redirect =
     rawRedirect.startsWith('/') &&
     !rawRedirect.startsWith('//') &&
-    !rawRedirect.startsWith('/\\')
+    !rawRedirect.startsWith('/\\') &&
+    isSameOriginPath(rawRedirect)
       ? rawRedirect
       : '/dashboard';
   const authError = searchParams.get('error');

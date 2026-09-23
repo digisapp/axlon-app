@@ -230,7 +230,13 @@ export async function POST(request: NextRequest) {
 
     // Generate AI response
     const xai = getXai();
-    const personality = chatSettings?.personality || dealer.chat_settings?.personality || 'friendly and professional';
+    // chatSettings is z.record(unknown): a non-string personality (number,
+    // object) made personality.replace() throw → 500 on every message.
+    const pickString = (v: unknown) => (typeof v === 'string' && v.trim() ? v : null);
+    const personality =
+      pickString(chatSettings?.personality) ||
+      pickString(dealer.chat_settings?.personality) ||
+      'friendly and professional';
 
     // Sanitize dealer inputs to prevent prompt injection
     const safeDealerName = (dealer.company_name || 'Dealer').replace(/[<>"'`]/g, '');
