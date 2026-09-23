@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Zap, ArrowRight, Search, MessageSquare, Phone, Check, X } from 'lucide-react';
+import { Zap, ArrowRight, Search, Phone } from 'lucide-react';
 import {
   LowboyTrailerIcon,
   FlatbedTrailerIcon,
@@ -14,7 +14,8 @@ import {
 import { HomeHeader } from '@/components/home/HomeHeader';
 import { HomeSearchSection } from '@/components/home/HomeSearchSection';
 import { HomeDeals } from '@/components/home/HomeDeals';
-import { TryAxlonLive } from '@/components/home/TryAxlonLive';
+import { HomeHelpBand } from '@/components/home/HomeHelpBand';
+import { SALES_PHONE_E164, SALES_PHONE_DISPLAY } from '@/lib/contact';
 import { getHomeDeals, getHomeStats, roundStat } from '@/lib/home-data';
 import { jsonLdString } from '@/lib/seo/json-ld';
 
@@ -127,10 +128,10 @@ export default async function HomePage() {
             className="gap-2 rounded-full glass-button !bg-white/80 dark:!bg-white/10 w-full sm:w-auto"
             asChild
           >
-            <Link href="/signup">
-              <Zap className="w-4 h-4" />
-              List Equipment Free
-            </Link>
+            <a href={`tel:${SALES_PHONE_E164}`}>
+              <Phone className="w-4 h-4" />
+              Call {SALES_PHONE_DISPLAY}
+            </a>
           </Button>
         </div>
 
@@ -169,12 +170,18 @@ export default async function HomePage() {
           <section className="w-full max-w-3xl mx-auto mb-8 md:mb-12 px-4">
             <div className="flex flex-wrap items-start justify-center gap-x-10 gap-y-4 text-center">
               <div>
-                <p className="text-xl md:text-2xl font-bold">{roundStat(stats.activeListings!)}+</p>
-                <p className="text-xs text-muted-foreground dark:text-foreground/50">machines for sale</p>
+                <p className="text-xl md:text-2xl font-bold">{Number(roundStat(stats.activeListings!)).toLocaleString('en-US')}+</p>
+                <p className="text-xs text-muted-foreground dark:text-foreground/50">units for sale</p>
               </div>
+              {(stats.sellers ?? 0) >= 100 && (
+                <div>
+                  <p className="text-xl md:text-2xl font-bold">{Number(roundStat(stats.sellers!)).toLocaleString('en-US')}+</p>
+                  <p className="text-xs text-muted-foreground dark:text-foreground/50">dealers &amp; sellers</p>
+                </div>
+              )}
               <div>
                 <p className="text-xl md:text-2xl font-bold">24/7</p>
-                <p className="text-xs text-muted-foreground dark:text-foreground/50">AI answering calls &amp; chats</p>
+                <p className="text-xs text-muted-foreground dark:text-foreground/50">help by phone &amp; chat</p>
               </div>
             </div>
           </section>
@@ -197,190 +204,29 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* Dealer half — everything above sells to buyers, everything in this
-            band sells to dealers, so it gets its own visual break */}
-        <div className="self-stretch -mx-4 mt-2 md:mt-4 border-y border-primary/15 bg-primary/[0.04] dark:bg-white/[0.02] pt-10 md:pt-16 pb-4 md:pb-6 px-4 flex flex-col items-center">
+        {/* Help by phone or chat — the same AI that answers the phone line */}
+        <HomeHelpBand />
 
-        {/* AXLON in action */}
-        <section className="w-full max-w-5xl mx-auto mb-10 md:mb-16 px-4">
-          <div className="text-center mb-6 md:mb-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-3">
-              <Zap className="w-3 h-3" />
-              For Dealers &amp; Sellers
+        {/* Sellers: one strip. The dealer pitch lives on /for-business; dealers
+            are reached by calls and email, not the buyers who land here. */}
+        <section className="w-full max-w-3xl mx-auto mb-10 md:mb-14 px-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-5 md:p-6 text-center md:text-left">
+            <div>
+              <h2 className="text-lg font-bold mb-1">Selling equipment?</h2>
+              <p className="text-sm text-muted-foreground dark:text-foreground/60">
+                List it free and reach buyers nationwide.{' '}
+                <Link href="/for-business" className="text-primary hover:underline whitespace-nowrap">
+                  Dealer tools &rarr;
+                </Link>
+              </p>
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold mb-2">Your AI-powered sales team</h2>
-            <p className="text-sm md:text-base text-muted-foreground dark:text-foreground/60 max-w-xl mx-auto">
-              AXLON, Axleyard&apos;s AI assistant, answers every call, chat, and lead for your
-              dealership — day and night — and turns them into pipeline.{' '}
-              <Link href="/for-business" className="text-primary hover:underline whitespace-nowrap">
-                See all business tools &rarr;
-              </Link>
-            </p>
-          </div>
-
-          {/* Live demo first: a real phone line beats any transcript */}
-          <TryAxlonLive />
-
-          <div className="grid md:grid-cols-2 gap-4 md:gap-6 mt-4 md:mt-6">
-            {/* AI Conversation Demo */}
-            <div className="rounded-xl border bg-white/80 dark:bg-white/[0.08] p-5 md:p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <MessageSquare className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">AI Sales Assistant</p>
-                  <p className="text-xs text-muted-foreground dark:text-foreground/50">Handles buyer inquiries 24/7</p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex justify-end">
-                  <div className="bg-primary/10 rounded-2xl rounded-tr-md px-4 py-2.5 max-w-[85%]">
-                    <p className="text-sm">Do you have any lowboy trailers under $100k?</p>
-                  </div>
-                </div>
-                <div className="flex justify-start">
-                  <div className="bg-muted rounded-2xl rounded-tl-md px-4 py-2.5 max-w-[85%]">
-                    <p className="text-sm">Yes! We have 3 right now. Best deal: <strong>2023 Trail King TK110HDG</strong> — 55-ton, hydraulic detachable, $92,500. Want specs and photos?</p>
-                  </div>
-                </div>
-                <div className="flex justify-end">
-                  <div className="bg-primary/10 rounded-2xl rounded-tr-md px-4 py-2.5 max-w-[85%]">
-                    <p className="text-sm">Yes, and can I schedule a viewing?</p>
-                  </div>
-                </div>
-                <div className="flex justify-start">
-                  <div className="bg-muted rounded-2xl rounded-tl-md px-4 py-2.5 max-w-[85%]">
-                    <p className="text-sm">I have tomorrow at 10am or 2pm. Which works? I&apos;ll send you all the details.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 pt-3 border-t">
-                <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center">Lead qualified and appointment booked — automatically</p>
-              </div>
-            </div>
-
-            {/* Voice Agent Demo */}
-            <div className="rounded-xl border bg-white/80 dark:bg-white/[0.08] p-5 md:p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center">
-                  <Phone className="w-4 h-4 text-cyan-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">Voice Agent</p>
-                  <p className="text-xs text-muted-foreground dark:text-foreground/50">Answers calls like a real person</p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="bg-muted/50 rounded-xl p-4 space-y-3 text-sm">
-                  <div className="flex items-start gap-2">
-                    <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5">AXLON:</span>
-                    <p className="text-muted-foreground dark:text-foreground/70">&quot;Thanks for calling ABC Truck Sales. How can I help you?&quot;</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-xs font-semibold text-foreground/70 dark:text-foreground/80 shrink-0 mt-0.5">Caller:</span>
-                    <p className="text-muted-foreground dark:text-foreground/70">&quot;I&apos;m looking for a 48-foot flatbed under $55k.&quot;</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5">AXLON:</span>
-                    <p className="text-muted-foreground dark:text-foreground/70">&quot;We have two in that range. Let me get your info so I can send details with photos and pricing.&quot;</p>
-                  </div>
-                </div>
-
-                <div className="bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-900/30 rounded-lg p-3">
-                  <p className="text-xs font-semibold text-cyan-700 dark:text-cyan-400 mb-1.5">Lead Captured</p>
-                  <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground dark:text-foreground/60">
-                    <span>Name: John D.</span>
-                    <span>Intent: High</span>
-                    <span>Looking for: Flatbed 48&apos;</span>
-                    <span>Budget: &lt;$55k</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 pt-3 border-t">
-                <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center">This call came in at 8:47 PM — after hours</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* What Makes Axleyard Different — compares against a generic listing
-            site rather than naming competitors whose features we can't vouch for */}
-        <section className="w-full max-w-2xl mx-auto mb-6 md:mb-10 px-4">
-          <h2 className="text-xl md:text-2xl font-bold text-center mb-2">What Makes Axleyard Different</h2>
-          <p className="text-sm text-muted-foreground dark:text-foreground/60 text-center mb-6 max-w-lg mx-auto">
-            A listing site gets your inventory seen. Axleyard also answers the calls and chats it brings in.
-          </p>
-          <div className="rounded-xl border bg-white/80 dark:bg-white/[0.08] overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/30">
-                  <th className="text-left py-3 px-3 sm:px-4 font-medium text-muted-foreground">Feature</th>
-                  <th className="text-center py-3 px-2 sm:px-4 font-bold text-primary w-20 sm:w-32">Axleyard</th>
-                  <th className="text-center py-3 px-2 sm:px-4 font-medium text-muted-foreground w-20 sm:w-32">Typical listing site</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {[
-                  { feature: 'List your equipment for buyers', listingSite: true },
-                  { feature: 'Built for trucks, trailers & equipment', listingSite: true },
-                  { feature: 'AI voice agent answers calls 24/7', listingSite: false },
-                  { feature: 'AI chat answers buyers on your listings', listingSite: false },
-                  { feature: 'AI lead capture & qualification', listingSite: false },
-                  { feature: 'Built-in CRM & deal desk', listingSite: false },
-                ].map((row) => (
-                  <tr key={row.feature}>
-                    <td className="py-2.5 px-3 sm:px-4 text-foreground/80 dark:text-foreground/70">{row.feature}</td>
-                    <td className="py-2.5 px-2 sm:px-4 text-center">
-                      <Check className="w-4.5 h-4.5 text-primary mx-auto" aria-label="Yes" />
-                    </td>
-                    <td className="py-2.5 px-2 sm:px-4 text-center">
-                      {row.listingSite ? (
-                        <Check className="w-4 h-4 text-muted-foreground/50 mx-auto" aria-label="Yes" />
-                      ) : (
-                        <X className="w-4 h-4 text-muted-foreground/30 mx-auto" aria-label="No" />
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center mt-3">
-            Purpose-built for heavy haul, crane &amp; rigging, and equipment businesses.
-          </p>
-        </section>
-        </div>
-
-        {/* Final CTA */}
-        <section className="w-full max-w-3xl mx-auto mt-10 md:mt-16 mb-10 md:mb-12 px-4 text-center">
-          <h2 className="text-xl md:text-2xl font-bold mb-2">Sell more equipment with AI</h2>
-          <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-5">
-            List your inventory, get a branded storefront, and let AI capture leads for you — free.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
-            <Button size="lg" className="rounded-full gap-2 shadow-lg shadow-primary/20 group w-full sm:w-auto" asChild>
+            <Button size="lg" className="rounded-full gap-2 shadow-lg shadow-primary/20 group w-full md:w-auto shrink-0" asChild>
               <Link href="/signup">
+                <Zap className="w-4 h-4" />
                 List Equipment Free
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" className="rounded-full glass-button !bg-white/80 dark:!bg-white/10 w-full sm:w-auto" asChild>
-              <Link href="/contact?plan=demo">
-                Book a Demo
               </Link>
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground dark:text-foreground/50 mt-4">
-            Just browsing?{' '}
-            <Link href="/search" className="text-primary hover:underline">
-              Explore all listings &rarr;
-            </Link>
-          </p>
         </section>
       </main>
 
@@ -397,6 +243,10 @@ export default async function HomePage() {
             />
             <p className="text-xs md:text-sm text-muted-foreground">
               &copy; 2026 <span className="font-[family-name:var(--font-gunship)]">AXLEYARD</span>. All rights reserved.
+              {' · '}
+              <a href={`tel:${SALES_PHONE_E164}`} className="hover:text-foreground whitespace-nowrap">
+                {SALES_PHONE_DISPLAY}
+              </a>
             </p>
           </div>
           <nav aria-label="Footer" className="flex flex-wrap justify-center md:justify-end gap-x-5 max-w-2xl">

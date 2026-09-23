@@ -4,6 +4,7 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Phone, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SALES_PHONE_E164 as PHONE_NUMBER, SALES_PHONE_DISPLAY as DISPLAY_NUMBER } from '@/lib/contact';
 
 const TrailerFinderChat = dynamic(
   () =>
@@ -13,8 +14,6 @@ const TrailerFinderChat = dynamic(
   { ssr: false, loading: () => null }
 );
 
-const PHONE_NUMBER = '+14694213536';
-const DISPLAY_NUMBER = '(469) 421-3536';
 
 // The transcripts beside this are static — this lets visitors talk to the
 // real AI, which no competitor in the space offers from their homepage.

@@ -23,6 +23,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { jsonLdString } from '@/lib/seo/json-ld';
+import { AiSalesTeamShowcase } from '@/components/business/AiSalesTeamShowcase';
 
 export const metadata: Metadata = {
   title: 'For Business — AI Transformation for Equipment Companies',
@@ -233,6 +234,11 @@ export default function ForBusinessPage() {
           </div>
         </div>
       </section>
+
+      {/* Live demo + mock-ups + comparison (moved here from the homepage) */}
+      <div className="pt-16 md:pt-24 pb-6 px-4">
+        <AiSalesTeamShowcase />
+      </div>
 
       {/* Before / After */}
       <section className="py-16 md:py-24 px-4 bg-muted/30">

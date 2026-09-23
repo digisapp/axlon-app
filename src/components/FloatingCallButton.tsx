@@ -4,9 +4,7 @@ import { Phone } from 'lucide-react';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { RESERVED_SLUGS } from '@/lib/reserved-slugs';
-
-const PHONE_NUMBER = '+14694213536';
-const DISPLAY_NUMBER = '(469) 421-3536';
+import { SALES_PHONE_E164 as PHONE_NUMBER, SALES_PHONE_DISPLAY as DISPLAY_NUMBER } from '@/lib/contact';
 
 export function FloatingCallButton() {
   const [isHovered, setIsHovered] = useState(false);
