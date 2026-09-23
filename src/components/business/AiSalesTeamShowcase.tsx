@@ -52,18 +52,18 @@ export function AiSalesTeamShowcase() {
               </div>
               <div className="flex justify-end">
                 <div className="bg-primary/10 rounded-2xl rounded-tr-md px-4 py-2.5 max-w-[85%]">
-                  <p className="text-sm">Yes, and can I schedule a viewing?</p>
+                  <p className="text-sm">Yes please. Can someone call me today?</p>
                 </div>
               </div>
               <div className="flex justify-start">
                 <div className="bg-muted rounded-2xl rounded-tl-md px-4 py-2.5 max-w-[85%]">
-                  <p className="text-sm">I have tomorrow at 10am or 2pm. Which works? I&apos;ll send you all the details.</p>
+                  <p className="text-sm">Absolutely. What&apos;s the best number? I&apos;ll have a salesperson call you today with photos and details.</p>
                 </div>
               </div>
             </div>
 
             <div className="mt-4 pt-3 border-t">
-              <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center">Lead qualified and appointment booked — automatically</p>
+              <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center">Lead qualified and sent to your team — automatically</p>
             </div>
           </div>
 

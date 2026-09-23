@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
+import { createPortal } from 'react-dom';
 import { Phone, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SALES_PHONE_E164 as PHONE_NUMBER, SALES_PHONE_DISPLAY as DISPLAY_NUMBER } from '@/lib/contact';
@@ -47,7 +48,9 @@ export function TryAxlonLive() {
           Chat with AXLON AI
         </Button>
       </div>
-      {chatOpen && <TrailerFinderChat variant="floating" initialOpen />}
+      {/* Portalled to <body>: rendered in place, the panel inherits the page's
+          z-10 stacking context and the mobile bottom nav (z-40) covers its input. */}
+      {chatOpen && createPortal(<TrailerFinderChat variant="floating" initialOpen />, document.body)}
     </div>
   );
 }

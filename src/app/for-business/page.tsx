@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { jsonLdString } from '@/lib/seo/json-ld';
 import { AiSalesTeamShowcase } from '@/components/business/AiSalesTeamShowcase';
+import { SALES_PHONE_E164, SALES_PHONE_DISPLAY } from '@/lib/contact';
 
 export const metadata: Metadata = {
   title: 'For Business — AI Transformation for Equipment Companies',
@@ -67,8 +68,8 @@ const beforeAfter = [
     icon: Package,
   },
   {
-    before: 'Paying for DMS + CRM + answering service',
-    after: 'One AI system replaces all three',
+    before: 'Paying for a CRM and an answering service',
+    after: 'One AI system handles calls, leads and follow-up',
     icon: DollarSign,
   },
   {
@@ -82,7 +83,7 @@ const stats = [
   { value: '24/7', label: 'AI Availability' },
   { value: '< 60s', label: 'Lead Response Time' },
   { value: '12mo', label: 'Transformation Program' },
-  { value: '10–15', label: 'Clients We Work With' },
+  { value: '10–15', label: 'Businesses at a Time' },
 ];
 
 const audiences = [
@@ -102,7 +103,7 @@ const aiSystems = [
   {
     icon: Headphones,
     title: 'Voice Agent',
-    desc: 'Answers your calls 24/7, knows your inventory and pricing, captures leads and books appointments.',
+    desc: 'Answers your calls 24/7, knows your inventory and pricing, captures the lead, and sends you a summary and transcript of every call.',
     color: 'cyan',
   },
   {
@@ -179,12 +180,24 @@ export default function ForBusinessPage() {
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[200px]" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[150px]" />
 
-        <div className="relative max-w-6xl mx-auto px-4 py-16 md:py-24">
-          <div className="flex items-center justify-center mb-6">
+        <div className="relative max-w-6xl mx-auto px-4 pt-5 pb-16 md:pt-6 md:pb-24">
+          {/* This page has no site header, so it carries its own way back */}
+          <div className="flex items-center justify-between mb-12 md:mb-16">
             <Link href="/" className="flex items-center gap-2">
-              <Image src="/images/axlonai-logo.png" alt="Axleyard" width={36} height={36} className="w-9 h-9" />
+              <Image src="/images/axlonai-logo.png" alt="" width={36} height={36} className="w-8 h-8" />
               <span className="font-bold text-lg text-white">Axleyard</span>
             </Link>
+            <nav aria-label="Site" className="flex items-center gap-2 sm:gap-4 text-sm">
+              <Link href="/" className="px-2 py-1.5 text-slate-300 hover:text-white transition-colors">
+                Marketplace
+              </Link>
+              <Link
+                href="/login"
+                className="rounded-full border border-slate-600 px-4 py-1.5 text-slate-100 hover:bg-slate-800 transition-colors"
+              >
+                Sign in
+              </Link>
+            </nav>
           </div>
 
           <div className="text-center max-w-3xl mx-auto">
@@ -215,7 +228,7 @@ export default function ForBusinessPage() {
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="rounded-full gap-2 border-slate-600 text-slate-200 hover:bg-slate-800 w-full sm:w-auto text-base px-8" asChild>
+              <Button size="lg" variant="outline" className="rounded-full gap-2 bg-transparent border-slate-500 text-slate-100 hover:bg-slate-800 hover:text-white w-full sm:w-auto text-base px-8" asChild>
                 <Link href="/transform">
                   See the Program
                 </Link>
@@ -252,10 +265,10 @@ export default function ForBusinessPage() {
 
           <div className="grid gap-4">
             {beforeAfter.map((item) => (
-              <div key={item.before} className="grid md:grid-cols-[1fr,auto,1fr] gap-3 md:gap-0 items-center">
+              <div key={item.before} className="grid md:grid-cols-[1fr_auto_1fr] gap-3 md:gap-0 items-center">
                 <div className="flex items-center gap-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-xl px-5 py-4">
                   <item.icon className="w-5 h-5 text-red-400 shrink-0" />
-                  <span className="text-sm text-red-700 dark:text-red-300 line-through decoration-red-300">{item.before}</span>
+                  <span className="text-sm text-red-700 dark:text-red-300">{item.before}</span>
                 </div>
                 <div className="hidden md:flex items-center justify-center w-12">
                   <ArrowRight className="w-5 h-5 text-muted-foreground" />
@@ -472,11 +485,14 @@ export default function ForBusinessPage() {
             <Image src="/images/axlonai-logo.png" alt="Axleyard" width={20} height={20} className="w-5 h-5" />
             <p className="text-xs text-muted-foreground">&copy; 2026 Axleyard. All rights reserved.</p>
           </div>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+            <a href={`tel:${SALES_PHONE_E164}`} className="text-xs text-muted-foreground hover:text-foreground transition-colors">{SALES_PHONE_DISPLAY}</a>
+            <Link href="/" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Marketplace</Link>
             <Link href="/transform" className="text-xs text-muted-foreground hover:text-foreground transition-colors">AI Transformation</Link>
             <Link href="/apply" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Apply</Link>
             <Link href="/contact" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Contact</Link>
             <Link href="/privacy" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>
+            <Link href="/terms" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Terms</Link>
           </div>
         </div>
       </footer>

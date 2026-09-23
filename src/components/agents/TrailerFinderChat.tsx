@@ -140,7 +140,7 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
   }
 
   const containerClasses = variant === 'floating'
-    ? `fixed z-50 shadow-2xl rounded-xl border bg-background transition-all ${
+    ? `fixed z-50 flex flex-col shadow-2xl rounded-xl border bg-background transition-all ${
         isExpanded
           ? 'inset-2 sm:inset-4'
           : 'inset-x-2 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] h-[70dvh] sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[420px] sm:h-[600px]'
@@ -183,7 +183,9 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
       </div>
 
       {/* Messages */}
-      <div className={`overflow-y-auto overscroll-contain px-4 py-3 space-y-4 ${variant === 'floating' ? (isExpanded ? 'h-[calc(100%-120px)]' : 'h-[460px]') : 'h-[500px]'}`}>
+      {/* Floating: the list takes whatever the panel has left. A fixed 460px
+          list in a 70dvh panel pushed the input off-screen on phones. */}
+      <div className={`overflow-y-auto overscroll-contain px-4 py-3 space-y-4 ${variant === 'floating' ? 'flex-1 min-h-0' : 'h-[500px]'}`}>
         {messages.length === 0 && (
           <div className="text-center py-8">
             <Bot className="w-10 h-10 text-muted-foreground mx-auto mb-3" />

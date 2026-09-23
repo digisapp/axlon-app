@@ -19,9 +19,30 @@ import { SALES_PHONE_E164, SALES_PHONE_DISPLAY } from '@/lib/contact';
 import { getHomeDeals, getHomeStats, roundStat } from '@/lib/home-data';
 import { jsonLdString } from '@/lib/seo/json-ld';
 
+const HOME_TITLE = 'Axleyard — The Nationwide Marketplace for Trucks, Trailers & Heavy Equipment';
+const HOME_DESCRIPTION =
+  'Buy and sell trucks, trailers and heavy equipment on Axleyard. Search listings from sellers across the country in plain English, spot below-market deals, or call (469) 421-3536 any time, day or night.';
+
 export const metadata: Metadata = {
+  title: { absolute: HOME_TITLE },
+  description: HOME_DESCRIPTION,
   alternates: {
     canonical: '/',
+  },
+  // Setting openGraph/twitter here replaces the layout's objects outright, so
+  // the share image is repeated rather than inherited.
+  openGraph: {
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
+    url: '/',
+    type: 'website',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: HOME_TITLE }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
+    images: ['/opengraph-image'],
   },
 };
 
@@ -54,7 +75,7 @@ function HomePageJsonLd({ activeListings }: { activeListings: number | null }) {
     url: 'https://axleyard.com',
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
-    description: 'AI-powered marketplace for buying and selling trucks, trailers, and heavy equipment. Search with natural language, get smart pricing, and list equipment instantly.',
+    description: 'Nationwide marketplace for buying and selling trucks, trailers, and heavy equipment. Search in plain English, spot below-market deals, and list equipment free.',
     offers: {
       '@type': 'AggregateOffer',
       priceCurrency: 'USD',

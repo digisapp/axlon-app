@@ -8,6 +8,47 @@ function getSupabase() {
 }
 
 // ── Tool: Search Marketplace Listings ────────────────────────────
+const SEARCH_STOPWORDS = new Set([
+  'a', 'an', 'the', 'any', 'for', 'sale', 'with', 'and', 'or', 'of', 'in', 'on', 'to',
+  'do', 'you', 'have', 'i', 'need', 'want', 'looking', 'show', 'me', 'find',
+  'trailer', 'trailers', 'used', 'new', 'available', 'some',
+]);
+
+/** "55-ton lowboys for sale" -> ["55", "ton", "lowboy"]. */
+function searchWords(raw: string | undefined): string[] {
+  if (!raw) return [];
+  const words = sanitizeSearchFilter(raw).toLowerCase().replace(/-/g, ' ').replace(/[^a-z0-9 ]/g, ' ').split(/\s+/);
+  const out: string[] = [];
+  for (let w of words) {
+    if (!w || SEARCH_STOPWORDS.has(w)) continue;
+    if (w === 'tons') w = 'ton';
+    else if (w.length > 4 && w.endsWith('s')) w = w.slice(0, -1); // lowboys -> lowboy
+    out.push(w);
+  }
+  return out.slice(0, 5);
+}
+
+/**
+ * Category ids matching a slug or name fragment, plus their children.
+ * Listings are filed under the child ("lowboy-trailers"), so matching only
+ * the parent ("trailers") found nothing.
+ */
+async function categoryWithChildren(
+  supabase: ReturnType<typeof getSupabase>,
+  category: string | undefined
+): Promise<string[]> {
+  const term = category ? sanitizeSearchFilter(category).toLowerCase().trim() : '';
+  if (!term) return [];
+  const { data: matches } = await supabase
+    .from('categories')
+    .select('id')
+    .or(`slug.ilike.%${term}%,name.ilike.%${term}%`);
+  const ids = (matches ?? []).map((c) => c.id as string);
+  if (!ids.length) return [];
+  const { data: children } = await supabase.from('categories').select('id').in('parent_id', ids);
+  return [...ids, ...(children ?? []).map((c) => c.id as string)];
+}
+
 export async function searchListings(params: {
   query?: string;
   category?: string;
@@ -45,7 +86,8 @@ export async function searchListings(params: {
   let query = supabase
     .from('listings')
     .select('id, title, price, year, make, model, condition, city, state, mileage, hours, description, ai_price_estimate', { count: 'exact' })
-    .eq('status', 'active');
+    .eq('status', 'active')
+    .is('deleted_at', null);
 
   if (params.make) query = query.ilike('make', `%${sanitizeSearchFilter(params.make)}%`);
   if (params.model) query = query.ilike('model', `%${sanitizeSearchFilter(params.model)}%`);
@@ -55,12 +97,18 @@ export async function searchListings(params: {
   if (params.maxYear) query = query.lte('year', params.maxYear);
   if (params.condition) query = query.eq('condition', sanitizeSearchFilter(params.condition));
   if (params.state) query = query.ilike('state', `%${sanitizeSearchFilter(params.state)}%`);
-  if (params.query) {
-    const q = sanitizeSearchFilter(params.query);
-    if (q) {
-      query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
-    }
+  // Word by word, not the phrase: "55 ton lowboys" as one substring matched
+  // nothing, so the chat told buyers there were no 55-ton lowboys while the
+  // site listed several. Numbers (capacity, year) must be in the title;
+  // words may be in the title or description.
+  for (const word of searchWords(params.query)) {
+    query = /^\d+$/.test(word)
+      ? query.ilike('title', `%${word}%`)
+      : query.or(`title.ilike.%${word}%,description.ilike.%${word}%`);
   }
+
+  const categoryIds = await categoryWithChildren(supabase, params.category);
+  if (categoryIds.length) query = query.in('category_id', categoryIds);
 
   const { data, error, count } = await query.order('created_at', { ascending: false }).limit(limit);
 
