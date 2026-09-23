@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Zap, ArrowRight, Search, MessageSquare, Phone, Brain, TrendingUp, UserCheck, Settings, Check, X } from 'lucide-react';
+import { Zap, ArrowRight, Search, MessageSquare, Phone, Check, X } from 'lucide-react';
 import {
   LowboyTrailerIcon,
   FlatbedTrailerIcon,
@@ -85,25 +85,6 @@ export default async function HomePage() {
       <HomePageJsonLd activeListings={stats.activeListings} />
       <div className="noise-overlay" />
 
-      {/* Top Banner */}
-      <div className="relative z-10 w-full bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b border-primary/20 py-2.5 px-4 overflow-hidden">
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent)] animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
-        <div className="relative flex flex-wrap items-center justify-center gap-2">
-          <div className="hidden sm:flex items-center justify-center w-5 h-5 rounded-full bg-primary/20">
-            <Zap className="w-3 h-3 text-primary" />
-          </div>
-          <p className="text-center text-sm text-foreground/90">
-            <span className="font-semibold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">AI marketplace</span> for trucks, trailers &amp; equipment
-          </p>
-          <Link
-            href="/for-business"
-            className="text-xs font-medium text-primary hover:underline ml-1 py-2 inline-block"
-          >
-            + AI Tools for Business
-          </Link>
-        </div>
-      </div>
-
       {/* Header */}
       <header className="relative z-10 w-full px-4 py-3 md:py-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -122,16 +103,16 @@ export default async function HomePage() {
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 flex-1 flex flex-col items-center pt-4 md:pt-16 px-4">
+      <main className="relative z-10 flex-1 flex flex-col items-center pt-8 md:pt-20 px-4">
 
         {/* Hero: Logo + Search */}
         <HomeSearchSection />
 
         {/* CTAs */}
-        <div className="flex flex-row justify-center gap-3 mb-6 md:mb-10 w-full sm:w-auto px-4">
+        <div className="flex flex-col sm:flex-row justify-center gap-3 mb-6 md:mb-10 w-full max-w-sm sm:max-w-none sm:w-auto px-2">
           <Button
             size="lg"
-            className="gap-2 rounded-full shadow-lg shadow-primary/20 group flex-1 sm:flex-none"
+            className="gap-2 rounded-full shadow-lg shadow-primary/20 group w-full sm:w-auto"
             asChild
           >
             <Link href="/search">
@@ -143,7 +124,7 @@ export default async function HomePage() {
           <Button
             variant="outline"
             size="lg"
-            className="gap-2 rounded-full glass-button !bg-white/80 dark:!bg-white/10 flex-1 sm:flex-none"
+            className="gap-2 rounded-full glass-button !bg-white/80 dark:!bg-white/10 w-full sm:w-auto"
             asChild
           >
             <Link href="/signup">
@@ -191,12 +172,6 @@ export default async function HomePage() {
                 <p className="text-xl md:text-2xl font-bold">{roundStat(stats.activeListings!)}+</p>
                 <p className="text-xs text-muted-foreground dark:text-foreground/50">machines for sale</p>
               </div>
-              {(stats.sellers ?? 0) >= 20 && (
-                <div>
-                  <p className="text-xl md:text-2xl font-bold">{roundStat(stats.sellers!)}+</p>
-                  <p className="text-xs text-muted-foreground dark:text-foreground/50">dealers &amp; sellers</p>
-                </div>
-              )}
               <div>
                 <p className="text-xl md:text-2xl font-bold">24/7</p>
                 <p className="text-xs text-muted-foreground dark:text-foreground/50">AI answering calls &amp; chats</p>
@@ -206,73 +181,47 @@ export default async function HomePage() {
         )}
 
         {/* Trusted Brands */}
-        <section className="w-full max-w-4xl mx-auto mb-8 md:mb-12 px-4">
+        <section className="w-full max-w-5xl mx-auto mb-8 md:mb-12 px-4">
           <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center mb-4 uppercase tracking-widest font-medium">
             Equipment from the brands you know
           </p>
-          <div className="flex items-center justify-center gap-6 md:gap-10 flex-wrap opacity-60 dark:opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
+          <div className="flex items-center justify-center gap-x-6 gap-y-4 md:gap-x-8 flex-wrap opacity-60 dark:opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
             <Image src="/images/brands/peterbilt.svg" alt="Peterbilt" width={90} height={36} className="h-7 md:h-8 w-auto dark:invert" />
             <Image src="/images/brands/freightliner.svg" alt="Freightliner" width={120} height={36} className="h-7 md:h-8 w-auto dark:invert" />
             <Image src="/images/brands/kenworth.png" alt="Kenworth" width={120} height={30} className="h-6 md:h-7 w-auto dark:invert" />
             <Image src="/images/brands/caterpillar.svg" alt="Caterpillar" width={100} height={36} className="h-7 md:h-8 w-auto dark:invert" />
             <Image src="/images/brands/trail-king.png" alt="Trail King" width={120} height={20} className="h-4 md:h-5 w-auto dark:invert" />
-            <Image src="/images/brands/mack.svg" alt="Mack Trucks" width={100} height={30} className="h-6 md:h-7 w-auto dark:invert" />
-            <Image src="/images/brands/john-deere.svg" alt="John Deere" width={120} height={30} className="h-6 md:h-7 w-auto dark:invert" />
-            <Image src="/images/brands/volvo.svg" alt="Volvo Trucks" width={100} height={30} className="h-6 md:h-7 w-auto dark:invert" />
+            <Image src="/images/brands/mack.svg" alt="Mack Trucks" width={100} height={49} className="h-8 md:h-9 w-auto dark:invert" />
+            <Image src="/images/brands/john-deere.svg" alt="John Deere" width={176} height={121} className="h-9 md:h-10 w-auto dark:invert" />
+            <Image src="/images/brands/volvo.svg" alt="Volvo Trucks" width={188} height={27} className="h-3 md:h-4 w-auto dark:invert" />
           </div>
         </section>
 
-        {/* 3 Ways AXLON Helps */}
-        <section className="w-full max-w-4xl mx-auto mb-6 md:mb-16 px-4">
-          <div className="text-center mb-8 md:mb-10">
+        {/* Dealer half — everything above sells to buyers, everything in this
+            band sells to dealers, so it gets its own visual break */}
+        <div className="self-stretch -mx-4 mt-2 md:mt-4 border-y border-primary/15 bg-primary/[0.04] dark:bg-white/[0.02] pt-10 md:pt-16 pb-4 md:pb-6 px-4 flex flex-col items-center">
+
+        {/* AXLON in action */}
+        <section className="w-full max-w-5xl mx-auto mb-10 md:mb-16 px-4">
+          <div className="text-center mb-6 md:mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-3">
               <Zap className="w-3 h-3" />
               For Dealers &amp; Sellers
             </div>
-            <h2 className="text-xl md:text-2xl font-bold mb-2">Your AI-powered sales team</h2>
-            <p className="text-sm text-muted-foreground dark:text-foreground/60 max-w-lg mx-auto">
-              AXLON answers every call, chat, and lead for your dealership — 24/7 — and turns them into pipeline.{' '}
+            <h2 className="text-2xl md:text-3xl font-bold mb-2">Your AI-powered sales team</h2>
+            <p className="text-sm md:text-base text-muted-foreground dark:text-foreground/60 max-w-xl mx-auto">
+              AXLON, Axleyard&apos;s AI assistant, answers every call, chat, and lead for your
+              dealership — day and night — and turns them into pipeline.{' '}
               <Link href="/for-business" className="text-primary hover:underline whitespace-nowrap">
                 See all business tools &rarr;
               </Link>
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-4 md:gap-6">
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                <TrendingUp className="w-5 h-5 text-primary" />
-              </div>
-              <h3 className="font-semibold text-sm md:text-base mb-1">Sell more equipment</h3>
-              <p className="text-xs text-muted-foreground dark:text-foreground/60">AI captures every lead, day and night</p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center mx-auto mb-3">
-                <UserCheck className="w-5 h-5 text-cyan-600" />
-              </div>
-              <h3 className="font-semibold text-sm md:text-base mb-1">Never miss a lead</h3>
-              <p className="text-xs text-muted-foreground dark:text-foreground/60">AI answers calls and chats 24/7</p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-3">
-                <Settings className="w-5 h-5 text-emerald-600" />
-              </div>
-              <h3 className="font-semibold text-sm md:text-base mb-1">Run your business with AI</h3>
-              <p className="text-xs text-muted-foreground dark:text-foreground/60">Inventory, CRM, deals — one platform</p>
-            </div>
-          </div>
-        </section>
 
-        {/* See AI in Action */}
-        <section className="w-full max-w-5xl mx-auto mb-6 md:mb-16 px-4">
-          <div className="text-center mb-6 md:mb-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-3">
-              <Brain className="w-3 h-3" />
-              See AI in Action
-            </div>
-            <h2 className="text-xl md:text-2xl font-bold mb-2">AI that works while you sleep</h2>
-          </div>
+          {/* Live demo first: a real phone line beats any transcript */}
+          <TryAxlonLive />
 
-          <div className="grid md:grid-cols-2 gap-4 md:gap-6">
+          <div className="grid md:grid-cols-2 gap-4 md:gap-6 mt-4 md:mt-6">
             {/* AI Conversation Demo */}
             <div className="rounded-xl border bg-white/80 dark:bg-white/[0.08] p-5 md:p-6">
               <div className="flex items-center gap-2 mb-4">
@@ -357,60 +306,43 @@ export default async function HomePage() {
               </div>
             </div>
           </div>
-
-          {/* Live demo: real chat + real phone line */}
-          <TryAxlonLive />
         </section>
 
-        {/* What Makes AXLON Different */}
-        <section className="w-full max-w-3xl mx-auto mb-6 md:mb-16 px-4">
-          <h2 className="text-xl md:text-2xl font-bold text-center mb-2">What Makes AXLON Different</h2>
+        {/* What Makes Axleyard Different — compares against a generic listing
+            site rather than naming competitors whose features we can't vouch for */}
+        <section className="w-full max-w-2xl mx-auto mb-6 md:mb-10 px-4">
+          <h2 className="text-xl md:text-2xl font-bold text-center mb-2">What Makes Axleyard Different</h2>
           <p className="text-sm text-muted-foreground dark:text-foreground/60 text-center mb-6 max-w-lg mx-auto">
-            One AI platform replaces the tools you&apos;re juggling today.
+            A listing site gets your inventory seen. Axleyard also answers the calls and chats it brings in.
           </p>
-          <div className="rounded-xl border bg-white/80 dark:bg-white/[0.08] overflow-x-auto">
-            <table className="w-full text-xs sm:text-sm">
+          <div className="rounded-xl border bg-white/80 dark:bg-white/[0.08] overflow-hidden">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/30">
-                  <th className="text-left py-3 px-2 sm:px-4 font-medium text-muted-foreground">Feature</th>
-                  <th className="text-center py-3 px-2 sm:px-4 font-bold text-primary">Axleyard</th>
-                  <th className="text-center py-3 px-2 sm:px-4 font-medium text-muted-foreground">TruckPaper</th>
-                  <th className="text-center py-3 px-2 sm:px-4 font-medium text-muted-foreground">Salesforce</th>
+                  <th className="text-left py-3 px-3 sm:px-4 font-medium text-muted-foreground">Feature</th>
+                  <th className="text-center py-3 px-2 sm:px-4 font-bold text-primary w-20 sm:w-32">Axleyard</th>
+                  <th className="text-center py-3 px-2 sm:px-4 font-medium text-muted-foreground w-20 sm:w-32">Typical listing site</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {([
-                  { feature: 'AI voice agent (answers calls 24/7)', axlon: true, tp: false, sf: false },
-                  { feature: 'AI chat assistant for buyers', axlon: true, tp: false, sf: false },
-                  { feature: 'Built-in CRM & deal desk', axlon: true, tp: false, sf: true },
-                  { feature: 'Inventory management', axlon: true, tp: false, sf: false },
-                  { feature: 'Equipment marketplace', axlon: true, tp: true, sf: false },
-                  { feature: 'AI lead capture & qualification', axlon: true, tp: false, sf: 'add-on' },
-                  { feature: 'Financing & trade-in tools', axlon: true, tp: false, sf: false },
-                  { feature: 'Built for equipment businesses', axlon: true, tp: true, sf: false },
-                  { feature: 'No per-seat pricing', axlon: true, tp: true, sf: false },
-                ] as { feature: string; axlon: boolean | string; tp: boolean | string; sf: boolean | string }[]).map((row) => (
+                {[
+                  { feature: 'List your equipment for buyers', listingSite: true },
+                  { feature: 'Built for trucks, trailers & equipment', listingSite: true },
+                  { feature: 'AI voice agent answers calls 24/7', listingSite: false },
+                  { feature: 'AI chat answers buyers on your listings', listingSite: false },
+                  { feature: 'AI lead capture & qualification', listingSite: false },
+                  { feature: 'Built-in CRM & deal desk', listingSite: false },
+                ].map((row) => (
                   <tr key={row.feature}>
-                    <td className="py-2.5 px-2 sm:px-4 text-foreground/80 dark:text-foreground/70 break-words">{row.feature}</td>
+                    <td className="py-2.5 px-3 sm:px-4 text-foreground/80 dark:text-foreground/70">{row.feature}</td>
                     <td className="py-2.5 px-2 sm:px-4 text-center">
-                      <Check className="w-4.5 h-4.5 text-primary mx-auto" />
+                      <Check className="w-4.5 h-4.5 text-primary mx-auto" aria-label="Yes" />
                     </td>
                     <td className="py-2.5 px-2 sm:px-4 text-center">
-                      {row.tp === true ? (
-                        <Check className="w-4 h-4 text-muted-foreground/50 mx-auto" />
-                      ) : row.tp === 'add-on' ? (
-                        <span className="text-xs text-muted-foreground">Add-on</span>
+                      {row.listingSite ? (
+                        <Check className="w-4 h-4 text-muted-foreground/50 mx-auto" aria-label="Yes" />
                       ) : (
-                        <X className="w-4 h-4 text-muted-foreground/30 mx-auto" />
-                      )}
-                    </td>
-                    <td className="py-2.5 px-2 sm:px-4 text-center">
-                      {row.sf === true ? (
-                        <Check className="w-4 h-4 text-muted-foreground/50 mx-auto" />
-                      ) : row.sf === 'add-on' ? (
-                        <span className="text-xs text-muted-foreground">Add-on</span>
-                      ) : (
-                        <X className="w-4 h-4 text-muted-foreground/30 mx-auto" />
+                        <X className="w-4 h-4 text-muted-foreground/30 mx-auto" aria-label="No" />
                       )}
                     </td>
                   </tr>
@@ -419,12 +351,13 @@ export default async function HomePage() {
             </table>
           </div>
           <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center mt-3">
-            Purpose-built for heavy haul, crane & rigging, and equipment businesses.
+            Purpose-built for heavy haul, crane &amp; rigging, and equipment businesses.
           </p>
         </section>
+        </div>
 
         {/* Final CTA */}
-        <section className="w-full max-w-3xl mx-auto mb-10 md:mb-12 px-4 text-center">
+        <section className="w-full max-w-3xl mx-auto mt-10 md:mt-16 mb-10 md:mb-12 px-4 text-center">
           <h2 className="text-xl md:text-2xl font-bold mb-2">Sell more equipment with AI</h2>
           <p className="text-sm text-muted-foreground dark:text-foreground/60 mb-5">
             List your inventory, get a branded storefront, and let AI capture leads for you — free.
@@ -466,15 +399,21 @@ export default async function HomePage() {
               &copy; 2026 <span className="font-[family-name:var(--font-gunship)]">AXLEYARD</span>. All rights reserved.
             </p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:flex gap-3 sm:gap-6 text-center sm:text-left">
+          <nav aria-label="Footer" className="flex flex-wrap justify-center md:justify-end gap-x-5 max-w-2xl">
+            <FooterLink href="/search">Marketplace</FooterLink>
+            <FooterLink href="/categories">Categories</FooterLink>
             <FooterLink href="/new-trailers">New Trailers</FooterLink>
-            <FooterLink href="/transform">Transform</FooterLink>
+            <FooterLink href="/deals">Deals</FooterLink>
+            <FooterLink href="/finance">Financing</FooterLink>
+            <FooterLink href="/for-business">For Dealers</FooterLink>
+            <FooterLink href="/pricing">Pricing</FooterLink>
             <FooterLink href="/dealers">Directory</FooterLink>
+            <FooterLink href="/transform">Transform</FooterLink>
             <FooterLink href="/about">About</FooterLink>
+            <FooterLink href="/contact">Contact</FooterLink>
             <FooterLink href="/privacy">Privacy</FooterLink>
             <FooterLink href="/terms">Terms</FooterLink>
-            <FooterLink href="/contact">Contact</FooterLink>
-          </div>
+          </nav>
         </div>
       </footer>
     </div>

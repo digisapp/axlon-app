@@ -15,7 +15,7 @@ export function HomeDeals({ deals }: { deals: HomeDeal[] }) {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg md:text-xl font-bold flex items-center gap-2">
           <Flame className="w-5 h-5 text-orange-500" />
-          Hot Deals
+          Priced Below Market
         </h2>
         <Link
           href="/deals"
@@ -53,23 +53,21 @@ function DealCard({ deal }: { deal: HomeDeal }) {
               <span className="text-muted-foreground text-xs">No Image</span>
             </div>
           )}
-          <Badge className="absolute top-2 left-2 bg-red-500 text-white text-[10px] md:text-xs">
+          {/* The comparison is to our AI market estimate, never a former
+              asking price — a struck-through "was" price would claim a
+              markdown the seller never made. */}
+          <Badge className="absolute top-2 left-2 bg-green-600 text-white text-[10px] md:text-xs">
             <TrendingDown className="w-3 h-3 mr-1" />
-            {deal.discount_percent}% Off
+            {deal.discount_percent}% below market
           </Badge>
         </div>
         <div className="p-2 md:p-3">
-          <h3 className="font-semibold text-xs md:text-sm line-clamp-1">{deal.title}</h3>
-          <div className="flex items-center gap-1.5 mt-1">
-            <span className="text-sm md:text-base font-bold text-primary">
-              ${deal.price.toLocaleString()}
-            </span>
-            <span className="text-[10px] md:text-xs text-muted-foreground line-through">
-              ${deal.ai_price_estimate.toLocaleString()}
-            </span>
-          </div>
-          <p className="text-[10px] md:text-xs text-green-600 dark:text-green-400 mt-0.5">
-            Save ${deal.savings.toLocaleString()}
+          <h3 className="font-semibold text-xs md:text-sm line-clamp-2 min-h-[2lh]">{deal.title}</h3>
+          <p className="text-sm md:text-base font-bold text-primary mt-1">
+            ${deal.price.toLocaleString()}
+          </p>
+          <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">
+            AI market est. ${deal.ai_price_estimate.toLocaleString()}
           </p>
         </div>
       </Card>

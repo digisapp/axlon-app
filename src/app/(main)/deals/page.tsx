@@ -168,7 +168,7 @@ export default function DealsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="discount">Biggest Discount</SelectItem>
-                <SelectItem value="savings">Most Savings ($)</SelectItem>
+                <SelectItem value="savings">Most Below Market ($)</SelectItem>
                 <SelectItem value="price_low">Price: Low to High</SelectItem>
                 <SelectItem value="price_high">Price: High to Low</SelectItem>
               </SelectContent>
@@ -293,7 +293,7 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
               }`}
             >
               {isHotDeal ? <Flame className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-              {deal.discount_percent}% Off
+              {deal.discount_percent}% below market
             </Badge>
           </div>
 
@@ -301,16 +301,13 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
             <div className="flex justify-between items-start gap-2">
               <div className="min-w-0">
                 <h3 className="font-semibold text-sm md:text-lg line-clamp-1">{deal.title}</h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <p className="text-lg md:text-2xl font-bold text-primary">
-                    ${deal.price.toLocaleString()}
-                  </p>
-                  <span className="text-xs md:text-sm text-muted-foreground line-through">
-                    ${deal.ai_price_estimate.toLocaleString()}
-                  </span>
-                </div>
-                <p className="text-xs md:text-sm text-green-600 dark:text-green-400 mt-1">
-                  Save ${deal.savings.toLocaleString()}
+                {/* Compared against our AI estimate, not a former asking
+                    price — never render it as a struck-through "was" price */}
+                <p className="text-lg md:text-2xl font-bold text-primary mt-1">
+                  ${deal.price.toLocaleString()}
+                </p>
+                <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                  AI market est. ${deal.ai_price_estimate.toLocaleString()}
                 </p>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
@@ -383,7 +380,7 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
             }`}
           >
             {isHotDeal ? <Flame className="w-2.5 h-2.5 md:w-3 md:h-3 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 md:w-3 md:h-3 mr-0.5" />}
-            {deal.discount_percent}% Off
+            {deal.discount_percent}% below market
           </Badge>
           <div className="absolute top-2 right-2 flex gap-1">
             <CompareButton
@@ -413,16 +410,11 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
 
         <div className="p-2 md:p-4">
           <h3 className="font-semibold text-sm md:text-base line-clamp-1">{deal.title}</h3>
-          <div className="flex items-center gap-1.5 mt-0.5 md:mt-1">
-            <p className="text-base md:text-xl font-bold text-primary">
-              ${deal.price.toLocaleString()}
-            </p>
-            <span className="text-[10px] md:text-xs text-muted-foreground line-through">
-              ${deal.ai_price_estimate.toLocaleString()}
-            </span>
-          </div>
-          <p className="text-[10px] md:text-xs text-green-600 dark:text-green-400 mt-0.5">
-            Save ${deal.savings.toLocaleString()}
+          <p className="text-base md:text-xl font-bold text-primary mt-0.5 md:mt-1">
+            ${deal.price.toLocaleString()}
+          </p>
+          <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">
+            AI market est. ${deal.ai_price_estimate.toLocaleString()}
           </p>
 
           <div className="flex flex-wrap gap-1 md:gap-2 mt-1 md:mt-2 text-xs text-muted-foreground">

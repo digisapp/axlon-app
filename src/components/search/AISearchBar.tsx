@@ -96,6 +96,9 @@ export function AISearchBar({
   const autocompleteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Monotonic id so a slow autocomplete response can't overwrite a newer one
   const autocompleteRequestIdRef = useRef(0);
+  // Autofocus puts the cursor in the box but must not open the suggestion
+  // panel — on the homepage that panel covered the CTAs on every page load.
+  const suppressFocusSuggestionsRef = useRef(false);
 
   // Check for speech recognition support
   useEffect(() => {
@@ -283,7 +286,10 @@ export function AISearchBar({
     : effectivePlaceholder;
 
   useEffect(() => {
-    if (autoFocus && inputRef.current) {
+    // Skip when already focused: focus() then fires no event, so the flag
+    // would linger and swallow the visitor's first click.
+    if (autoFocus && inputRef.current && document.activeElement !== inputRef.current) {
+      suppressFocusSuggestionsRef.current = true;
       inputRef.current.focus();
     }
   }, [autoFocus]);
@@ -402,6 +408,10 @@ export function AISearchBar({
 
   const handleFocus = () => {
     setIsFocused(true);
+    if (suppressFocusSuggestionsRef.current) {
+      suppressFocusSuggestionsRef.current = false;
+      return;
+    }
     if (query.length === 0 && !showChat) {
       // Show recent searches first, then popular examples
       const recent = getRecentSearches();
@@ -482,6 +492,9 @@ export function AISearchBar({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
+          // An autofocused input gets no focus event on the visitor's first
+          // click, so the click has to open the suggestions itself.
+          onClick={() => !showSuggestions && !showChat && handleFocus()}
           onBlur={() => !showSuggestions && !showChat && setIsFocused(false)}
           placeholder={currentPlaceholder}
           className={cn(
@@ -565,7 +578,7 @@ export function AISearchBar({
 
       {/* Language hint - shows supported languages */}
       {showLanguageHint && !showSuggestions && !showChat && (
-        <div className="flex items-center justify-center gap-1.5 mt-3 text-xs text-zinc-400 dark:text-zinc-500">
+        <div className="flex flex-wrap items-center justify-center gap-1.5 mt-3 px-2 text-xs text-zinc-400 dark:text-zinc-500">
           <Sparkles className="w-3 h-3" />
           <span>Axlon speaks:</span>
           <span className="font-medium text-zinc-500 dark:text-zinc-400">English</span>

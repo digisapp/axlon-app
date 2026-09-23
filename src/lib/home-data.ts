@@ -38,13 +38,23 @@ async function withTtlCache<T>(key: string, fn: () => Promise<T>): Promise<T> {
 
 // Same deal logic as /api/deals (price below ai_price_estimate), run at render
 // time so deals ship in the initial HTML instead of popping in client-side.
-export async function getHomeDeals(limit = 4, minDiscount = 5): Promise<HomeDeal[]> {
-  return withTtlCache(`home-deals:${limit}:${minDiscount}`, () =>
-    fetchHomeDeals(limit, minDiscount)
+// maxDiscount keeps the homepage showcase believable: a listing priced far
+// below its estimate is almost always a bad estimate, not a real steal.
+export async function getHomeDeals(
+  limit = 4,
+  minDiscount = 5,
+  maxDiscount = 45
+): Promise<HomeDeal[]> {
+  return withTtlCache(`home-deals:${limit}:${minDiscount}:${maxDiscount}`, () =>
+    fetchHomeDeals(limit, minDiscount, maxDiscount)
   );
 }
 
-async function fetchHomeDeals(limit: number, minDiscount: number): Promise<HomeDeal[]> {
+async function fetchHomeDeals(
+  limit: number,
+  minDiscount: number,
+  maxDiscount: number
+): Promise<HomeDeal[]> {
   const supabase = getAnonClient();
   if (!supabase) return [];
 
@@ -71,7 +81,11 @@ async function fetchHomeDeals(limit: number, minDiscount: number): Promise<HomeD
         ),
         savings: listing.ai_price_estimate - listing.price,
       }))
-      .filter((listing) => listing.discount_percent >= minDiscount);
+      .filter(
+        (listing) =>
+          listing.discount_percent >= minDiscount &&
+          listing.discount_percent <= maxDiscount
+      );
 
     // Fisher-Yates shuffle so revalidations rotate which deals are featured
     for (let i = deals.length - 1; i > 0; i--) {

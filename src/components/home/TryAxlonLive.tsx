@@ -16,15 +16,15 @@ const TrailerFinderChat = dynamic(
 const PHONE_NUMBER = '+14694213536';
 const DISPLAY_NUMBER = '(469) 421-3536';
 
-// The demos above this are static transcripts — this lets visitors talk to
-// the real AI, which no competitor in the space offers from their homepage.
+// The transcripts beside this are static — this lets visitors talk to the
+// real AI, which no competitor in the space offers from their homepage.
 export function TryAxlonLive() {
   const [chatOpen, setChatOpen] = useState(false);
 
   return (
-    <div className="mt-4 md:mt-6 rounded-xl border border-primary/20 bg-primary/5 p-4 md:p-5 text-center">
+    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 md:p-5 text-center">
       <p className="text-sm font-semibold mb-1">
-        Don&apos;t take our word for it — try it live
+        Try it live — call or chat with AXLON right now
       </p>
       <p className="text-xs text-muted-foreground dark:text-foreground/60 mb-4">
         Talk to the same AI your customers would.

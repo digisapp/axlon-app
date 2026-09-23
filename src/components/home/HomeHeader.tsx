@@ -31,6 +31,7 @@ interface UserProfile {
 
 const navLinks = [
   { href: '/search', label: 'Marketplace' },
+  { href: '/for-business', label: 'For Dealers' },
 ];
 
 export function HomeHeader() {
