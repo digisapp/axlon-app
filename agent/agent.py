@@ -51,6 +51,17 @@ logger.setLevel(logging.INFO)
 active_calls = {}
 
 
+async def off_loop(fn, *args, **kwargs):
+    """Run a tools.py coroutine on a worker thread.
+
+    The tools are async in name only: the Supabase client is synchronous, so
+    each query froze the event loop that carries the call audio (~300 ms per
+    lookup, flagged by livekit-agents 1.8). They get a private loop on a
+    thread instead, and the caller hears no stall while inventory loads.
+    """
+    return await asyncio.to_thread(asyncio.run, fn(*args, **kwargs))
+
+
 class AxlonAgent(Agent):
     """Voice AI agent for AxlonAI marketplace."""
 
@@ -114,7 +125,7 @@ class AxlonAgent(Agent):
             condition: 'new' or 'used'
             limit: Maximum number of results to return
         """
-        results = await self.inventory_tools.search(
+        results = await off_loop(self.inventory_tools.search, 
             category=category,
             make=make,
             min_price=min_price,
@@ -132,7 +143,7 @@ class AxlonAgent(Agent):
         Args:
             listing_id: The unique ID of the listing
         """
-        details = await self.inventory_tools.get_details(listing_id)
+        details = await off_loop(self.inventory_tools.get_details, listing_id)
         return details
 
     @function_tool()
@@ -161,7 +172,7 @@ class AxlonAgent(Agent):
         # Use caller ID if phone not provided
         actual_phone = phone or self.caller_phone or "unknown"
 
-        result, lead_id = await self.lead_tools.capture_with_id(
+        result, lead_id = await off_loop(self.lead_tools.capture_with_id, 
             name=name,
             phone=actual_phone,
             interest=interest,
@@ -206,7 +217,7 @@ class AxlonAgent(Agent):
         if not self.staff_auth_tools:
             return "Staff authentication is not available for this line."
 
-        success, staff_info, message = await self.staff_auth_tools.verify_pin(
+        success, staff_info, message = await off_loop(self.staff_auth_tools.verify_pin, 
             name=name,
             pin=pin,
             caller_phone=self.caller_phone,
@@ -257,7 +268,7 @@ class AxlonAgent(Agent):
         if filter_today:
             filters['today'] = True
 
-        result = await self.staff_auth_tools.query_internal_data(
+        result = await off_loop(self.staff_auth_tools.query_internal_data, 
             query_type=query_type,
             query=query,
             filters=filters if filters else None,
@@ -268,14 +279,14 @@ class AxlonAgent(Agent):
             from tools import get_supabase
             try:
                 supabase = get_supabase()
-                supabase.table("dealer_staff_access_logs").insert({
+                await asyncio.to_thread(supabase.table("dealer_staff_access_logs").insert({
                     "dealer_id": self.dealer_id,
                     "staff_id": self.staff_auth_tools.authenticated_staff['id'],
                     "query_type": query_type,
                     "query": query[:500] if query else None,
                     "response_summary": result[:200] if result else None,
                     "auth_success": True,
-                }).execute()
+                }).execute)
             except Exception as e:
                 logger.warning(f"Failed to log staff query: {e}")
 
@@ -522,7 +533,7 @@ async def entrypoint(ctx: JobContext):
     business_name = None
 
     if called_number:
-        dealer_agent = get_dealer_voice_agent_by_phone(called_number)
+        dealer_agent = await asyncio.to_thread(get_dealer_voice_agent_by_phone, called_number)
 
     # Transfer settings (will be set for dealer calls)
     can_transfer = False
@@ -576,7 +587,7 @@ Do not search inventory or provide detailed information - just capture the lead.
     else:
         # This is the main Axleyard line - use global settings
         logger.info("Main line call - using global Axleyard settings")
-        settings = with_axleyard_brand(get_ai_agent_settings())
+        settings = with_axleyard_brand(await asyncio.to_thread(get_ai_agent_settings))
 
     logger.info(f"Using voice: {settings.get('voice')}")
 
@@ -587,7 +598,7 @@ Do not search inventory or provide detailed information - just capture the lead.
 
     # Create call log entry with dealer info if applicable
     if caller_phone:
-        call_log_id = await call_log_tools.create_call_log(
+        call_log_id = await off_loop(call_log_tools.create_call_log, 
             caller_phone=caller_phone,
             call_sid=ctx.room.name,
             dealer_id=dealer_id,
@@ -619,8 +630,12 @@ Do not search inventory or provide detailed information - just capture the lead.
         logger.info("Call recording disabled (CALL_RECORDING_ENABLED is not set)")
 
     # Create xAI Realtime model with voice from settings
+    # Pinned, not grok-voice-latest: xAI moves that alias on every release,
+    # and a model change should arrive as a deliberate, tested deploy.
     model = xai.realtime.RealtimeModel(
-        voice=settings.get('voice', 'Sal'),
+        model=os.getenv("XAI_VOICE_MODEL", "grok-voice-think-fast-2.0"),
+        # The API takes lowercase voice IDs; the admin setting is "Eve"-style.
+        voice=(settings.get('voice') or 'eve').lower(),
         api_key=os.getenv("XAI_API_KEY"),
     )
 

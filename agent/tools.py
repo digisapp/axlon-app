@@ -411,6 +411,18 @@ def _title_keywords(keywords: Optional[str]) -> list[str]:
     return out[:5]
 
 
+# Deck sizes read aloud ("54 foot 4 inch by 102 inch") bury the parts a caller
+# is listening for: year, make, capacity, type. The title keeps them on screen.
+_DIMENSIONS = re.compile(
+    r"""\b\d+(?:\.\d+)?\s*(?:'|ft|feet|foot)?\s*(?:\d+\s*(?:"|in|inch)?)?\s*x\s*\d+(?:\.\d+)?\s*(?:'|"|ft|in|inch|feet)?(?:\s*\d+\s*(?:"|in))?""",
+    re.IGNORECASE,
+)
+
+
+def _spoken_title(title: str) -> str:
+    return re.sub(r"\s{2,}", " ", _DIMENSIONS.sub("", title)).strip(" ,-")
+
+
 class InventoryTools:
     """Tools for searching and retrieving inventory from Supabase."""
 
@@ -492,9 +504,9 @@ class InventoryTools:
 
             for i, listing in enumerate(listings, 1):
                 price_str = f"${listing['price']:,}" if listing.get('price') else "Call for price"
-                name = listing.get('title') or " ".join(
+                name = _spoken_title(listing.get('title') or " ".join(
                     str(listing.get(k) or '') for k in ('year', 'make', 'model')
-                ).strip()
+                ).strip())
                 condition = listing.get('condition') or ''
                 location = f"{listing.get('city') or ''}, {listing.get('state') or ''}".strip(', ')
 
@@ -1171,7 +1183,7 @@ async def transcribe_call_recording(
         async with httpx.AsyncClient() as client:
             # Upload audio and get transcription
             response = await client.post(
-                "https://api.x.ai/v1/audio/transcriptions",
+                "https://api.x.ai/v1/stt",
                 headers={
                     "Authorization": f"Bearer {xai_api_key}",
                 },
@@ -1179,7 +1191,7 @@ async def transcribe_call_recording(
                     "file": ("recording.mp3", audio_data, "audio/mpeg"),
                 },
                 data={
-                    "model": "whisper-1",  # xAI uses whisper-compatible API
+                    "model": "grok-stt",  # xAI speech-to-text; /v1/audio/transcriptions does not exist
                 },
                 timeout=120.0,
             )
