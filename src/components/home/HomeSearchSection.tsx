@@ -16,12 +16,9 @@ export function HomeSearchSection() {
     <>
       {/* Headline — the header already carries the logo, so the hero leads
           with the promise and the search box instead of a second mascot */}
-      <h1 className="text-center text-[1.75rem] leading-tight sm:text-4xl md:text-5xl font-bold tracking-tight max-w-3xl mb-3 md:mb-4 px-2">
+      <h1 className="text-center text-[1.75rem] leading-tight sm:text-4xl md:text-5xl font-bold tracking-tight max-w-3xl mb-5 md:mb-7 px-2">
         The nationwide marketplace for trucks, trailers &amp; heavy equipment
       </h1>
-      <p className="text-center text-sm md:text-base text-muted-foreground dark:text-foreground/60 max-w-2xl mb-5 md:mb-7 px-4">
-        Search in plain English, compare prices, and reach sellers across the country.
-      </p>
 
       {/* Search Bar */}
       <div className="w-full max-w-2xl mb-4 md:mb-5 px-2">
