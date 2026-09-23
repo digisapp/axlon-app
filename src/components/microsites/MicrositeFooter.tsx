@@ -1,3 +1,4 @@
+import { Truck } from 'lucide-react';
 import type { Microsite } from '@/lib/microsites/resolve';
 
 export function MicrositeFooter({
@@ -8,27 +9,35 @@ export function MicrositeFooter({
   disclaimer: string;
 }) {
   return (
-    <footer className="border-t bg-muted/30">
-      <div className="mx-auto max-w-6xl space-y-4 px-4 py-10 text-sm text-muted-foreground">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <span className="font-semibold text-foreground">{site.name}</span>
-          <nav className="flex flex-wrap gap-4">
-            <a href="https://axleyard.com" className="hover:text-foreground">
+    <footer className="bg-slate-950 text-slate-400">
+      <div className="mx-auto max-w-6xl px-4 py-12 text-sm">
+        <div className="flex flex-col gap-6 border-b border-white/10 pb-8 sm:flex-row sm:items-center sm:justify-between">
+          <span className="flex items-center gap-2.5 font-bold text-white">
+            <span
+              className="flex h-8 w-8 items-center justify-center rounded-lg"
+              style={{ backgroundColor: 'var(--ms-accent)' }}
+            >
+              <Truck className="h-4 w-4" />
+            </span>
+            {site.name}
+          </span>
+          <nav className="flex flex-wrap gap-x-6 gap-y-2">
+            <a href="https://axleyard.com" className="transition hover:text-white">
               Browse the full marketplace
             </a>
-            <a href="https://axleyard.com/privacy" className="hover:text-foreground">
+            <a href="https://axleyard.com/privacy" className="transition hover:text-white">
               Privacy
             </a>
-            <a href="https://axleyard.com/terms" className="hover:text-foreground">
+            <a href="https://axleyard.com/terms" className="transition hover:text-white">
               Terms
             </a>
           </nav>
         </div>
 
         {/* Affiliation disclosure — rendered on every page of every microsite. */}
-        <p className="max-w-3xl text-xs leading-relaxed">{disclaimer}</p>
+        <p className="mt-8 max-w-3xl text-xs leading-relaxed text-slate-500">{disclaimer}</p>
 
-        <p className="text-xs">
+        <p className="mt-4 text-xs text-slate-500">
           © {new Date().getFullYear()} Axleyard. All rights reserved.
         </p>
       </div>

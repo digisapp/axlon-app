@@ -110,8 +110,10 @@ export function MicrositeLeadForm({
     );
   }
 
+  // 16px text keeps iOS from zooming on focus; the ring picks up the site accent.
   const field =
-    'w-full rounded-md border bg-background px-3 py-2 text-base shadow-sm outline-none focus:ring-2 focus:ring-offset-1';
+    'w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-[var(--ms-accent)] focus:ring-4 focus:ring-[color-mix(in_srgb,var(--ms-accent)_18%,transparent)]';
+  const label = 'mb-1.5 block text-sm font-medium text-slate-700';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -139,25 +141,25 @@ export function MicrositeLeadForm({
 
       <div className={compact ? 'space-y-3' : 'grid gap-3 sm:grid-cols-2'}>
         <div>
-          <label htmlFor="ms-name" className="mb-1 block text-sm font-medium">
-            Name <span className="text-red-500">*</span>
+          <label htmlFor="ms-name" className={label}>
+            Name <span className="text-slate-400">*</span>
           </label>
           <input id="ms-name" name="buyer_name" required maxLength={100} autoComplete="name" className={field} />
         </div>
         <div>
-          <label htmlFor="ms-email" className="mb-1 block text-sm font-medium">
-            Email <span className="text-red-500">*</span>
+          <label htmlFor="ms-email" className={label}>
+            Email <span className="text-slate-400">*</span>
           </label>
           <input id="ms-email" name="buyer_email" type="email" required maxLength={200} autoComplete="email" className={field} />
         </div>
         <div>
-          <label htmlFor="ms-phone" className="mb-1 block text-sm font-medium">
+          <label htmlFor="ms-phone" className={label}>
             Phone
           </label>
           <input id="ms-phone" name="buyer_phone" type="tel" maxLength={20} autoComplete="tel" className={field} />
         </div>
         <div>
-          <label htmlFor="ms-timeframe" className="mb-1 block text-sm font-medium">
+          <label htmlFor="ms-timeframe" className={label}>
             Timeframe
           </label>
           <select id="ms-timeframe" name="timeframe" defaultValue="" className={field}>
@@ -173,7 +175,7 @@ export function MicrositeLeadForm({
 
       {!productInterest && !unit && productOptions.length > 0 && (
         <div>
-          <label htmlFor="ms-product" className="mb-1 block text-sm font-medium">
+          <label htmlFor="ms-product" className={label}>
             Trailer of interest
           </label>
           <select id="ms-product" name="product_interest" defaultValue="" className={field}>
@@ -188,7 +190,7 @@ export function MicrositeLeadForm({
       )}
 
       <div>
-        <label htmlFor="ms-message" className="mb-1 block text-sm font-medium">
+        <label htmlFor="ms-message" className={label}>
           What are you hauling?
         </label>
         <textarea
@@ -216,14 +218,14 @@ export function MicrositeLeadForm({
       <button
         type="submit"
         disabled={status === 'sending'}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-md px-4 py-3 text-base font-semibold text-white shadow-sm transition-opacity hover:opacity-90 disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3.5 text-base font-semibold text-white shadow-md transition hover:brightness-110 disabled:opacity-60"
         style={{ backgroundColor: 'var(--ms-accent)' }}
       >
         {status === 'sending' && <Loader2 className="h-4 w-4 animate-spin" />}
         {status === 'sending' ? 'Sending…' : ctaLabel}
       </button>
 
-      <p className="text-center text-xs text-muted-foreground">
+      <p className="text-center text-xs text-slate-500">
         No obligation. We&apos;ll only use your details to answer this request.
       </p>
     </form>

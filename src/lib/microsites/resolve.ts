@@ -7,6 +7,7 @@ import type { ManufacturerProduct } from '@/types';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
 import { normalizeHost } from './config';
 import { catalogScope } from './catalog-scope';
+import { withoutJunkImages } from '@/lib/images/catalog-junk-images';
 
 export { catalogScope } from './catalog-scope';
 
@@ -191,6 +192,11 @@ function rankCatalog(rows: MicrositeProduct[], primaryType: string | null): Micr
   });
 }
 
+/** Logos and icons the scrapers filed as product photos — see catalog-junk-images. */
+function cleanImages(product: MicrositeProduct): MicrositeProduct {
+  return { ...product, images: withoutJunkImages(product.images) };
+}
+
 // A category site spans up to ~260 rows today; this is the ceiling on what
 // one grid request will pull before ranking.
 const CATEGORY_SCOPE_CEILING = 500;
@@ -240,7 +246,7 @@ async function fetchProducts(
     // so swallowing a transient failure here would pin an empty catalog on the
     // page for the full TTL. The caller logs and degrades for this request only.
     if (error) throw new Error(`microsite products query failed: ${error.message}`);
-    const rows = (data ?? []) as unknown as MicrositeProduct[];
+    const rows = ((data ?? []) as unknown as MicrositeProduct[]).map(cleanImages);
     return spansManufacturers ? rankCatalog(rows, primaryType).slice(0, limit) : rows;
 }
 
@@ -318,7 +324,8 @@ async function fetchProduct(
     .limit(1);
 
   if (error) throw new Error(`microsite product query failed: ${error.message}`);
-  return (data?.[0] as unknown as MicrositeProduct) ?? null;
+  const row = data?.[0] as unknown as MicrositeProduct | undefined;
+  return row ? cleanImages(row) : null;
 }
 
 /** One catalog product on this microsite, by slug. */

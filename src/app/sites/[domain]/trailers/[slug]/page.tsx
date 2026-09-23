@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronRight, Truck } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import {
   getMicrositeByHost,
   getMicrositeProduct,
@@ -12,6 +12,8 @@ import { MicrositeLeadForm } from '@/components/microsites/MicrositeLeadForm';
 import { JsonLd } from '@/components/microsites/JsonLd';
 import { productJsonLd, productMetaDescription, productTypeExplainer } from '@/lib/microsites/content';
 import { isOptimizerBlockedImage } from '@/lib/images/optimizer-blocked-hosts';
+import { MicrositeProductCard, tonnageLabel } from '@/components/microsites/MicrositeProductCard';
+import { TrailerArt } from '@/components/microsites/TrailerArt';
 
 
 interface PageProps {
@@ -101,7 +103,9 @@ export default async function MicrositeProductPage({ params }: PageProps) {
 
       <div className="grid gap-10 lg:grid-cols-[1fr_400px]">
         <div>
-          <div className="relative aspect-[4/3] overflow-hidden rounded-xl border bg-muted">
+          {/* contain, not cover: catalog shots are cut-outs, and cropping one
+              to fill took the gooseneck or the axles off the trailer. */}
+          <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-b from-slate-50 to-slate-100">
             {hero ? (
               <Image
                 src={hero.url}
@@ -109,26 +113,24 @@ export default async function MicrositeProductPage({ params }: PageProps) {
                 fill
                 priority
                 sizes="(max-width: 1024px) 100vw, 60vw"
-                className="object-cover"
+                className="object-contain p-4"
                 unoptimized={isOptimizerBlockedImage(hero.url)}
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Truck className="h-16 w-16 text-muted-foreground/30" />
-              </div>
+              <TrailerArt label={tonnageLabel(product.tonnage_min, product.tonnage_max)} />
             )}
           </div>
 
           {images.length > 1 && (
             <div className="mt-3 grid grid-cols-4 gap-3">
               {images.slice(1, 5).map((img) => (
-                <div key={img.url} className="relative aspect-[4/3] overflow-hidden rounded-md border bg-muted">
+                <div key={img.url} className="relative aspect-[4/3] overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
                   <Image
                     src={img.url}
                     alt={img.alt_text || product.name}
                     fill
                     sizes="25vw"
-                    className="object-cover"
+                    className="object-contain p-1.5"
                     unoptimized={isOptimizerBlockedImage(img.url)}
                   />
                 </div>
@@ -137,21 +139,25 @@ export default async function MicrositeProductPage({ params }: PageProps) {
           )}
 
           {maker?.name && !site.manufacturer_id && (
-        <p className="mt-8 text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          {maker.name}
-        </p>
-      )}
-      <h1 className={`text-3xl font-bold tracking-tight ${maker?.name && !site.manufacturer_id ? 'mt-1' : 'mt-8'}`}>
-        {product.name}
-      </h1>
+            <p className="mt-8 text-xs font-bold uppercase tracking-[0.16em]" style={{ color: 'var(--ms-accent)' }}>
+              {maker.name}
+            </p>
+          )}
+          <h1 className={`text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl ${maker?.name && !site.manufacturer_id ? 'mt-2' : 'mt-8'}`}>
+            {product.name}
+          </h1>
           {product.tagline && <p className="mt-2 text-lg text-muted-foreground">{product.tagline}</p>}
 
           {headlineSpecs.length > 0 && (
             <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {headlineSpecs.map(([label, value]) => (
-                <div key={label} className="rounded-lg border bg-card p-3">
-                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">{label}</dt>
-                  <dd className="mt-1 text-lg font-semibold">{value}</dd>
+                <div
+                  key={label}
+                  className="rounded-xl border border-slate-200 bg-white p-4"
+                  style={{ borderTop: '3px solid var(--ms-accent)' }}
+                >
+                  <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</dt>
+                  <dd className="mt-1 text-xl font-bold text-slate-900">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -181,7 +187,10 @@ export default async function MicrositeProductPage({ params }: PageProps) {
                           <dt className="text-muted-foreground">{row.spec_key}</dt>
                           <dd className="text-right font-medium">
                             {row.spec_value}
-                            {row.spec_unit ? ` ${row.spec_unit}` : ''}
+                            {/* The scraper often left the unit in the value too
+                                ("80,000 lbs" + "lbs", "10'" + "in"). Only a
+                                bare number gets the unit appended. */}
+                            {row.spec_unit && /^[\d.,\s-]+$/.test(row.spec_value) ? ` ${row.spec_unit}` : ''}
                           </dd>
                         </div>
                       ))}
@@ -212,10 +221,13 @@ export default async function MicrositeProductPage({ params }: PageProps) {
 
         {/* Quote form tracks alongside the specs on desktop. */}
         <aside>
-          <div id="quote" className="scroll-mt-20 rounded-xl border bg-card p-5 shadow-sm lg:sticky lg:top-24">
-            <h2 className="text-lg font-semibold">Get pricing on this trailer</h2>
-            <p className="mb-4 mt-1 text-sm text-muted-foreground">
-              We&apos;ll send availability and a real quote for the {product.name}.
+          <div id="quote" className="scroll-mt-24 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg lg:sticky lg:top-24">
+            <div className="h-1.5" style={{ backgroundColor: 'var(--ms-accent)' }} />
+            <div className="p-5 sm:p-6">
+            <h2 className="text-lg font-bold tracking-tight">Get pricing on this trailer</h2>
+            <p className="mb-4 mt-1 text-sm text-slate-500">
+              We&apos;ll send availability and a real quote for the {product.name}, usually within
+              one business day.
             </p>
             <MicrositeLeadForm
               micrositeId={site.id}
@@ -223,44 +235,18 @@ export default async function MicrositeProductPage({ params }: PageProps) {
               productInterest={product.name}
               compact
             />
+            </div>
           </div>
         </aside>
       </div>
 
       {related.length > 0 && (
-        <section className="mt-16 border-t pt-10">
-          <h2 className="text-xl font-semibold">Other models</h2>
+        <section className="mt-16 border-t border-slate-200 pt-10">
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Other models</h2>
           <div className="mt-5 grid gap-5 sm:grid-cols-3">
-            {related.map((p) => {
-              const img = p.images?.find((i) => i.is_primary) || p.images?.[0];
-              return (
-                <Link
-                  key={p.id}
-                  href={`/trailers/${p.slug}`}
-                  className="group overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-md"
-                >
-                  <div className="relative aspect-[4/3] bg-muted">
-                    {img ? (
-                      <Image
-                        src={img.url}
-                        alt={img.alt_text || p.name}
-                        fill
-                        sizes="33vw"
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                        unoptimized={isOptimizerBlockedImage(img.url)}
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Truck className="h-10 w-10 text-muted-foreground/30" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <h3 className="text-sm font-semibold leading-tight group-hover:underline">{p.name}</h3>
-                  </div>
-                </Link>
-              );
-            })}
+            {related.map((p) => (
+              <MicrositeProductCard key={p.id} product={p} showMaker={!site.manufacturer_id} compact />
+            ))}
           </div>
         </section>
       )}
