@@ -5,6 +5,7 @@ import { MICROSITE_HOST_HEADER, isAppHost } from '@/lib/microsites/config';
 import { MicrositeHeader } from '@/components/microsites/MicrositeHeader';
 import { MicrositeFooter } from '@/components/microsites/MicrositeFooter';
 import { MicrositeTracker } from '@/components/microsites/MicrositeTracker';
+import { MicrositeChat } from '@/components/microsites/MicrositeChat';
 
 // Dynamic, not cached. `revalidate` would be inert here anyway: the root
 // layout reads headers() for the CSP nonce, which opts the whole route tree
@@ -50,6 +51,7 @@ export default async function MicrositeLayout({
       <MicrositeHeader site={site} />
       <main className="flex-1">{children}</main>
       <MicrositeFooter site={site} disclaimer={disclaimerFor(site)} />
+      <MicrositeChat micrositeId={site.id} siteName={site.name} />
     </div>
   );
 }

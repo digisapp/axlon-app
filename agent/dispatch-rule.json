@@ -5,12 +5,12 @@
             "roomPrefix": "call-"
         }
     },
-    "name": "axlon-inbound",
+    "name": "axles-inbound",
     "metadata": "",
     "attributes": {},
     "room_config": {
         "agents": [{
-            "agentName": "axlon-voice-agent"
+            "agentName": "axles-voice-agent"
         }]
     }
 }

@@ -719,6 +719,10 @@ if __name__ == "__main__":
     cli.run_app(
         WorkerOptions(
             entrypoint_fnc=entrypoint,
-            agent_name="axlon-voice-agent",
+            # Must equal the agentName in the live SIP dispatch rule
+            # (`lk sip dispatch list`), or inbound calls reach no worker and
+            # ring out. The live rule predates the AxlonAI rename and still
+            # says axles-voice-agent; rename both together or neither.
+            agent_name=os.getenv("LIVEKIT_AGENT_NAME", "axles-voice-agent"),
         )
     )

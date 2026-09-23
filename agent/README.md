@@ -76,7 +76,7 @@ Create a file `dispatch-rule.json`:
         },
         "roomConfig": {
             "agents": [{
-                "agentName": "axlon-voice-agent"
+                "agentName": "axles-voice-agent"
             }]
         }
     }
@@ -107,7 +107,7 @@ To have the agent call a number:
 ```bash
 lk dispatch create \
     --new-room \
-    --agent-name axlon-voice-agent \
+    --agent-name axles-voice-agent \
     --metadata '{"phone_number": "+15105550123"}'
 ```
 
