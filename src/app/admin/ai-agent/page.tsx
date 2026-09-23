@@ -27,6 +27,7 @@ import {
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { XAI_VOICES } from '@/lib/voice/xai-voices';
 
 interface AIAgentSettings {
   id: string;
@@ -41,14 +42,7 @@ interface AIAgentSettings {
   updated_at: string;
 }
 
-const VOICE_OPTIONS = [
-  { value: 'Ara', label: 'Ara', description: 'Female, warm and friendly' },
-  { value: 'Eve', label: 'Eve', description: 'Female, professional' },
-  { value: 'Mika', label: 'Mika', description: 'Female, energetic' },
-  { value: 'Leo', label: 'Leo', description: 'Male, casual and relaxed' },
-  { value: 'Rex', label: 'Rex', description: 'Male, authoritative' },
-  { value: 'Sal', label: 'Sal', description: 'Male, professional' },
-];
+const VOICE_OPTIONS = XAI_VOICES.map((v) => ({ ...v, label: v.value }));
 
 export default function AIAgentSettingsPage() {
   const [settings, setSettings] = useState<AIAgentSettings | null>(null);

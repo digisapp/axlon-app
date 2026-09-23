@@ -4,9 +4,10 @@ import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } f
 import { logger } from '@/lib/logger'
 import { requireCsrf } from '@/lib/security/csrf'
 import { z } from 'zod'
+import { XAI_VOICE_IDS } from '@/lib/voice/xai-voices'
 
 const aiAgentSettingsSchema = z.object({
-  voice: z.enum(['Ara', 'Eve', 'Mika', 'Leo', 'Rex', 'Sal']).optional(),
+  voice: z.enum(XAI_VOICE_IDS).optional(),
   agent_name: z.string().min(1).max(100).optional(),
   greeting_message: z.string().max(1000).optional(),
   instructions: z.string().max(5000).optional(),
