@@ -1,3 +1,5 @@
+import junk from '@/lib/catalog/catalog-junk.json';
+
 /**
  * Scraped catalog "product images" that are not photos of the product.
  *
@@ -20,64 +22,8 @@
  * Filtering here rather than deleting rows keeps the call reversible; a
  * scraper-side guard is the durable fix.
  */
-const JUNK_HASH_PREFIXES = new Set([
-  '26cb2b44', // Marmon / Berkshire Hathaway lockup
-  'afc0564b', // JAS-ANZ / TCL certification badge
-  '9f2ef939', // GSA Schedule badge
-  'cca580db', // factory line icon (every XL Specialized model)
-  '5712b202', // rosette check-mark icon
-  '1b69e6db', // Kalyn Siebert logo
-  '17e9ba15', // book-and-gear icon
-  '2438cd59', // gears icon
-  'd308f8d9', // NTDA logo
-  '76700fcd', // ISO 9001 badge
-  '84eee51c', // NATM logo
-  '1b50b5e9', // Alabama Trucking Association logo
-  '27a429c3', // Globe Trailers logo
-  '1451cc61', // Alabama Forestry Association logo
-  '906a85b6', // "Granite" truck-series banner
-  '5af63cba', // colour bars
-  '34243fa2', // Loadstar Trailers logo
-  'c4100e26', // Cavanagh Construction logo
-  'f48a5fe3', // Hoffmann Family of Companies logo
-  'dca4b394', // stock scenery
-  '96fbad3d', // "Keystone" banner
-  'd662ce74', // "Pinnacle" banner
-  '2cfb7c00', // "Pioneer" banner
-  '7f5461d0', // stock bridge photo
-  '83279058', // loading dock photo
-  '757e9cba', // quarry scenery
-  '913585d5', // Yantha logo
-  'b51d8347', // "Terrapro" banner
-  '832e78f2', // Sierra Construction logo
-  '34d612da', // "MD Series" banner
-  'b9011e71', // "Anthem" banner
-  '4de253cc', // Michael Bros. Excavating logo
-  '701ba4a6', // customer logo
-  'ee5dbf08', // Twitter icon
-  '6f68baf8', // social-media post screenshot
-  '33dec6da', // Mulltech Excavating logo
-  '38aa8908', // "Extreme" logo
-  '722c8f0d', // dealer-locator map
-  '8e63cc68', // EV charging stock photo
-  'c2786811', // "MD Electric" banner
-  '16382e60', // "Granite" banner
-  'e32b6390', // "LR Electric" banner
-  '99e24e6a', // Babb's Sand & Gravel logo
-  '44f70d77', // Trans Power logo
-  'a7bab700', // colour bars
-  '9170b43d', // "LR" banner
-  '948de5a2', // truck-cab lifestyle photo
-  '055a8726', // key-fob lifestyle photo
-  '9a6305d2', // truck-interior lifestyle photo
-  // Second pass, reviewing the lead photo of every model a microsite shows.
-  // A brand banner repeated as image #1 across a whole range is not a photo
-  // of any one model — fifteen Magnitude cards led with the same shot.
-  'f9b90e7d', // Kalyn Siebert building sign
-  '318ef40e', // Kalyn Siebert building sign
-  'ac3301ad', // Kalyn Siebert building sign
-  'a10f8dda', // Alabama Forestry Association logo
-]);
+// The lists live in catalog-junk.json so the scrapers read the same ones.
+const JUNK_HASH_PREFIXES = new Set(junk.junkImageHashes.map((e) => e.hash));
 
 /**
  * Real trailer photos, but a maker's brand shot rather than the model: the
@@ -85,10 +31,7 @@ const JUNK_HASH_PREFIXES = new Set([
  * several Fontaine models they are the only images there are, so they are a
  * last resort, not junk — see `withBrandBannersLast`.
  */
-const BRAND_BANNER_PREFIXES = new Set([
-  '96244619', // Fontaine: truck hauling a wind blade (43 products)
-  '94dc6a20', // trailer line-up in a stadium (41 products)
-]);
+const BRAND_BANNER_PREFIXES = new Set(junk.brandBannerHashes.map((e) => e.hash));
 
 const HASHED_NAME = /-([0-9a-f]{8})\.[a-z0-9]+$/i;
 

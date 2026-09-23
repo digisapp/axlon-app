@@ -4,7 +4,7 @@ import { newTrailersQuerySchema } from '@/lib/validations/api';
 import { logger } from '@/lib/logger';
 import { CATALOG_CACHE_HEADERS } from '@/lib/api/cache-headers';
 import { withBrandBannersLast } from '@/lib/images/catalog-junk-images';
-import { HIDDEN_PRODUCT_FILTER, cleanProductName } from '@/lib/catalog/quality';
+import { HIDDEN_PRODUCT_FILTER, cleanProductName, correctedTonnage } from '@/lib/catalog/quality';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -144,6 +144,7 @@ export async function GET(request: NextRequest) {
         data: (data || []).map((p) => ({
           ...p,
           name: cleanProductName(p.name),
+          ...correctedTonnage(p),
           manufacturer_product_images: withBrandBannersLast(p.manufacturer_product_images),
         })),
         total,

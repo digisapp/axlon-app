@@ -4,6 +4,7 @@ import {
   landingJsonLd,
   productJsonLd,
   productMetaDescription,
+  productSummary,
   productTypeExplainer,
 } from '@/lib/microsites/content';
 import type { Microsite, MicrositeProduct } from '@/lib/microsites/resolve';
@@ -168,5 +169,39 @@ describe('productJsonLd', () => {
     ) as [{ additionalProperty: Array<{ name: string; value: number }> }];
     const names = product.additionalProperty.map((p) => p.name);
     expect(names).toEqual(['Capacity', 'GVWR']);
+  });
+});
+
+describe('productSummary', () => {
+  const base = {
+    name: 'XL 80 HDE',
+    product_type: 'rgn',
+    tonnage_min: null,
+    tonnage_max: 40,
+    axle_count: 3,
+    deck_length_feet: 26,
+    deck_height_inches: 22,
+    gvwr_lbs: 120000,
+    gooseneck_type: null,
+  } as unknown as Parameters<typeof productSummary>[0];
+
+  it('states only stored values, keeping acronyms', () => {
+    expect(productSummary(base, 'XL Specialized')).toBe(
+      'The XL 80 HDE is a 40-ton RGN trailer with 3 axles, a 26-foot deck and a 22-inch loaded deck height. ' +
+        'Gross vehicle weight rating is 120,000 lb. ' +
+        `Trailers of this type typically haul ${productTypeExplainer('rgn').hauls}.`
+    );
+  });
+
+  it('names the maker when the model name does not', () => {
+    expect(productSummary({ ...base, name: '65FG', product_type: 'lowboy' }, 'Talbert Manufacturing')).toMatch(
+      /^The Talbert Manufacturing 65FG is a 40-ton lowboy trailer/
+    );
+  });
+
+  it('returns null with nothing to say', () => {
+    expect(
+      productSummary({ ...base, tonnage_max: undefined, axle_count: undefined, deck_length_feet: undefined, deck_height_inches: undefined }, 'X')
+    ).toBeNull();
   });
 });

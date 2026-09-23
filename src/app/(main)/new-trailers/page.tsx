@@ -8,7 +8,7 @@ import { jsonLdString } from '@/lib/seo/json-ld';
 import { Suspense } from 'react';
 import { CatalogSkeleton } from './CatalogSkeleton';
 import { withBrandBannersLast } from '@/lib/images/catalog-junk-images';
-import { HIDDEN_PRODUCT_FILTER, cleanProductName } from '@/lib/catalog/quality';
+import { HIDDEN_PRODUCT_FILTER, cleanProductName, correctedTonnage } from '@/lib/catalog/quality';
 
 // The full catalog is ~390 products; rendering every card on the index made
 // this a 2 MB page. Show a preview per manufacturer and link to the
@@ -123,7 +123,7 @@ async function CatalogContent({ slug }: { slug: string | null }) {
         .from('manufacturer_products')
         .select(`
           id, name, slug, series, gooseneck_type, tonnage_min, tonnage_max,
-          deck_height_inches, axle_count, sort_order,
+          deck_height_inches, axle_count, sort_order, source_url,
           manufacturer:manufacturers!manufacturer_id(id, name, slug),
           images:manufacturer_product_images(url, alt_text, is_primary)
         `)
@@ -140,6 +140,7 @@ async function CatalogContent({ slug }: { slug: string | null }) {
   const productRows = ((products ?? []) as unknown as ProductRow[]).map((p) => ({
     ...p,
     name: cleanProductName(p.name),
+    ...correctedTonnage(p),
     images: withBrandBannersLast(p.images).slice(0, 1),
   }));
 

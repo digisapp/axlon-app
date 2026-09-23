@@ -111,6 +111,63 @@ export function productTypeExplainer(productType: string | null | undefined): Ty
   return EXPLAINERS[productType ?? ''] ?? EXPLAINERS.other;
 }
 
+/**
+ * A factual overview built only from the model's structured fields, for the
+ * third of the catalog whose maker page gave the scraper no description.
+ * Every clause is a stored value; nothing is inferred beyond the type label.
+ * Returns null when there is too little to say.
+ */
+export function productSummary(
+  product: Pick<
+    MicrositeProduct,
+    | 'name'
+    | 'product_type'
+    | 'tonnage_min'
+    | 'tonnage_max'
+    | 'axle_count'
+    | 'deck_length_feet'
+    | 'deck_height_inches'
+    | 'gvwr_lbs'
+    | 'gooseneck_type'
+  >,
+  makerName: string | null | undefined
+): string | null {
+  const type = productTypeExplainer(product.product_type);
+  const cap =
+    product.tonnage_min && product.tonnage_max && product.tonnage_min !== product.tonnage_max
+      ? `${product.tonnage_min}–${product.tonnage_max}-ton`
+      : product.tonnage_max
+        ? `${product.tonnage_max}-ton`
+        : null;
+
+  const details = [
+    product.axle_count ? `${product.axle_count} axle${product.axle_count === 1 ? '' : 's'}` : null,
+    product.deck_length_feet ? `a ${product.deck_length_feet}-foot deck` : null,
+    product.deck_height_inches ? `a ${product.deck_height_inches}-inch loaded deck height` : null,
+  ].filter(Boolean) as string[];
+
+  if (!cap && details.length === 0) return null;
+
+  const maker = (makerName ?? '').trim();
+  const subject = maker && !product.name.toLowerCase().startsWith(maker.split(' ')[0].toLowerCase())
+    ? `The ${maker} ${product.name}`
+    : `The ${product.name}`;
+  // "RGN" stays an acronym; "Step deck" reads mid-sentence as "step deck".
+  const label = type.label === type.label.toUpperCase() ? type.label : type.label.toLowerCase();
+  const typeNoun = `${label} trailer`;
+  const list =
+    details.length > 1 ? `${details.slice(0, -1).join(', ')} and ${details[details.length - 1]}` : details[0];
+
+  const sentences = [
+    `${subject} is ${cap ? `a ${cap} ${typeNoun}` : `a ${typeNoun}`}${list ? ` with ${list}` : ''}.`,
+  ];
+  if (product.gvwr_lbs) {
+    sentences.push(`Gross vehicle weight rating is ${product.gvwr_lbs.toLocaleString('en-US')} lb.`);
+  }
+  sentences.push(`Trailers of this type typically haul ${type.hauls}.`);
+  return sentences.join(' ');
+}
+
 // ---------------------------------------------------------------------------
 // Detail-page meta description
 // ---------------------------------------------------------------------------

@@ -8,6 +8,7 @@
  * No puppeteer dependency so lightweight scrapers can import this directly.
  */
 import crypto from 'crypto';
+import { isIconSized, isJunkImageHash, isLogoUrl } from './catalog-junk.mjs';
 
 /**
  * Download an image and upload it to the listing-images bucket.
@@ -127,6 +128,11 @@ export async function downloadAndStoreManufacturerImage(
   { fetchBuffer } = {}
 ) {
   try {
+    // A path that says logo/icon/badge is not a product photo; don't fetch it.
+    if (isLogoUrl(imageUrl)) {
+      console.warn(`  ⚠ Skipping logo/icon URL: ${imageUrl}`);
+      return null;
+    }
     const trimmed = imageUrl.trim();
     const fetchUrl = /%[0-9A-Fa-f]{2}/.test(trimmed) ? trimmed : encodeURI(trimmed);
 
@@ -172,6 +178,16 @@ export async function downloadAndStoreManufacturerImage(
           ? 'gif'
           : 'jpg';
     const hash = crypto.createHash('md5').update(buffer).digest('hex').substring(0, 8);
+    // Files already reviewed as logos/badges (src/lib/catalog/catalog-junk.json),
+    // and anything icon-sized, never become a product photo.
+    if (isJunkImageHash(hash)) {
+      console.warn(`  ⚠ Skipping known non-product image ${hash}: ${imageUrl}`);
+      return null;
+    }
+    if (await isIconSized(buffer)) {
+      console.warn(`  ⚠ Skipping icon-sized image: ${imageUrl}`);
+      return null;
+    }
     const path = `manufacturer-products/${productId}/${index}-${hash}.${ext}`;
 
     const { error } = await supabase.storage

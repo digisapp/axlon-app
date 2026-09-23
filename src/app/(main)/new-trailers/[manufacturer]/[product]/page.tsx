@@ -19,7 +19,7 @@ import {
 import { jsonLdString } from '@/lib/seo/json-ld';
 import { isOptimizerBlockedImage } from '@/lib/images/optimizer-blocked-hosts';
 import { isBrandBanner, withBrandBannersLast } from '@/lib/images/catalog-junk-images';
-import { HIDDEN_PRODUCT_FILTER, cleanCopy, cleanProductName, isHiddenProduct } from '@/lib/catalog/quality';
+import { HIDDEN_PRODUCT_FILTER, cleanCopy, cleanProductName, correctedTonnage, isHiddenProduct } from '@/lib/catalog/quality';
 
 function createSupabase() {
   return createClient(
@@ -114,6 +114,7 @@ async function getProduct(manufacturerSlug: string, productSlug: string) {
   return {
     ...product,
     name: cleanProductName(product.name),
+    ...correctedTonnage(product),
     short_description: cleanCopy(product.short_description) ?? undefined,
     description: cleanCopy(product.description) ?? undefined,
     // Gallery order, with logos dropped and brand banners behind real photos.

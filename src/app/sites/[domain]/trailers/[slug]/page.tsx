@@ -10,7 +10,7 @@ import {
 } from '@/lib/microsites/resolve';
 import { MicrositeLeadForm } from '@/components/microsites/MicrositeLeadForm';
 import { JsonLd } from '@/components/microsites/JsonLd';
-import { productJsonLd, productMetaDescription, productTypeExplainer } from '@/lib/microsites/content';
+import { productJsonLd, productMetaDescription, productSummary, productTypeExplainer } from '@/lib/microsites/content';
 import { isOptimizerBlockedImage } from '@/lib/images/optimizer-blocked-hosts';
 import { MicrositeProductCard, tonnageLabel } from '@/components/microsites/MicrositeProductCard';
 import { TrailerArt } from '@/components/microsites/TrailerArt';
@@ -65,6 +65,8 @@ export default async function MicrositeProductPage({ params }: PageProps) {
 
   const maker = Array.isArray(product.manufacturer) ? product.manufacturer[0] : product.manufacturer;
   const explainer = productTypeExplainer(product.product_type);
+  // Our own spec summary, for models the maker's page gave no description.
+  const summary = product.description ? null : productSummary(product, maker?.name);
 
   const images = [...(product.images ?? [])].sort((a, b) => {
     if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
@@ -176,6 +178,12 @@ export default async function MicrositeProductPage({ params }: PageProps) {
               <p className="mt-3 whitespace-pre-line leading-relaxed text-slate-600">
                 {product.description}
               </p>
+            </div>
+          )}
+          {summary && (
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold">Overview</h2>
+              <p className="mt-3 leading-relaxed text-slate-600">{summary}</p>
             </div>
           )}
 

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   cleanCopy,
   cleanProductName,
+  correctedTonnage,
   isBrandBoilerplate,
   isFirstPerson,
   isHiddenProduct,
@@ -129,5 +130,51 @@ describe('card copy guards', () => {
     ).toBe(true);
     expect(isBrandBoilerplate('Pitts LB55 carries 55 tons on a 22" deck.', 'Pitts Trailers')).toBe(false);
     expect(isBrandBoilerplate('Anything', null)).toBe(false);
+  });
+});
+
+describe('correctedTonnage', () => {
+  it('takes Fontaine’s rated capacity from its URL', () => {
+    expect(
+      correctedTonnage({
+        name: 'Magnitude 80 MDSR',
+        source_url: 'https://www.fontainespecialized.com/compare-trailers/magnitude-80-80-ton-capacity-modular-drop-side-rail-mdsr-3-3-tridem',
+        tonnage_min: 15,
+        tonnage_max: 15,
+      })
+    ).toEqual({ tonnage_min: 80, tonnage_max: 80 });
+  });
+
+  it('drops a Fontaine axle rating stored as capacity', () => {
+    expect(
+      correctedTonnage({
+        name: 'RENEGADE 20',
+        source_url: 'https://www.fontainespecialized.com/compare-trailers/renegade-20-mechanical-flat-double-drop',
+        tonnage_min: 13,
+        tonnage_max: 13,
+      })
+    ).toEqual({ tonnage_min: undefined, tonnage_max: undefined });
+    expect(
+      correctedTonnage({
+        name: 'RENEGADE 20',
+        source_url: 'https://www.fontainespecialized.com/compare-trailers/renegade-20-mechanical-flat-double-drop',
+        tonnage_max: 40,
+      })
+    ).toEqual({ tonnage_min: undefined, tonnage_max: 40 });
+  });
+
+  it('reads a leading range from the name', () => {
+    expect(correctedTonnage({ name: '30-55 SRG', tonnage_min: 30, tonnage_max: 30 })).toEqual({
+      tonnage_min: 30,
+      tonnage_max: 55,
+    });
+  });
+
+  it('leaves everything else as stored', () => {
+    expect(correctedTonnage({ name: 'LB51-26', tonnage_min: 51, tonnage_max: 51 })).toEqual({ tonnage_min: 51, tonnage_max: 51 });
+    expect(correctedTonnage({ name: '65FG', tonnage_max: 65 })).toEqual({ tonnage_min: undefined, tonnage_max: 65 });
+    expect(
+      correctedTonnage({ name: 'RENEGADE 20', source_url: 'https://x.com/renegade-20-mechanical-flat-double-drop', tonnage_max: 40 })
+    ).toEqual({ tonnage_min: undefined, tonnage_max: 40 });
   });
 });

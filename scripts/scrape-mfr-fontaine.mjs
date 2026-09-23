@@ -633,7 +633,10 @@ async function scrapeProductPage(page, productLink) {
 
     // Categorize and parse
     if (/capacity|tonnage|payload|rating/i.test(keyLower)) {
-      const tonnage = parseTonnage(val);
+      // "Axle Capacity: 25,000 lb" is per axle, not the trailer — read as
+      // tons it stored every Renegade at 13. Keep the row as a spec only.
+      const perAxle = /axle|tire|gawr/i.test(keyLower);
+      const tonnage = perAxle ? { min: null, max: null } : parseTonnage(val);
       if (tonnage.min) {
         tonnageMin = tonnageMin ? Math.min(tonnageMin, tonnage.min) : tonnage.min;
         tonnageMax = tonnageMax ? Math.max(tonnageMax, tonnage.max) : tonnage.max;
@@ -698,6 +701,15 @@ async function scrapeProductPage(page, productLink) {
     } else {
       specs.push({ category: 'General', key: cleanText(spec.key), value: cleanText(val), unit: '' });
     }
+  }
+
+  // The spec loop keeps the SMALLEST capacity figure it sees, and Fontaine
+  // pages list a concentrated-load rating ("… in 13'") alongside the rated
+  // capacity — so every Magnitude and Workhorse was stored at 11–15 tons.
+  // Fontaine's own URL states the rating: "…-55-ton-capacity-…".
+  const ratedInUrl = /(?:^|[/-])(\d{2,3})-ton-capacity(?:[-/]|$)/i.exec(productUrl || '');
+  if (ratedInUrl) {
+    tonnageMin = tonnageMax = parseInt(ratedInUrl[1], 10);
   }
 
   // Try to extract specs from free text if we didn't get them from structured data

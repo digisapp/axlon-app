@@ -58,6 +58,48 @@ FROM (VALUES
 JOIN categories c ON c.slug = m.slug
 WHERE l.id = m.id AND l.category_id IS DISTINCT FROM c.id;
 
+-- 3. Rated capacity the scrapers got wrong.
+--    Fontaine: the scraper kept the smallest "capacity" figure on the page, a
+--    concentrated-load rating, so every Magnitude/Workhorse read 11-15 tons.
+--    Fontaine's own URL states the rating ("...-55-ton-capacity-...").
+UPDATE manufacturer_products
+SET tonnage_min = (regexp_match(source_url, '(?:^|[/-])(\d{2,3})-ton-capacity(?:[-/]|$)'))[1]::int,
+    tonnage_max = (regexp_match(source_url, '(?:^|[/-])(\d{2,3})-ton-capacity(?:[-/]|$)'))[1]::int,
+    updated_at = now()
+WHERE source_url ~ '(?:^|[/-])\d{2,3}-ton-capacity(?:[-/]|$)'
+  AND tonnage_max IS DISTINCT FROM (regexp_match(source_url, '(?:^|[/-])(\d{2,3})-ton-capacity(?:[-/]|$)'))[1]::int;
+
+--    Fontaine Renegade URLs carry no rating; the stored 13 was the 25,000 lb
+--    axle rating read as tons. Ratings from each model's Fontaine page, 2026-09-23.
+UPDATE manufacturer_products p
+SET tonnage_min = v.t, tonnage_max = v.t, updated_at = now()
+FROM (VALUES
+  ('0469acaf-e5a4-4dfb-b99a-16b99daae235'::uuid, 40),  -- RENEGADE 20C
+  ('bee70b18-bfae-4ae2-9f04-8da029707d12'::uuid, 40),  -- RENEGADE X20C
+  ('dcf192ca-2a5f-47db-bc2b-c4a8c262046a'::uuid, 40),  -- RENEGADE N18
+  ('6724c4fc-04ba-42e4-8d68-1d0ed7421ae7'::uuid, 40),  -- RENEGADE 20
+  ('e2dd9c57-7164-4d01-b402-19c1b2eb07fe'::uuid, 40),  -- RENEGADE N20
+  ('bfb0b6c0-7fe9-426b-8158-eed730531071'::uuid, 30),  -- RENEGADE N14
+  ('5fff5f5a-3f8d-48e3-9c3f-4adff34e75a5'::uuid, 30),  -- RENEGADE N12
+  ('ebfebd9d-49b2-41ce-a3fb-a13f7e10d4c1'::uuid, 40),  -- RENEGADE 18
+  ('f4f413f7-7f9b-45ce-96d5-c53eb161b6c3'::uuid, 30),  -- RENEGADE 14
+  ('08a86817-7bbe-42d6-886b-9cdff56144bc'::uuid, 40),  -- RENEGADE X20
+  ('aca108e8-93a4-458e-b5df-d9bc99192230'::uuid, 40)   -- RENEGADE XN20
+) AS v(id, t)
+WHERE p.id = v.id AND p.tonnage_max IS DISTINCT FROM v.t;
+
+--    Talbert "30-55 SRG" and siblings: a 30-55 ton range stored as a flat 30.
+UPDATE manufacturer_products
+SET tonnage_min = (regexp_match(name, '^(\d{2,3}) ?[-–] ?(\d{2,3})\M'))[1]::int,
+    tonnage_max = (regexp_match(name, '^(\d{2,3}) ?[-–] ?(\d{2,3})\M'))[2]::int,
+    updated_at = now()
+WHERE name ~ '^\d{2,3} ?[-–] ?\d{2,3}\M'
+  AND (regexp_match(name, '^(\d{2,3}) ?[-–] ?(\d{2,3})\M'))[2]::int
+      > (regexp_match(name, '^(\d{2,3}) ?[-–] ?(\d{2,3})\M'))[1]::int
+  AND (tonnage_min, tonnage_max) IS DISTINCT FROM (
+        (regexp_match(name, '^(\d{2,3}) ?[-–] ?(\d{2,3})\M'))[1]::int,
+        (regexp_match(name, '^(\d{2,3}) ?[-–] ?(\d{2,3})\M'))[2]::int);
+
 -- Keep manufacturers.product_count honest after the deactivations.
 UPDATE manufacturers m
 SET product_count = sub.n

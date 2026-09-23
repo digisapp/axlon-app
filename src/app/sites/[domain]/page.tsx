@@ -63,7 +63,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 function formatPrice(price: number | null): string {
-  if (!price) return 'Call for price';
+  // Not "Call for price": the action on this card is the quote form.
+  if (!price) return 'Price on request';
   return `$${price.toLocaleString('en-US')}`;
 }
 

@@ -11,6 +11,7 @@ import { withoutJunkImages } from '@/lib/images/catalog-junk-images';
 import {
   cleanCopy,
   cleanProductName,
+  correctedTonnage,
   isHiddenProduct,
   isOffNicheForHeavyHaul,
 } from '@/lib/catalog/quality';
@@ -207,6 +208,7 @@ function cleanProduct(product: MicrositeProduct): MicrositeProduct {
   return {
     ...product,
     name: cleanProductName(product.name),
+    ...correctedTonnage(product),
     short_description: cleanCopy(product.short_description) ?? undefined,
     description: cleanCopy(product.description) ?? undefined,
     images: withoutJunkImages(product.images),
@@ -240,7 +242,7 @@ async function fetchProducts(
       .select(`
         id, name, slug, series, tagline, short_description, product_type,
         tonnage_min, tonnage_max, deck_height_inches, deck_length_feet,
-        axle_count, gooseneck_type, gvwr_lbs, is_featured, sort_order,
+        axle_count, gooseneck_type, gvwr_lbs, is_featured, sort_order, source_url,
         images:manufacturer_product_images(url, alt_text, is_primary),
         manufacturer:manufacturers(name, slug)
       `)
@@ -308,7 +310,7 @@ export const getMicrositeProducts = cache(
         () => fetchProducts(manufacturerId, productTypes, primaryType, limit),
         // primaryType is in the key: two sites with the same type set but a
         // different lead type must not share one ranked result.
-        ['microsite-products-v2', manufacturerId ?? '', productTypes.join(','), primaryType ?? '', String(limit)],
+        ['microsite-products-v3', manufacturerId ?? '', productTypes.join(','), primaryType ?? '', String(limit)],
         { tags: [MICROSITES_CACHE_TAG], revalidate: CATALOG_TTL_SECONDS }
       )();
     } catch (error) {
@@ -362,7 +364,7 @@ export const getMicrositeProduct = cache(
     try {
       return await unstable_cache(
         () => fetchProduct(manufacturerId, productTypes, slug),
-        ['microsite-product-v2', manufacturerId ?? '', productTypes.join(','), slug],
+        ['microsite-product-v3', manufacturerId ?? '', productTypes.join(','), slug],
         { tags: [MICROSITES_CACHE_TAG], revalidate: CATALOG_TTL_SECONDS }
       )();
     } catch (error) {

@@ -11,6 +11,7 @@ import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
 import { downloadAndStoreManufacturerImage, isSupabaseStorageUrl } from './rehost-images.mjs';
+import { cleanScrapedCopy, isHiddenProductId, isNonProductName } from './catalog-junk.mjs';
 
 puppeteer.use(StealthPlugin());
 
@@ -157,8 +158,27 @@ export async function upsertProduct(supabase, manufacturerId, product) {
     console.warn(`  Skipping "${product.name}" — looks like an error page, not a product (${product.source_url || 'no source url'})`);
     return null;
   }
+  // Service, parts, option and article pages ("Book Your Consultation!",
+  // "Color Selection Chart") — see src/lib/catalog/catalog-junk.json.
+  if (isNonProductName(product.name)) {
+    console.warn(`  Skipping "${product.name}" — a service/option/article page, not a product (${product.source_url || 'no source url'})`);
+    return null;
+  }
 
   const slug = slugify(product.name);
+
+  // The upsert below sets is_active: true, so without this a re-scrape would
+  // revive every row that was deactivated by hand as not-a-product.
+  const { data: existingRow } = await supabase
+    .from('manufacturer_products')
+    .select('id')
+    .eq('manufacturer_id', manufacturerId)
+    .eq('slug', slug)
+    .maybeSingle();
+  if (existingRow && isHiddenProductId(existingRow.id)) {
+    console.warn(`  Skipping "${product.name}" — deactivated by hand as not a product`);
+    return null;
+  }
 
   const row = {
     manufacturer_id: manufacturerId,
@@ -167,8 +187,8 @@ export async function upsertProduct(supabase, manufacturerId, product) {
     series: product.series || null,
     model_number: product.model_number || null,
     tagline: product.tagline || null,
-    description: product.description || null,
-    short_description: product.short_description || null,
+    description: cleanScrapedCopy(product.description),
+    short_description: cleanScrapedCopy(product.short_description),
     // A name that unambiguously states a distinct type wins over whatever the
     // scraper set — usually the 'lowboy' fallback, sometimes an explicit wrong
     // value. See inferProductTypeFromName for what counts as unambiguous.

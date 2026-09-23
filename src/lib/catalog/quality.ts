@@ -1,3 +1,5 @@
+import junk from './catalog-junk.json';
+
 /**
  * Display-side cleanup for the scraped manufacturer catalog.
  *
@@ -15,37 +17,11 @@
  * every page until that runs, and keeps working after it does.
  */
 
-/** Scraped pages that are not a product. Hidden everywhere the catalog renders. */
-export const HIDDEN_PRODUCT_IDS: readonly string[] = [
-  // Lifted from Hale Trailer's site (a real dealer): their photo and copy.
-  '587c05e2-9f87-4f0d-8db5-3428fb5e2a97', // Faymonville MegaMAX
-  'b2abbf97-5048-43e2-ab98-1ff021bbb4ae', // Faymonville HighwayMAX
-  // Marketing, service, parts and article pages.
-  '9c103a59-a339-4a79-9aa0-1ac713309289', // Loadstar: "Book Your Consultation!"
-  '95044af2-f230-4f08-890e-a9db25fcbd7d', // Loadstar: service department
-  'c3c1faa5-a19e-409d-89d4-f93f25f64c0c', // Loadstar: parts
-  'f5fb43f2-0d0e-4913-8575-a1dc71ca2137', // Loadstar: custom-build pitch
-  'fd349e96-31a8-4aa6-853e-58384469f3da', // Globe: buying-guide article
-  'a6892e36-0ffd-4f7b-8f20-2514d9e68058', // Globe: category index
-  'ec0c18ce-3e80-41e0-b8c7-1e16b31d0d16', // Witzco: "Translate:" widget
-  '62d0445b-5c20-45e3-a285-b75dd73158c4', // Kalyn Siebert: division page
-  '664621ed-49c2-4402-92ac-7d80bd3584f4', // Kalyn Siebert: division page
-  '571c715e-2745-4076-8cea-1d7db32e0262', // Kalyn Siebert: refurbishment programme
-  '6522d3b1-331c-4e5c-b78a-884f72e575dc', // Faymonville: scraped 404 page
-  '4b396dc4-266c-451f-a786-9a03275590c5', // Faymonville: brand overview
-  'f06bb4df-f94a-45e2-88bc-3c9745787c5a', // Faymonville: "Built for everyday heroes."
-  '4b67222b-13b5-4598-8851-57b442c7ed3d', // Felling: category index
-  '069ecd9e-f2f0-429f-94d8-b050d11feb82', // Felling: category index
-  '6a6186b0-5290-453a-9aea-f7cac6470db6', // Felling: government sales
-  'e7796113-0fb5-4414-a099-eec241d404ff', // Felling: ramp options
-  'b7669a76-d43e-4d87-bb9d-242c13b16c64', // Felling: hitch option
-  'a3d21e9c-8cc1-4527-88c3-e6068bf7da4d', // Felling: OEM division
-  '672ba9ec-46a0-4771-b3ef-2269b6274d08', // Felling: OEM division
-  '31ba749f-77bd-4be9-b332-1250e8c7cc77', // Felling: division index
-  '2c601e03-0189-4eb6-a1e0-2b651013d4a0', // Felling: colour chart
-  '9ee67cd9-6e74-4e5d-8c6f-0fc37fd65eb1', // Felling: galvanizing process
-  '8c533f1d-fd5c-4f2c-92b5-9cd792fce1ed', // Felling: dump-gate options
-];
+/**
+ * Scraped pages that are not a product. Hidden everywhere the catalog renders.
+ * Listed with a reason each in catalog-junk.json, which the scrapers also read.
+ */
+export const HIDDEN_PRODUCT_IDS: readonly string[] = junk.hiddenProductIds.map((e) => e.id);
 
 const HIDDEN = new Set(HIDDEN_PRODUCT_IDS);
 
@@ -100,8 +76,7 @@ export function cleanProductName(name: string): string {
 }
 
 /** Text that is page furniture, or another business's sales copy. */
-const JUNK_COPY =
-  /(privacy policy|cookie policy|find dealers closest|service hours|digital driver guide|can.t be found|no webpage was found|hale trailer)/i;
+const JUNK_COPY = new RegExp(junk.junkCopyPattern, 'i');
 
 /**
  * Scraped description/short_description, or null when it isn't usable.
@@ -141,4 +116,40 @@ export function isBrandBoilerplate(text: string, makerName: string | null | unde
   const first = makerName.split(' ')[0].toLowerCase();
   const lead = text.slice(0, 60).toLowerCase();
   return lead.startsWith(first) && /\b(is the|has been|have been|since \d{4})\b/.test(lead);
+}
+
+/**
+ * Rated capacity, corrected where the scrape is provably wrong.
+ *
+ * - Fontaine: the scraper took the smallest "capacity" figure on the page —
+ *   a concentrated-load rating — so every Magnitude and Workhorse read 11–15
+ *   tons. Fontaine's own URL states the rating ("…-55-ton-capacity-…").
+ *   Renegade URLs carry no rating, and their stored 13 is an axle rating.
+ * - Talbert "30-55 SRG" and siblings: a 30–55 ton range stored as a flat 30.
+ *
+ * Only these two patterns, both read from the maker's own naming; anything
+ * else is returned as stored. Migration 080 fixes the rows themselves.
+ */
+export function correctedTonnage(product: {
+  name: string;
+  source_url?: string | null;
+  tonnage_min?: number | null;
+  tonnage_max?: number | null;
+}): { tonnage_min: number | undefined; tonnage_max: number | undefined } {
+  const rated = /(?:^|[/-])(\d{2,3})-ton-capacity(?:[-/]|$)/i.exec(product.source_url ?? '');
+  if (rated) {
+    const t = Number(rated[1]);
+    return { tonnage_min: t, tonnage_max: t };
+  }
+  // Fontaine pages with no rating in the URL (Renegade): the stored 13 is a
+  // 25,000 lb axle rating ÷ 2,000, not the trailer. Say nothing rather than
+  // the wrong number; migration 080 stores the real 30/40.
+  if (/fontainespecialized\.com/i.test(product.source_url ?? '') && (product.tonnage_max ?? 99) <= 15) {
+    return { tonnage_min: undefined, tonnage_max: undefined };
+  }
+  const range = /^(\d{2,3})\s?[-–]\s?(\d{2,3})\b(?!\s?(?:ft|'|′))/.exec(product.name.trim());
+  if (range && Number(range[2]) > Number(range[1])) {
+    return { tonnage_min: Number(range[1]), tonnage_max: Number(range[2]) };
+  }
+  return { tonnage_min: product.tonnage_min ?? undefined, tonnage_max: product.tonnage_max ?? undefined };
 }

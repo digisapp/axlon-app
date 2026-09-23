@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
 import { CATALOG_CACHE_HEADERS } from '@/lib/api/cache-headers';
 import { withBrandBannersLast } from '@/lib/images/catalog-junk-images';
-import { cleanCopy, cleanProductName, isHiddenProduct } from '@/lib/catalog/quality';
+import { cleanCopy, cleanProductName, correctedTonnage, isHiddenProduct } from '@/lib/catalog/quality';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -45,6 +45,7 @@ export async function GET(
         data: {
           ...data,
           name: cleanProductName(data.name),
+          ...correctedTonnage(data),
           short_description: cleanCopy(data.short_description),
           description: cleanCopy(data.description),
           manufacturer_product_images: withBrandBannersLast(data.manufacturer_product_images),

@@ -1,0 +1,336 @@
+{
+  "_readme": "Scraper debris in the manufacturer catalog. Read by the app (src/lib/catalog/quality.ts, src/lib/images/catalog-junk-images.ts) and by the scrapers (scripts/lib/manufacturer-scraper-utils.mjs, scripts/lib/rehost-images.mjs), so a file or page found here never comes back on the next scrape. Image hashes are the first 8 hex of the file's md5, which re-hosted names carry: <n>-<hash>.<ext>. Reviewed by eye 2026-09-22.",
+  "junkImageHashes": [
+    {
+      "hash": "26cb2b44",
+      "what": "Marmon / Berkshire Hathaway lockup"
+    },
+    {
+      "hash": "afc0564b",
+      "what": "JAS-ANZ / TCL certification badge"
+    },
+    {
+      "hash": "9f2ef939",
+      "what": "GSA Schedule badge"
+    },
+    {
+      "hash": "cca580db",
+      "what": "factory line icon (every XL Specialized model)"
+    },
+    {
+      "hash": "5712b202",
+      "what": "rosette check-mark icon"
+    },
+    {
+      "hash": "1b69e6db",
+      "what": "Kalyn Siebert logo"
+    },
+    {
+      "hash": "17e9ba15",
+      "what": "book-and-gear icon"
+    },
+    {
+      "hash": "2438cd59",
+      "what": "gears icon"
+    },
+    {
+      "hash": "d308f8d9",
+      "what": "NTDA logo"
+    },
+    {
+      "hash": "76700fcd",
+      "what": "ISO 9001 badge"
+    },
+    {
+      "hash": "84eee51c",
+      "what": "NATM logo"
+    },
+    {
+      "hash": "1b50b5e9",
+      "what": "Alabama Trucking Association logo"
+    },
+    {
+      "hash": "27a429c3",
+      "what": "Globe Trailers logo"
+    },
+    {
+      "hash": "1451cc61",
+      "what": "Alabama Forestry Association logo"
+    },
+    {
+      "hash": "906a85b6",
+      "what": "\"Granite\" truck-series banner"
+    },
+    {
+      "hash": "5af63cba",
+      "what": "colour bars"
+    },
+    {
+      "hash": "34243fa2",
+      "what": "Loadstar Trailers logo"
+    },
+    {
+      "hash": "c4100e26",
+      "what": "Cavanagh Construction logo"
+    },
+    {
+      "hash": "f48a5fe3",
+      "what": "Hoffmann Family of Companies logo"
+    },
+    {
+      "hash": "dca4b394",
+      "what": "stock scenery"
+    },
+    {
+      "hash": "96fbad3d",
+      "what": "\"Keystone\" banner"
+    },
+    {
+      "hash": "d662ce74",
+      "what": "\"Pinnacle\" banner"
+    },
+    {
+      "hash": "2cfb7c00",
+      "what": "\"Pioneer\" banner"
+    },
+    {
+      "hash": "7f5461d0",
+      "what": "stock bridge photo"
+    },
+    {
+      "hash": "83279058",
+      "what": "loading dock photo"
+    },
+    {
+      "hash": "757e9cba",
+      "what": "quarry scenery"
+    },
+    {
+      "hash": "913585d5",
+      "what": "Yantha logo"
+    },
+    {
+      "hash": "b51d8347",
+      "what": "\"Terrapro\" banner"
+    },
+    {
+      "hash": "832e78f2",
+      "what": "Sierra Construction logo"
+    },
+    {
+      "hash": "34d612da",
+      "what": "\"MD Series\" banner"
+    },
+    {
+      "hash": "b9011e71",
+      "what": "\"Anthem\" banner"
+    },
+    {
+      "hash": "4de253cc",
+      "what": "Michael Bros. Excavating logo"
+    },
+    {
+      "hash": "701ba4a6",
+      "what": "customer logo"
+    },
+    {
+      "hash": "ee5dbf08",
+      "what": "Twitter icon"
+    },
+    {
+      "hash": "6f68baf8",
+      "what": "social-media post screenshot"
+    },
+    {
+      "hash": "33dec6da",
+      "what": "Mulltech Excavating logo"
+    },
+    {
+      "hash": "38aa8908",
+      "what": "\"Extreme\" logo"
+    },
+    {
+      "hash": "722c8f0d",
+      "what": "dealer-locator map"
+    },
+    {
+      "hash": "8e63cc68",
+      "what": "EV charging stock photo"
+    },
+    {
+      "hash": "c2786811",
+      "what": "\"MD Electric\" banner"
+    },
+    {
+      "hash": "16382e60",
+      "what": "\"Granite\" banner"
+    },
+    {
+      "hash": "e32b6390",
+      "what": "\"LR Electric\" banner"
+    },
+    {
+      "hash": "99e24e6a",
+      "what": "Babb's Sand & Gravel logo"
+    },
+    {
+      "hash": "44f70d77",
+      "what": "Trans Power logo"
+    },
+    {
+      "hash": "a7bab700",
+      "what": "colour bars"
+    },
+    {
+      "hash": "9170b43d",
+      "what": "\"LR\" banner"
+    },
+    {
+      "hash": "948de5a2",
+      "what": "truck-cab lifestyle photo"
+    },
+    {
+      "hash": "055a8726",
+      "what": "key-fob lifestyle photo"
+    },
+    {
+      "hash": "9a6305d2",
+      "what": "truck-interior lifestyle photo"
+    },
+    {
+      "hash": "f9b90e7d",
+      "what": "Kalyn Siebert building sign"
+    },
+    {
+      "hash": "318ef40e",
+      "what": "Kalyn Siebert building sign"
+    },
+    {
+      "hash": "ac3301ad",
+      "what": "Kalyn Siebert building sign"
+    },
+    {
+      "hash": "a10f8dda",
+      "what": "Alabama Forestry Association logo"
+    }
+  ],
+  "brandBannerHashes": [
+    {
+      "hash": "96244619",
+      "what": "Fontaine: truck hauling a wind blade (43 products)"
+    },
+    {
+      "hash": "94dc6a20",
+      "what": "trailer line-up in a stadium (41 products)"
+    }
+  ],
+  "hiddenProductIds": [
+    {
+      "id": "587c05e2-9f87-4f0d-8db5-3428fb5e2a97",
+      "what": "Faymonville MegaMAX"
+    },
+    {
+      "id": "b2abbf97-5048-43e2-ab98-1ff021bbb4ae",
+      "what": "Faymonville HighwayMAX"
+    },
+    {
+      "id": "9c103a59-a339-4a79-9aa0-1ac713309289",
+      "what": "Loadstar: \"Book Your Consultation!\""
+    },
+    {
+      "id": "95044af2-f230-4f08-890e-a9db25fcbd7d",
+      "what": "Loadstar: service department"
+    },
+    {
+      "id": "c3c1faa5-a19e-409d-89d4-f93f25f64c0c",
+      "what": "Loadstar: parts"
+    },
+    {
+      "id": "f5fb43f2-0d0e-4913-8575-a1dc71ca2137",
+      "what": "Loadstar: custom-build pitch"
+    },
+    {
+      "id": "fd349e96-31a8-4aa6-853e-58384469f3da",
+      "what": "Globe: buying-guide article"
+    },
+    {
+      "id": "a6892e36-0ffd-4f7b-8f20-2514d9e68058",
+      "what": "Globe: category index"
+    },
+    {
+      "id": "ec0c18ce-3e80-41e0-b8c7-1e16b31d0d16",
+      "what": "Witzco: \"Translate:\" widget"
+    },
+    {
+      "id": "62d0445b-5c20-45e3-a285-b75dd73158c4",
+      "what": "Kalyn Siebert: division page"
+    },
+    {
+      "id": "664621ed-49c2-4402-92ac-7d80bd3584f4",
+      "what": "Kalyn Siebert: division page"
+    },
+    {
+      "id": "571c715e-2745-4076-8cea-1d7db32e0262",
+      "what": "Kalyn Siebert: refurbishment programme"
+    },
+    {
+      "id": "6522d3b1-331c-4e5c-b78a-884f72e575dc",
+      "what": "Faymonville: scraped 404 page"
+    },
+    {
+      "id": "4b396dc4-266c-451f-a786-9a03275590c5",
+      "what": "Faymonville: brand overview"
+    },
+    {
+      "id": "f06bb4df-f94a-45e2-88bc-3c9745787c5a",
+      "what": "Faymonville: \"Built for everyday heroes.\""
+    },
+    {
+      "id": "4b67222b-13b5-4598-8851-57b442c7ed3d",
+      "what": "Felling: category index"
+    },
+    {
+      "id": "069ecd9e-f2f0-429f-94d8-b050d11feb82",
+      "what": "Felling: category index"
+    },
+    {
+      "id": "6a6186b0-5290-453a-9aea-f7cac6470db6",
+      "what": "Felling: government sales"
+    },
+    {
+      "id": "e7796113-0fb5-4414-a099-eec241d404ff",
+      "what": "Felling: ramp options"
+    },
+    {
+      "id": "b7669a76-d43e-4d87-bb9d-242c13b16c64",
+      "what": "Felling: hitch option"
+    },
+    {
+      "id": "a3d21e9c-8cc1-4527-88c3-e6068bf7da4d",
+      "what": "Felling: OEM division"
+    },
+    {
+      "id": "672ba9ec-46a0-4771-b3ef-2269b6274d08",
+      "what": "Felling: OEM division"
+    },
+    {
+      "id": "31ba749f-77bd-4be9-b332-1250e8c7cc77",
+      "what": "Felling: division index"
+    },
+    {
+      "id": "2c601e03-0189-4eb6-a1e0-2b651013d4a0",
+      "what": "Felling: colour chart"
+    },
+    {
+      "id": "9ee67cd9-6e74-4e5d-8c6f-0fc37fd65eb1",
+      "what": "Felling: galvanizing process"
+    },
+    {
+      "id": "8c533f1d-fd5c-4f2c-92b5-9cd792fce1ed",
+      "what": "Felling: dump-gate options"
+    }
+  ],
+  "nonProductNamePattern": "\\b(book your consultation|consultation|services including|trailer parts|parts:|choosing the right|design the exact|built for everyday heroes|government solutions|ramp options|coupler hitch|colou?r selection|galvanizing|gate options|oem trailer solutions|trailer solutions|products for heavy and special transport|recap projects|translate:?|page can.?t be found|not found)\\b",
+  "junkCopyPattern": "(privacy policy|cookie policy|find dealers closest|service hours|digital driver guide|can.t be found|no webpage was found|hale trailer)",
+  "logoUrlPattern": "(^|[/_.-])(logo|logos|icon|icons|favicon|badge|sprite|social|twitter|facebook|linkedin|instagram|youtube|iso-?9001|natm|gsa|placeholder|banner)([/_.-]|$)"
+}

@@ -660,6 +660,14 @@ function processProduct(rawData) {
     }
   }
 
+  // "30-55 SRG" is a 30–55 ton range. The spec parse and the model-number
+  // fallback below both read only the leading 30.
+  const nameRange = /^(\d{2,3})\s?[-–]\s?(\d{2,3})\b/.exec((cleanName || '').trim());
+  if (nameRange && parseInt(nameRange[2], 10) > parseInt(nameRange[1], 10)) {
+    tonnageMin = parseInt(nameRange[1], 10);
+    tonnageMax = parseInt(nameRange[2], 10);
+  }
+
   // If tonnage is in the model number (e.g. 55CC => 55 ton) and not found in specs
   if (!tonnageMin && modelNumber) {
     const tonMatch = modelNumber.match(/^(\d+)/);
