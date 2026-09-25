@@ -123,7 +123,7 @@ export function Header() {
               width={28}
               height={32}
               className="h-8 w-auto"
-              priority
+              preload
             />
             <span className="font-bold text-xl font-[family-name:var(--font-gunship)] tracking-wider">AXLE<span className="text-primary">YARD</span></span>
           </Link>
@@ -330,28 +330,34 @@ export function Header() {
 
           {/* Mobile Menu */}
           <div className="flex md:hidden items-center gap-2">
-            <Link href="/search" aria-label="Search listings">
-              <Button variant="ghost" size="icon">
+            {/* Button asChild renders the link itself — a <button> nested in
+                an <a> is invalid and made taps flaky on iOS */}
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/search" aria-label="Search listings">
                 <Search className="w-5 h-5" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
 
             {user && (
-              <Link href="/dashboard/messages" className="relative">
-                <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" asChild>
+                <Link
+                  href="/dashboard/messages"
+                  className="relative"
+                  aria-label={unreadCount > 0 ? `Messages (${unreadCount} unread)` : 'Messages'}
+                >
                   <MessageSquare className="w-5 h-5" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             )}
 
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" aria-label="Open menu">
                   <Menu className="w-5 h-5" />
                 </Button>
               </SheetTrigger>
@@ -369,7 +375,9 @@ export function Header() {
                   </SheetTitle>
                 </SheetHeader>
 
-                <div className="mt-6 flex flex-col gap-4">
+                {/* No fixed height — SheetContent scrolls this on short phones and
+                    pads the home-indicator safe area itself */}
+                <div className="mt-6 px-3 pb-4 flex flex-col gap-4">
                   {/* Mobile Nav Links */}
                   <nav className="flex flex-col gap-1">
                     {/* Marketplace Section */}
@@ -379,7 +387,7 @@ export function Header() {
                     <Link
                       href="/search"
                       onClick={() => setIsOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                         pathname.startsWith('/search')
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-muted'
@@ -391,7 +399,7 @@ export function Header() {
                     <Link
                       href="/new-trailers"
                       onClick={() => setIsOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                         pathname.startsWith('/new-trailers')
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-muted'
@@ -403,7 +411,7 @@ export function Header() {
                     <Link
                       href="/dealers"
                       onClick={() => setIsOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                         pathname.startsWith('/dealers')
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-muted'
@@ -415,7 +423,7 @@ export function Header() {
                     <Link
                       href="/categories"
                       onClick={() => setIsOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                         pathname.startsWith('/categories')
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-muted'
@@ -436,7 +444,7 @@ export function Header() {
                     <Link
                       href="/how-it-works"
                       onClick={() => setIsOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                         pathname === '/how-it-works'
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-muted'
@@ -448,7 +456,7 @@ export function Header() {
                     <Link
                       href="/voice"
                       onClick={() => setIsOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                         pathname === '/voice'
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-muted'
@@ -463,7 +471,7 @@ export function Header() {
                     <Link
                       href="/for-business"
                       onClick={() => setIsOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                         pathname === '/for-business'
                           ? 'bg-primary/10 text-primary'
                           : 'hover:bg-muted'
@@ -475,7 +483,7 @@ export function Header() {
                     <Link
                       href="/transform"
                       onClick={() => setIsOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors hover:bg-muted"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors hover:bg-muted"
                     >
                       <Store className="w-5 h-5" />
                       Done-For-You
@@ -483,7 +491,7 @@ export function Header() {
                     <Link
                       href="/get-started"
                       onClick={() => setIsOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors ${
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${
                         pathname === '/get-started'
                           ? 'bg-primary/10 text-primary'
                           : 'text-primary hover:bg-muted'
@@ -522,7 +530,7 @@ export function Header() {
                             key={link.href}
                             href={link.href}
                             onClick={() => setIsOpen(false)}
-                            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                               pathname === link.href
                                 ? 'bg-primary/10 text-primary'
                                 : 'hover:bg-muted'

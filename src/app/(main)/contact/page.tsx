@@ -109,7 +109,7 @@ export default async function ContactPage({ searchParams }: PageProps) {
                   <p className="text-sm font-medium">Email</p>
                   <a
                     href="mailto:sales@axlon.ai"
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="inline-block py-2.5 -my-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     sales@axlon.ai
                   </a>
@@ -124,7 +124,7 @@ export default async function ContactPage({ searchParams }: PageProps) {
                   <p className="text-sm font-medium">Phone</p>
                   <a
                     href="tel:+14694213536"
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="inline-block py-2.5 -my-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     (469) 421-3536
                   </a>

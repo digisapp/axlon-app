@@ -166,7 +166,7 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
             Thank you for your interest. A dealer will review your trade-in and contact you
             within 24-48 hours with a valuation.
           </p>
-          <div className="flex gap-3 justify-center">
+          <div className="flex flex-wrap gap-3 justify-center">
             <Button variant="outline" onClick={() => router.push('/')}>
               Back to Home
             </Button>
@@ -187,12 +187,17 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
           Get a quick valuation for your equipment. Most requests are reviewed within 24 hours.
         </CardDescription>
 
-        {/* Progress Steps */}
-        <div className="flex items-center justify-between mt-6">
+        {/* Progress Steps — connectors flex so the row always fits the card
+            (CardHeader is an auto-sized grid, so a fixed-width row would widen it) */}
+        <div className="flex items-center min-w-0 mt-6">
           {steps.map((step, index) => (
-            <div key={step.key} className="flex items-center">
+            <div
+              key={step.key}
+              className={`flex items-center min-w-0 ${index < steps.length - 1 ? 'flex-1' : ''}`}
+            >
               <div
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                aria-current={index === currentStepIndex ? 'step' : undefined}
+                className={`flex shrink-0 items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg transition-colors ${
                   index <= currentStepIndex
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-muted-foreground'
@@ -204,7 +209,7 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
               </div>
               {index < steps.length - 1 && (
                 <div
-                  className={`w-8 md:w-16 h-0.5 mx-1 ${
+                  className={`flex-1 min-w-2 h-0.5 mx-1 ${
                     index < currentStepIndex ? 'bg-primary' : 'bg-muted'
                   }`}
                 />

@@ -13,6 +13,7 @@ import {
   Languages,
   ImageOff,
   Sparkles,
+  Star,
 } from 'lucide-react';
 import { CompareButton } from '@/components/listings/CompareButton';
 import { FavoriteButton } from '@/components/listings/FavoriteButton';
@@ -22,6 +23,9 @@ import { getDealInfo } from '@/lib/deal-info';
 import { getImageSrc } from '@/lib/utils';
 import { useImageFallback } from '@/hooks/useImageFallback';
 import type { Listing } from '@/types';
+
+const PHOTO_BUTTON_CLASS =
+  'size-10 md:size-8 rounded-full border-0 bg-white/90 text-gray-900 shadow-sm backdrop-blur-sm hover:bg-white hover:text-gray-900 dark:bg-gray-900/80 dark:text-white dark:hover:bg-gray-900';
 
 interface SearchListingCardProps {
   listing: Listing;
@@ -52,7 +56,7 @@ export const SearchListingCard = memo(function SearchListingCard({
   if (viewMode === 'list') {
     return (
       <ListingCardWrapper listingId={listing.id} listingTitle={listing.title}>
-        <Card className="flex flex-col sm:flex-row overflow-hidden hover:shadow-lg transition-shadow">
+        <Card className="flex flex-col sm:flex-row gap-0 py-0 overflow-hidden hover:shadow-lg transition-shadow">
           <div className="relative w-full sm:w-48 md:w-64 h-40 sm:h-40 md:h-48 flex-shrink-0">
             {primaryImageSrc && !hasError ? (
               <Image
@@ -165,7 +169,7 @@ export const SearchListingCard = memo(function SearchListingCard({
 
   return (
     <ListingCardWrapper listingId={listing.id} listingTitle={listing.title}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full">
+      <Card className="gap-0 py-0 overflow-hidden hover:shadow-lg transition-shadow h-full">
         <div className="relative aspect-[4/3]">
           {primaryImageSrc && !hasError ? (
             <Image
@@ -179,27 +183,31 @@ export const SearchListingCard = memo(function SearchListingCard({
           ) : (
             <div className="w-full h-full bg-muted flex flex-col items-center justify-center gap-1">
               <ImageOff className="w-6 h-6 md:w-8 md:h-8 text-muted-foreground/50" />
-              <span className="text-muted-foreground text-[10px] md:text-xs">No Image</span>
+              <span className="text-muted-foreground text-xs">No Image</span>
             </div>
           )}
+          {/* Two-column phone cards are too narrow for badges and the
+              top-right buttons to share a row: Featured shrinks to a star
+              below sm, and the deal badge sits bottom-left */}
           {listing.is_featured && (
-            <Badge className="absolute top-2 left-2 bg-secondary text-secondary-foreground text-xs">
-              Featured
+            <Badge className="absolute top-2 left-2 size-6 p-0 bg-secondary text-secondary-foreground text-xs shadow-sm sm:size-auto sm:px-2 sm:py-0.5">
+              <Star className="fill-current sm:hidden" />
+              <span className="sr-only sm:not-sr-only">Featured</span>
             </Badge>
           )}
           {dealInfo && (
             <Badge
-              className={`absolute ${listing.is_featured ? 'top-8' : 'top-2'} left-2 text-[10px] md:text-xs ${
+              className={`absolute bottom-2 left-2 max-w-[calc(100%-1rem)] whitespace-normal text-left text-[11px] leading-tight md:text-xs shadow-sm ${
                 dealInfo.type === 'hot'
                   ? 'bg-red-500 text-white'
                   : 'bg-green-500 text-white'
               }`}
             >
-              {dealInfo.type === 'hot' ? <Flame className="w-2.5 h-2.5 md:w-3 md:h-3 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 md:w-3 md:h-3 mr-0.5" />}
+              {dealInfo.type === 'hot' ? <Flame /> : <TrendingDown />}
               {dealInfo.percentage}% Below Market
             </Badge>
           )}
-          <div className="absolute top-2 right-2 flex gap-2">
+          <div className="absolute top-1.5 right-1.5 flex gap-1.5 md:top-2 md:right-2 md:gap-2">
             <CompareButton
               listing={{
                 id: listing.id,
@@ -214,12 +222,18 @@ export const SearchListingCard = memo(function SearchListingCard({
                 image_url: primaryImageSrc,
               }}
               variant="icon"
-              className="bg-background/80 hover:bg-background"
+              className={PHOTO_BUTTON_CLASS}
             />
-            <FavoriteButton listingId={listing.id} variant="ghost" size="icon" showText={false} />
+            <FavoriteButton
+              listingId={listing.id}
+              variant="ghost"
+              size="icon"
+              showText={false}
+              className={PHOTO_BUTTON_CLASS}
+            />
           </div>
           {hasAIPreview && (
-            <div className="absolute bottom-2 right-2 bg-primary/80 text-white px-2 py-1 rounded text-[10px] md:text-xs flex items-center gap-1">
+            <div className="absolute bottom-2 right-2 bg-primary/80 text-white px-2 py-1 rounded text-[11px] md:text-xs flex items-center gap-1">
               <Sparkles className="w-2.5 h-2.5 md:w-3 md:h-3" />
               AI Preview
             </div>
@@ -235,12 +249,12 @@ export const SearchListingCard = memo(function SearchListingCard({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1.5 mt-0.5 md:mt-1">
+          <div className="flex flex-wrap items-baseline gap-x-1.5 mt-0.5 md:mt-1">
             <p className="text-base md:text-xl font-bold text-primary">
               {listing.price ? `$${listing.price.toLocaleString()}` : 'Call'}
             </p>
             {dealInfo && (
-              <span className="text-[10px] md:text-xs text-muted-foreground" title="AI market estimate">
+              <span className="text-xs text-muted-foreground" title="AI market estimate">
                 Est. ${listing.ai_price_estimate?.toLocaleString()}
               </span>
             )}

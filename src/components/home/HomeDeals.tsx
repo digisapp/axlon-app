@@ -19,7 +19,7 @@ export function HomeDeals({ deals }: { deals: HomeDeal[] }) {
         </h2>
         <Link
           href="/deals"
-          className="text-sm text-primary hover:underline"
+          className="-my-2 inline-flex min-h-11 items-center text-sm text-primary hover:underline md:my-0 md:min-h-0"
         >
           View All &rarr;
         </Link>
@@ -38,7 +38,7 @@ function DealCard({ deal }: { deal: HomeDeal }) {
 
   return (
     <Link href={`/listing/${deal.id}`}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur">
+      <Card className="gap-0 py-0 overflow-hidden hover:shadow-lg transition-shadow h-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur">
         <div className="relative aspect-[4/3]">
           {primaryImage?.url ? (
             <Image
@@ -56,7 +56,7 @@ function DealCard({ deal }: { deal: HomeDeal }) {
           {/* The comparison is to our AI market estimate, never a former
               asking price — a struck-through "was" price would claim a
               markdown the seller never made. */}
-          <Badge className="absolute top-2 left-2 bg-green-600 text-white text-[10px] md:text-xs">
+          <Badge className="absolute top-2 left-2 max-w-[calc(100%-1rem)] bg-green-600 text-white text-[11px] md:text-xs">
             <TrendingDown className="w-3 h-3 mr-1" />
             {deal.discount_percent}% below market
           </Badge>
@@ -66,7 +66,7 @@ function DealCard({ deal }: { deal: HomeDeal }) {
           <p className="text-sm md:text-base font-bold text-primary mt-1">
             ${deal.price.toLocaleString()}
           </p>
-          <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             AI market est. ${deal.ai_price_estimate.toLocaleString()}
           </p>
         </div>

@@ -450,3 +450,53 @@
   opacity: 0.02;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
 }
+
+/* ── Mobile bottom chrome (see src/lib/mobile-chrome.ts) ──────────────────
+   Bars publish their height as --bottom-bar-h / --compare-bar-h, the call
+   button its slot as --fab-call-slot. Floating buttons stack above them.
+   A bar's measured height already includes the home-indicator inset; with no
+   bar showing, the inset itself is the floor. */
+@utility bottom-fab {
+  bottom: calc(max(var(--bottom-bar-h, 0px), env(safe-area-inset-bottom)) + var(--compare-bar-h, 0px) + 1rem);
+}
+@utility bottom-fab-2 {
+  bottom: calc(max(var(--bottom-bar-h, 0px), env(safe-area-inset-bottom)) + var(--compare-bar-h, 0px) + var(--fab-call-slot, 0px) + 1rem);
+}
+/* Bars that stack on top of another bottom bar (the compare bar) */
+@utility bottom-above-bar {
+  bottom: var(--bottom-bar-h, 0px);
+}
+@utility pb-safe-above-bar {
+  padding-bottom: max(0px, calc(env(safe-area-inset-bottom) - var(--bottom-bar-h, 0px)));
+}
+
+/* An open chat panel or photo viewer owns the screen: floating buttons and
+   the compare bar step aside so they can't cover its controls. */
+html[data-overlay-open] [data-fab],
+html[data-overlay-open] [data-compare-bar] {
+  display: none !important;
+}
+
+/* While the iOS keyboard is up, fixed bottom UI would float over the field
+   being typed in — hide it the way native tab bars do. */
+html[data-keyboard-open] [data-fab],
+html[data-keyboard-open] [data-bottom-bar] {
+  display: none !important;
+}
+
+/* Scrolling down a list on a phone, floating buttons fade out of the way of
+   the cards; they come back on scroll-up or when scrolling pauses. */
+@media (pointer: coarse) {
+  html[data-scrolling-down] [data-fab] {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}
+
+/* The 2%-opacity noise texture is imperceptible on a phone but costs a
+   full-screen fixed layer during scroll. */
+@media (pointer: coarse) {
+  .noise-overlay {
+    display: none;
+  }
+}

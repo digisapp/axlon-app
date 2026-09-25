@@ -22,7 +22,6 @@ import {
   ArrowRight,
   Package,
   Star,
-  ArrowLeft,
   DollarSign,
 } from 'lucide-react';
 import { Manufacturer } from '@/types';
@@ -226,8 +225,8 @@ export default async function ManufacturerPage({ params }: PageProps) {
       }`}>
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:32px_32px]" />
         <div className="relative max-w-7xl mx-auto px-4 py-8 md:py-12">
-          {/* Breadcrumb */}
-          <div className="mb-6 [&_a]:text-white/70 [&_a:hover]:text-white [&_span.text-foreground]:text-white [&_svg]:text-white/40">
+          {/* Breadcrumb — links padded to a 40px tap height on phones */}
+          <div className="mb-4 md:mb-6 [&_a]:text-white/70 [&_a:hover]:text-white [&_span.text-foreground]:text-white [&_svg]:text-white/40 [&_a]:inline-flex [&_a]:items-center [&_a]:min-h-10 md:[&_a]:min-h-0 [&>nav>a:first-child]:pr-2">
             <Breadcrumbs
               items={[
                 { label: 'Manufacturers', href: '/manufacturers' },
@@ -255,9 +254,9 @@ export default async function ManufacturerPage({ params }: PageProps) {
             </div>
 
             {/* Info */}
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-2">
+                <h1 className="min-w-0 break-words text-3xl md:text-4xl font-bold text-white tracking-tight">
                   {manufacturer.name}
                 </h1>
                 {manufacturer.is_featured && (
@@ -275,7 +274,7 @@ export default async function ManufacturerPage({ params }: PageProps) {
               )}
 
               {/* Quick Info */}
-              <div className="flex flex-wrap gap-4 text-sm text-white/70">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 md:gap-y-4 text-sm text-white/70">
                 {manufacturer.headquarters && (
                   <span className="flex items-center gap-1.5">
                     <MapPin className="w-4 h-4" />
@@ -293,7 +292,7 @@ export default async function ManufacturerPage({ params }: PageProps) {
                     href={manufacturer.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 hover:text-white transition-colors"
+                    className="inline-flex items-center gap-1.5 min-h-10 md:min-h-0 hover:text-white transition-colors"
                   >
                     <Globe className="w-4 h-4" />
                     Official Website
@@ -328,27 +327,28 @@ export default async function ManufacturerPage({ params }: PageProps) {
 
       <div className="relative max-w-7xl mx-auto px-4 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-          <Card className="dark:bg-zinc-900 dark:border-zinc-700">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
-                <Package className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+        {/* Icon stacks over the text below sm so two columns fit a 320px screen */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-8">
+          <Card className="min-w-0 dark:bg-zinc-900 dark:border-zinc-700">
+            <CardContent className="p-3 sm:p-4 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
+                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
               </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{listingCount || 0}</p>
+              <div className="min-w-0 break-words">
+                <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{listingCount || 0}</p>
                 <p className="text-sm text-slate-600 dark:text-zinc-400">Available Listings</p>
               </div>
             </CardContent>
           </Card>
 
           {avgPrice && (
-            <Card className="dark:bg-zinc-900 dark:border-zinc-700">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
-                  <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400" />
+            <Card className="min-w-0 dark:bg-zinc-900 dark:border-zinc-700">
+              <CardContent className="p-3 sm:p-4 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
+                <div className="p-2 sm:p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
+                  <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">${avgPrice.toLocaleString()}</p>
+                <div className="min-w-0 break-words">
+                  <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">${avgPrice.toLocaleString()}</p>
                   <p className="text-sm text-slate-600 dark:text-zinc-400">Average Price</p>
                 </div>
               </CardContent>
@@ -356,13 +356,13 @@ export default async function ManufacturerPage({ params }: PageProps) {
           )}
 
           {manufacturer.country && (
-            <Card className="dark:bg-zinc-900 dark:border-zinc-700">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-xl">
-                  <Globe className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+            <Card className="min-w-0 dark:bg-zinc-900 dark:border-zinc-700">
+              <CardContent className="p-3 sm:p-4 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
+                <div className="p-2 sm:p-3 bg-amber-100 dark:bg-amber-900/30 rounded-xl">
+                  <Globe className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 dark:text-amber-400" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">{manufacturer.country}</p>
+                <div className="min-w-0 break-words">
+                  <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{manufacturer.country}</p>
                   <p className="text-sm text-slate-600 dark:text-zinc-400">Headquarters</p>
                 </div>
               </CardContent>
@@ -382,17 +382,17 @@ export default async function ManufacturerPage({ params }: PageProps) {
 
         {/* Listings Section */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <h2 className="min-w-0 text-xl font-bold text-slate-900 dark:text-white">
               Available {manufacturer.name} Equipment
             </h2>
             {(listingCount || 0) > 12 && (
-              <Link href={`/search?make=${encodeURIComponent(manufacturer.canonical_name)}`}>
-                <Button variant="outline">
+              <Button asChild variant="outline">
+                <Link href={`/search?make=${encodeURIComponent(manufacturer.canonical_name)}`}>
                   View All {listingCount} Listings
                   <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             )}
           </div>
 
@@ -408,9 +408,9 @@ export default async function ManufacturerPage({ params }: PageProps) {
                 <p className="text-slate-600 dark:text-zinc-400 mb-4">
                   There are currently no {manufacturer.name} listings on Axleyard.
                 </p>
-                <Link href="/search">
-                  <Button variant="outline">Browse All Equipment</Button>
-                </Link>
+                <Button asChild variant="outline">
+                  <Link href="/search">Browse All Equipment</Link>
+                </Button>
               </CardContent>
             </Card>
           )}
@@ -419,12 +419,16 @@ export default async function ManufacturerPage({ params }: PageProps) {
         {/* View All CTA */}
         {(listingCount || 0) > 0 && (
           <div className="text-center">
-            <Link href={`/search?make=${encodeURIComponent(manufacturer.canonical_name)}`}>
-              <Button size="lg" className="gap-2">
+            <Button
+              asChild
+              size="lg"
+              className="gap-2 max-w-full h-auto md:h-auto min-h-11 md:min-h-10 py-2.5 whitespace-normal text-center"
+            >
+              <Link href={`/search?make=${encodeURIComponent(manufacturer.canonical_name)}`}>
                 Search All {manufacturer.name} Equipment
                 <ArrowRight className="w-5 h-5" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         )}
       </div>

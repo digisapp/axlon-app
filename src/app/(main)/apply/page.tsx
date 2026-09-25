@@ -14,6 +14,7 @@ import {
   Truck,
   Users,
   Settings,
+  ChevronDown,
 } from 'lucide-react';
 
 const businessTypes = [
@@ -262,67 +263,63 @@ Phone: ${form.phone || 'Not provided'}
                 <label className="block text-sm font-medium mb-1.5">
                   What type of business do you operate? <span className="text-red-500">*</span>
                 </label>
-                <select
+                <NativeSelect
                   value={form.businessType}
                   onChange={set('businessType')}
                   required
-                  className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
                 >
                   <option value="">Select business type</option>
                   {businessTypes.map((t) => (
                     <option key={t} value={t}>{t}</option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1.5">
                     Number of employees <span className="text-red-500">*</span>
                   </label>
-                  <select
+                  <NativeSelect
                     value={form.employees}
                     onChange={set('employees')}
                     required
-                    className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
                   >
                     <option value="">Select range</option>
                     {employeeRanges.map((r) => (
                       <option key={r} value={r}>{r}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1.5">
                     Estimated annual revenue <span className="text-red-500">*</span>
                   </label>
-                  <select
+                  <NativeSelect
                     value={form.revenue}
                     onChange={set('revenue')}
                     required
-                    className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
                   >
                     <option value="">Select range</option>
                     {revenueRanges.map((r) => (
                       <option key={r} value={r}>{r}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1.5">
                   What is your biggest operational pain right now? <span className="text-red-500">*</span>
                 </label>
-                <select
+                <NativeSelect
                   value={form.painPoint}
                   onChange={set('painPoint')}
                   required
-                  className="w-full px-3 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
                 >
                   <option value="">Select primary pain point</option>
                   {painPoints.map((p) => (
                     <option key={p} value={p}>{p}</option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
             </div>
 
@@ -487,6 +484,20 @@ Phone: ${form.phone || 'Not provided'}
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// appearance-none: WebKit ignores padding on a native menulist <select> and
+// renders it ~22px tall
+function NativeSelect(props: React.ComponentProps<'select'>) {
+  return (
+    <div className="relative">
+      <select
+        {...props}
+        className="w-full h-11 md:h-10 appearance-none pl-3 pr-9 rounded-lg border bg-background text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+      />
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
     </div>
   );
 }

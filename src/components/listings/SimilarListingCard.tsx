@@ -25,7 +25,7 @@ export function SimilarListingCard({ item }: SimilarListingCardProps) {
 
   return (
     <Link href={`/listing/${item.id}`}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full">
+      <Card className="gap-0 py-0 overflow-hidden hover:shadow-lg transition-shadow h-full">
         <div className="relative aspect-[4/3] bg-muted">
           {itemImageSrc && !hasError ? (
             <Image

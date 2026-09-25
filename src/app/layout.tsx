@@ -11,6 +11,7 @@ import { CompareBar } from "@/components/listings/CompareBar";
 import { FloatingCallButton } from "@/components/FloatingCallButton";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
+import { MobileChrome } from "@/lib/mobile-chrome";
 import { PWACleanup } from "@/components/PWAInstallPrompt";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { CsrfProvider } from "@/context/CsrfContext";
@@ -223,6 +224,7 @@ export default async function RootLayout({
                     {isMarketplaceHost && <CompareBar />}
                     {isMarketplaceHost && <FloatingCallButton />}
                     <KeyboardShortcuts />
+                    <MobileChrome />
                     <PWACleanup />
                     <div aria-live="polite" aria-atomic="true">
                       <Toaster position="top-right" richColors closeButton />

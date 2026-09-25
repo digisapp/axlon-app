@@ -58,6 +58,7 @@ import { SaveSearchButton } from '@/components/search/SaveSearchButton';
 import { ScrollToTop } from '@/components/ui/scroll-to-top';
 import { SearchListingCard } from '@/components/search/SearchListingCard';
 import { QuickFilterChip } from '@/components/search/QuickFilterChip';
+import { getApproxCoordinates } from '@/lib/geo/state-centroids';
 
 // Sort URL param to internal value mapping
 const SORT_MAP: Record<string, string> = {
@@ -117,6 +118,7 @@ function SearchPageContent() {
 
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('grid');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [desktopFiltersOpen, setDesktopFiltersOpen] = useState(false);
   // Seeded once from the URL; user interaction owns it from then on.
   const [advancedFilters, setAdvancedFilters] = useState<FilterValues>(() =>
     filtersFromParams(searchParams)
@@ -199,6 +201,49 @@ function SearchPageContent() {
       !(typeof v === 'number' && Number.isNaN(v)) &&
       (!Array.isArray(v) || v.length > 0)
   ).length;
+
+  // Newer imports have no city/state, so a page of results can have nothing
+  // to pin — only offer the map when something on it can be placed.
+  const mapAvailable = useMemo(
+    () => listings.some((l) => getApproxCoordinates(l) !== null),
+    [listings]
+  );
+  const displayMode = viewMode === 'map' && !mapAvailable && !isLoading ? 'grid' : viewMode;
+
+  // One header, the filters, and a pinned footer. Filters apply live, so
+  // "Show N results" just closes the sheet.
+  const filterSheetBody = (close: () => void) => (
+    <>
+      <SheetHeader className="border-b pr-12">
+        <SheetTitle className="flex items-center gap-2">
+          Filters
+          {activeFilterCount > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {activeFilterCount} active
+            </Badge>
+          )}
+        </SheetTitle>
+      </SheetHeader>
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pb-4">
+        <AdvancedFilters
+          filters={advancedFilters}
+          onFiltersChange={handleFiltersChange}
+          categories={categories}
+          hideHeader
+        />
+      </div>
+      <div className="flex gap-3 border-t bg-background px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        {activeFilterCount > 0 && (
+          <Button variant="outline" onClick={() => handleFiltersChange({})}>
+            Reset
+          </Button>
+        )}
+        <Button className="flex-1" onClick={close}>
+          {isLoading ? 'Show results' : `Show ${totalCount.toLocaleString()} ${totalCount === 1 ? 'result' : 'results'}`}
+        </Button>
+      </div>
+    </>
+  );
 
   // JSON-LD ItemList schema for search results SEO
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com';
@@ -361,23 +406,13 @@ function SearchPageContent() {
                   )}
                 </Button>
               </SheetTrigger>
-              <SheetContent side="bottom" className="h-[70dvh] sm:h-[80vh] rounded-t-xl overflow-y-auto">
-                <SheetHeader>
-                  <SheetTitle>Filters</SheetTitle>
-                </SheetHeader>
-                <div className="mt-4">
-                  <AdvancedFilters
-                    filters={advancedFilters}
-                    onFiltersChange={handleFiltersChange}
-                    categories={categories}
-                    onClose={() => setFiltersOpen(false)}
-                  />
-                </div>
+              <SheetContent side="bottom" className="h-[80dvh] max-h-[80dvh] gap-0 overflow-hidden pb-0 rounded-t-xl">
+                {filterSheetBody(() => setFiltersOpen(false))}
               </SheetContent>
             </Sheet>
 
             {/* Desktop Filter Sheet */}
-            <Sheet>
+            <Sheet open={desktopFiltersOpen} onOpenChange={setDesktopFiltersOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2 hidden md:flex">
                   <SlidersHorizontal className="w-4 h-4" />
@@ -389,22 +424,13 @@ function SearchPageContent() {
                   )}
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-full sm:w-[400px] overflow-y-auto">
-                <SheetHeader>
-                  <SheetTitle>Filters</SheetTitle>
-                </SheetHeader>
-                <div className="mt-4">
-                  <AdvancedFilters
-                    filters={advancedFilters}
-                    onFiltersChange={handleFiltersChange}
-                    categories={categories}
-                  />
-                </div>
+              <SheetContent side="right" className="w-full sm:w-[400px] gap-0 overflow-hidden pb-0">
+                {filterSheetBody(() => setDesktopFiltersOpen(false))}
               </SheetContent>
             </Sheet>
 
             <Select value={sortBy} onValueChange={handleSortChange}>
-              <SelectTrigger className="w-32 md:w-40 flex-shrink-0">
+              <SelectTrigger className="w-auto md:w-40 flex-shrink-0">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
@@ -418,55 +444,62 @@ function SearchPageContent() {
 
             <div className="hidden sm:flex border rounded-lg overflow-hidden flex-shrink-0">
               <Button
-                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                variant={displayMode === 'grid' ? 'secondary' : 'ghost'}
                 size="sm"
                 className="rounded-none"
                 onClick={() => setViewMode('grid')}
+                aria-label="Grid view"
               >
                 <Grid3X3 className="w-4 h-4" />
               </Button>
               <Button
-                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                variant={displayMode === 'list' ? 'secondary' : 'ghost'}
                 size="sm"
                 className="rounded-none"
                 onClick={() => setViewMode('list')}
+                aria-label="List view"
               >
                 <List className="w-4 h-4" />
               </Button>
-              <Button
-                variant={viewMode === 'map' ? 'secondary' : 'ghost'}
-                size="sm"
-                className="rounded-none"
-                onClick={() => setViewMode('map')}
-              >
-                <Map className="w-4 h-4" />
-              </Button>
+              {mapAvailable && (
+                <Button
+                  variant={viewMode === 'map' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="rounded-none"
+                  onClick={() => setViewMode('map')}
+                  aria-label="Map view"
+                >
+                  <Map className="w-4 h-4" />
+                </Button>
+              )}
             </div>
 
             {/* Mobile Map Toggle */}
-            <Button
-              variant={viewMode === 'map' ? 'secondary' : 'outline'}
-              size="sm"
-              className="sm:hidden flex-shrink-0"
-              onClick={() => setViewMode(viewMode === 'map' ? 'grid' : 'map')}
-            >
-              <Map className="w-4 h-4 mr-1" />
-              Map
-            </Button>
+            {mapAvailable && (
+              <Button
+                variant={viewMode === 'map' ? 'secondary' : 'outline'}
+                size="sm"
+                className="sm:hidden flex-shrink-0"
+                onClick={() => setViewMode(viewMode === 'map' ? 'grid' : 'map')}
+              >
+                <Map className="w-4 h-4 mr-1" />
+                Map
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Results Grid / Map */}
-        {viewMode === 'map' ? (
+        {displayMode === 'map' ? (
           <MapView
             listings={listings}
             isLoading={isLoading}
             onClose={() => setViewMode('grid')}
           />
         ) : isLoading ? (
-          <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4' : 'space-y-4'}>
+          <div className={displayMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4' : 'space-y-4'}>
             {[...Array(8)].map((_, i) => (
-              <ListingCardSkeleton key={i} viewMode={viewMode} />
+              <ListingCardSkeleton key={i} viewMode={displayMode} />
             ))}
           </div>
         ) : listings.length === 0 ? (
@@ -491,14 +524,14 @@ function SearchPageContent() {
             </div>
           </div>
         ) : (
-          <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4' : 'space-y-4'}>
+          <div className={displayMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4' : 'space-y-4'}>
             {listings.map((listing) => {
               const translated = getTranslatedListing(listing);
               return (
                 <SearchListingCard
                   key={listing.id}
                   listing={listing}
-                  viewMode={viewMode}
+                  viewMode={displayMode}
                   translatedTitle={translated.title}
                   translatedDescription={translated.description}
                   isTranslated={translated.isTranslated}
@@ -509,7 +542,7 @@ function SearchPageContent() {
         )}
 
         {/* Pagination / Load More */}
-        {totalPages > 1 && viewMode !== 'map' && (
+        {totalPages > 1 && displayMode !== 'map' && (
           <div className="flex flex-col items-center gap-4 mt-6 md:mt-8">
             {page < totalPages && (
               <div className="flex flex-col items-center gap-2">
@@ -562,7 +595,7 @@ function SearchPageContent() {
           </div>
         )}
 
-        {(totalPages === 1 || page >= totalPages) && listings.length > 0 && viewMode !== 'map' && (
+        {(totalPages === 1 || page >= totalPages) && listings.length > 0 && displayMode !== 'map' && (
           <p className="text-center text-sm text-muted-foreground mt-6">
             Showing all {listings.length} results
           </p>
@@ -577,7 +610,7 @@ function SearchPageContent() {
 function ListingCardSkeleton({ viewMode }: { viewMode: 'grid' | 'list' | 'map' }) {
   if (viewMode === 'list') {
     return (
-      <Card className="flex flex-col sm:flex-row overflow-hidden">
+      <Card className="flex flex-col sm:flex-row gap-0 py-0 overflow-hidden">
         <Skeleton className="w-full sm:w-48 md:w-64 h-48 sm:h-40 md:h-48" />
         <div className="flex-1 p-3 md:p-4 space-y-2 md:space-y-3">
           <Skeleton className="h-5 md:h-6 w-3/4" />
@@ -590,7 +623,7 @@ function ListingCardSkeleton({ viewMode }: { viewMode: 'grid' | 'list' | 'map' }
   }
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="gap-0 py-0 overflow-hidden">
       <Skeleton className="aspect-[4/3] w-full" />
       <div className="p-2 md:p-4 space-y-2 md:space-y-3">
         <Skeleton className="h-4 md:h-5 w-3/4" />

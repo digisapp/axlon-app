@@ -45,7 +45,7 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
           {/* Logo & Description */}
           <div className="col-span-2 md:col-span-4 lg:col-span-1">
-            <Link href="/" className="inline-block mb-4">
+            <Link href="/" aria-label="Axleyard home" className="inline-block p-2 -m-2 mb-2">
               <Image
                 src="/images/axlonai-logo.png"
                 alt="Axleyard"
@@ -75,13 +75,13 @@ export function Footer() {
 
           {/* Marketplace Links */}
           <div>
-            <h3 className="font-semibold mb-3">Marketplace</h3>
-            <ul className="space-y-2">
+            <h3 className="font-semibold mb-1.5 md:mb-3">Marketplace</h3>
+            <ul className="md:space-y-2">
               {footerLinks.marketplace.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="inline-block py-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="inline-block py-2.5 md:py-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -92,13 +92,13 @@ export function Footer() {
 
           {/* Platform Links */}
           <div>
-            <h3 className="font-semibold mb-3">Platform</h3>
-            <ul className="space-y-2">
+            <h3 className="font-semibold mb-1.5 md:mb-3">Platform</h3>
+            <ul className="md:space-y-2">
               {footerLinks.platform.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="inline-block py-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="inline-block py-2.5 md:py-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -109,13 +109,13 @@ export function Footer() {
 
           {/* Company Links */}
           <div>
-            <h3 className="font-semibold mb-3">Company</h3>
-            <ul className="space-y-2">
+            <h3 className="font-semibold mb-1.5 md:mb-3">Company</h3>
+            <ul className="md:space-y-2">
               {footerLinks.company.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="inline-block py-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="inline-block py-2.5 md:py-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -126,13 +126,13 @@ export function Footer() {
 
           {/* Legal Links */}
           <div>
-            <h3 className="font-semibold mb-3">Legal</h3>
-            <ul className="space-y-2">
+            <h3 className="font-semibold mb-1.5 md:mb-3">Legal</h3>
+            <ul className="md:space-y-2">
               {footerLinks.legal.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="inline-block py-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="inline-block py-2.5 md:py-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {link.label}
                   </Link>

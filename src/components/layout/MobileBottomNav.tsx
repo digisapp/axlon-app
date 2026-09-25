@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Search, Heart, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { usePublishedHeight } from '@/lib/mobile-chrome';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Home', icon: Home, exact: true },
@@ -35,6 +36,7 @@ const SHOW_ON_PREFIXES = [
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const navRef = usePublishedHeight('--bottom-bar-h');
 
   const visible =
     pathname === '/' ||
@@ -49,6 +51,8 @@ export function MobileBottomNav() {
       {/* In-flow spacer so page content isn't hidden behind the fixed nav */}
       <div className="h-[calc(3.5rem+env(safe-area-inset-bottom))] md:hidden" aria-hidden="true" />
       <nav
+        ref={navRef}
+        data-bottom-bar
         aria-label="Primary"
         className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur pb-[env(safe-area-inset-bottom)] md:hidden"
       >

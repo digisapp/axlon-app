@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn, getImageSrc } from '@/lib/utils';
 import { logger } from '@/lib/logger';
+import { useOverlayOpen } from '@/lib/mobile-chrome';
 
 // Pan position type
 interface PanPosition {
@@ -25,37 +26,51 @@ interface PanPosition {
   y: number;
 }
 
-// Touch swipe hook
+// Touch swipe hook. Only a mostly-horizontal single-finger drag counts — a
+// diagonal page scroll or a pinch used to flip the photo.
 function useSwipe(onSwipeLeft: () => void, onSwipeRight: () => void) {
-  const touchStartX = useRef<number | null>(null);
-  const touchEndX = useRef<number | null>(null);
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const end = useRef<{ x: number; y: number } | null>(null);
   const minSwipeDistance = 50;
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
-    touchEndX.current = null;
-    touchStartX.current = e.targetTouches[0].clientX;
+    end.current = null;
+    start.current = e.touches.length === 1
+      ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      : null;
   }, []);
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
-    touchEndX.current = e.targetTouches[0].clientX;
+    if (e.touches.length !== 1) {
+      start.current = null;
+      return;
+    }
+    end.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
   }, []);
 
   const onTouchEnd = useCallback(() => {
-    if (!touchStartX.current || !touchEndX.current) return;
+    if (!start.current || !end.current) return;
 
-    const distance = touchStartX.current - touchEndX.current;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
+    const dx = start.current.x - end.current.x;
+    const dy = start.current.y - end.current.y;
+    start.current = null;
+    end.current = null;
+    if (Math.abs(dx) < minSwipeDistance || Math.abs(dx) <= Math.abs(dy) * 1.5) return;
 
-    if (isLeftSwipe) {
+    if (dx > 0) {
       onSwipeLeft();
-    } else if (isRightSwipe) {
+    } else {
       onSwipeRight();
     }
   }, [onSwipeLeft, onSwipeRight]);
 
   return { onTouchStart, onTouchMove, onTouchEnd };
 }
+
+// Hover-revealed overlay controls: always visible on touch screens (phones
+// and iPads have no hover), faded until hover/focus with a mouse.
+const HOVER_REVEAL =
+  'opacity-100 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:focus-visible:opacity-100 transition-opacity';
 
 interface ImageItem {
   id: string;
@@ -81,8 +96,23 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<PanPosition>({ x: 0, y: 0 });
   const lastTapRef = useRef<number>(0);
+  const lightboxStripRef = useRef<HTMLDivElement>(null);
 
   const selectedImage = images[selectedIndex];
+
+  // Hide the site's floating buttons (call, chat launchers) over the viewer
+  useOverlayOpen(isLightboxOpen);
+
+  // Keep the current photo's thumbnail in view as the viewer is swiped through
+  useEffect(() => {
+    const strip = lightboxStripRef.current;
+    const thumb = strip?.children[selectedIndex] as HTMLElement | undefined;
+    if (!strip || !thumb) return;
+    strip.scrollTo({
+      left: thumb.offsetLeft - (strip.clientWidth - thumb.clientWidth) / 2,
+      behavior: 'smooth',
+    });
+  }, [isLightboxOpen, selectedIndex]);
 
   // Reset pan when zoom changes to 1 or image changes
   useEffect(() => {
@@ -173,6 +203,8 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
 
   // Handle double tap on touch devices
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    // Quick taps on the prev/next arrows aren't a double-tap zoom
+    if ((e.target as HTMLElement).closest('button')) return;
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
 
@@ -262,9 +294,10 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
   return (
     <>
       <div className={cn('space-y-3', className)}>
-        {/* Main Image */}
+        {/* Main Image — pan-y: vertical drags scroll the page, horizontal
+            ones are swipes (pinch-zoom stays available) */}
         <div
-          className="relative aspect-[4/3] md:aspect-[16/9] rounded-xl overflow-hidden bg-muted group"
+          className="relative aspect-[4/3] md:aspect-[16/9] rounded-xl overflow-hidden bg-muted group touch-pan-y touch-pinch-zoom"
           onTouchStart={swipeHandlers.onTouchStart}
           onTouchMove={swipeHandlers.onTouchMove}
           onTouchEnd={swipeHandlers.onTouchEnd}
@@ -282,7 +315,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 66vw, 800px"
               className="object-cover cursor-pointer transition-transform"
               onClick={() => setIsLightboxOpen(true)}
-              priority={selectedIndex === 0}
+              preload={selectedIndex === 0}
               draggable={false}
               onError={() => setErroredImages(prev => new Set(prev).add(selectedImage.url))}
             />
@@ -294,7 +327,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity h-12 w-12 md:h-10 md:w-10 touch-manipulation"
+                className={cn('absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 hover:text-white text-white h-12 w-12 md:h-10 md:w-10 touch-manipulation', HOVER_REVEAL)}
                 onClick={(e) => {
                   e.stopPropagation();
                   handlePrevious();
@@ -306,7 +339,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity h-12 w-12 md:h-10 md:w-10 touch-manipulation"
+                className={cn('absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 hover:text-white text-white h-12 w-12 md:h-10 md:w-10 touch-manipulation', HOVER_REVEAL)}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleNext();
@@ -322,7 +355,7 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
           <Button
             variant="ghost"
             size="icon"
-            className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity h-11 w-11 md:h-9 md:w-9 touch-manipulation"
+            className={cn('absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 hover:text-white text-white h-11 w-11 md:h-9 md:w-9 touch-manipulation', HOVER_REVEAL)}
             onClick={() => setIsLightboxOpen(true)}
             aria-label="Open fullscreen view"
           >
@@ -373,15 +406,21 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
 
       {/* Lightbox */}
       {isLightboxOpen && (
+        // touch-none: the viewer handles zoom/pan/swipe itself, so a pinch
+        // can't zoom the whole page out of layout behind it. The thumbnail
+        // strip (its own scroller) re-allows horizontal panning.
         <div
-          className="fixed inset-0 z-50 bg-black/95 flex flex-col"
+          role="dialog"
+          aria-modal="true"
+          aria-label={title ? `Photos: ${title}` : 'Photos'}
+          className="fixed inset-0 z-50 bg-black/95 flex flex-col touch-none overscroll-contain"
           onClick={() => {
             setIsLightboxOpen(false);
             setZoom(1);
           }}
         >
           {/* Lightbox header */}
-          <div className="flex items-center justify-between p-4">
+          <div className="flex items-center justify-between p-4 pt-[max(1rem,env(safe-area-inset-top))]">
             <div className="flex items-center gap-2">
               <Badge variant="secondary">
                 {selectedIndex + 1} / {images.length}
@@ -514,16 +553,18 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white w-12 h-12"
+                  className="absolute left-2 md:left-4 z-10 top-1/2 -translate-y-1/2 bg-black/40 md:bg-white/10 hover:bg-white/20 hover:text-white text-white w-12 h-12 touch-manipulation"
                   onClick={handlePrevious}
+                  aria-label="Previous image"
                 >
                   <ChevronLeft className="w-8 h-8" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white w-12 h-12"
+                  className="absolute right-2 md:right-4 z-10 top-1/2 -translate-y-1/2 bg-black/40 md:bg-white/10 hover:bg-white/20 hover:text-white text-white w-12 h-12 touch-manipulation"
                   onClick={handleNext}
+                  aria-label="Next image"
                 >
                   <ChevronRight className="w-8 h-8" />
                 </Button>
@@ -559,8 +600,8 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
               )}
             </div>
 
-            {/* Keyboard hints */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 text-white/50 text-xs">
+            {/* Keyboard hints — mouse/keyboard devices only */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 hidden pointer-fine:flex items-center gap-3 text-white/50 text-xs">
               <span className="flex items-center gap-1">
                 <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-[10px]">←→</kbd> navigate
               </span>
@@ -578,8 +619,12 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
 
           {/* Thumbnail strip */}
           {images.length > 1 && (
+            // Auto margins on the ends center the strip when it fits; unlike
+            // justify-center they collapse when it overflows, so the first
+            // thumbnails stay reachable.
             <div
-              className="p-4 flex justify-center gap-2 overflow-x-auto"
+              ref={lightboxStripRef}
+              className="relative p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex justify-start gap-2 overflow-x-auto overscroll-x-contain touch-pan-x"
               onClick={(e) => e.stopPropagation()}
             >
               {images.map((image, index) => (
@@ -589,8 +634,10 @@ export const ImageGallery = memo(function ImageGallery({ images, title, classNam
                     setSelectedIndex(index);
                     setZoom(1);
                   }}
+                  aria-label={`Show image ${index + 1}`}
+                  aria-current={selectedIndex === index ? 'true' : undefined}
                   className={cn(
-                    'relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all',
+                    'relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all first:ml-auto last:mr-auto',
                     selectedIndex === index
                       ? 'border-white ring-2 ring-white/30'
                       : 'border-transparent opacity-50 hover:opacity-100'

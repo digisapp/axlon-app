@@ -141,7 +141,7 @@ export function TranslatableDescription({
           <span className="text-sm">Translating...</span>
         </div>
       )}
-      <p className="whitespace-pre-wrap">{displayDescription}</p>
+      <p className="whitespace-pre-wrap break-words">{displayDescription}</p>
       {isTranslated && !isLoading && (
         <div className="flex items-center gap-1 text-muted-foreground mt-2 text-xs">
           <Languages className="w-3 h-3" />

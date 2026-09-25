@@ -71,13 +71,13 @@ export default function TransportPage() {
       <header className="bg-background border-b">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+            <Link href="/" className="flex items-center gap-2 min-h-11 md:min-h-0 text-muted-foreground hover:text-foreground">
               <ArrowLeft className="w-4 h-4" />
               Back to Home
             </Link>
-            <Link href="/get-started">
-              <Button size="sm">Get Started</Button>
-            </Link>
+            <Button size="sm" asChild>
+              <Link href="/get-started">Get Started</Link>
+            </Button>
           </div>
         </div>
       </header>
@@ -162,12 +162,12 @@ export default function TransportPage() {
       </section>
 
       <footer className="border-t py-8">
-        <div className="max-w-6xl mx-auto px-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 flex flex-wrap items-center justify-between gap-4">
           <Image src="/images/axlonai-logo.png" alt="Axleyard" width={80} height={30} />
           <div className="flex gap-4 text-sm text-muted-foreground">
-            <Link href="/industries/crane" className="hover:text-foreground">Crane</Link>
-            <Link href="/industries/rigging" className="hover:text-foreground">Rigging</Link>
-            <Link href="/get-started" className="hover:text-foreground">Get Started</Link>
+            <Link href="/industries/crane" className="inline-flex items-center min-h-10 md:min-h-0 hover:text-foreground">Crane</Link>
+            <Link href="/industries/rigging" className="inline-flex items-center min-h-10 md:min-h-0 hover:text-foreground">Rigging</Link>
+            <Link href="/get-started" className="inline-flex items-center min-h-10 md:min-h-0 hover:text-foreground">Get Started</Link>
           </div>
         </div>
       </footer>

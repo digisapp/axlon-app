@@ -98,7 +98,9 @@ export function ShareButton({
     const text = encodeURIComponent(`${shareText}\n${shareUrl}`);
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const smsUrl = isIOS ? `sms:&body=${text}` : `sms:?body=${text}`;
-    window.open(smsUrl, '_blank');
+    // Navigate rather than window.open — a new tab for an sms: URL is left
+    // behind blank on iOS once Messages opens.
+    window.location.href = smsUrl;
   };
 
   const handleWhatsAppShare = () => {

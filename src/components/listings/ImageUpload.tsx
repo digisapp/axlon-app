@@ -500,16 +500,19 @@ export function ImageUpload({
                 </div>
               )}
 
-              {/* Hover Controls */}
+              {/* Controls — a hover overlay with a mouse. Touch screens have no
+                  hover, so there they're visible corner buttons (an invisible
+                  overlay still took taps, and a tap on a photo could delete it). */}
               {!image.uploading && !image.compressing && !image.error && (
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <div className="absolute inset-0 flex items-start justify-end gap-1.5 p-2 pointer-events-none transition-opacity pointer-fine:items-center pointer-fine:justify-center pointer-fine:gap-2 pointer-fine:bg-black/50 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:focus-within:opacity-100 pointer-fine:pointer-events-auto">
                   <Button
                     type="button"
                     size="icon"
                     variant="secondary"
-                    className="h-8 w-8"
+                    className="size-9 pointer-fine:size-8 pointer-events-auto shadow-md"
                     onClick={() => setPrimary(index)}
                     title="Set as primary"
+                    aria-label="Set as primary photo"
                   >
                     <Star className={`w-4 h-4 ${image.is_primary ? 'fill-yellow-500 text-yellow-500' : ''}`} />
                   </Button>
@@ -517,9 +520,10 @@ export function ImageUpload({
                     type="button"
                     size="icon"
                     variant="destructive"
-                    className="h-8 w-8"
+                    className="size-9 pointer-fine:size-8 pointer-events-auto shadow-md"
                     onClick={() => removeImage(index)}
                     title="Remove"
+                    aria-label="Remove photo"
                   >
                     <X className="w-4 h-4" />
                   </Button>
@@ -533,9 +537,9 @@ export function ImageUpload({
                 </div>
               )}
 
-              {/* Sort Handle */}
+              {/* Sort Handle — mouse only; on touch it would sit over the corner buttons */}
               {!image.uploading && !image.compressing && !image.error && (
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-2 right-2 hidden pointer-fine:block opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="p-1 bg-white/80 rounded cursor-grab">
                     <GripVertical className="w-4 h-4 text-gray-600" />
                   </div>

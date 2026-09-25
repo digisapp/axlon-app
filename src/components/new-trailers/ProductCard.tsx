@@ -7,13 +7,16 @@ import { Badge } from '@/components/ui/badge';
 import { Truck } from 'lucide-react';
 import { useImageFallback } from '@/hooks/useImageFallback';
 import { isOptimizerBlockedImage } from '@/lib/images/optimizer-blocked-hosts';
+import { cn } from '@/lib/utils';
 import type { ManufacturerProduct } from '@/types';
 
 interface ProductCardProps {
   product: ManufacturerProduct;
+  /** Sizing for the link wrapper — e.g. a fixed width inside a scroll-snap row. */
+  className?: string;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, className }: ProductCardProps) {
   const primaryImage = product.images?.find((img) => img.is_primary) || product.images?.[0];
   const { hasError, handleError } = useImageFallback();
 
@@ -28,7 +31,7 @@ export function ProductCard({ product }: ProductCardProps) {
     : null;
 
   return (
-    <Link href={`/new-trailers/${product.manufacturer?.slug}/${product.slug}`}>
+    <Link href={`/new-trailers/${product.manufacturer?.slug}/${product.slug}`} className={cn('block', className)}>
       <Card className="h-full overflow-hidden hover:shadow-lg transition-all duration-300 hover:border-primary/30 group cursor-pointer">
         <div className="aspect-[4/3] relative bg-muted">
           {primaryImage && !hasError ? (

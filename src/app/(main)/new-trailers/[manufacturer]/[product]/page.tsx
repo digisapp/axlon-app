@@ -164,6 +164,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+// Full-width CTAs carry the product name — let them wrap instead of pushing
+// the page wider than a phone (Button is whitespace-nowrap with a fixed height).
+const WRAP_BUTTON = 'h-auto md:h-auto min-h-11 md:min-h-10 py-2.5 whitespace-normal text-center';
+
 export default async function ProductDetailPage({ params }: PageProps) {
   const { manufacturer: manufacturerSlug, product: productSlug } = await params;
   const product = await getProduct(manufacturerSlug, productSlug);
@@ -239,17 +243,17 @@ export default async function ProductDetailPage({ params }: PageProps) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(breadcrumbJsonLd) }} />
       {/* Breadcrumbs */}
       <div className="border-b bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link href="/new-trailers" className="hover:text-foreground transition-colors">
+        <div className="max-w-7xl mx-auto px-4 py-1 md:py-3">
+          <nav className="flex items-center gap-2 min-w-0 text-sm text-muted-foreground">
+            <Link href="/new-trailers" className="flex items-center min-h-10 md:min-h-0 shrink-0 hover:text-foreground transition-colors">
               New Trailers
             </Link>
-            <ChevronRight className="w-4 h-4" />
-            <Link href={`/manufacturers/${product.manufacturer.slug}`} className="hover:text-foreground transition-colors">
-              {product.manufacturer.name}
+            <ChevronRight className="w-4 h-4 shrink-0" />
+            <Link href={`/manufacturers/${product.manufacturer.slug}`} className="flex items-center min-h-10 md:min-h-0 min-w-0 hover:text-foreground transition-colors">
+              <span className="truncate">{product.manufacturer.name}</span>
             </Link>
-            <ChevronRight className="w-4 h-4" />
-            <span className="text-foreground font-medium truncate">{product.name}</span>
+            <ChevronRight className="w-4 h-4 shrink-0" />
+            <span className="min-w-0 text-foreground font-medium truncate">{product.name}</span>
           </nav>
         </div>
       </div>
@@ -267,7 +271,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   fill
                   sizes="(max-width: 1024px) 100vw, 800px"
                   className="object-cover"
-                  priority
+                  preload
                   unoptimized={isOptimizerBlockedImage(primaryImage.url)}
                 />
               ) : (
@@ -297,12 +301,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
           </div>
 
           {/* Product Info - Right */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 min-w-0">
             <div className="sticky top-20">
               <Badge variant="secondary" className="mb-3">
                 {product.manufacturer.name}
               </Badge>
-              <h1 className="text-2xl md:text-3xl font-bold mb-2">{product.name}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold mb-2 break-words">{product.name}</h1>
               {product.series && (
                 <p className="text-lg text-muted-foreground mb-1">{product.series} Series</p>
               )}
@@ -313,8 +317,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
               {/* Key Specs Cards */}
               <div className="grid grid-cols-2 gap-3 mt-6">
                 {tonnageLabel && (
-                  <Card className="bg-muted/50">
-                    <CardContent className="p-3 text-center">
+                  <Card className="bg-muted/50 min-w-0">
+                    <CardContent className="p-3 text-center break-words">
                       <Weight className="w-5 h-5 mx-auto mb-1 text-primary" />
                       <p className="text-sm text-muted-foreground">Capacity</p>
                       <p className="font-bold">{tonnageLabel}</p>
@@ -322,8 +326,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   </Card>
                 )}
                 {product.deck_height_inches && (
-                  <Card className="bg-muted/50">
-                    <CardContent className="p-3 text-center">
+                  <Card className="bg-muted/50 min-w-0">
+                    <CardContent className="p-3 text-center break-words">
                       <Ruler className="w-5 h-5 mx-auto mb-1 text-primary" />
                       <p className="text-sm text-muted-foreground">Deck Height</p>
                       <p className="font-bold">{product.deck_height_inches}&quot;</p>
@@ -331,8 +335,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   </Card>
                 )}
                 {product.axle_count && (
-                  <Card className="bg-muted/50">
-                    <CardContent className="p-3 text-center">
+                  <Card className="bg-muted/50 min-w-0">
+                    <CardContent className="p-3 text-center break-words">
                       <Layers className="w-5 h-5 mx-auto mb-1 text-primary" />
                       <p className="text-sm text-muted-foreground">Axles</p>
                       <p className="font-bold">{product.axle_count}-Axle</p>
@@ -340,8 +344,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   </Card>
                 )}
                 {gooseneckLabel && (
-                  <Card className="bg-muted/50">
-                    <CardContent className="p-3 text-center">
+                  <Card className="bg-muted/50 min-w-0">
+                    <CardContent className="p-3 text-center break-words">
                       <Truck className="w-5 h-5 mx-auto mb-1 text-primary" />
                       <p className="text-sm text-muted-foreground">Gooseneck</p>
                       <p className="font-bold text-sm">{gooseneckLabel}</p>
@@ -353,25 +357,25 @@ export default async function ProductDetailPage({ params }: PageProps) {
               {/* Additional quick specs */}
               <div className="mt-4 space-y-2 text-sm">
                 {product.deck_length_feet && (
-                  <div className="flex justify-between py-1 border-b border-border/50">
+                  <div className="flex justify-between gap-3 py-1 border-b border-border/50">
                     <span className="text-muted-foreground">Deck Length</span>
                     <span className="font-medium">{product.deck_length_feet} ft</span>
                   </div>
                 )}
                 {product.overall_length_feet && (
-                  <div className="flex justify-between py-1 border-b border-border/50">
+                  <div className="flex justify-between gap-3 py-1 border-b border-border/50">
                     <span className="text-muted-foreground">Overall Length</span>
                     <span className="font-medium">{product.overall_length_feet} ft</span>
                   </div>
                 )}
                 {product.empty_weight_lbs && (
-                  <div className="flex justify-between py-1 border-b border-border/50">
+                  <div className="flex justify-between gap-3 py-1 border-b border-border/50">
                     <span className="text-muted-foreground">Empty Weight</span>
                     <span className="font-medium">{product.empty_weight_lbs.toLocaleString()} lbs</span>
                   </div>
                 )}
                 {product.gvwr_lbs && (
-                  <div className="flex justify-between py-1 border-b border-border/50">
+                  <div className="flex justify-between gap-3 py-1 border-b border-border/50">
                     <span className="text-muted-foreground">GVWR</span>
                     <span className="font-medium">{product.gvwr_lbs.toLocaleString()} lbs</span>
                   </div>
@@ -380,20 +384,20 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
               {/* CTAs */}
               <div className="mt-6 space-y-3">
-                <Button asChild className="w-full" size="lg">
+                <Button asChild className={`w-full ${WRAP_BUTTON}`} size="lg">
                   <Link href={`/?q=Tell me about the ${product.manufacturer.name} ${product.name}`}>
                     <MessageSquare className="w-4 h-4 mr-2" />
                     Ask AXLON About This Trailer
                   </Link>
                 </Button>
-                <Button asChild variant="outline" className="w-full" size="lg">
+                <Button asChild variant="outline" className={`w-full ${WRAP_BUTTON}`} size="lg">
                   <Link href={`/search?q=${encodeURIComponent(product.manufacturer.name + ' ' + (product.series || product.name))}`}>
                     <Search className="w-4 h-4 mr-2" />
                     Find Used {product.name} For Sale
                   </Link>
                 </Button>
                 {product.source_url && (
-                  <Button asChild variant="ghost" className="w-full" size="sm">
+                  <Button asChild variant="ghost" className="w-full h-auto md:h-auto min-h-10 md:min-h-8 py-2 whitespace-normal text-center" size="sm">
                     <a href={product.source_url} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="w-4 h-4 mr-2" />
                       View on {product.manufacturer.name} Website
@@ -410,7 +414,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
           <div className="mt-12">
             <h2 className="text-xl font-bold mb-4">About This Trailer</h2>
             <div className="prose prose-slate dark:prose-invert max-w-none">
-              <p className="text-muted-foreground whitespace-pre-line">{product.description}</p>
+              <p className="text-muted-foreground whitespace-pre-line break-words">{product.description}</p>
             </div>
           </div>
         )}
@@ -428,9 +432,9 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   <CardContent>
                     <div className="space-y-2">
                       {specs.map((spec: ProductSpec) => (
-                        <div key={spec.id} className="flex justify-between py-1.5 border-b border-border/50 last:border-0">
-                          <span className="text-sm text-muted-foreground">{spec.spec_key}</span>
-                          <span className="text-sm font-medium text-right">
+                        <div key={spec.id} className="flex justify-between gap-3 py-1.5 border-b border-border/50 last:border-0">
+                          <span className="min-w-0 break-words text-sm text-muted-foreground">{spec.spec_key}</span>
+                          <span className="min-w-0 break-words text-sm font-medium text-right">
                             {spec.spec_value}{spec.spec_unit ? ` ${spec.spec_unit}` : ''}
                           </span>
                         </div>
@@ -446,17 +450,17 @@ export default async function ProductDetailPage({ params }: PageProps) {
         {/* Manufacturer Info Card */}
         <div className="mt-12">
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-lg bg-muted">
-                  <Truck className="w-8 h-8 text-primary" />
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="shrink-0 p-2 sm:p-3 rounded-lg bg-muted">
+                  <Truck className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold">{product.manufacturer.name}</h3>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-bold break-words">{product.manufacturer.name}</h3>
                   {product.manufacturer.short_description && (
                     <p className="text-sm text-muted-foreground mt-1">{product.manufacturer.short_description}</p>
                   )}
-                  <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-sm text-muted-foreground">
                     {product.manufacturer.headquarters && (
                       <span>{product.manufacturer.headquarters}</span>
                     )}
@@ -464,12 +468,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
                       <span>Founded {product.manufacturer.founded_year}</span>
                     )}
                   </div>
-                  <div className="flex gap-3 mt-4">
-                    <Button asChild variant="outline" size="sm">
+                  <div className="flex flex-wrap gap-2 sm:gap-3 mt-4">
+                    <Button asChild variant="outline" size="sm" className="h-10 md:h-8">
                       <Link href={`/manufacturers/${product.manufacturer.slug}`}>View All Products</Link>
                     </Button>
                     {product.manufacturer.website && (
-                      <Button asChild variant="ghost" size="sm">
+                      <Button asChild variant="ghost" size="sm" className="h-10 md:h-8">
                         <a href={product.manufacturer.website} target="_blank" rel="noopener noreferrer">
                           <ExternalLink className="w-4 h-4 mr-1" />
                           Website

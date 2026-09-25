@@ -4,6 +4,7 @@ export const revalidate = 300;
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { PUBLIC_LISTING_COLUMNS } from '@/lib/listings/public-columns';
+import { cleanListingDescription } from '@/lib/listings/clean-description';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import Link from 'next/link';
@@ -19,7 +20,6 @@ import {
   TrendingUp,
   Check,
   AlertCircle,
-  ChevronLeft,
   Store,
 } from 'lucide-react';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
@@ -37,6 +37,7 @@ import { TranslatableTitle, TranslatableDescription } from '@/components/listing
 import { SimilarListingCard } from '@/components/listings/SimilarListingCard';
 import { DealerAIChat } from '@/components/listings/DealerAIChat';
 import { MobileContactCTA } from '@/components/listings/MobileContactCTA';
+import { BackToResultsLink } from '@/components/listings/BackToResultsLink';
 import { jsonLdString } from '@/lib/seo/json-ld';
 
 interface PageProps {
@@ -47,7 +48,7 @@ interface PageProps {
 // cache() dedupes it), instead of two round-trips to Supabase per view.
 const getListing = cache(async (id: string) => {
   const supabase = await createClient();
-  return supabase
+  const result = await supabase
     .from('listings')
     .select(`
       ${PUBLIC_LISTING_COLUMNS},
@@ -58,6 +59,9 @@ const getListing = cache(async (id: string) => {
     `)
     .eq('id', id)
     .single();
+  // Scraped form text never reaches the page, meta description or JSON-LD.
+  if (result.data) result.data.description = cleanListingDescription(result.data.description);
+  return result;
 });
 
 // Generate dynamic metadata for SEO
@@ -363,13 +367,7 @@ export default async function ListingPage({ params }: PageProps) {
       <div className="max-w-7xl mx-auto px-4 py-4 md:py-6 pb-24 md:pb-24 lg:pb-6">
         {/* Breadcrumb + Actions - Mobile */}
         <div className="flex items-center justify-between mb-4 md:hidden">
-          <Link
-            href="/search"
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Back
-          </Link>
+          <BackToResultsLink />
           <div className="flex items-center gap-2">
             <CompareButton
               listing={{
@@ -423,9 +421,11 @@ export default async function ListingPage({ params }: PageProps) {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-4 md:gap-8">
+        {/* grid-cols-1 = minmax(0,1fr): without it the implicit track grows to the
+            gallery's thumbnail strip and the page scrolls sideways on phones */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-4 md:space-y-6">
+          <div className="min-w-0 lg:col-span-2 space-y-4 md:space-y-6">
             {/* Image Gallery */}
             <div className="relative">
               <ImageGallery images={sortedImages} title={listing.title} />
@@ -605,7 +605,7 @@ export default async function ListingPage({ params }: PageProps) {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
             {/* Contact Form - Routes to AXLON AI */}
             <div id="contact-seller" className="scroll-mt-20">
               <ContactSeller
@@ -629,7 +629,7 @@ export default async function ListingPage({ params }: PageProps) {
                     </p>
                     <Link
                       href={`/contact?subject=claim&dealer=${encodeURIComponent(unclaimedSourceName)}`}
-                      className="inline-block mt-2 font-medium text-primary hover:underline"
+                      className="inline-flex items-center min-h-11 md:min-h-0 mt-1 md:mt-2 font-medium text-primary hover:underline"
                     >
                       Request a claim link
                     </Link>
@@ -713,7 +713,7 @@ function DetailRow({
       {icon && <span className="text-muted-foreground flex-shrink-0">{icon}</span>}
       <div className="min-w-0">
         <p className="text-xs md:text-sm text-muted-foreground capitalize">{label}</p>
-        <p className="font-medium text-sm md:text-base truncate">{value}</p>
+        <p className="font-medium text-sm md:text-base break-words">{value}</p>
       </div>
     </div>
   );

@@ -16,6 +16,14 @@ import { HIDDEN_PRODUCT_FILTER, cleanProductName, correctedTonnage } from '@/lib
 // its products on one page.
 const PREVIEW_PER_MANUFACTURER = 8;
 
+// On phones a one-column grid of every preview was ~90 screens tall, so below
+// sm each manufacturer's preview is one swipeable scroll-snap row; the next
+// card peeks in to show there's more.
+const PREVIEW_ROW =
+  'flex gap-3 overflow-x-auto overscroll-x-contain snap-x snap-mandatory -mx-4 px-4 scroll-px-4 pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ' +
+  'sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-4 lg:gap-5 sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0';
+const PREVIEW_ROW_ITEM = 'w-[78%] max-w-80 shrink-0 snap-start sm:w-auto sm:max-w-none';
+
 interface PageProps {
   searchParams: Promise<{ manufacturer?: string }>;
 }
@@ -250,19 +258,19 @@ async function CatalogContent({ slug }: { slug: string | null }) {
             </p>
           </div>
         ) : (
-          <div className="space-y-12">
+          <div className="space-y-10 sm:space-y-12">
             {grouped.map((mfr) => {
               const visible = isSingle ? mfr.products : mfr.products.slice(0, PREVIEW_PER_MANUFACTURER);
               const hidden = mfr.products.length - visible.length;
               return (
                 <section key={mfr.id}>
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
+                  <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
+                    <div className="min-w-0">
                       <h2 className="text-2xl font-bold">
                         {isSingle ? (
                           `${mfr.products.length} models`
                         ) : (
-                          <Link href={`/new-trailers?manufacturer=${mfr.slug}`} className="hover:text-primary">
+                          <Link href={`/new-trailers?manufacturer=${mfr.slug}`} className="inline-block py-1.5 md:py-0 hover:text-primary">
                             {mfr.name}
                           </Link>
                         )}
@@ -275,22 +283,30 @@ async function CatalogContent({ slug }: { slug: string | null }) {
                     </div>
                     <Link
                       href={`/manufacturers/${mfr.slug}`}
-                      className="text-sm text-primary hover:underline flex items-center gap-1"
+                      className="shrink-0 text-sm text-primary hover:underline flex items-center gap-1 min-h-10 md:min-h-0"
                     >
                       View Manufacturer
                       <ChevronRight className="w-4 h-4" />
                     </Link>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
-                    {visible.map((product) => (
-                      <ProductCard key={product.id} product={product} />
-                    ))}
-                  </div>
+                  {isSingle ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+                      {visible.map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className={PREVIEW_ROW}>
+                      {visible.map((product) => (
+                        <ProductCard key={product.id} product={product} className={PREVIEW_ROW_ITEM} />
+                      ))}
+                    </div>
+                  )}
                   {hidden > 0 && (
                     <div className="mt-4">
                       <Link
                         href={`/new-trailers?manufacturer=${mfr.slug}`}
-                        className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                        className="inline-flex items-center gap-1 min-h-10 md:min-h-0 text-sm font-medium text-primary hover:underline"
                       >
                         View all {mfr.products.length} {mfr.name} models
                         <ChevronRight className="w-4 h-4" />

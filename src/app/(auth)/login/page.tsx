@@ -133,7 +133,7 @@ function LoginForm() {
               <Label htmlFor="password" className="text-base">Password</Label>
               <Link
                 href="/forgot-password"
-                className="text-sm text-primary hover:underline"
+                className="-my-2.5 py-2.5 text-sm text-primary hover:underline"
               >
                 Forgot password?
               </Link>
@@ -216,7 +216,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/30">
       <Link
         href="/"
-        className="absolute top-4 left-4 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+        className="absolute top-4 left-4 -m-2.5 p-2.5 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Home

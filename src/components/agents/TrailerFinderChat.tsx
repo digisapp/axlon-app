@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { LinkifiedText } from '@/components/ui/linkified-text';
+import { canAutofocus, useOverlayOpen, useVisibleViewport } from '@/lib/mobile-chrome';
 import {
   Search, Send, Loader2, Bot, User,
   Wrench, ChevronDown, X, Maximize2, Minimize2,
@@ -47,22 +49,41 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(variant === 'inline' || initialOpen);
   const [isExpanded, setIsExpanded] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isFloatingOpen = variant === 'floating' && isOpen;
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
+  // While the panel is open the site's floating buttons step aside (the call
+  // button otherwise sits on the Send button), and with the iOS keyboard up the
+  // panel shrinks into the visible area instead of hiding behind the keyboard.
+  useOverlayOpen(isFloatingOpen);
+  const visible = useVisibleViewport(isFloatingOpen);
+
+  // Scroll the message list itself — scrollIntoView would also scroll the page
+  // behind an inline chat.
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list || (messages.length === 0 && !isLoading)) return;
+    list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
+  }, [messages, isLoading]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
-
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
+    // On phones, focusing pops the keyboard over the example prompts.
+    if (isOpen && inputRef.current && canAutofocus()) {
       inputRef.current.focus();
     }
   }, [isOpen]);
+
+  const closePanel = useCallback(() => {
+    setIsOpen(false);
+    setIsExpanded(false);
+  }, []);
+
+  // Tapping a listing link on a phone: get the panel out of the way so the page
+  // is visible. The conversation is kept for when they reopen it.
+  const handleInternalNavigate = useCallback(() => {
+    if (variant === 'floating' && window.matchMedia('(max-width: 639px)').matches) closePanel();
+  }, [variant, closePanel]);
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isLoading) return;
@@ -131,7 +152,8 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-[calc(8.5rem+env(safe-area-inset-bottom))] right-4 md:bottom-24 md:right-6 z-50 bg-primary text-primary-foreground rounded-full p-3 md:p-4 shadow-lg hover:shadow-xl transition-all hover:scale-105"
+        data-fab
+        className="fixed bottom-fab-2 right-4 md:bottom-[calc(var(--compare-bar-h,0px)+6rem)] md:right-6 z-50 bg-primary text-primary-foreground rounded-full p-3 md:p-4 shadow-lg hover:shadow-xl transition-all hover:scale-105"
         aria-label="Open Trailer Finder"
       >
         <Search className="w-6 h-6" />
@@ -147,8 +169,12 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
       }`
     : `w-full rounded-xl border bg-background ${className}`;
 
+  const keyboardStyle = variant === 'floating' && visible
+    ? { top: visible.top + 8, height: visible.height - 16, bottom: 'auto' }
+    : undefined;
+
   return (
-    <div className={containerClasses}>
+    <div className={containerClasses} style={keyboardStyle}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b">
         <div className="flex items-center gap-2">
@@ -165,14 +191,14 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
             <>
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="p-1.5 hover:bg-muted rounded-md transition-colors"
+                className="flex size-10 md:size-8 items-center justify-center hover:bg-muted rounded-md transition-colors"
                 aria-label={isExpanded ? 'Minimize' : 'Maximize'}
               >
                 {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               </button>
               <button
-                onClick={() => { setIsOpen(false); setIsExpanded(false); }}
-                className="p-1.5 hover:bg-muted rounded-md transition-colors"
+                onClick={closePanel}
+                className="flex size-10 md:size-8 items-center justify-center hover:bg-muted rounded-md transition-colors"
                 aria-label="Close"
               >
                 <X className="w-4 h-4" />
@@ -185,7 +211,7 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
       {/* Messages */}
       {/* Floating: the list takes whatever the panel has left. A fixed 460px
           list in a 70dvh panel pushed the input off-screen on phones. */}
-      <div className={`overflow-y-auto overscroll-contain px-4 py-3 space-y-4 ${variant === 'floating' ? 'flex-1 min-h-0' : 'h-[500px]'}`}>
+      <div ref={listRef} className={`overflow-y-auto overscroll-contain px-4 py-3 space-y-4 ${variant === 'floating' ? 'flex-1 min-h-0' : 'h-[500px]'}`}>
         {messages.length === 0 && (
           <div className="text-center py-8">
             <Bot className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
@@ -197,7 +223,7 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
                 <button
                   key={i}
                   onClick={() => sendMessage(q)}
-                  className="block w-full text-left text-sm px-3 py-2 rounded-lg border hover:bg-muted transition-colors"
+                  className="block w-full text-left text-sm px-3 py-2.5 md:py-2 rounded-lg border hover:bg-muted transition-colors"
                 >
                   {q}
                 </button>
@@ -218,15 +244,19 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
               {msg.toolsUsed && msg.toolsUsed.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-2">
                   {msg.toolsUsed.map((t, i) => (
-                    <Badge key={i} variant="outline" className="text-[10px] gap-1 py-0">
+                    <Badge key={i} variant="outline" className="text-[11px] gap-1 py-0">
                       <Wrench className="w-2.5 h-2.5" />
                       {TOOL_LABELS[t.tool] || t.tool}
                     </Badge>
                   ))}
                 </div>
               )}
-              <div className="text-sm whitespace-pre-wrap leading-relaxed">
-                {msg.content}
+              <div className="text-sm whitespace-pre-wrap break-words leading-relaxed">
+                {msg.role === 'assistant' ? (
+                  <LinkifiedText text={msg.content} onInternalNavigate={handleInternalNavigate} />
+                ) : (
+                  msg.content
+                )}
               </div>
             </div>
             {msg.role === 'user' && (
@@ -251,7 +281,6 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
           </div>
         )}
 
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
@@ -263,20 +292,24 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="What do you need to haul?"
-            disabled={isLoading}
+            // readOnly, not disabled: disabling blurs the field and closes the
+            // iOS keyboard after every message. sendMessage ignores repeats.
+            readOnly={isLoading}
+            aria-busy={isLoading}
             enterKeyHint="send"
-            className="flex-1 px-3 py-2 text-base md:text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+            className="flex-1 min-w-0 h-11 md:h-9 px-3 text-base md:text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary read-only:opacity-60"
           />
           <Button
             type="submit"
-            size="sm"
+            size="icon"
             disabled={!input.trim() || isLoading}
-            className="px-3"
+            className="size-11 md:size-9"
+            aria-label="Send"
           >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </Button>
         </form>
-        <p className="text-[10px] text-muted-foreground text-center mt-1.5">
+        <p className="text-[11px] text-muted-foreground text-center mt-1.5">
           Powered by AXLON AI · {messages.filter(m => m.role === 'assistant').length > 0 ? `${messages.length} messages` : 'Ask anything about trailers'}
         </p>
       </div>

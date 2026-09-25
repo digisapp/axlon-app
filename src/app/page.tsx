@@ -265,7 +265,7 @@ export default async function HomePage() {
             <p className="text-xs md:text-sm text-muted-foreground">
               &copy; 2026 <span className="font-[family-name:var(--font-gunship)]">AXLEYARD</span>. All rights reserved.
               {' · '}
-              <a href={`tel:${SALES_PHONE_E164}`} className="hover:text-foreground whitespace-nowrap">
+              <a href={`tel:${SALES_PHONE_E164}`} className="inline-block py-3 -my-3 hover:text-foreground whitespace-nowrap">
                 {SALES_PHONE_DISPLAY}
               </a>
             </p>
@@ -295,7 +295,7 @@ function FooterLink({ href, children }: { href: string; children: React.ReactNod
   return (
     <Link
       href={href}
-      className="inline-block py-2 text-xs md:text-sm text-muted-foreground hover:text-foreground transition-colors"
+      className="inline-block py-3 md:py-2 text-xs md:text-sm text-muted-foreground hover:text-foreground transition-colors"
     >
       {children}
     </Link>

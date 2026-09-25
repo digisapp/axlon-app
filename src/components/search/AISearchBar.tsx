@@ -65,6 +65,13 @@ interface AISearchBarProps {
   showLanguageHint?: boolean;
 }
 
+// Mic + submit buttons: touch-sized on phones, compact from md up
+const BUTTON_SIZE: Record<NonNullable<AISearchBarProps['size']>, string> = {
+  small: 'h-9 w-9 md:h-6 md:w-6',
+  default: 'h-10 w-10 md:h-8 md:w-8',
+  large: 'h-10 w-10 md:h-9 md:w-9',
+};
+
 export function AISearchBar({
   defaultValue = '',
   placeholder,
@@ -462,14 +469,23 @@ export function AISearchBar({
 
   const isLarge = size === 'large';
   const isSmall = size === 'small';
+  const iconSize = isLarge ? 'w-4 h-4' : 'w-4 h-4 md:w-3.5 md:h-3.5';
 
   return (
     <div className={cn('relative w-full', className)} ref={containerRef}>
-      {/* Modern search input - clean with subtle brand accent */}
+      {/* Modern search input - clean with subtle brand accent. A tap on the
+          padding around the field still focuses it. */}
       <div
+        onClick={(e) => {
+          if (e.target === e.currentTarget) inputRef.current?.focus();
+        }}
         className={cn(
           'flex items-center gap-3 bg-white dark:bg-zinc-900 border-2 transition-all shadow-sm',
-          isLarge ? 'rounded-2xl px-5 py-3' : isSmall ? 'rounded-xl px-3 py-2' : 'rounded-xl px-4 py-2.5',
+          isLarge
+            ? 'rounded-2xl pl-5 pr-3 py-2.5 md:px-5 md:py-3'
+            : isSmall
+              ? 'rounded-xl pl-3 pr-1 py-1 md:px-3 md:py-2'
+              : 'rounded-xl pl-4 pr-2 py-1.5 md:px-4 md:py-2.5',
           isFocused
             ? 'border-primary/50 shadow-lg shadow-primary/10'
             : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600',
@@ -498,7 +514,7 @@ export function AISearchBar({
           onBlur={() => !showSuggestions && !showChat && setIsFocused(false)}
           placeholder={currentPlaceholder}
           className={cn(
-            'flex-1 bg-transparent outline-none placeholder:text-zinc-400 min-w-0 text-zinc-900 dark:text-zinc-100',
+            'flex-1 self-stretch bg-transparent outline-none placeholder:text-zinc-400 min-w-0 text-zinc-900 dark:text-zinc-100',
             isLarge ? 'text-base md:text-lg' : isSmall ? 'text-base md:text-sm' : 'text-base'
           )}
           inputMode="search"
@@ -514,37 +530,40 @@ export function AISearchBar({
             type="button"
             className={cn(
               'flex-shrink-0 flex items-center justify-center rounded-lg transition-all',
-              isLarge ? 'h-9 w-9' : isSmall ? 'h-6 w-6' : 'h-8 w-8',
+              BUTTON_SIZE[size],
               isListening
                 ? 'bg-red-500 text-white animate-pulse'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-300'
             )}
             title={isListening ? 'Stop listening' : 'Voice search'}
+            aria-label={isListening ? 'Stop listening' : 'Voice search'}
           >
             {isListening ? (
-              <MicOff className={cn(isLarge ? 'w-4 h-4' : 'w-3.5 h-3.5')} />
+              <MicOff className={iconSize} />
             ) : (
-              <Mic className={cn(isLarge ? 'w-4 h-4' : 'w-3.5 h-3.5')} />
+              <Mic className={iconSize} />
             )}
           </button>
         )}
 
         {/* Submit button - arrow that activates on input */}
         <button
+          type="button"
           onClick={() => handleSearch()}
           disabled={isLoading || !query.trim()}
+          aria-label="Search"
           className={cn(
             'flex-shrink-0 flex items-center justify-center rounded-lg transition-all',
-            isLarge ? 'h-9 w-9' : isSmall ? 'h-6 w-6' : 'h-8 w-8',
+            BUTTON_SIZE[size],
             query.trim()
               ? 'bg-primary text-primary-foreground hover:bg-primary/90'
               : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed'
           )}
         >
           {isLoading ? (
-            <Loader2 className={cn(isLarge ? 'w-4 h-4' : 'w-3.5 h-3.5', 'animate-spin')} />
+            <Loader2 className={cn(iconSize, 'animate-spin')} />
           ) : (
-            <ArrowRight className={cn(isLarge ? 'w-4 h-4' : 'w-3.5 h-3.5')} strokeWidth={2.5} />
+            <ArrowRight className={iconSize} strokeWidth={2.5} />
           )}
         </button>
       </div>

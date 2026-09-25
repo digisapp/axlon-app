@@ -39,7 +39,7 @@ export default function AxleWeightCalculatorPage() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6"
+          className="-ml-2 inline-flex min-h-11 items-center gap-2 px-2 text-muted-foreground hover:text-foreground mb-4 md:mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Home

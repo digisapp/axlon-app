@@ -35,7 +35,7 @@ export const SuggestionsDropdown = memo(function SuggestionsDropdown({
 }: SuggestionsDropdownProps) {
   return (
     <div
-      className="absolute top-full left-0 right-0 bg-white dark:bg-zinc-900 border-2 border-t-0 border-primary/50 rounded-b-2xl shadow-lg shadow-primary/10 z-50 overflow-hidden"
+      className="absolute top-full left-0 right-0 bg-white dark:bg-zinc-900 border-2 border-t-0 border-primary/50 rounded-b-2xl shadow-lg shadow-primary/10 z-50 max-h-[45dvh] md:max-h-[70dvh] overflow-y-auto overscroll-contain"
       role="listbox"
       aria-label="Search suggestions"
     >
@@ -48,7 +48,7 @@ export const SuggestionsDropdown = memo(function SuggestionsDropdown({
           {!query && recentSearches.length > 0 && (
             <button
               onClick={onClearRecent}
-              className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+              className="-my-3 -mr-2 px-2 py-3 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
             >
               Clear recent
             </button>
@@ -108,9 +108,9 @@ export const SuggestionsDropdown = memo(function SuggestionsDropdown({
           );
         })}
 
-        {/* Keyboard navigation hint */}
+        {/* Keyboard navigation hint — mouse/trackpad devices only */}
         {suggestions.length > 0 && (
-          <div className="flex items-center gap-4 px-3 pt-2 pb-1 border-t border-zinc-100 dark:border-zinc-800 mt-1">
+          <div className="hidden pointer-fine:flex items-center gap-4 px-3 pt-2 pb-1 border-t border-zinc-100 dark:border-zinc-800 mt-1">
             <span className="text-[10px] text-zinc-400 flex items-center gap-1">
               <kbd className="px-1 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-[9px]">↑↓</kbd> navigate
             </span>

@@ -50,12 +50,12 @@ export default function ComparePage() {
             <p className="text-muted-foreground mb-6">
               Add listings to compare by clicking the compare button on listing cards.
             </p>
-            <Link href="/search">
-              <Button>
+            <Button asChild>
+              <Link href="/search">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Browse Listings
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
@@ -69,11 +69,11 @@ export default function ComparePage() {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/search">
-                <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" asChild>
+                <Link href="/search" aria-label="Back to search">
                   <ArrowLeft className="w-5 h-5" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
               <div>
                 <h1 className="text-xl font-bold flex items-center gap-2">
                   <Scale className="w-5 h-5" />
@@ -113,11 +113,11 @@ export default function ComparePage() {
             <p className="text-muted-foreground mb-4">
               Add at least 2 listings to compare them side by side.
             </p>
-            <Link href="/search">
-              <Button variant="outline">
+            <Button variant="outline" asChild>
+              <Link href="/search">
                 Add More Listings
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </Card>
         ) : (
           <>
@@ -175,12 +175,12 @@ export default function ComparePage() {
                         );
                       })}
                     </dl>
-                    <Link href={`/listing/${listing.id}`} target="_blank">
-                      <Button variant="outline" size="sm" className="w-full mt-3">
+                    <Button variant="outline" size="sm" className="w-full mt-3" asChild>
+                      <Link href={`/listing/${listing.id}`} target="_blank">
                         <ExternalLink className="w-3 h-3 mr-2" />
                         View Listing
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
                   </div>
                 </Card>
               );
@@ -229,12 +229,12 @@ export default function ComparePage() {
                           <h3 className="font-semibold text-sm line-clamp-2 mb-2">
                             {listing.title}
                           </h3>
-                          <Link href={`/listing/${listing.id}`} target="_blank">
-                            <Button variant="outline" size="sm" className="w-full">
+                          <Button variant="outline" size="sm" className="w-full" asChild>
+                            <Link href={`/listing/${listing.id}`} target="_blank">
                               <ExternalLink className="w-3 h-3 mr-2" />
                               View Listing
-                            </Button>
-                          </Link>
+                            </Link>
+                          </Button>
                         </div>
                       </Card>
                     </th>
@@ -280,11 +280,11 @@ export default function ComparePage() {
         {/* Add More */}
         {listings.length < 4 && listings.length >= 2 && (
           <div className="mt-8 text-center">
-            <Link href="/search">
-              <Button variant="outline">
+            <Button variant="outline" asChild>
+              <Link href="/search">
                 Add More Listings ({4 - listings.length} slots available)
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </div>
         )}
       </div>

@@ -8,12 +8,15 @@ import { Heart, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { cn } from '@/lib/utils';
 
 interface FavoriteButtonProps {
   listingId: string;
   variant?: 'default' | 'ghost' | 'outline';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   showText?: boolean;
+  /** Over photos, pass a backdrop (e.g. `bg-white/90`) — the ghost heart is invisible on its own */
+  className?: string;
 }
 
 export function FavoriteButton({
@@ -21,6 +24,7 @@ export function FavoriteButton({
   variant = 'ghost',
   size = 'sm',
   showText = true,
+  className,
 }: FavoriteButtonProps) {
   const router = useRouter();
   const [isFavorited, setIsFavorited] = useState(false);
@@ -117,9 +121,21 @@ export function FavoriteButton({
     }
   };
 
+  // aria-disabled rather than disabled: a disabled button ignores the tap, so
+  // on a listing card it falls through to the card link and navigates away
   if (isLoading) {
     return (
-      <Button variant={variant} size={size} disabled>
+      <Button
+        variant={variant}
+        size={size}
+        className={className}
+        aria-disabled
+        aria-label="Save listing"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      >
         <Loader2 className="w-4 h-4 animate-spin" />
       </Button>
     );
@@ -130,8 +146,13 @@ export function FavoriteButton({
       variant={variant}
       size={size}
       onClick={handleToggle}
-      disabled={isToggling}
-      className={isFavorited ? 'text-red-500 hover:text-red-600' : ''}
+      aria-busy={isToggling || undefined}
+      aria-label={showText ? undefined : 'Save listing'}
+      aria-pressed={isFavorited}
+      className={cn(
+        className,
+        isFavorited && 'text-red-500 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400'
+      )}
     >
       {isToggling ? (
         <Loader2 className="w-4 h-4 animate-spin" />

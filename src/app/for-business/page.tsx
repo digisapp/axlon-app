@@ -485,14 +485,14 @@ export default function ForBusinessPage() {
             <Image src="/images/axlonai-logo.png" alt="Axleyard" width={20} height={20} className="w-5 h-5" />
             <p className="text-xs text-muted-foreground">&copy; 2026 Axleyard. All rights reserved.</p>
           </div>
-          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
-            <a href={`tel:${SALES_PHONE_E164}`} className="text-xs text-muted-foreground hover:text-foreground transition-colors">{SALES_PHONE_DISPLAY}</a>
-            <Link href="/" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Marketplace</Link>
-            <Link href="/transform" className="text-xs text-muted-foreground hover:text-foreground transition-colors">AI Transformation</Link>
-            <Link href="/apply" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Apply</Link>
-            <Link href="/contact" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Contact</Link>
-            <Link href="/privacy" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>
-            <Link href="/terms" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Terms</Link>
+          <div className="flex flex-wrap justify-center gap-x-4 md:gap-x-6 md:gap-y-2">
+            <a href={`tel:${SALES_PHONE_E164}`} className="inline-flex items-center min-h-10 px-1 md:min-h-0 md:px-0 text-xs text-muted-foreground hover:text-foreground transition-colors">{SALES_PHONE_DISPLAY}</a>
+            <Link href="/" className="inline-flex items-center min-h-10 px-1 md:min-h-0 md:px-0 text-xs text-muted-foreground hover:text-foreground transition-colors">Marketplace</Link>
+            <Link href="/transform" className="inline-flex items-center min-h-10 px-1 md:min-h-0 md:px-0 text-xs text-muted-foreground hover:text-foreground transition-colors">AI Transformation</Link>
+            <Link href="/apply" className="inline-flex items-center min-h-10 px-1 md:min-h-0 md:px-0 text-xs text-muted-foreground hover:text-foreground transition-colors">Apply</Link>
+            <Link href="/contact" className="inline-flex items-center min-h-10 px-1 md:min-h-0 md:px-0 text-xs text-muted-foreground hover:text-foreground transition-colors">Contact</Link>
+            <Link href="/privacy" className="inline-flex items-center min-h-10 px-1 md:min-h-0 md:px-0 text-xs text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>
+            <Link href="/terms" className="inline-flex items-center min-h-10 px-1 md:min-h-0 md:px-0 text-xs text-muted-foreground hover:text-foreground transition-colors">Terms</Link>
           </div>
         </div>
       </footer>

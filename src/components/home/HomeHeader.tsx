@@ -144,7 +144,7 @@ export function HomeHeader() {
           {/* Mobile: avatar opens sheet */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+              <Button variant="ghost" className="relative size-10 p-0 rounded-full" aria-label="Account menu">
                 <Avatar className="h-9 w-9">
                   <AvatarImage src={user.avatar_url || undefined} />
                   <AvatarFallback>
@@ -157,7 +157,7 @@ export function HomeHeader() {
               <SheetHeader>
                 <SheetTitle className="text-xl font-[family-name:var(--font-gunship)] tracking-wider">AXLEYARD</SheetTitle>
               </SheetHeader>
-              <div className="mt-6 flex flex-col gap-4">
+              <div className="mt-6 flex flex-col gap-4 px-4 pb-6">
                 <div className="flex items-center gap-3 pb-4 border-b">
                   <Avatar>
                     <AvatarImage src={user.avatar_url || undefined} />
@@ -223,7 +223,7 @@ export function HomeHeader() {
       {!user && (
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild className="md:hidden">
-            <Button variant="ghost" size="icon" className="glass-button">
+            <Button variant="ghost" size="icon" className="glass-button" aria-label="Open menu">
               <Menu className="w-5 h-5" />
             </Button>
           </SheetTrigger>
@@ -231,7 +231,7 @@ export function HomeHeader() {
             <SheetHeader>
               <SheetTitle className="text-xl font-[family-name:var(--font-gunship)] tracking-wider">AXLEYARD</SheetTitle>
             </SheetHeader>
-            <div className="mt-6 flex flex-col gap-4">
+            <div className="mt-6 flex flex-col gap-4 px-4 pb-6">
               <nav className="flex flex-col gap-1">
                 {navLinks.map((link) => (
                   <Link

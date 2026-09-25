@@ -39,6 +39,8 @@ interface AdvancedFiltersProps {
   onFiltersChange: (filters: FilterValues) => void;
   categories?: { id: string; name: string; slug: string }[];
   onClose?: () => void;
+  /** Omit the built-in title/Reset row when a surrounding sheet provides its own. */
+  hideHeader?: boolean;
   className?: string;
 }
 
@@ -135,6 +137,7 @@ export function AdvancedFilters({
   onFiltersChange,
   categories = [],
   onClose,
+  hideHeader = false,
   className = '',
 }: AdvancedFiltersProps) {
   const [localFilters, setLocalFilters] = useState<FilterValues>(filters);
@@ -255,6 +258,7 @@ export function AdvancedFilters({
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Header */}
+      {!hideHeader && (
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h3 className="font-semibold">Filters</h3>
@@ -277,12 +281,13 @@ export function AdvancedFilters({
             </Button>
           )}
           {onClose && (
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close filters">
               <X className="w-4 h-4" />
             </Button>
           )}
         </div>
       </div>
+      )}
 
       <Accordion type="multiple" defaultValue={['price', 'year', 'make']} className="w-full">
         {/* Category Filter */}

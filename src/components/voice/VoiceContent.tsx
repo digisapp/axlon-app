@@ -309,13 +309,13 @@ export function VoiceContent() {
                 500 minutes included/month &middot; $0.25/min overage &middot; 30-day free trial
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" size="lg" asChild>
+                <Button className="sm:flex-1 bg-emerald-600 hover:bg-emerald-700" size="lg" asChild>
                   <Link href="/get-started">
                     Start Free Trial — AI Suite
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>
                 </Button>
-                <Button variant="outline" className="flex-1" size="lg" asChild>
+                <Button variant="outline" className="sm:flex-1" size="lg" asChild>
                   <Link href="/for-business">
                     Compare Plans
                     <ArrowRight className="w-4 h-4 ml-2" />
@@ -372,7 +372,7 @@ function ScaleCard({
         <div className="w-10 h-10 rounded-xl bg-cyan-600/10 flex items-center justify-center">
           {icon}
         </div>
-        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+        <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
           tag === 'Included' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' : 'bg-muted text-muted-foreground'
         }`}>
           {tag}

@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { LinkifiedText } from '@/components/ui/linkified-text';
 import {
   MessageCircle,
-  X,
   Send,
   Loader2,
   Bot,
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { canAutofocus, useOverlayOpen, useVisibleViewport } from '@/lib/mobile-chrome';
 
 interface ChatMessage {
   id: string;
@@ -48,7 +49,13 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
   const [leadSubmitted, setLeadSubmitted] = useState(false);
   const [leadError, setLeadError] = useState('');
   const [leadSubmitting, setLeadSubmitting] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // While open, the site's floating buttons step aside, and with the iOS
+  // keyboard up the panel shrinks into the visible area above it.
+  useOverlayOpen(isOpen);
+  const visible = useVisibleViewport(isOpen);
 
   const greeting = chatSettings?.greeting || `Hi! I'm the AI assistant for ${dealerName}. How can I help you find the right equipment today?`;
 
@@ -66,10 +73,26 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
     }
   }, [isOpen, greeting, messages.length]);
 
-  // Auto-scroll to bottom
+  // Scroll the message list itself — scrollIntoView also scrolled the
+  // storefront behind the panel. Re-runs when the keyboard resizes the panel,
+  // unless a lead-form field (inside the list) has focus: iOS has already
+  // scrolled that field into view.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    const list = listRef.current;
+    if (!list || list.contains(document.activeElement)) return;
+    list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
+  }, [messages, isLoading, showLeadForm, visible?.height]);
+
+  useEffect(() => {
+    // On phones, focusing pops the keyboard over the greeting.
+    if (isOpen && canAutofocus()) inputRef.current?.focus();
+  }, [isOpen]);
+
+  // Tapping a listing link on a phone: get the panel out of the way so the
+  // listing is visible. The conversation is kept for when they reopen it.
+  const handleInternalNavigate = useCallback(() => {
+    if (window.matchMedia('(max-width: 639px)').matches) setIsOpen(false);
+  }, []);
 
   // Show lead form after X messages
   useEffect(() => {
@@ -199,50 +222,68 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       handleSend();
     }
   };
 
   if (!isOpen) {
+    // bottom-fab stacks the launcher above the storefront's MobileContactBar.
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] lg:bottom-6 right-6 w-14 h-14 rounded-full shadow-lg z-50"
+        data-fab
+        aria-label={`Chat with ${dealerName}`}
+        className="fixed bottom-fab lg:bottom-6 right-4 lg:right-6 size-14 rounded-full shadow-lg z-50"
         size="icon"
       >
-        <MessageCircle className="w-6 h-6" />
+        <MessageCircle className="size-6" />
       </Button>
     );
   }
 
+  // Phones: a near-full-width panel sitting above the contact bar, capped so it
+  // never runs off the top of a small screen. With the keyboard up it's pinned
+  // to the visible area instead (iOS doesn't shrink the layout viewport).
+  const panelStyle = {
+    '--chat-bottom': 'calc(max(var(--bottom-bar-h, 0px), env(safe-area-inset-bottom)) + 0.5rem)',
+    '--chat-h': 'min(560px, calc(100dvh - var(--chat-bottom) - 0.5rem - env(safe-area-inset-top)))',
+    ...(visible ? { top: visible.top + 8, height: visible.height - 16, bottom: 'auto' } : {}),
+  } as React.CSSProperties;
+
   return (
-    <Card className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] lg:bottom-6 right-6 w-[360px] max-w-[calc(100vw-2rem)] h-[500px] shadow-2xl z-50 flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="bg-primary text-primary-foreground p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+    <Card
+      role="dialog"
+      aria-label={`Chat with ${dealerName}`}
+      style={panelStyle}
+      className="fixed z-50 gap-0 py-0 flex flex-col overflow-hidden rounded-2xl shadow-2xl inset-x-2 bottom-(--chat-bottom) h-(--chat-h) sm:inset-x-auto sm:right-4 sm:w-[380px] lg:right-6 lg:bottom-6 lg:h-[min(560px,calc(100dvh-3rem))]"
+    >
+      {/* Header — touch-none so a drag here doesn't scroll the page behind */}
+      <div className="shrink-0 touch-none bg-primary text-primary-foreground pl-4 pr-2 py-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 shrink-0 rounded-full bg-white/20 flex items-center justify-center">
             <Sparkles className="w-5 h-5" />
           </div>
-          <div>
-            <p className="font-semibold">{dealerName}</p>
+          <div className="min-w-0">
+            <p className="font-semibold truncate">{dealerName}</p>
             <p className="text-xs text-white/70">AI Sales Assistant</p>
           </div>
         </div>
         <Button
           variant="ghost"
           size="icon"
-          className="text-white hover:bg-white/20"
+          className="shrink-0 text-white hover:bg-white/20 hover:text-white"
           onClick={() => setIsOpen(false)}
+          aria-label="Minimize chat"
         >
           <Minimize2 className="w-5 h-5" />
         </Button>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4 bg-muted/30">
+      <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4 bg-muted/30">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -254,13 +295,19 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
               </div>
             )}
             <div
-              className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+              className={`max-w-[80%] min-w-0 rounded-2xl px-4 py-2 ${
                 message.role === 'user'
                   ? 'bg-primary text-primary-foreground rounded-br-md'
                   : 'bg-card border rounded-bl-md'
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              <p className="text-sm whitespace-pre-wrap break-words">
+                {message.role === 'assistant' ? (
+                  <LinkifiedText text={message.content} onInternalNavigate={handleInternalNavigate} />
+                ) : (
+                  message.content
+                )}
+              </p>
             </div>
             {message.role === 'user' && (
               <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
@@ -289,9 +336,10 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
             </p>
             <Input
               placeholder="Your name"
+              autoComplete="name"
               value={leadInfo.name}
               onChange={(e) => setLeadInfo({ ...leadInfo, name: e.target.value })}
-              className="h-9 text-base md:text-sm"
+              className="h-11 md:h-9 text-base md:text-sm"
             />
             <Input
               placeholder="Email"
@@ -300,15 +348,16 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
               inputMode="email"
               value={leadInfo.email}
               onChange={(e) => setLeadInfo({ ...leadInfo, email: e.target.value })}
-              className="h-9 text-base md:text-sm"
+              className="h-11 md:h-9 text-base md:text-sm"
             />
             <Input
               placeholder="Phone (optional)"
               type="tel"
               autoComplete="tel"
+              inputMode="tel"
               value={leadInfo.phone}
               onChange={(e) => setLeadInfo({ ...leadInfo, phone: e.target.value })}
-              className="h-9 text-base md:text-sm"
+              className="h-11 md:h-9 text-base md:text-sm"
             />
             {leadError && (
               <p className="text-xs text-destructive" role="alert">
@@ -336,22 +385,32 @@ export function ChatWidget({ dealerId, dealerName, chatSettings }: ChatWidgetPro
             </div>
           </div>
         )}
-
-        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="p-4 border-t bg-background">
+      {/* Input — readOnly (not disabled) while waiting: disabling blurs the
+          field, which closes the iOS keyboard after every message. */}
+      <div className="shrink-0 px-4 pt-3 pb-2 border-t bg-background">
         <div className="flex gap-2">
           <Input
+            ref={inputRef}
             placeholder="Ask about inventory, pricing, availability..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            disabled={isLoading}
+            onKeyDown={handleKeyDown}
+            readOnly={isLoading}
+            aria-busy={isLoading}
+            enterKeyHint="send"
             className="flex-1"
           />
-          <Button onClick={handleSend} disabled={!input.trim() || isLoading} size="icon">
+          <Button
+            onClick={handleSend}
+            // Keep focus (and the iOS keyboard) in the input when tapping Send.
+            onMouseDown={(e) => e.preventDefault()}
+            disabled={!input.trim() || isLoading}
+            size="icon"
+            className="size-11 md:size-9"
+            aria-label="Send message"
+          >
             <Send className="w-4 h-4" />
           </Button>
         </div>

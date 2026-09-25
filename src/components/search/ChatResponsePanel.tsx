@@ -3,6 +3,7 @@
 import { memo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, X, Calculator, ArrowUpRight, MapPin, Flame, Search } from 'lucide-react';
+import { LinkifiedText } from '@/components/ui/linkified-text';
 
 interface SuggestedListing {
   id: string;
@@ -62,7 +63,7 @@ export const ChatResponsePanel = memo(function ChatResponsePanel({
           </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+            className="-m-2 md:m-0 flex size-10 md:size-7 items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
             aria-label="Close AI response"
           >
             <X className="w-4 h-4 text-zinc-400" />
@@ -70,8 +71,8 @@ export const ChatResponsePanel = memo(function ChatResponsePanel({
         </div>
 
         {/* Response */}
-        <div className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-line leading-relaxed">
-          {chatResponse.response}
+        <div className="text-sm text-zinc-700 dark:text-zinc-300 whitespace-pre-line break-words leading-relaxed">
+          <LinkifiedText text={chatResponse.response} />
         </div>
 
         {/* Suggested tool link */}

@@ -4,11 +4,16 @@ import { Phone } from 'lucide-react';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { RESERVED_SLUGS } from '@/lib/reserved-slugs';
+import { usePublishedHeight } from '@/lib/mobile-chrome';
 import { SALES_PHONE_E164 as PHONE_NUMBER, SALES_PHONE_DISPLAY as DISPLAY_NUMBER } from '@/lib/contact';
+
+const HIDDEN_PREFIXES = ['/login', '/signup', '/forgot-password', '/reset-password', '/admin'];
 
 export function FloatingCallButton() {
   const [isHovered, setIsHovered] = useState(false);
   const pathname = usePathname();
+  // Reserve this button's slot so the Trailer Finder launcher stacks above it.
+  const buttonRef = usePublishedHeight('--fab-call-slot', 12);
 
   // Don't show the AXLON sales call button on dealer storefronts (axleyard.com/[slug]):
   // they render their own dealer contact bar + chat widget in the same corner, and
@@ -24,12 +29,17 @@ export function FloatingCallButton() {
   // Keep the standalone AXLON page clean (matches the axlon.ai surface).
   if (pathname === '/ask' || pathname.startsWith('/ask/')) return null;
 
+  // Sign-in forms and the admin console aren't places to pitch a sales call.
+  if (HIDDEN_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return null;
+
   return (
     <a
+      ref={buttonRef}
+      data-fab
       href={`tel:${PHONE_NUMBER}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 md:bottom-6 md:right-6 z-50 flex items-center gap-2 bg-primary text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group"
+      className="fixed bottom-fab right-4 md:bottom-[calc(var(--compare-bar-h,0px)+1.5rem)] md:right-6 z-50 flex items-center gap-2 bg-primary text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group"
       aria-label="Call AXLON AI"
     >
       {/* Expanded state with number — desktop only */}

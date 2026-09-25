@@ -29,7 +29,7 @@ export default function SearchLoading() {
       {/* Results Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
         {Array.from({ length: 12 }).map((_, i) => (
-          <Card key={i} className="overflow-hidden animate-pulse">
+          <Card key={i} className="gap-0 py-0 overflow-hidden animate-pulse">
             <Skeleton className="aspect-[4/3] w-full" />
             <div className="p-3 space-y-2">
               <Skeleton className="h-4 w-3/4" />

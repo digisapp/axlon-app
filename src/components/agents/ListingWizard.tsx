@@ -178,9 +178,12 @@ export function ListingWizard({ onComplete, onCancel }: ListingWizardProps) {
               {imageUrls.map((url, i) => (
                 <div key={i} className="relative group aspect-video bg-muted rounded-lg overflow-hidden">
                   <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                  {/* Visible on touch screens (no hover there); hover-revealed with a mouse */}
                   <button
+                    type="button"
                     onClick={() => removeImage(i)}
-                    className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label={`Remove photo ${i + 1}`}
+                    className="absolute top-2 right-2 bg-black/60 text-white rounded-full size-9 pointer-fine:size-6 flex items-center justify-center text-base pointer-fine:text-xs opacity-100 pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:focus-visible:opacity-100 transition-opacity"
                   >
                     ×
                   </button>

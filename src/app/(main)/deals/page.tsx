@@ -30,6 +30,9 @@ import { useImageFallback } from '@/hooks/useImageFallback';
 import { getImageSrc } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 
+const PHOTO_BUTTON_CLASS =
+  'size-10 md:size-8 rounded-full border-0 bg-white/90 text-gray-900 shadow-sm backdrop-blur-sm hover:bg-white hover:text-gray-900 dark:bg-gray-900/80 dark:text-white dark:hover:bg-gray-900';
+
 interface DealListing {
   id: string;
   title: string;
@@ -163,7 +166,7 @@ export default function DealsPage() {
           {/* Sort & View Controls */}
           <div className="flex items-center gap-2">
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-auto min-w-40">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
@@ -180,6 +183,7 @@ export default function DealsPage() {
                 size="sm"
                 className="rounded-none"
                 onClick={() => setViewMode('grid')}
+                aria-label="Grid view"
               >
                 <Grid3X3 className="w-4 h-4" />
               </Button>
@@ -188,6 +192,7 @@ export default function DealsPage() {
                 size="sm"
                 className="rounded-none"
                 onClick={() => setViewMode('list')}
+                aria-label="List view"
               >
                 <List className="w-4 h-4" />
               </Button>
@@ -251,7 +256,7 @@ function FilterChip({
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1.5 text-xs md:text-sm rounded-full border transition-colors ${
+      className={`inline-flex items-center min-h-10 px-3 text-xs md:text-sm rounded-full border transition-colors md:min-h-0 md:py-1.5 ${
         isActive
           ? 'bg-primary text-primary-foreground border-primary'
           : 'bg-background hover:bg-muted border-border'
@@ -271,7 +276,7 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
   if (viewMode === 'list') {
     return (
       <ListingCardWrapper listingId={deal.id} listingTitle={deal.title}>
-        <Card className="flex flex-col sm:flex-row overflow-hidden hover:shadow-lg transition-shadow">
+        <Card className="flex flex-col sm:flex-row gap-0 py-0 overflow-hidden hover:shadow-lg transition-shadow">
           <div className="relative w-full sm:w-48 md:w-64 h-48 sm:h-40 md:h-48 flex-shrink-0">
             {primaryImageSrc && !hasError ? (
               <Image
@@ -358,7 +363,7 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
 
   return (
     <ListingCardWrapper listingId={deal.id} listingTitle={deal.title}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full">
+      <Card className="gap-0 py-0 overflow-hidden hover:shadow-lg transition-shadow h-full">
         <div className="relative aspect-[4/3]">
           {primaryImageSrc && !hasError ? (
             <Image
@@ -374,15 +379,17 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
               <span className="text-muted-foreground text-xs md:text-sm">No Image</span>
             </div>
           )}
+          {/* Badge sits bottom-left so the top-right buttons never cover it
+              on narrow two-column phone cards */}
           <Badge
-            className={`absolute top-2 left-2 text-[10px] md:text-xs ${
+            className={`absolute bottom-2 left-2 max-w-[calc(100%-1rem)] whitespace-normal text-left text-[11px] leading-tight md:text-xs shadow-sm ${
               isHotDeal ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
             }`}
           >
-            {isHotDeal ? <Flame className="w-2.5 h-2.5 md:w-3 md:h-3 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 md:w-3 md:h-3 mr-0.5" />}
+            {isHotDeal ? <Flame /> : <TrendingDown />}
             {deal.discount_percent}% below market
           </Badge>
-          <div className="absolute top-2 right-2 flex gap-1">
+          <div className="absolute top-1.5 right-1.5 flex gap-1.5 md:top-2 md:right-2 md:gap-1">
             <CompareButton
               listing={{
                 id: deal.id,
@@ -397,13 +404,14 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
                 image_url: primaryImageSrc,
               }}
               variant="icon"
-              className="bg-white/80 hover:bg-white w-7 h-7 md:w-8 md:h-8"
+              className={PHOTO_BUTTON_CLASS}
             />
             <FavoriteButton
               listingId={deal.id}
               variant="ghost"
               size="icon"
               showText={false}
+              className={PHOTO_BUTTON_CLASS}
             />
           </div>
         </div>
@@ -413,7 +421,7 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
           <p className="text-base md:text-xl font-bold text-primary mt-0.5 md:mt-1">
             ${deal.price.toLocaleString()}
           </p>
-          <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             AI market est. ${deal.ai_price_estimate.toLocaleString()}
           </p>
 
@@ -438,8 +446,8 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
 function DealCardSkeleton({ viewMode }: { viewMode: 'grid' | 'list' }) {
   if (viewMode === 'list') {
     return (
-      <Card className="flex flex-col sm:flex-row overflow-hidden">
-        <Skeleton className="w-full sm:w-48 md:w-64 h-48 sm:h-40 md:h-48" />
+      <Card className="flex flex-col sm:flex-row gap-0 py-0 overflow-hidden">
+        <Skeleton className="w-full sm:w-48 md:w-64 h-48 sm:h-40 md:h-48 rounded-none" />
         <div className="flex-1 p-3 md:p-4 space-y-2 md:space-y-3">
           <Skeleton className="h-5 md:h-6 w-3/4" />
           <Skeleton className="h-6 md:h-8 w-32" />
@@ -451,12 +459,12 @@ function DealCardSkeleton({ viewMode }: { viewMode: 'grid' | 'list' }) {
   }
 
   return (
-    <Card className="overflow-hidden">
-      <Skeleton className="aspect-[4/3] w-full" />
+    <Card className="gap-0 py-0 overflow-hidden">
+      <Skeleton className="aspect-[4/3] w-full rounded-none" />
       <div className="p-2 md:p-4 space-y-2 md:space-y-3">
         <Skeleton className="h-4 md:h-5 w-3/4" />
         <Skeleton className="h-5 md:h-6 w-24" />
-        <Skeleton className="h-3 w-20" />
+        <Skeleton className="h-4 w-20" />
         <Skeleton className="h-3 md:h-4 w-1/2" />
       </div>
     </Card>

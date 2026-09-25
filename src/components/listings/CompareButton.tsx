@@ -1,9 +1,16 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useCompare } from '@/context/CompareContext';
 import { Scale, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// Wins over any photo-overlay background a caller passes, so the selected
+// state never washes out to a translucent box
+const SELECTED_CLASS =
+  'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90';
 
 interface CompareButtonProps {
   listing: {
@@ -23,9 +30,11 @@ interface CompareButtonProps {
 }
 
 export function CompareButton({ listing, variant = 'default', className }: CompareButtonProps) {
+  const router = useRouter();
   const { addListing, removeListing, isInCompare, canAddMore } = useCompare();
 
   const inCompare = isInCompare(listing.id);
+  const isFull = !inCompare && !canAddMore;
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -46,6 +55,15 @@ export function CompareButton({ listing, variant = 'default', className }: Compa
         condition: listing.condition,
         image_url: listing.image_url || null,
       });
+    } else {
+      // Not `disabled`: touch users never see the title tooltip, and a
+      // disabled button inside a listing-card link lets the tap fall through
+      // to the link
+      toast('Compare list is full', {
+        id: 'compare-full',
+        description: 'You can compare up to 4 listings. Remove one to add another.',
+        action: { label: 'Compare', onClick: () => router.push('/compare') },
+      });
     }
   };
 
@@ -61,8 +79,13 @@ export function CompareButton({ listing, variant = 'default', className }: Compa
         variant={inCompare ? 'default' : 'outline'}
         size="icon"
         onClick={handleClick}
-        disabled={!inCompare && !canAddMore}
-        className={cn('h-10 w-10 md:h-8 md:w-8 touch-manipulation', className)}
+        aria-disabled={isFull || undefined}
+        className={cn(
+          'h-10 w-10 md:h-8 md:w-8 touch-manipulation',
+          className,
+          inCompare && SELECTED_CLASS,
+          isFull && 'opacity-50'
+        )}
         title={getTitle()}
         aria-label={getTitle()}
       >
@@ -76,8 +99,8 @@ export function CompareButton({ listing, variant = 'default', className }: Compa
       variant={inCompare ? 'default' : 'outline'}
       size="sm"
       onClick={handleClick}
-      disabled={!inCompare && !canAddMore}
-      className={className}
+      aria-disabled={isFull || undefined}
+      className={cn(className, inCompare && SELECTED_CLASS, isFull && 'opacity-50')}
       title={getTitle()}
     >
       {inCompare ? (

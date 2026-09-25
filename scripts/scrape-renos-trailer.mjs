@@ -267,7 +267,10 @@ async function scrapeDetailPage(page, url) {
       });
 
       // Get description
-      const descEl = document.querySelector('.description, .product-description, [class*="description"], .entry-content');
+      // [class*="description"] also matches Gravity Forms field descriptions —
+      // skip anything inside a form or containing inputs (the contact form).
+      const descEl = [...document.querySelectorAll('.description, .product-description, [class*="description"], .entry-content')]
+        .find((el) => !el.closest('form') && !el.querySelector('input, select, textarea'));
       const description = descEl?.textContent?.trim().substring(0, 2000) || '';
 
       // Get price

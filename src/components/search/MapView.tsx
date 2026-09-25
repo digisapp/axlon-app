@@ -148,7 +148,7 @@ export function MapView({ listings, isLoading, onClose }: MapViewProps) {
 
   if (!isMounted) {
     return (
-      <div className="w-full h-[500px] md:h-[600px] bg-muted rounded-lg flex items-center justify-center">
+      <div className="w-full h-[60dvh] min-h-[340px] md:h-[600px] bg-muted rounded-lg flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -156,7 +156,7 @@ export function MapView({ listings, isLoading, onClose }: MapViewProps) {
 
   if (isLoading) {
     return (
-      <div className="w-full h-[500px] md:h-[600px] bg-muted rounded-lg flex items-center justify-center">
+      <div className="w-full h-[60dvh] min-h-[340px] md:h-[600px] bg-muted rounded-lg flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -164,7 +164,7 @@ export function MapView({ listings, isLoading, onClose }: MapViewProps) {
 
   if (placed.length === 0) {
     return (
-      <div className="w-full h-[500px] md:h-[600px] bg-muted rounded-lg flex flex-col items-center justify-center text-center p-4">
+      <div className="w-full h-[60dvh] min-h-[340px] md:h-[600px] bg-muted rounded-lg flex flex-col items-center justify-center text-center p-4">
         <MapPin className="w-12 h-12 text-muted-foreground mb-4" />
         <h3 className="text-lg font-semibold mb-2">No locations available</h3>
         <p className="text-sm text-muted-foreground max-w-md">
@@ -180,14 +180,17 @@ export function MapView({ listings, isLoading, onClose }: MapViewProps) {
     );
   }
 
+  // isolate: Leaflet panes use z-index 400–1000 and would otherwise paint over
+  // the sticky header, bottom nav and filter sheet.
   return (
-    <div className="relative w-full h-[500px] md:h-[600px] rounded-lg overflow-hidden border">
+    <div className="relative isolate w-full h-[60dvh] min-h-[340px] md:h-[600px] rounded-lg overflow-hidden border">
       {onClose && (
         <Button
           variant="secondary"
           size="icon"
           className="absolute top-3 right-3 z-[1000] shadow-lg"
           onClick={onClose}
+          aria-label="Close map"
         >
           <X className="w-4 h-4" />
         </Button>
@@ -212,7 +215,7 @@ export function MapView({ listings, isLoading, onClose }: MapViewProps) {
       </MapContainer>
 
       {/* Legend */}
-      <div className="absolute bottom-3 left-3 z-[1000] bg-background/90 backdrop-blur-sm rounded-lg p-2 text-xs shadow-lg">
+      <div className="absolute bottom-3 left-3 z-[1000] max-w-[calc(100%-1.5rem)] md:max-w-sm bg-background/90 backdrop-blur-sm rounded-lg p-2 text-[11px] md:text-xs shadow-lg">
         <p className="font-medium mb-1">
           {placed.length} of {listings.length} listings shown
         </p>

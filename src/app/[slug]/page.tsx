@@ -349,7 +349,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
               fill
               className="object-cover"
               sizes="100vw"
-              priority
+              preload
             />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
@@ -411,7 +411,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                         </span>
                       )}
                       {dealer.phone && (
-                        <a href={`tel:${dealer.phone}`} className="flex items-center gap-1.5 text-slate-600 hover:text-primary transition-colors">
+                        <a href={`tel:${dealer.phone}`} className="-my-2.5 flex min-h-10 items-center gap-1.5 text-slate-600 hover:text-primary transition-colors md:my-0 md:min-h-0">
                           <Phone className="w-4 h-4" />
                           {dealer.phone}
                         </a>
@@ -495,7 +495,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                     href={dealer.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-slate-600 hover:text-primary transition-colors"
+                    className="flex min-h-10 items-center gap-2 text-sm text-slate-600 hover:text-primary transition-colors md:min-h-0"
                   >
                     <Globe className="w-4 h-4" />
                     Visit Website
@@ -532,7 +532,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
       )}
 
       {/* Main Content */}
-      <div className="relative max-w-7xl mx-auto px-4 pb-28 lg:pb-8">
+      <div className="relative max-w-7xl mx-auto px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-8">
         {/* Search & Filters Bar */}
         <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm -mx-4 px-4 py-4 border-b border-slate-200 mb-6">
           <div className="flex flex-col lg:flex-row gap-4">

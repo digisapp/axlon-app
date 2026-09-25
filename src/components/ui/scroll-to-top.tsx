@@ -34,8 +34,10 @@ export function ScrollToTop({ threshold = 400, className }: ScrollToTopProps) {
       variant="outline"
       size="icon"
       onClick={scrollToTop}
+      data-fab
       className={cn(
-        'fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-4 right-auto md:left-auto md:right-6 md:bottom-6 z-50 rounded-full shadow-lg transition-all duration-300',
+        // Bottom-left: the right corner belongs to the call button + chat launcher.
+        'fixed bottom-fab left-4 md:left-6 md:bottom-[calc(var(--compare-bar-h,0px)+1.5rem)] z-50 rounded-full shadow-lg transition-all duration-300',
         'bg-background/80 backdrop-blur-sm hover:bg-background',
         'h-12 w-12 md:h-10 md:w-10 touch-manipulation',
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none',

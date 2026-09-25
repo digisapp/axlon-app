@@ -212,7 +212,7 @@ export default function GetStartedPage() {
           <div className="flex items-center justify-between">
             <Link
               href="/"
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              className="-ml-2 flex min-h-11 items-center gap-2 px-2 text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Home

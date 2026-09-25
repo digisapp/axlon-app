@@ -394,7 +394,7 @@ export default function AIInboxPage() {
                         <Input
                           value={editSubject}
                           onChange={e => setEditSubject(e.target.value)}
-                          className="text-sm h-8"
+                          className="md:text-sm md:h-8"
                         />
                       </div>
                       <div>
@@ -403,7 +403,7 @@ export default function AIInboxPage() {
                           value={editDraft}
                           onChange={e => setEditDraft(e.target.value)}
                           rows={10}
-                          className="text-sm font-mono"
+                          className="md:text-sm font-mono"
                         />
                       </div>
                     </div>
