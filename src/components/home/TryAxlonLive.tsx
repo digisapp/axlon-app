@@ -2,16 +2,17 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
+import { optionalImport, Nothing } from '@/lib/lazy';
 import { createPortal } from 'react-dom';
 import { Phone, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SALES_PHONE_E164 as PHONE_NUMBER, SALES_PHONE_DISPLAY as DISPLAY_NUMBER } from '@/lib/contact';
 
 const TrailerFinderChat = dynamic(
-  () =>
-    import('@/components/agents/TrailerFinderChat').then(
-      (mod) => mod.TrailerFinderChat
-    ),
+  optionalImport(
+    () => import('@/components/agents/TrailerFinderChat').then((mod) => mod.TrailerFinderChat),
+    Nothing
+  ),
   { ssr: false, loading: () => null }
 );
 

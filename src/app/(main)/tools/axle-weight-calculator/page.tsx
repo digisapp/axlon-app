@@ -1,10 +1,11 @@
 import dynamic from 'next/dynamic';
+import { retryImport } from '@/lib/lazy';
 import Link from 'next/link';
 import { ArrowLeft, Scale } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const AxleWeightCalculator = dynamic(
-  () => import('@/components/tools/AxleWeightCalculator').then((mod) => mod.AxleWeightCalculator),
+  retryImport(() => import('@/components/tools/AxleWeightCalculator').then((mod) => mod.AxleWeightCalculator)),
   {
     loading: () => (
       <div className="space-y-4">

@@ -44,9 +44,10 @@ import {
   CalendarClock,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { retryImport } from '@/lib/lazy';
 
 const ImageUpload = dynamic(
-  () => import('@/components/listings/ImageUpload').then((mod) => mod.ImageUpload),
+  retryImport(() => import('@/components/listings/ImageUpload').then((mod) => mod.ImageUpload)),
   {
     loading: () => (
       <div className="border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground">

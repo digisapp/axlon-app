@@ -4,14 +4,28 @@ import { useState, useMemo, Suspense, useCallback, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { optionalImport } from '@/lib/lazy';
 import { AISearchBar } from '@/components/search/AISearchBar';
 import { useListingTranslations } from '@/hooks/useListingTranslations';
 import { useSearchListings } from '@/hooks/useSearchListings';
 import { useCategories } from '@/hooks/useCategories';
 
 // Dynamically import MapView to avoid SSR issues with Leaflet
+// If the map's chunk can't load, say so in place instead of replacing the
+// whole results page with the error screen.
+function MapUnavailable() {
+  return (
+    <div className="w-full h-[500px] md:h-[600px] bg-muted rounded-lg flex items-center justify-center px-6 text-center">
+      <span className="text-muted-foreground">The map couldn&apos;t load. Check your connection and reload the page, or use the grid view.</span>
+    </div>
+  );
+}
+
 const MapView = dynamic(
-  () => import('@/components/search/MapView').then((mod) => mod.MapViewWrapper),
+  optionalImport(
+    () => import('@/components/search/MapView').then((mod) => mod.MapViewWrapper),
+    MapUnavailable
+  ),
   {
     ssr: false,
     loading: () => (

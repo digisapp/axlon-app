@@ -1,10 +1,11 @@
 import dynamic from 'next/dynamic';
+import { retryImport } from '@/lib/lazy';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const TradeInForm = dynamic(
-  () => import('@/components/trade-in/TradeInForm').then((mod) => mod.TradeInForm),
+  retryImport(() => import('@/components/trade-in/TradeInForm').then((mod) => mod.TradeInForm)),
   {
     loading: () => (
       <div className="space-y-4">

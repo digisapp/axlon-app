@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { optionalImport, Nothing } from '@/lib/lazy';
 
+// Optional widget: if its chunk can't load, show nothing — don't take the
+// page down with it (see lib/lazy.ts).
 const TrailerFinderChat = dynamic(
-  () =>
-    import('@/components/agents/TrailerFinderChat').then(
-      (mod) => mod.TrailerFinderChat
-    ),
+  optionalImport(
+    () => import('@/components/agents/TrailerFinderChat').then((mod) => mod.TrailerFinderChat),
+    Nothing
+  ),
   { ssr: false, loading: () => null }
 );
 
