@@ -8,7 +8,7 @@ import { LinkifiedText } from '@/components/ui/linkified-text';
 import { canAutofocus, useOverlayOpen, useVisibleViewport } from '@/lib/mobile-chrome';
 import {
   Search, Send, Loader2, Bot, User,
-  Wrench, ChevronDown, X, Maximize2, Minimize2,
+  Wrench, X, Maximize2, Minimize2,
 } from 'lucide-react';
 
 interface Message {
@@ -24,6 +24,8 @@ interface TrailerFinderChatProps {
   className?: string;
   /** Start the floating variant open (e.g. launched from a "try it live" CTA). */
   initialOpen?: boolean;
+  /** Bump to reopen the floating panel from an outside launcher, keeping the conversation. */
+  openRequest?: number;
 }
 
 const EXAMPLE_QUERIES = [
@@ -43,11 +45,18 @@ const TOOL_LABELS: Record<string, string> = {
   lookup_equipment_weight: 'Looking up equipment weight',
 };
 
-export function TrailerFinderChat({ variant = 'inline', className = '', initialOpen = false }: TrailerFinderChatProps) {
+export function TrailerFinderChat({ variant = 'inline', className = '', initialOpen = false, openRequest = 0 }: TrailerFinderChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(variant === 'inline' || initialOpen);
+  // An outside "Chat now" reopens a panel closed to its FAB — in place, so
+  // the conversation survives (remounting would wipe it).
+  const [seenOpenRequest, setSeenOpenRequest] = useState(openRequest);
+  if (openRequest !== seenOpenRequest) {
+    setSeenOpenRequest(openRequest);
+    setIsOpen(true);
+  }
   const [isExpanded, setIsExpanded] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -211,7 +220,7 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
       {/* Messages */}
       {/* Floating: the list takes whatever the panel has left. A fixed 460px
           list in a 70dvh panel pushed the input off-screen on phones. */}
-      <div ref={listRef} className={`overflow-y-auto overscroll-contain px-4 py-3 space-y-4 ${variant === 'floating' ? 'flex-1 min-h-0' : 'h-[500px]'}`}>
+      <div ref={listRef} role="log" aria-live="polite" aria-label="Conversation" className={`overflow-y-auto overscroll-contain px-4 py-3 space-y-4 ${variant === 'floating' ? 'flex-1 min-h-0' : 'h-[500px]'}`}>
         {messages.length === 0 && (
           <div className="text-center py-8">
             <Bot className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
@@ -292,6 +301,7 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="What do you need to haul?"
+            aria-label="Message the Trailer Finder"
             // readOnly, not disabled: disabling blurs the field and closes the
             // iOS keyboard after every message. sendMessage ignores repeats.
             readOnly={isLoading}

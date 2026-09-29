@@ -31,13 +31,17 @@ export default function ComparePage() {
   };
 
   const specs = [
-    { key: 'price', label: 'Price', format: (v: number | null) => v ? `$${v.toLocaleString()}` : 'Call' },
+    { key: 'price', label: 'Price', format: (v: number | null) => v ? `$${v.toLocaleString()}` : 'Call for Price' },
     { key: 'year', label: 'Year', format: (v: number | null) => v || '-' },
     { key: 'make', label: 'Make', format: (v: string | null) => v || '-' },
     { key: 'model', label: 'Model', format: (v: string | null) => v || '-' },
     { key: 'mileage', label: 'Mileage', format: (v: number | null) => v ? `${v.toLocaleString()} mi` : '-' },
     { key: 'hours', label: 'Hours', format: (v: number | null) => v ? `${v.toLocaleString()} hrs` : '-' },
-    { key: 'condition', label: 'Condition', format: (v: string | null) => v ? v.charAt(0).toUpperCase() + v.slice(1) : '-' },
+    { key: 'condition', label: 'Condition', format: (v: string | null) => {
+      if (!v) return '-';
+      const words = v.replace(/[_-]+/g, ' ');
+      return words.charAt(0).toUpperCase() + words.slice(1);
+    } },
   ];
 
   if (listings.length === 0) {
@@ -65,7 +69,7 @@ export default function ComparePage() {
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Header */}
-      <div className="bg-background border-b sticky top-0 z-10">
+      <div className="bg-background border-b sticky top-14 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -128,7 +132,7 @@ export default function ComparePage() {
               const lowestPrice = prices.length ? Math.min(...prices) : null;
 
               return (
-                <Card key={listing.id} className="overflow-hidden">
+                <Card key={listing.id} className="gap-0 py-0 overflow-hidden">
                   <div className="relative">
                     {listing.image_url && !erroredImages.has(listing.id) ? (
                       <div className="aspect-[4/3] relative">
@@ -149,8 +153,9 @@ export default function ComparePage() {
                     <Button
                       variant="destructive"
                       size="icon"
-                      className="absolute top-2 right-2 h-7 w-7"
+                      className="absolute top-2 right-2 size-10"
                       onClick={() => removeListing(listing.id)}
+                      aria-label={`Remove ${listing.title} from comparison`}
                     >
                       <X className="w-4 h-4" />
                     </Button>
@@ -198,7 +203,7 @@ export default function ComparePage() {
                   </th>
                   {listings.map((listing) => (
                     <th key={listing.id} className="p-4 min-w-[200px]">
-                      <Card className="overflow-hidden">
+                      <Card className="gap-0 py-0 overflow-hidden">
                         <div className="relative">
                           {listing.image_url && !erroredImages.has(listing.id) ? (
                             <div className="aspect-[4/3] relative">
@@ -221,6 +226,7 @@ export default function ComparePage() {
                             size="icon"
                             className="absolute top-2 right-2 h-7 w-7"
                             onClick={() => removeListing(listing.id)}
+                            aria-label={`Remove ${listing.title} from comparison`}
                           >
                             <X className="w-4 h-4" />
                           </Button>

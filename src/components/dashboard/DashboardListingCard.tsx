@@ -47,10 +47,10 @@ export function DashboardListingCard({ listing, imageUrl, statusBadgeClass }: Da
         {/* Content */}
         <div className="flex-1 p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
               <h3 className="font-semibold">{listing.title}</h3>
               <span
-                className={`px-2 py-0.5 text-xs rounded-full ${statusBadgeClass}`}
+                className={`px-2 py-0.5 text-xs font-medium rounded-full capitalize ${statusBadgeClass}`}
               >
                 {listing.status}
               </span>
@@ -60,7 +60,7 @@ export function DashboardListingCard({ listing, imageUrl, statusBadgeClass }: Da
                 ? `$${listing.price.toLocaleString()}`
                 : 'No price set'}
             </p>
-            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Eye className="w-4 h-4" />
                 {listing.views_count || 0} views
@@ -72,7 +72,7 @@ export function DashboardListingCard({ listing, imageUrl, statusBadgeClass }: Da
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 [&>*]:flex-1 md:[&>*]:flex-none">
             <Button variant="outline" size="sm" asChild>
               <Link href={`/listing/${listing.id}`} target="_blank">
                 <Eye className="w-4 h-4 mr-2" />

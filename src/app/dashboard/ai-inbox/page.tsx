@@ -1,13 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import {
-  ArrowLeft,
   Bot,
   CheckCircle,
   X,
@@ -26,6 +24,7 @@ import {
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 
 type InboxItem = {
   id: string;
@@ -60,9 +59,9 @@ const STATUS_TABS = [
 function ConfidenceBadge({ score }: { score: number }) {
   const pct = Math.round(score * 100);
   const color =
-    pct >= 80 ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
-    pct >= 60 ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                'bg-red-100 text-red-700 border-red-200';
+    pct >= 80 ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800' :
+    pct >= 60 ? 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800' :
+                'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800';
   const label = pct >= 80 ? 'High confidence' : pct >= 60 ? 'Medium confidence' : 'Low confidence';
   return (
     <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium ${color}`}>
@@ -83,11 +82,14 @@ export default function AIInboxPage() {
   const [editDraft, setEditDraft] = useState('');
   const [acting, setActing] = useState(false);
   const [sendingFeedback, setSendingFeedback] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const detailRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await csrfFetch(`/api/dashboard/ai-inbox?status=${activeTab}&limit=100`);
+      setLoadError(!res.ok);
       if (res.ok) {
         const data = await res.json();
         setItems(data.items || []);
@@ -95,6 +97,7 @@ export default function AIInboxPage() {
       }
     } catch (err) {
       logger.error('Failed to load AI inbox', { err });
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -102,13 +105,23 @@ export default function AIInboxPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Edit mode is set by whoever selects the item (list "Edit" opens straight
+  // into edit mode) — resetting it here made that button a no-op.
   useEffect(() => {
     if (selected) {
       setEditSubject(selected.ai_subject);
       setEditDraft(selected.ai_draft);
-      setEditMode(false);
     }
   }, [selected]);
+
+  // Below lg the detail panel renders under the whole list — bring it into view.
+  // Keyed on the id so updating the open item (e.g. feedback) doesn't re-scroll.
+  const selectedId = selected?.id;
+  useEffect(() => {
+    if (selectedId && detailRef.current && window.matchMedia('(max-width: 1023px)').matches) {
+      detailRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [selectedId]);
 
   async function act(action: 'approve' | 'reject' | 'edit', item: InboxItem) {
     setActing(true);
@@ -126,6 +139,7 @@ export default function AIInboxPage() {
       if (res.ok) {
         setSelected(null);
         setEditMode(false);
+        toast.success(action === 'reject' ? 'Draft rejected — nothing was sent' : 'Reply sent');
         await load();
       } else {
         toast.error(action === 'reject' ? 'Failed to reject the draft. Please try again.' : 'Failed to send the reply. Please try again.');
@@ -163,41 +177,38 @@ export default function AIInboxPage() {
   const pendingCount = summary['pending'] || 0;
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <header className="bg-background border-b sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <div>
-              <h1 className="text-lg font-bold flex items-center gap-2">
-                <Bot className="w-5 h-5 text-primary" />
-                AI Inbox
-                {pendingCount > 0 && (
-                  <span className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
-                    {pendingCount}
-                  </span>
-                )}
-              </h1>
-              <p className="text-xs text-muted-foreground">AI-drafted replies awaiting your review</p>
-            </div>
-          </div>
-          <Button variant="outline" size="sm" onClick={load} className="gap-2">
-            <RefreshCw className="w-3.5 h-3.5" />
+    <div className="max-w-6xl mx-auto space-y-6">
+      <PageHeader
+        icon={<Bot />}
+        title={
+          <span className="flex items-center gap-2">
+            AI Inbox
+            {pendingCount > 0 && (
+              <span className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
+                {pendingCount}
+              </span>
+            )}
+          </span>
+        }
+        description="AI drafts a reply to every lead — review, edit, and send"
+        actions={
+          <Button variant="outline" onClick={load} className="gap-2" disabled={loading}>
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-        </div>
-      </header>
+        }
+      />
 
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Tabs */}
-        <div className="flex gap-1 bg-muted rounded-lg p-1 mb-6 w-fit">
+      <div>
+        {/* Tabs — scroll sideways on phones rather than overflowing the page */}
+        <div className="flex gap-1 bg-muted rounded-lg p-1 mb-6 w-fit max-w-full overflow-x-auto" role="tablist">
           {STATUS_TABS.map(tab => (
             <button
               key={tab.key}
+              role="tab"
+              aria-selected={activeTab === tab.key}
               onClick={() => { setActiveTab(tab.key); setSelected(null); }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              className={`flex shrink-0 items-center gap-1.5 px-3 py-2 md:py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
                 activeTab === tab.key
                   ? 'bg-background shadow-sm text-foreground'
                   : 'text-muted-foreground hover:text-foreground'
@@ -219,6 +230,13 @@ export default function AIInboxPage() {
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : loadError ? (
+          <div className="text-center py-20">
+            <AlertCircle className="w-12 h-12 text-destructive/60 mx-auto mb-4" />
+            <p className="font-medium">Couldn&apos;t load your AI inbox</p>
+            <p className="text-sm text-muted-foreground mt-1 mb-4">Something went wrong. Please try again.</p>
+            <Button variant="outline" onClick={load}>Retry</Button>
           </div>
         ) : items.length === 0 ? (
           <div className="text-center py-20">
@@ -245,7 +263,7 @@ export default function AIInboxPage() {
                 return (
                   <div
                     key={item.id}
-                    onClick={() => setSelected(isSelected ? null : item)}
+                    onClick={() => { setEditMode(false); setSelected(isSelected ? null : item); }}
                     className={`rounded-xl border p-4 cursor-pointer transition-all ${
                       isSelected
                         ? 'border-primary bg-primary/5'
@@ -257,21 +275,21 @@ export default function AIInboxPage() {
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <span className="font-medium text-sm">{item.from_name}</span>
                           {item.from_email && (
-                            <span className="text-xs text-muted-foreground">{item.from_email}</span>
+                            <span className="text-xs text-muted-foreground break-all">{item.from_email}</span>
                           )}
                           <ConfidenceBadge score={item.confidence} />
                           {isSent && (
-                            <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <span className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded-full flex items-center gap-1">
                               <CheckCircle className="w-3 h-3" /> Sent
                             </span>
                           )}
                           {isRejected && (
-                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                            <span className="text-xs bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 px-2 py-0.5 rounded-full">
                               Rejected
                             </span>
                           )}
                           {item.status === 'pending' && (
-                            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <span className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1">
                               <Clock className="w-3 h-3" /> Needs review
                             </span>
                           )}
@@ -292,10 +310,10 @@ export default function AIInboxPage() {
 
                     {/* Quick actions for pending items in list view */}
                     {item.status === 'pending' && !isSelected && (
-                      <div className="flex gap-2 mt-3 pt-3 border-t">
+                      <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t">
                         <Button
                           size="sm"
-                          className="h-7 text-xs gap-1"
+                          className="h-9 md:h-7 text-xs gap-1"
                           onClick={e => { e.stopPropagation(); act('approve', item); }}
                           disabled={acting}
                         >
@@ -304,7 +322,7 @@ export default function AIInboxPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-7 text-xs gap-1"
+                          className="h-9 md:h-7 text-xs gap-1"
                           onClick={e => { e.stopPropagation(); setSelected(item); setEditMode(true); }}
                         >
                           <Edit3 className="w-3 h-3" /> Edit
@@ -312,7 +330,7 @@ export default function AIInboxPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 text-xs gap-1 text-muted-foreground"
+                          className="h-9 md:h-7 text-xs gap-1 text-muted-foreground"
                           onClick={e => { e.stopPropagation(); act('reject', item); }}
                           disabled={acting}
                         >
@@ -327,10 +345,14 @@ export default function AIInboxPage() {
 
             {/* Detail panel */}
             {selected && (
-              <div className="bg-background border rounded-xl p-5 h-fit lg:sticky lg:top-24 space-y-5">
+              <div ref={detailRef} className="bg-background border rounded-xl p-4 md:p-5 h-fit lg:sticky lg:top-24 space-y-5 scroll-mt-20">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold">AI Draft</h3>
-                  <button onClick={() => { setSelected(null); setEditMode(false); }} className="text-muted-foreground hover:text-foreground">
+                  <button
+                    onClick={() => { setSelected(null); setEditMode(false); }}
+                    aria-label="Close draft"
+                    className="p-2 -m-2 rounded-md text-muted-foreground hover:text-foreground"
+                  >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
@@ -353,12 +375,12 @@ export default function AIInboxPage() {
                   <div className="flex items-center gap-2 mb-2">
                     <ConfidenceBadge score={selected.confidence} />
                     {selected.confidence < 0.80 && (
-                      <span className="text-xs text-amber-600 flex items-center gap-1">
+                      <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
                         <AlertCircle className="w-3 h-3" /> Review before sending
                       </span>
                     )}
                     {selected.confidence >= 0.80 && (
-                      <span className="text-xs text-emerald-600 flex items-center gap-1">
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                         <Zap className="w-3 h-3" /> Would auto-send
                       </span>
                     )}

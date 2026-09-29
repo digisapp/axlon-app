@@ -127,7 +127,7 @@ export function DealerFilters({
       {/* Sort Dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="h-12 px-4 gap-2 rounded-xl border-slate-200">
+          <Button variant="outline" className="h-12 px-4 gap-2 rounded-xl">
             <ArrowUpDown className="w-4 h-4" />
             <span className="hidden sm:inline">{currentSortLabel}</span>
             <span className="sm:hidden">Sort</span>
@@ -155,7 +155,7 @@ export function DealerFilters({
       {/* Filters Sheet */}
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetTrigger asChild>
-          <Button variant="outline" className="h-12 px-4 gap-2 rounded-xl border-slate-200 relative">
+          <Button variant="outline" className="h-12 px-4 gap-2 rounded-xl relative">
             <SlidersHorizontal className="w-4 h-4" />
             <span className="hidden sm:inline">Filters</span>
             {filterCount > 0 && (

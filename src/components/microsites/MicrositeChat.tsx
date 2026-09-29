@@ -170,7 +170,7 @@ export function MicrositeChat({ micrositeId, siteName }: Props) {
           type="button"
           onClick={() => setOpen(false)}
           aria-label="Close chat"
-          className="rounded-full p-1.5 hover:bg-white/20"
+          className="-mr-1.5 flex h-10 w-10 items-center justify-center rounded-full hover:bg-white/20"
         >
           <X className="h-5 w-5" />
         </button>
@@ -278,7 +278,7 @@ export function MicrositeChat({ micrositeId, siteName }: Props) {
             type="submit"
             disabled={!input.trim() || sending}
             aria-label="Send"
-            className="rounded-lg px-3 text-white disabled:opacity-50"
+            className="min-w-11 rounded-lg px-3 text-white disabled:opacity-50"
             style={{ background: 'var(--ms-accent)' }}
           >
             <Send className="h-4 w-4" />

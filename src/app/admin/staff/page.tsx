@@ -59,6 +59,7 @@ import {
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { TONE } from '@/components/admin/tones';
 
 interface DealerStaff {
   id: string;
@@ -129,6 +130,7 @@ export default function AdminStaffPage() {
       }
 
       const response = await csrfFetch(`/api/admin/dealer-staff?${params}`);
+      if (!response.ok) toast.error('Could not load staff');
       if (response.ok) {
         const data = await response.json();
         setStaff(data.data || []);
@@ -141,6 +143,7 @@ export default function AdminStaffPage() {
       }
     } catch (error) {
       logger.error('Error fetching staff', { error });
+      toast.error('Could not load staff');
     }
     setIsLoading(false);
   };
@@ -166,6 +169,7 @@ export default function AdminStaffPage() {
         });
 
         if (response.ok) {
+          toast.success(`${selectedStaff.name} deleted`);
           setActionDialog(null);
           fetchStaff();
         } else {
@@ -185,6 +189,8 @@ export default function AdminStaffPage() {
           if (action === 'reset_pin' && data.new_pin) {
             setNewPin(data.new_pin);
           } else {
+            const done = { unlock: 'unlocked', disable: 'disabled', enable: 'enabled', reset_pin: 'PIN reset' }[action];
+            toast.success(`${selectedStaff.name} ${done}`);
             setActionDialog(null);
             fetchStaff();
           }
@@ -212,17 +218,17 @@ export default function AdminStaffPage() {
     if (isLocked(staff)) {
       return <Badge variant="destructive">Locked</Badge>;
     }
-    return <Badge variant="default" className="bg-green-100 text-green-700">Active</Badge>;
+    return <Badge variant="default" className={TONE.green}>Active</Badge>;
   };
 
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'admin':
-        return <Badge variant="outline" className="border-purple-500 text-purple-600">Admin</Badge>;
+        return <Badge variant="outline" className="border-purple-500 text-purple-600 dark:text-purple-400">Admin</Badge>;
       case 'manager':
-        return <Badge variant="outline" className="border-blue-500 text-blue-600">Manager</Badge>;
+        return <Badge variant="outline" className="border-blue-500 text-blue-600 dark:text-blue-400">Manager</Badge>;
       case 'service':
-        return <Badge variant="outline" className="border-orange-500 text-orange-600">Service</Badge>;
+        return <Badge variant="outline" className="border-orange-500 text-orange-600 dark:text-orange-400">Service</Badge>;
       default:
         return <Badge variant="outline">Sales</Badge>;
     }
@@ -290,12 +296,13 @@ export default function AdminStaffPage() {
               <div className="flex-1 flex gap-2">
                 <Input
                   placeholder="Search by name, email, or phone..."
+                  aria-label="Search staff"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   className="max-w-sm"
                 />
-                <Button variant="outline" onClick={handleSearch}>
+                <Button variant="outline" onClick={handleSearch} aria-label="Search">
                   <Search className="w-4 h-4" />
                 </Button>
               </div>
@@ -303,7 +310,7 @@ export default function AdminStaffPage() {
                 setStatusFilter(v);
                 setPagination(prev => ({ ...prev, page: 1 }));
               }}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full md:w-[180px]" aria-label="Filter by status">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -400,7 +407,7 @@ export default function AdminStaffPage() {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" aria-label={`Actions for ${member.name}`}>
                               <MoreHorizontal className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -438,7 +445,7 @@ export default function AdminStaffPage() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              className="text-red-600"
+                              className="text-red-600 dark:text-red-400"
                               onClick={() => {
                                 setSelectedStaff(member);
                                 setActionDialog('delete');
@@ -460,7 +467,7 @@ export default function AdminStaffPage() {
 
         {/* Pagination — the API pages at 20, so without these only the first page was reachable */}
         {pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
               Page {pagination.page} of {pagination.totalPages} — {pagination.total.toLocaleString()} staff members
             </p>
@@ -497,11 +504,11 @@ export default function AdminStaffPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <div className="flex items-center gap-3 p-4 bg-yellow-50 rounded-lg">
-              <AlertTriangle className="w-5 h-5 text-yellow-600" />
+            <div className="flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-950/40 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
               <div>
-                <p className="font-medium text-yellow-700">Account was locked</p>
-                <p className="text-sm text-yellow-600">
+                <p className="font-medium text-yellow-700 dark:text-yellow-300">Account was locked</p>
+                <p className="text-sm text-yellow-600 dark:text-yellow-400">
                   Failed attempts: {selectedStaff?.failed_attempts || 0}
                 </p>
               </div>
@@ -533,19 +540,22 @@ export default function AdminStaffPage() {
           </DialogHeader>
           {newPin ? (
             <div className="py-4">
-              <div className="flex flex-col items-center gap-4 p-6 bg-green-50 rounded-lg">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+              <div className="flex flex-col items-center gap-4 p-6 bg-green-50 dark:bg-green-950/40 rounded-lg">
+                <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
                 <div className="text-center">
-                  <p className="font-medium text-green-700">New PIN Generated</p>
+                  <p className="font-medium text-green-700 dark:text-green-300">New PIN Generated</p>
                   <p className="text-3xl font-mono font-bold mt-2">{newPin}</p>
-                  <p className="text-sm text-green-600 mt-2">
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-2">
                     This PIN will only be shown once. Make sure to save it.
                   </p>
                 </div>
                 <Button
                   variant="outline"
                   onClick={() => {
-                    navigator.clipboard.writeText(newPin);
+                    navigator.clipboard.writeText(newPin).then(
+                      () => toast.success('PIN copied'),
+                      () => toast.error('Could not copy — select the PIN and copy it manually'),
+                    );
                   }}
                 >
                   <Copy className="w-4 h-4 mr-2" />
@@ -555,11 +565,11 @@ export default function AdminStaffPage() {
             </div>
           ) : (
             <div className="py-4">
-              <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
-                <Key className="w-5 h-5 text-blue-600" />
+              <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-950/40 rounded-lg">
+                <Key className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 <div>
-                  <p className="font-medium text-blue-700">Generate New PIN</p>
-                  <p className="text-sm text-blue-600">
+                  <p className="font-medium text-blue-700 dark:text-blue-300">Generate New PIN</p>
+                  <p className="text-sm text-blue-600 dark:text-blue-400">
                     A random 4-digit PIN will be generated
                   </p>
                 </div>
@@ -629,11 +639,11 @@ export default function AdminStaffPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <div className="flex items-center gap-3 p-4 bg-red-50 rounded-lg">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
+            <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-950/40 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
               <div>
-                <p className="font-medium text-red-700">Warning</p>
-                <p className="text-sm text-red-600">
+                <p className="font-medium text-red-700 dark:text-red-300">Warning</p>
+                <p className="text-sm text-red-600 dark:text-red-400">
                   All access logs for this staff member will be preserved but unlinked.
                 </p>
               </div>
@@ -662,14 +672,14 @@ export default function AdminStaffPage() {
           </DialogHeader>
           {selectedStaff && (
             <div className="space-y-6 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Name</p>
                   <p className="font-medium">{selectedStaff.name}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Role</p>
-                  <p>{getRoleBadge(selectedStaff.role)}</p>
+                  <div>{getRoleBadge(selectedStaff.role)}</div>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
@@ -685,7 +695,7 @@ export default function AdminStaffPage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>
-                  <p>{getStatusBadge(selectedStaff)}</p>
+                  <div>{getStatusBadge(selectedStaff)}</div>
                 </div>
               </div>
 
@@ -717,7 +727,7 @@ export default function AdminStaffPage() {
                   <p className="text-xs text-muted-foreground">Failed Attempts</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg text-center">
-                  <p className="text-2xl font-bold">
+                  <p className="text-base sm:text-lg font-bold leading-8">
                     {selectedStaff.last_access_at
                       ? new Date(selectedStaff.last_access_at).toLocaleDateString()
                       : '-'}

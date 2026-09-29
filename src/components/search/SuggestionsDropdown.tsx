@@ -59,7 +59,7 @@ export const SuggestionsDropdown = memo(function SuggestionsDropdown({
         {isLoadingSuggestions && query && (
           <div className="flex items-center gap-2 px-3 py-2 text-zinc-400" aria-live="polite">
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-sm">Axlon is searching...</span>
+            <span className="text-sm">AXLON is searching…</span>
           </div>
         )}
 

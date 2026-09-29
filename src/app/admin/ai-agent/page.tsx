@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
 import { XAI_VOICES } from '@/lib/voice/xai-voices';
+import { TONE } from '@/components/admin/tones';
 
 interface AIAgentSettings {
   id: string;
@@ -55,6 +56,7 @@ export default function AIAgentSettingsPage() {
   }, []);
 
   async function fetchSettings() {
+    setLoading(true);
     try {
       const res = await csrfFetch('/api/admin/ai-agent');
       if (!res.ok) throw new Error('Failed to fetch settings');
@@ -99,6 +101,18 @@ export default function AIAgentSettingsPage() {
     setHasChanges(true);
   }
 
+  const saveButton = (
+    <div className="flex items-center gap-3">
+      {hasChanges && !saving && (
+        <span className="text-sm text-amber-600 dark:text-amber-400">Unsaved changes</span>
+      )}
+      <Button onClick={saveSettings} disabled={saving || !hasChanges}>
+        {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+        Save Changes
+      </Button>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -109,32 +123,32 @@ export default function AIAgentSettingsPage() {
 
   if (!settings) {
     return (
-      <div className="flex items-center justify-center py-24">
+      <div className="flex flex-col items-center justify-center gap-3 py-24">
         <p className="text-muted-foreground">Failed to load settings</p>
+        <Button variant="outline" onClick={fetchSettings}>
+          Try again
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">AI Phone Agent</h1>
           <p className="text-sm text-muted-foreground">Configure your AI-powered phone assistant</p>
         </div>
-        <Button onClick={saveSettings} disabled={saving || !hasChanges}>
-          {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-          Save Changes
-        </Button>
+        {saveButton}
       </div>
 
         {/* Status Card */}
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-full ${settings.is_active ? 'bg-green-100' : 'bg-gray-100'}`}>
-                  <Phone className={`w-6 h-6 ${settings.is_active ? 'text-green-600' : 'text-gray-400'}`} />
+                <div className={`p-3 rounded-full ${settings.is_active ? TONE.green : TONE.gray}`}>
+                  <Phone className="w-6 h-6" />
                 </div>
                 <div>
                   <h2 className="font-semibold text-lg">Phone Agent Status</h2>
@@ -150,6 +164,7 @@ export default function AIAgentSettingsPage() {
                 <Switch
                   checked={settings.is_active}
                   onCheckedChange={(checked) => updateSetting('is_active', checked)}
+                  aria-label="Phone agent active"
                 />
               </div>
             </div>
@@ -169,8 +184,9 @@ export default function AIAgentSettingsPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label>Agent Name</Label>
+              <Label htmlFor="agent_name">Agent Name</Label>
               <Input
+                id="agent_name"
                 value={settings.agent_name}
                 onChange={(e) => updateSetting('agent_name', e.target.value)}
                 placeholder="e.g., Axleyard"
@@ -181,12 +197,12 @@ export default function AIAgentSettingsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Voice</Label>
+              <Label htmlFor="voice">Voice</Label>
               <Select
                 value={settings.voice}
                 onValueChange={(value) => updateSetting('voice', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="voice">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -206,8 +222,10 @@ export default function AIAgentSettingsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Phone Number</Label>
+              <Label htmlFor="phone_number">Phone Number</Label>
               <Input
+                id="phone_number"
+                type="tel"
                 value={settings.phone_number || ''}
                 onChange={(e) => updateSetting('phone_number', e.target.value)}
                 placeholder="+1 (555) 123-4567"
@@ -232,6 +250,7 @@ export default function AIAgentSettingsPage() {
           </CardHeader>
           <CardContent>
             <Textarea
+              aria-label="Greeting message"
               value={settings.greeting_message}
               onChange={(e) => updateSetting('greeting_message', e.target.value)}
               rows={3}
@@ -257,6 +276,7 @@ export default function AIAgentSettingsPage() {
           </CardHeader>
           <CardContent>
             <Textarea
+              aria-label="AI instructions"
               value={settings.instructions}
               onChange={(e) => updateSetting('instructions', e.target.value)}
               rows={15}
@@ -283,12 +303,12 @@ export default function AIAgentSettingsPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label>Model</Label>
+              <Label htmlFor="model">Model</Label>
               <Select
                 value={settings.model}
                 onValueChange={(value) => updateSetting('model', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="model">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -308,6 +328,7 @@ export default function AIAgentSettingsPage() {
                 </span>
               </div>
               <Slider
+                aria-label="Temperature"
                 value={[settings.temperature]}
                 onValueChange={([value]) => updateSetting('temperature', value)}
                 min={0}
@@ -322,10 +343,13 @@ export default function AIAgentSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Last Updated */}
-        <p className="text-sm text-muted-foreground text-center">
-          Last updated: {new Date(settings.updated_at).toLocaleString()}
-        </p>
+        {/* Save again at the bottom — the header button is a long scroll away */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+          <p className="text-sm text-muted-foreground">
+            Last updated: {new Date(settings.updated_at).toLocaleString()}
+          </p>
+          {saveButton}
+        </div>
     </div>
   );
 }

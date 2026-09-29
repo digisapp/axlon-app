@@ -30,10 +30,13 @@ function ManufacturerCard({ listing }: { listing: ManufacturerListing }) {
   const primaryImage = listing.images?.find((img) => img.is_primary) || listing.images?.[0];
   const primaryImageSrc = getImageSrc(primaryImage);
   const { hasError, handleError } = useImageFallback();
+  const subtitle = [listing.year, listing.make, listing.model].filter(Boolean).join(' ');
+  // Most titles already lead with year/make/model — don't print it twice.
+  const showSubtitle = subtitle && !listing.title.toLowerCase().includes(subtitle.toLowerCase());
 
   return (
     <ListingCardWrapper listingId={listing.id} listingTitle={listing.title}>
-      <Card className="h-full overflow-hidden hover:shadow-lg transition-all duration-300 hover:border-slate-300 dark:hover:border-zinc-500 cursor-pointer dark:bg-zinc-900 dark:border-zinc-700">
+      <Card className="gap-0 py-0 h-full overflow-hidden hover:shadow-lg transition-all duration-300 hover:border-slate-300 dark:hover:border-zinc-500 cursor-pointer dark:bg-zinc-900 dark:border-zinc-700">
         {/* Image */}
         <div className="aspect-[4/3] relative bg-slate-100 dark:bg-zinc-800">
           {primaryImageSrc && !hasError ? (
@@ -64,12 +67,12 @@ function ManufacturerCard({ listing }: { listing: ManufacturerListing }) {
         </div>
 
         <CardContent className="p-4">
-          <h3 className="font-semibold text-slate-900 dark:text-white line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+          <h3 className="font-semibold text-slate-900 dark:text-white line-clamp-2 min-h-[2lh] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
             {listing.title}
           </h3>
-          <p className="text-sm text-slate-600 dark:text-zinc-400 mt-1">
-            {[listing.year, listing.make, listing.model].filter(Boolean).join(' ')}
-          </p>
+          {showSubtitle && (
+            <p className="text-sm text-slate-600 dark:text-zinc-400 mt-1">{subtitle}</p>
+          )}
           <div className="flex items-center justify-between mt-3">
             <span className="text-lg font-bold text-slate-900 dark:text-white">
               {listing.price ? `$${listing.price.toLocaleString()}` : 'Call for Price'}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { csrfFetch } from '@/lib/csrf-fetch';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -90,7 +91,7 @@ export function CommandCenter({ insights, companyName }: CommandCenterProps) {
                 <Brain className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-sm">Ask Axlon AI</h3>
+                <h3 className="font-semibold text-sm">Ask AXLON</h3>
                 <p className="text-[11px] text-muted-foreground">Your business assistant</p>
               </div>
             </div>
@@ -104,13 +105,14 @@ export function CommandCenter({ insights, companyName }: CommandCenterProps) {
                 onKeyDown={(e) => e.key === 'Enter' && handleSubmit(query)}
                 disabled={isAsking}
                 placeholder="Ask anything about your business..."
-                className="w-full pl-3 pr-10 py-2.5 text-base md:text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 disabled:opacity-60"
+                aria-label="Ask AXLON a question about your business"
+                className="w-full pl-3 pr-11 py-2.5 text-base md:text-sm bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 disabled:opacity-60"
               />
               <button
                 onClick={() => handleSubmit(query)}
                 disabled={isAsking}
-                aria-label="Ask Axlon AI"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-primary transition-colors disabled:opacity-60"
+                aria-label="Ask AXLON"
+                className="absolute right-1 top-1/2 -translate-y-1/2 p-2.5 md:p-1.5 rounded-md text-muted-foreground hover:text-primary transition-colors disabled:opacity-60"
               >
                 {isAsking ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -123,9 +125,9 @@ export function CommandCenter({ insights, companyName }: CommandCenterProps) {
             {/* Answer / error */}
             {(answer || askError) && (
               <div
-                className={`mb-3 rounded-lg border p-3 text-sm ${
+                className={`mb-3 rounded-lg border p-3 text-sm whitespace-pre-line ${
                   askError
-                    ? 'border-red-500/20 bg-red-500/5 text-red-600'
+                    ? 'border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400'
                     : 'border-primary/20 bg-primary/5 text-foreground'
                 }`}
               >
@@ -173,10 +175,10 @@ export function CommandCenter({ insights, companyName }: CommandCenterProps) {
                       <p className="text-xs text-muted-foreground mt-0.5">{insight.description}</p>
                     </div>
                     <Button variant="ghost" size="sm" className="shrink-0 h-9 md:h-7 text-xs" asChild>
-                      <a href={insight.href}>
+                      <Link href={insight.href}>
                         {insight.action}
                         <ArrowRight className="w-3 h-3 ml-1" />
-                      </a>
+                      </Link>
                     </Button>
                   </div>
                 ))}

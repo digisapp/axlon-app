@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from 'sonner';
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -25,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 import { csrfFetch } from '@/lib/csrf-fetch';
 import {
   Users,
@@ -165,7 +167,10 @@ export default function CRMPage() {
     if (search) params.set('search', search);
 
     const res = await csrfFetch(`/api/dashboard/crm?${params.toString()}`);
-    if (!res.ok) return;
+    if (!res.ok) {
+      toast.error('Couldn\'t load your contacts. Please refresh the page.');
+      return;
+    }
 
     const data = await res.json();
     setCrmData(data);
@@ -240,8 +245,13 @@ export default function CRMPage() {
       if (res.ok) {
         setAddDialogOpen(false);
         resetForm();
+        toast.success('Contact added');
         await fetchCrmData(statusFilter, searchQuery);
+      } else {
+        toast.error('Couldn\'t add the contact. Please try again.');
       }
+    } catch {
+      toast.error('Couldn\'t add the contact. Check your connection and try again.');
     } finally {
       setIsSaving(false);
     }
@@ -269,7 +279,12 @@ export default function CRMPage() {
         // Refresh activities and CRM data (last_contact_at updated)
         fetchActivities(activityContactId);
         fetchCrmData(statusFilter, searchQuery);
+        toast.success('Activity logged');
+      } else {
+        toast.error('Couldn\'t log the activity. Please try again.');
       }
+    } catch {
+      toast.error('Couldn\'t log the activity. Check your connection and try again.');
     } finally {
       setSavingActivity(false);
     }
@@ -284,19 +299,30 @@ export default function CRMPage() {
 
     if (res.ok) {
       await fetchCrmData(statusFilter, searchQuery);
+    } else {
+      toast.error('Couldn\'t update the status. Please try again.');
     }
   };
 
-  const handleDeleteContact = async (contactId: string) => {
+  const handleDeleteContact = async (contactId: string, name: string) => {
+    // One tap on the trash icon used to delete the contact and its history outright
+    if (!confirm(`Delete ${name} and their activity history? This can't be undone.`)) return;
     const res = await csrfFetch(`/api/dashboard/crm/${contactId}`, {
       method: 'DELETE',
     });
 
     if (res.ok) {
       if (expandedContactId === contactId) setExpandedContactId(null);
+      toast.success('Contact deleted');
       await fetchCrmData(statusFilter, searchQuery);
+    } else {
+      toast.error('Couldn\'t delete the contact. Please try again.');
     }
   };
+
+  const stageLabel = (key: string) => PIPELINE_STAGES.find((s) => s.key === key)?.label ?? key;
+  const sourceLabel = (value: string) =>
+    SOURCE_OPTIONS.find((o) => o.value === value)?.label ?? value.replace(/_/g, ' ');
 
   const resetForm = () => {
     setFormName('');
@@ -340,13 +366,10 @@ export default function CRMPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">AI CRM</h1>
-          <p className="text-muted-foreground">
-            Manage contacts, track deals, and grow your pipeline with AI
-          </p>
-        </div>
+      <PageHeader
+        title="CRM"
+        description="Manage contacts, track deals, and grow your pipeline"
+        actions={
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -371,7 +394,7 @@ export default function CRMPage() {
                   placeholder="John Smith"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -401,7 +424,7 @@ export default function CRMPage() {
                   placeholder="Acme Corp"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="source">Source</Label>
                   <Select value={formSource} onValueChange={setFormSource}>
@@ -450,7 +473,8 @@ export default function CRMPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -566,7 +590,7 @@ export default function CRMPage() {
                 className={statusFilter !== 'all' ? 'border-primary' : ''}
               >
                 <Filter className="w-4 h-4 mr-1" />
-                {statusFilter === 'all' ? 'All' : statusFilter}
+                {statusFilter === 'all' ? 'All' : `${stageLabel(statusFilter)} ×`}
               </Button>
             </div>
           </div>
@@ -589,7 +613,7 @@ export default function CRMPage() {
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <h3 className="font-semibold truncate">{contact.name}</h3>
                       <div onClick={(e) => e.stopPropagation()}>
                         <Select
@@ -598,7 +622,7 @@ export default function CRMPage() {
                         >
                           <SelectTrigger className="h-6 w-auto border-0 p-0 focus:ring-0">
                             <Badge variant={STATUS_BADGE_VARIANT[contact.status] || 'outline'}>
-                              {contact.status}
+                              {stageLabel(contact.status)}
                             </Badge>
                           </SelectTrigger>
                           <SelectContent>
@@ -609,7 +633,7 @@ export default function CRMPage() {
                         </Select>
                       </div>
                       {contact.source === 'ai_chat' && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-purple-50 text-purple-600 border-purple-200">
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800">
                           AI
                         </Badge>
                       )}
@@ -645,7 +669,7 @@ export default function CRMPage() {
                           {new Date(contact.last_contact_at).toLocaleDateString()}
                         </p>
                       )}
-                      <p className="text-xs text-muted-foreground">{contact.source}</p>
+                      <p className="text-xs text-muted-foreground">{sourceLabel(contact.source)}</p>
                     </div>
                     <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                       {contact.phone && (
@@ -666,7 +690,8 @@ export default function CRMPage() {
                         variant="ghost"
                         size="icon"
                         className="h-10 w-10 md:h-8 md:w-8 text-destructive hover:text-destructive"
-                        onClick={() => handleDeleteContact(contact.id)}
+                        onClick={() => handleDeleteContact(contact.id, contact.name)}
+                        aria-label={`Delete ${contact.name}`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -681,9 +706,26 @@ export default function CRMPage() {
                 {/* Expanded: Activity Log + Actions */}
                 {expandedContactId === contact.id && (
                   <div className="border-t bg-muted/20 p-4">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                       <h4 className="text-sm font-semibold">Activity Log</h4>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        {/* Row actions are hidden on phones — offer them here instead */}
+                        {contact.phone && (
+                          <Button variant="outline" size="sm" asChild className="md:hidden">
+                            <a href={`tel:${contact.phone}`}>
+                              <Phone className="w-3 h-3 mr-1" />
+                              Call
+                            </a>
+                          </Button>
+                        )}
+                        {contact.email && (
+                          <Button variant="outline" size="sm" asChild className="md:hidden">
+                            <a href={`mailto:${contact.email}`}>
+                              <Mail className="w-3 h-3 mr-1" />
+                              Email
+                            </a>
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"
@@ -704,6 +746,18 @@ export default function CRMPage() {
                             <Handshake className="w-3 h-3 mr-1" />
                             Create Deal
                           </Link>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="md:hidden text-destructive hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteContact(contact.id, contact.name);
+                          }}
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          Delete
                         </Button>
                       </div>
                     </div>

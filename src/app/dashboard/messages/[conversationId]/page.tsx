@@ -221,7 +221,7 @@ export default function ConversationPage({ params }: PageProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-dvh flex items-center justify-center">
+      <div className="flex items-center justify-center py-24" role="status" aria-label="Loading conversation">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -229,7 +229,7 @@ export default function ConversationPage({ params }: PageProps) {
 
   if (loadError) {
     return (
-      <div className="min-h-dvh flex flex-col items-center justify-center gap-4 px-4 text-center">
+      <div className="flex flex-col items-center justify-center gap-4 px-4 py-24 text-center">
         <p className="text-lg font-semibold">Couldn&apos;t load this conversation</p>
         <p className="text-muted-foreground">Something went wrong. Please try again.</p>
         <div className="flex gap-2">
@@ -245,31 +245,35 @@ export default function ConversationPage({ params }: PageProps) {
   const messageGroups = groupMessagesByDate(messages);
 
   return (
-    <div className="min-h-dvh bg-muted/30 flex flex-col">
+    // Full-bleed chat view: cancel the dashboard <main> padding so the header,
+    // listing bar and composer span edge to edge like a messaging app.
+    <div className="-m-4 md:-m-6 lg:-m-8 min-h-[calc(100dvh-4rem)] flex flex-col">
       {/* Header */}
-      <header className="bg-background border-b sticky top-0 z-10">
+      {/* top-16: stick below the dashboard's own sticky h-16 header */}
+      <header className="bg-background border-b sticky top-16 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center gap-4">
             <Link
               href="/dashboard/messages"
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              aria-label="Back to messages"
+              className="flex items-center justify-center w-10 h-10 -ml-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-5 h-5" />
             </Link>
 
             {otherUser && (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <Avatar>
                   <AvatarImage src={otherUser.avatar_url || undefined} />
                   <AvatarFallback>
                     {(otherUser.company_name || otherUser.email)?.[0]?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <p className="font-medium">
+                <div className="min-w-0">
+                  <p className="font-medium truncate">
                     {otherUser.company_name || otherUser.email}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground truncate">
                     {otherUser.email}
                   </p>
                 </div>
@@ -371,12 +375,13 @@ export default function ConversationPage({ params }: PageProps) {
           <form onSubmit={handleSend} className="flex gap-2">
             <Input
               placeholder="Type a message..."
+              aria-label="Message"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               disabled={isSending}
               className="flex-1"
             />
-            <Button type="submit" disabled={isSending || !newMessage.trim()}>
+            <Button type="submit" disabled={isSending || !newMessage.trim()} aria-label="Send message" className="h-10 w-10 p-0 shrink-0">
               {isSending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (

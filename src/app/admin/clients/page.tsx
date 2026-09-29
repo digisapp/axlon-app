@@ -36,6 +36,8 @@ import {
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { toast } from 'sonner';
+import { TONE, formatEnum } from '@/components/admin/tones';
 
 const VERTICALS = [
   'Heavy Haul / Lowboy Carrier',
@@ -77,11 +79,11 @@ const PHASES = [
 ];
 
 const STATUS_COLORS: Record<string, string> = {
-  prospect: 'bg-slate-100 text-slate-700',
-  scoping: 'bg-yellow-100 text-yellow-700',
-  active: 'bg-emerald-100 text-emerald-700',
-  maintenance: 'bg-blue-100 text-blue-700',
-  churned: 'bg-red-100 text-red-700',
+  prospect: TONE.gray,
+  scoping: TONE.yellow,
+  active: TONE.emerald,
+  maintenance: TONE.blue,
+  churned: TONE.red,
 };
 
 type Client = {
@@ -168,9 +170,12 @@ export default function ActiveClientsPage() {
       if (res.ok) {
         const json = await res.json();
         setClients(Array.isArray(json) ? json : json.data || []);
+      } else {
+        toast.error('Could not load clients');
       }
     } catch (err) {
       logger.error('Failed to load clients', { err });
+      toast.error('Could not load clients');
     } finally {
       setLoading(false);
     }
@@ -180,6 +185,11 @@ export default function ActiveClientsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // The Vertical <Select> isn't a native control, so `required` can't block an empty submit
+    if (!form.vertical) {
+      setFormError('Choose a vertical');
+      return;
+    }
     setSaving(true);
     setFormError('');
     try {
@@ -200,9 +210,10 @@ export default function ActiveClientsPage() {
         }),
       });
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'Failed to save');
       }
+      toast.success(`${form.company_name} added`);
       setShowForm(false);
       setForm(EMPTY_FORM);
       await load();
@@ -214,11 +225,17 @@ export default function ActiveClientsPage() {
   }
 
   async function updateMilestone(clientId: string, milestoneId: string, status: string) {
-    await csrfFetch(`/api/admin/consulting-clients/${clientId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ milestone_id: milestoneId, status }),
-    });
+    try {
+      const res = await csrfFetch(`/api/admin/consulting-clients/${clientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ milestone_id: milestoneId, status }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      toast.success(status === 'complete' ? 'Milestone marked done' : 'Milestone started');
+    } catch {
+      toast.error('Could not update the milestone');
+    }
     await load();
   }
 
@@ -238,7 +255,7 @@ export default function ActiveClientsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Target className="w-6 h-6" />
@@ -292,7 +309,7 @@ export default function ActiveClientsPage() {
               <Clock className="w-4 h-4 text-cyan-500" />
               <span className="text-xs text-muted-foreground">Target</span>
             </div>
-            <p className="text-2xl font-bold">${((15 - activeCount) * 7000).toLocaleString()}</p>
+            <p className="text-2xl font-bold">${(Math.max(0, 15 - activeCount) * 7000).toLocaleString()}</p>
             <p className="text-xs text-muted-foreground">MRR gap to capacity</p>
           </CardContent>
         </Card>
@@ -309,7 +326,7 @@ export default function ActiveClientsPage() {
             <Target className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
             <h3 className="font-semibold mb-1">No clients yet</h3>
             <p className="text-muted-foreground text-sm mb-4">Add your first consulting client to start tracking their transformation.</p>
-            <div className="flex gap-3 justify-center">
+            <div className="flex flex-wrap gap-3 justify-center">
               <Button variant="outline" asChild>
                 <Link href="/admin/applications">View Applications <ArrowRight className="w-4 h-4 ml-1" /></Link>
               </Button>
@@ -332,13 +349,13 @@ export default function ActiveClientsPage() {
             return (
               <Card key={client.id} className={renewingSoon ? 'border-amber-500/50' : ''}>
                 <CardContent className="p-5">
-                  <div className="flex items-start justify-between gap-4 mb-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 mb-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <h3 className="font-semibold text-base">{client.company_name}</h3>
                         <Badge variant="outline" className="text-xs">{client.vertical}</Badge>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[client.status]}`}>
-                          {client.status}
+                          {formatEnum(client.status)}
                         </span>
                         {renewingSoon && (
                           <Badge className="text-xs bg-amber-500 text-white">Renewing in {daysLeft}d</Badge>
@@ -356,7 +373,7 @@ export default function ActiveClientsPage() {
                         )}
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
+                    <div className="sm:text-right shrink-0">
                       <p className="text-xl font-bold">${client.monthly_rate.toLocaleString()}<span className="text-sm text-muted-foreground font-normal">/mo</span></p>
                       <p className="text-xs text-muted-foreground">${(client.monthly_rate * 12).toLocaleString()}/yr contract</p>
                     </div>
@@ -378,10 +395,11 @@ export default function ActiveClientsPage() {
                   </div>
 
                   {/* AI Systems live */}
-                  {client.ai_systems_live.length > 0 && (
+                  {/* was gated on live.length, which hid pending systems for a client with none live yet */}
+                  {(client.ai_systems_live.length > 0 || client.ai_systems_pending.length > 0) && (
                     <div className="flex flex-wrap gap-1.5 mb-3">
                       {client.ai_systems_live.map(sys => (
-                        <span key={sys} className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span key={sys} className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${TONE.emerald}`}>
                           <Bot className="w-3 h-3" />{sys}
                         </span>
                       ))}
@@ -400,7 +418,7 @@ export default function ActiveClientsPage() {
                         .filter(m => m.status !== 'complete')
                         .slice(0, 3)
                         .map(m => (
-                          <div key={m.id} className="flex items-center justify-between text-xs">
+                          <div key={m.id} className="flex items-center justify-between gap-3 text-xs">
                             <span className="text-muted-foreground flex items-center gap-1.5">
                               <span className={`w-1.5 h-1.5 rounded-full ${m.status === 'in_progress' ? 'bg-amber-500' : 'bg-muted-foreground/40'}`} />
                               {m.title}
@@ -410,6 +428,7 @@ export default function ActiveClientsPage() {
                                 <span className="text-muted-foreground">{new Date(m.due_date).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
                               )}
                               <button
+                                type="button"
                                 onClick={() => updateMilestone(client.id, m.id, m.status === 'in_progress' ? 'complete' : 'in_progress')}
                                 className="text-primary hover:underline"
                               >
@@ -446,10 +465,10 @@ export default function ActiveClientsPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-5 pt-2">
             {/* Company */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1.5">Company Name *</label>
-                <Input value={form.company_name} onChange={e => setForm(p => ({ ...p, company_name: e.target.value }))} required placeholder="Smith Heavy Haul LLC" />
+                <label htmlFor="client-company-name" className="block text-sm font-medium mb-1.5">Company Name *</label>
+                <Input id="client-company-name" value={form.company_name} onChange={e => setForm(p => ({ ...p, company_name: e.target.value }))} required placeholder="Smith Heavy Haul LLC" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1.5">Vertical *</label>
@@ -463,47 +482,47 @@ export default function ActiveClientsPage() {
             </div>
 
             {/* Contact */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1.5">Contact Name *</label>
-                <Input value={form.contact_name} onChange={e => setForm(p => ({ ...p, contact_name: e.target.value }))} required placeholder="John Smith" />
+                <label htmlFor="client-contact-name" className="block text-sm font-medium mb-1.5">Contact Name *</label>
+                <Input id="client-contact-name" value={form.contact_name} onChange={e => setForm(p => ({ ...p, contact_name: e.target.value }))} required placeholder="John Smith" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Contact Title</label>
-                <Input value={form.contact_title} onChange={e => setForm(p => ({ ...p, contact_title: e.target.value }))} placeholder="Owner / CEO" />
+                <label htmlFor="client-contact-title" className="block text-sm font-medium mb-1.5">Contact Title</label>
+                <Input id="client-contact-title" value={form.contact_title} onChange={e => setForm(p => ({ ...p, contact_title: e.target.value }))} placeholder="Owner / CEO" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Contact Email *</label>
-                <Input type="email" value={form.contact_email} onChange={e => setForm(p => ({ ...p, contact_email: e.target.value }))} required placeholder="john@company.com" />
+                <label htmlFor="client-contact-email" className="block text-sm font-medium mb-1.5">Contact Email *</label>
+                <Input id="client-contact-email" type="email" value={form.contact_email} onChange={e => setForm(p => ({ ...p, contact_email: e.target.value }))} required placeholder="john@company.com" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Contact Phone</label>
-                <Input value={form.contact_phone} onChange={e => setForm(p => ({ ...p, contact_phone: e.target.value }))} placeholder="+1 (555) 000-0000" />
+                <label htmlFor="client-contact-phone" className="block text-sm font-medium mb-1.5">Contact Phone</label>
+                <Input id="client-contact-phone" value={form.contact_phone} onChange={e => setForm(p => ({ ...p, contact_phone: e.target.value }))} placeholder="+1 (555) 000-0000" />
               </div>
             </div>
 
             {/* Contract */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1.5">Monthly Rate ($) *</label>
-                <Input type="number" value={form.monthly_rate} onChange={e => setForm(p => ({ ...p, monthly_rate: e.target.value }))} required min="1000" step="500" />
+                <label htmlFor="client-monthly-rate" className="block text-sm font-medium mb-1.5">Monthly Rate ($) *</label>
+                <Input id="client-monthly-rate" type="number" value={form.monthly_rate} onChange={e => setForm(p => ({ ...p, monthly_rate: e.target.value }))} required min="1000" step="500" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Scoping Fee ($)</label>
-                <Input type="number" value={form.scoping_fee} onChange={e => setForm(p => ({ ...p, scoping_fee: e.target.value }))} min="0" step="500" />
+                <label htmlFor="client-scoping-fee" className="block text-sm font-medium mb-1.5">Scoping Fee ($)</label>
+                <Input id="client-scoping-fee" type="number" value={form.scoping_fee} onChange={e => setForm(p => ({ ...p, scoping_fee: e.target.value }))} min="0" step="500" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Contract Start *</label>
-                <Input type="date" value={form.contract_start} onChange={e => setForm(p => ({ ...p, contract_start: e.target.value }))} required />
+                <label htmlFor="client-contract-start" className="block text-sm font-medium mb-1.5">Contract Start *</label>
+                <Input id="client-contract-start" type="date" value={form.contract_start} onChange={e => setForm(p => ({ ...p, contract_start: e.target.value }))} required />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Contract End *</label>
-                <Input type="date" value={form.contract_end} onChange={e => setForm(p => ({ ...p, contract_end: e.target.value }))} required />
+                <label htmlFor="client-contract-end" className="block text-sm font-medium mb-1.5">Contract End *</label>
+                <Input id="client-contract-end" type="date" value={form.contract_end} onChange={e => setForm(p => ({ ...p, contract_end: e.target.value }))} required />
               </div>
             </div>
 
             {/* Status & Phase */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1.5">Status</label>
                 <Select value={form.status} onValueChange={v => setForm(p => ({ ...p, status: v }))}>
@@ -543,10 +562,11 @@ export default function ActiveClientsPage() {
                   <button
                     key={sys}
                     type="button"
+                    aria-pressed={form.ai_systems_live.includes(sys)}
                     onClick={() => toggleSystem('ai_systems_live', sys)}
                     className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
                       form.ai_systems_live.includes(sys)
-                        ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                        ? `${TONE.emerald} border-emerald-300 dark:border-emerald-800`
                         : 'bg-muted text-muted-foreground border-border hover:border-foreground/30'
                     }`}
                   >
@@ -563,10 +583,11 @@ export default function ActiveClientsPage() {
                   <button
                     key={sys}
                     type="button"
+                    aria-pressed={form.ai_systems_pending.includes(sys)}
                     onClick={() => toggleSystem('ai_systems_pending', sys)}
                     className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
                       form.ai_systems_pending.includes(sys)
-                        ? 'bg-amber-100 text-amber-700 border-amber-300'
+                        ? `${TONE.amber} border-amber-300 dark:border-amber-800`
                         : 'bg-muted text-muted-foreground border-border hover:border-foreground/30'
                     }`}
                   >
@@ -577,25 +598,25 @@ export default function ActiveClientsPage() {
             </div>
 
             {/* Next milestone */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1.5">Next Milestone</label>
-                <Input value={form.next_milestone} onChange={e => setForm(p => ({ ...p, next_milestone: e.target.value }))} placeholder="e.g. Deploy AI Lead Response" />
+                <label htmlFor="client-next-milestone" className="block text-sm font-medium mb-1.5">Next Milestone</label>
+                <Input id="client-next-milestone" value={form.next_milestone} onChange={e => setForm(p => ({ ...p, next_milestone: e.target.value }))} placeholder="e.g. Deploy AI Lead Response" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Due Date</label>
-                <Input type="date" value={form.next_milestone_date} onChange={e => setForm(p => ({ ...p, next_milestone_date: e.target.value }))} />
+                <label htmlFor="client-due-date" className="block text-sm font-medium mb-1.5">Due Date</label>
+                <Input id="client-due-date" type="date" value={form.next_milestone_date} onChange={e => setForm(p => ({ ...p, next_milestone_date: e.target.value }))} />
               </div>
             </div>
 
             {/* Notes */}
             <div>
-              <label className="block text-sm font-medium mb-1.5">Internal Notes</label>
-              <Textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Key context, preferences, history..." rows={3} />
+              <label htmlFor="client-internal-notes" className="block text-sm font-medium mb-1.5">Internal Notes</label>
+              <Textarea id="client-internal-notes" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Key context, preferences, history..." rows={3} />
             </div>
 
             {formError && (
-              <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{formError}</p>
+              <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 dark:text-red-400 dark:bg-red-950/40 dark:border-red-900 rounded-lg px-3 py-2">{formError}</p>
             )}
 
             <div className="flex gap-3 pt-2">

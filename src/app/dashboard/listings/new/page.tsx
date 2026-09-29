@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,7 +18,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  ArrowLeft,
   Upload,
   X,
   Sparkles,
@@ -323,7 +323,7 @@ export default function NewListingPage() {
   // Show loading while checking limits
   if (isCheckingLimits) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+      <div className="flex items-center justify-center py-24" role="status" aria-label="Loading">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -332,20 +332,9 @@ export default function NewListingPage() {
   // Show upgrade prompt if limit reached
   if (listingLimitReached) {
     return (
-      <div className="min-h-screen bg-muted/30">
-        <header className="bg-background border-b">
-          <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Dashboard
-            </Link>
-            <h1 className="text-xl font-bold">Create New Listing</h1>
-          </div>
-        </header>
-        <main className="max-w-2xl mx-auto px-4 py-12">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <PageHeader title="Create New Listing" />
+        <div className="max-w-2xl mx-auto py-6">
           <Card className="text-center">
             <CardHeader>
               <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -375,35 +364,25 @@ export default function NewListingPage() {
               </p>
             </CardContent>
           </Card>
-        </main>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-background border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Dashboard
-          </Link>
-          <h1 className="text-xl font-bold">Create New Listing</h1>
-          {remainingListings !== null && (
-            <span className="ml-auto text-sm text-muted-foreground">
-              {remainingListings} listing{remainingListings !== 1 ? 's' : ''} remaining
-            </span>
-          )}
-        </div>
-      </header>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <PageHeader
+        title="Create New Listing"
+        description={
+          remainingListings !== null
+            ? `${remainingListings} listing${remainingListings !== 1 ? 's' : ''} remaining on your plan`
+            : 'Type it in, let AI draft it, or snap a photo'
+        }
+      />
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <div>
         {/* Create Mode Toggle */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6">
           <Button
             type="button"
             variant={createMode === 'manual' ? 'default' : 'outline'}
@@ -938,12 +917,12 @@ export default function NewListingPage() {
             </Card>
 
             {/* Submit Buttons */}
-            <div className="flex items-center justify-between p-4 bg-background border rounded-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-background border rounded-xl">
               <p className="text-sm text-muted-foreground flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
+                <AlertCircle className="w-4 h-4 shrink-0" />
                 You can add photos after saving the listing
               </p>
-              <div className="flex gap-3">
+              <div className="flex flex-col-reverse sm:flex-row gap-3">
                 <Button
                   type="button"
                   variant="outline"
@@ -964,7 +943,7 @@ export default function NewListingPage() {
           </div>
         </form>
         )}
-      </main>
+      </div>
     </div>
   );
 }

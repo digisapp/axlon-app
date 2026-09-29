@@ -38,7 +38,8 @@ interface SiteRow {
 }
 
 const input =
-  'w-full rounded-md border bg-background px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-ring';
+  // text-base below sm: iOS Safari zooms the page when a focused input is under 16px
+  'w-full rounded-md border bg-background px-3 py-2 text-base sm:text-sm shadow-sm outline-none focus:ring-2 focus:ring-ring';
 
 export function MicrositeSettingsForm({
   site,
@@ -265,7 +266,7 @@ export function MicrositeSettingsForm({
             </Field>
           </section>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
           <div className="flex items-center gap-3 border-t pt-5">
             <Button type="submit" disabled={saving}>
@@ -273,7 +274,7 @@ export function MicrositeSettingsForm({
               Save changes
             </Button>
             {saved && !saving && (
-              <span className="inline-flex items-center gap-1 text-sm text-green-600">
+              <span className="inline-flex items-center gap-1 text-sm text-green-600 dark:text-green-400">
                 <Check className="h-4 w-4" /> Saved
               </span>
             )}

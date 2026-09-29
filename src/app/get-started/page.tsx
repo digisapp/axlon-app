@@ -68,12 +68,12 @@ const industries = [
   },
   {
     icon: Construction,
-    label: 'Crane & Rigging',
+    label: 'Crane',
     href: '/industries/crane',
   },
   {
     icon: Wrench,
-    label: 'Equipment Services',
+    label: 'Rigging & Heavy Lift',
     href: '/industries/rigging',
   },
 ];
@@ -218,9 +218,9 @@ export default function GetStartedPage() {
               Back to Home
             </Link>
             {!isLoggedIn && (
-              <Link href="/login?redirect=/get-started">
-                <Button variant="ghost" size="sm">Sign In</Button>
-              </Link>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/login?redirect=/get-started">Sign In</Link>
+              </Button>
             )}
           </div>
         </div>
@@ -228,15 +228,17 @@ export default function GetStartedPage() {
 
       <main className="max-w-6xl mx-auto px-4 py-8 md:py-12">
         <div className="grid md:grid-cols-2 gap-8 md:gap-12">
-          {/* Left: Benefits */}
-          <div>
-            <div className="mb-8">
+          {/* Left: Benefits. On phones the column dissolves (contents) so the
+              account card can sit between the heading and the benefit list
+              instead of below all of it. */}
+          <div className="contents md:block">
+            <div className="md:mb-8">
               <Image
                 src="/images/axlonai-logo.png"
                 alt="Axleyard"
-                width={120}
-                height={40}
-                className="mb-6"
+                width={48}
+                height={56}
+                className="mb-6 w-12 h-auto"
               />
               <h1 className="text-3xl md:text-4xl font-bold mb-4">
                 Grow Your Business with AI
@@ -247,44 +249,46 @@ export default function GetStartedPage() {
               </p>
             </div>
 
-            {/* Industry badges */}
-            <div className="flex flex-wrap gap-2 mb-8">
-              {industries.map((ind) => (
-                <Link
-                  key={ind.label}
-                  href={ind.href}
-                  className="flex items-center gap-2 px-3 py-2 rounded-full bg-primary/10 text-sm font-medium text-primary hover:bg-primary/20 transition-colors"
-                >
-                  <ind.icon className="w-4 h-4" />
-                  {ind.label}
-                </Link>
-              ))}
-            </div>
+            <div className="order-last md:order-none">
+              {/* Industry badges */}
+              <div className="flex flex-wrap gap-2 mb-8">
+                {industries.map((ind) => (
+                  <Link
+                    key={ind.label}
+                    href={ind.href}
+                    className="flex items-center gap-2 px-3 py-2 rounded-full bg-primary/10 text-sm font-medium text-primary hover:bg-primary/20 transition-colors"
+                  >
+                    <ind.icon className="w-4 h-4" />
+                    {ind.label}
+                  </Link>
+                ))}
+              </div>
 
-            <div className="grid gap-4">
-              {benefits.map((benefit) => (
-                <div key={benefit.title} className="flex gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <benefit.icon className="w-5 h-5 text-primary" />
+              <div className="grid gap-4">
+                {benefits.map((benefit) => (
+                  <div key={benefit.title} className="flex gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <benefit.icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">{benefit.title}</h3>
+                      <p className="text-sm text-muted-foreground">{benefit.description}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold">{benefit.title}</h3>
-                    <p className="text-sm text-muted-foreground">{benefit.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            <div className="mt-8 p-4 bg-primary/5 rounded-lg border border-primary/20">
-              <p className="text-sm text-muted-foreground">
-                <strong className="text-foreground">30-day free trial.</strong> No credit card required.
-              </p>
+              <div className="mt-8 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                <p className="text-sm text-muted-foreground">
+                  <strong className="text-foreground">30-day free trial.</strong> No credit card required.
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Right: Form */}
           <div>
-            <Card className="sticky top-8">
+            <Card className="md:sticky md:top-8">
               <CardHeader>
                 <CardTitle>
                   {isLoggedIn ? 'Complete Your Business Profile' : 'Create Your Account'}
@@ -302,7 +306,7 @@ export default function GetStartedPage() {
                       Create an account to access AI-powered tools for your business.
                     </p>
                     <Button asChild className="w-full">
-                      <Link href="/signup">Create Account</Link>
+                      <Link href="/signup?redirect=/get-started">Create Account</Link>
                     </Button>
                     <div className="relative">
                       <div className="absolute inset-0 flex items-center">

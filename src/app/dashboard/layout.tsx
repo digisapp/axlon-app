@@ -8,6 +8,9 @@ import { getEffectiveTier } from '@/lib/plans';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
+  // Client pages can't export metadata — without this every tab read as the
+  // marketplace homepage. Pages that do set a title still override it.
+  title: 'Dashboard',
   robots: { index: false, follow: false },
 };
 
@@ -74,8 +77,10 @@ export default async function DashboardLayout({
     ? Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : null;
 
+  const effectiveTier = getEffectiveTier(profile?.subscription_tier, profile?.created_at);
+
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="group/dash min-h-screen bg-muted/30">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block">
         <Sidebar
@@ -83,12 +88,13 @@ export default async function DashboardLayout({
           newLeads={newLeads || 0}
           pendingAiInbox={pendingAiInbox || 0}
           subscriptionTier={profile?.subscription_tier || 'free'}
-          effectiveTier={getEffectiveTier(profile?.subscription_tier, profile?.created_at)}
+          effectiveTier={effectiveTier}
         />
       </div>
 
       {/* Main Content Area */}
-      <div className="lg:pl-64 min-h-screen flex flex-col transition-all duration-300">
+      {/* pl tracks the sidebar width (w-64, or w-16 when collapsed) */}
+      <div className="lg:pl-64 lg:group-has-[aside[data-collapsed=true]]/dash:pl-16 min-h-screen flex flex-col transition-all duration-300">
         {/* Header */}
         <DashboardHeader
           user={{ email: user.email || '', id: user.id }}
@@ -97,6 +103,8 @@ export default async function DashboardLayout({
           newLeads={newLeads || 0}
           pendingAiInbox={pendingAiInbox || 0}
           trialDaysRemaining={trialDaysRemaining}
+          subscriptionTier={profile?.subscription_tier || 'free'}
+          effectiveTier={effectiveTier}
         />
 
         {/* Page Content */}

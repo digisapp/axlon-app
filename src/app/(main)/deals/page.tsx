@@ -51,6 +51,12 @@ interface DealListing {
   category?: { name: string; slug: string };
 }
 
+const CATEGORY_CHIPS = [
+  { key: 'trailers', label: 'Trailers' },
+  { key: 'trucks', label: 'Trucks' },
+  { key: 'equipment', label: 'Equipment' },
+] as const;
+
 export default function DealsPage() {
   const [deals, setDeals] = useState<DealListing[]>([]);
   const [filteredDeals, setFilteredDeals] = useState<DealListing[]>([]);
@@ -146,21 +152,17 @@ export default function DealsPage() {
               isActive={categoryFilter === 'all'}
               onClick={() => setCategoryFilter('all')}
             />
-            <FilterChip
-              label={`Trailers (${categoryCounts.trailers})`}
-              isActive={categoryFilter === 'trailers'}
-              onClick={() => setCategoryFilter('trailers')}
-            />
-            <FilterChip
-              label={`Trucks (${categoryCounts.trucks})`}
-              isActive={categoryFilter === 'trucks'}
-              onClick={() => setCategoryFilter('trucks')}
-            />
-            <FilterChip
-              label={`Equipment (${categoryCounts.equipment})`}
-              isActive={categoryFilter === 'equipment'}
-              onClick={() => setCategoryFilter('equipment')}
-            />
+            {/* A "(0)" chip is a dead end — only offer categories that have deals */}
+            {CATEGORY_CHIPS.filter(
+              ({ key }) => categoryCounts[key] > 0 || categoryFilter === key
+            ).map(({ key, label }) => (
+              <FilterChip
+                key={key}
+                label={`${label} (${categoryCounts[key]})`}
+                isActive={categoryFilter === key}
+                onClick={() => setCategoryFilter(key)}
+              />
+            ))}
           </div>
 
           {/* Sort & View Controls */}
@@ -200,10 +202,12 @@ export default function DealsPage() {
           </div>
         </div>
 
-        {/* Results Count */}
-        <p className="text-sm text-muted-foreground mb-4">
-          {filteredDeals.length} deals found
-        </p>
+        {/* Results Count — hidden while loading so it never flashes "0 deals" */}
+        {!isLoading && !error && (
+          <p className="text-sm text-muted-foreground mb-4">
+            {filteredDeals.length} {filteredDeals.length === 1 ? 'deal' : 'deals'} found
+          </p>
+        )}
 
         {/* Deals Grid */}
         {error ? (
@@ -226,7 +230,9 @@ export default function DealsPage() {
             <Flame className="w-12 h-12 md:w-16 md:h-16 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-lg md:text-xl font-semibold mb-2">No deals found</h2>
             <p className="text-sm md:text-base text-muted-foreground mb-4">
-              Try selecting a different category
+              {categoryFilter === 'all'
+                ? 'Nothing is priced below market right now.'
+                : 'Try selecting a different category.'}
             </p>
             <Button asChild>
               <Link href="/search">Browse All Listings</Link>
@@ -255,7 +261,9 @@ function FilterChip({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-pressed={isActive}
       className={`inline-flex items-center min-h-10 px-3 text-xs md:text-sm rounded-full border transition-colors md:min-h-0 md:py-1.5 ${
         isActive
           ? 'bg-primary text-primary-foreground border-primary'
@@ -417,7 +425,7 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
         </div>
 
         <div className="p-2 md:p-4">
-          <h3 className="font-semibold text-sm md:text-base line-clamp-1">{deal.title}</h3>
+          <h3 className="font-semibold text-sm md:text-base line-clamp-2 min-h-[2lh]">{deal.title}</h3>
           <p className="text-base md:text-xl font-bold text-primary mt-0.5 md:mt-1">
             ${deal.price.toLocaleString()}
           </p>
@@ -425,11 +433,13 @@ function DealCard({ deal, viewMode }: { deal: DealListing; viewMode: 'grid' | 'l
             AI market est. ${deal.ai_price_estimate.toLocaleString()}
           </p>
 
-          <div className="flex flex-wrap gap-1 md:gap-2 mt-1 md:mt-2 text-xs text-muted-foreground">
-            {deal.year && <span>{deal.year}</span>}
-            {deal.year && deal.mileage && <span>-</span>}
-            {deal.mileage && <span>{deal.mileage.toLocaleString()} mi</span>}
-          </div>
+          {(deal.year || deal.mileage) && (
+            <div className="flex flex-wrap gap-1 md:gap-2 mt-1 md:mt-2 text-xs text-muted-foreground">
+              {deal.year && <span>{deal.year}</span>}
+              {deal.year && deal.mileage && <span>-</span>}
+              {deal.mileage && <span>{deal.mileage.toLocaleString()} mi</span>}
+            </div>
+          )}
 
           {(deal.city || deal.state) && (
             <p className="text-xs text-muted-foreground mt-1 md:mt-2 flex items-center gap-1 line-clamp-1">

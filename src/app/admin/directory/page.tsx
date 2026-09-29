@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { TONE, formatEnum } from '@/components/admin/tones';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -50,19 +51,19 @@ import { csrfFetch } from '@/lib/csrf-fetch';
 // ---------------------------------------------------------------------------
 
 const CATEGORIES = [
-  { value: 'trailer_dealer', label: 'Trailer Dealer', color: 'bg-blue-100 text-blue-700' },
-  { value: 'crane_rigging', label: 'Crane & Rigging', color: 'bg-orange-100 text-orange-700' },
-  { value: 'truck_manufacturer', label: 'Truck Mfr', color: 'bg-purple-100 text-purple-700' },
-  { value: 'trailer_manufacturer', label: 'Trailer Mfr', color: 'bg-indigo-100 text-indigo-700' },
-  { value: 'transportation', label: 'Transportation', color: 'bg-green-100 text-green-700' },
-  { value: 'equipment_dealer', label: 'Equipment Dealer', color: 'bg-cyan-100 text-cyan-700' },
-  { value: 'parts_supplier', label: 'Parts & Supplier', color: 'bg-yellow-100 text-yellow-700' },
-  { value: 'services', label: 'Services', color: 'bg-pink-100 text-pink-700' },
-  { value: 'towing', label: 'Towing', color: 'bg-amber-100 text-amber-700' },
-  { value: 'construction', label: 'Construction', color: 'bg-stone-100 text-stone-700' },
-  { value: 'buyer_lead', label: 'Buyer Lead', color: 'bg-emerald-100 text-emerald-700' },
-  { value: 'other', label: 'Other', color: 'bg-gray-100 text-gray-700' },
-  { value: 'uncategorized', label: 'Uncategorized', color: 'bg-gray-100 text-gray-500' },
+  { value: 'trailer_dealer', label: 'Trailer Dealer', color: TONE.blue },
+  { value: 'crane_rigging', label: 'Crane & Rigging', color: TONE.orange },
+  { value: 'truck_manufacturer', label: 'Truck Mfr', color: TONE.purple },
+  { value: 'trailer_manufacturer', label: 'Trailer Mfr', color: TONE.indigo },
+  { value: 'transportation', label: 'Transportation', color: TONE.green },
+  { value: 'equipment_dealer', label: 'Equipment Dealer', color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-400' },
+  { value: 'parts_supplier', label: 'Parts & Supplier', color: TONE.yellow },
+  { value: 'services', label: 'Services', color: 'bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-400' },
+  { value: 'towing', label: 'Towing', color: TONE.amber },
+  { value: 'construction', label: 'Construction', color: 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300' },
+  { value: 'buyer_lead', label: 'Buyer Lead', color: TONE.emerald },
+  { value: 'other', label: 'Other', color: TONE.gray },
+  { value: 'uncategorized', label: 'Uncategorized', color: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' },
 ];
 
 const SOURCES = [
@@ -240,7 +241,7 @@ function DealDetails({ business }: { business: Business }) {
         {fields.map(([label, val]) => val && (
           <div key={label}>
             <span className="text-muted-foreground">{label}:</span>{' '}
-            <span className={label.includes('Profit') ? 'text-green-600 font-medium' : ''}>{val}</span>
+            <span className={label.includes('Profit') ? 'text-green-600 dark:text-green-400 font-medium' : ''}>{val}</span>
           </div>
         ))}
         {d.notes && (
@@ -290,6 +291,8 @@ export default function AdminDirectoryPage() {
 
   // Filters
   const [search, setSearch] = useState('');
+  // What's in the box; `search` (which drives the query) follows it after a pause
+  const [searchInput, setSearchInput] = useState('');
   const [sourceFilter, setSourceFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [stateFilter, setStateFilter] = useState('');
@@ -356,9 +359,12 @@ export default function AdminDirectoryPage() {
         setBusinesses(json.data || []);
         setTotal(json.total || 0);
         if (json.stats) setStats(json.stats);
+      } else {
+        toast.error('Could not load the directory');
       }
     } catch (error) {
       logger.error('Error fetching directory', { error });
+      toast.error('Could not load the directory');
     }
     setIsLoading(false);
   }, [page, limit, search, sourceFilter, categoryFilter, stateFilter, contactFilter, activeTab]);
@@ -373,9 +379,15 @@ export default function AdminDirectoryPage() {
     setSelectAll(false);
   }, [search, sourceFilter, categoryFilter, stateFilter, contactFilter, activeTab]);
 
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   const switchTab = (tab: DirectoryTab) => {
     setActiveTab(tab);
     setSearch('');
+    setSearchInput('');
     setSourceFilter('');
     setCategoryFilter('');
     setStateFilter('');
@@ -415,6 +427,8 @@ export default function AdminDirectoryPage() {
         body: JSON.stringify({ ids: Array.from(selectedIds), category: bulkCategory }),
       });
       if (res.ok) {
+        const label = CATEGORIES.find(c => c.value === bulkCategory)?.label ?? bulkCategory;
+        toast.success(`Set ${selectedIds.size} business${selectedIds.size !== 1 ? 'es' : ''} to ${label}`);
         setShowBulkAction(false);
         setBulkCategory('');
         setSelectedIds(new Set());
@@ -463,7 +477,7 @@ export default function AdminDirectoryPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Business Directory</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -473,7 +487,7 @@ export default function AdminDirectoryPage() {
           </p>
         </div>
         {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary" className="text-sm px-3 py-1">
               {selectedIds.size} selected
             </Badge>
@@ -485,6 +499,7 @@ export default function AdminDirectoryPage() {
               size="sm"
               variant="ghost"
               onClick={() => { setSelectedIds(new Set()); setSelectAll(false); }}
+              aria-label="Clear selection"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -500,6 +515,8 @@ export default function AdminDirectoryPage() {
           return (
             <button
               key={key}
+              type="button"
+              aria-pressed={activeTab === key}
               onClick={() => switchTab(key)}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === key
@@ -534,6 +551,8 @@ export default function AdminDirectoryPage() {
               return (
                 <button
                   key={cat}
+                  type="button"
+                  aria-pressed={categoryFilter === cat}
                   onClick={() => setCategoryFilter(categoryFilter === cat ? '' : cat)}
                   className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
                     categoryFilter === cat
@@ -554,8 +573,9 @@ export default function AdminDirectoryPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search company, city, or email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search directory"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -563,7 +583,7 @@ export default function AdminDirectoryPage() {
         {/* Source filter — only show if tab has multiple possible sources */}
         {tabSources.length > 1 && (
           <Select value={sourceFilter} onValueChange={v => setSourceFilter(v === 'all' ? '' : v)}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-full md:w-[160px]" aria-label="Source">
               <SelectValue placeholder="All Sources" />
             </SelectTrigger>
             <SelectContent>
@@ -577,7 +597,7 @@ export default function AdminDirectoryPage() {
 
         {/* State filter */}
         <Select value={stateFilter} onValueChange={v => setStateFilter(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-[110px]">
+          <SelectTrigger className="w-full md:w-[110px]" aria-label="State">
             <SelectValue placeholder="State" />
           </SelectTrigger>
           <SelectContent>
@@ -590,7 +610,7 @@ export default function AdminDirectoryPage() {
 
         {/* Contact info filter */}
         <Select value={contactFilter} onValueChange={v => setContactFilter(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-full md:w-[150px]" aria-label="Contact info">
             <SelectValue placeholder="Contact Info" />
           </SelectTrigger>
           <SelectContent>
@@ -651,12 +671,12 @@ export default function AdminDirectoryPage() {
                           {formatCurrency(rd.unit_cost)}
                         </td>
                         <td className="p-3 hidden md:table-cell font-mono text-sm">
-                          <span className={Number(rd.unit_profit) > 0 ? 'text-green-600' : ''}>
+                          <span className={Number(rd.unit_profit) > 0 ? 'text-green-600 dark:text-green-400' : ''}>
                             {formatCurrency(rd.unit_profit)}
                           </span>
                         </td>
                         <td className="p-3 hidden lg:table-cell font-mono text-sm">
-                          <span className={Number(rd.total_profit) > 0 ? 'text-green-600' : ''}>
+                          <span className={Number(rd.total_profit) > 0 ? 'text-green-600 dark:text-green-400' : ''}>
                             {formatCurrency(rd.total_profit)}
                           </span>
                         </td>
@@ -669,6 +689,7 @@ export default function AdminDirectoryPage() {
                             size="sm"
                             className="h-8 w-8 p-0"
                             onClick={() => setDetailBusiness(biz)}
+                            aria-label={`View ${biz.company_name}`}
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
@@ -689,6 +710,7 @@ export default function AdminDirectoryPage() {
                       <Checkbox
                         checked={selectAll}
                         onCheckedChange={toggleSelectAll}
+                        aria-label="Select all on this page"
                       />
                     </th>
                     <th className="p-3 text-left">Company</th>
@@ -714,6 +736,7 @@ export default function AdminDirectoryPage() {
                           <Checkbox
                             checked={selectedIds.has(biz.id)}
                             onCheckedChange={() => toggleSelect(biz.id)}
+                            aria-label={`Select ${biz.company_name}`}
                           />
                         </td>
                         <td className="p-3">
@@ -776,6 +799,7 @@ export default function AdminDirectoryPage() {
                             size="sm"
                             className="h-8 w-8 p-0"
                             onClick={() => setDetailBusiness(biz)}
+                            aria-label={`View ${biz.company_name}`}
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
@@ -790,7 +814,7 @@ export default function AdminDirectoryPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between p-3 border-t">
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3 border-t">
               <p className="text-sm text-muted-foreground">
                 Page {page} of {totalPages.toLocaleString()} ({total.toLocaleString()} results)
               </p>
@@ -800,6 +824,7 @@ export default function AdminDirectoryPage() {
                   size="sm"
                   disabled={page <= 1}
                   onClick={() => setPage(p => p - 1)}
+                  aria-label="Previous page"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
@@ -808,6 +833,7 @@ export default function AdminDirectoryPage() {
                   size="sm"
                   disabled={page >= totalPages}
                   onClick={() => setPage(p => p + 1)}
+                  aria-label="Next page"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </Button>
@@ -821,7 +847,9 @@ export default function AdminDirectoryPage() {
       <Dialog open={showBulkAction} onOpenChange={setShowBulkAction}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Categorize {selectedIds.size} Businesses</DialogTitle>
+            <DialogTitle>
+              Categorize {selectedIds.size} Business{selectedIds.size !== 1 ? 'es' : ''}
+            </DialogTitle>
             <DialogDescription>
               Set the category for all selected businesses.
             </DialogDescription>
@@ -830,6 +858,8 @@ export default function AdminDirectoryPage() {
             {CATEGORIES.filter(c => c.value !== 'uncategorized').map(cat => (
               <button
                 key={cat.value}
+                type="button"
+                aria-pressed={bulkCategory === cat.value}
                 onClick={() => setBulkCategory(cat.value)}
                 className={`p-3 rounded-lg border text-left transition-all ${
                   bulkCategory === cat.value
@@ -849,7 +879,7 @@ export default function AdminDirectoryPage() {
             </Button>
             <Button onClick={handleBulkCategorize} disabled={!bulkCategory || isSaving}>
               {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Apply to {selectedIds.size} businesses
+              Apply to {selectedIds.size} business{selectedIds.size !== 1 ? 'es' : ''}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -875,7 +905,7 @@ export default function AdminDirectoryPage() {
                   {getSourceLabel(detailBusiness.source)}
                 </Badge>
                 <Badge variant="outline" className="text-xs">
-                  {detailBusiness.invite_status || 'pending'}
+                  {formatEnum(detailBusiness.invite_status || 'pending')}
                 </Badge>
               </div>
 
@@ -963,18 +993,25 @@ export default function AdminDirectoryPage() {
                   {CATEGORIES.filter(c => c.value !== 'uncategorized').map(cat => (
                     <button
                       key={cat.value}
+                      type="button"
+                      aria-pressed={detailBusiness.category === cat.value}
                       onClick={async () => {
-                        const res = await csrfFetch('/api/admin/directory', {
-                          method: 'PATCH',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ ids: [detailBusiness.id], category: cat.value }),
-                        });
-                        if (res.ok) {
-                          setDetailBusiness({ ...detailBusiness, category: cat.value });
-                          fetchData();
-                        } else {
-                          const data = await res.json().catch(() => ({}));
-                          toast.error(data.error || 'Failed to update category');
+                        try {
+                          const res = await csrfFetch('/api/admin/directory', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ids: [detailBusiness.id], category: cat.value }),
+                          });
+                          if (res.ok) {
+                            toast.success(`Category set to ${cat.label}`);
+                            setDetailBusiness({ ...detailBusiness, category: cat.value });
+                            fetchData();
+                          } else {
+                            const data = await res.json().catch(() => ({}));
+                            toast.error(data.error || 'Failed to update category');
+                          }
+                        } catch {
+                          toast.error('Failed to update category');
                         }
                       }}
                       className={`px-2 py-1 rounded-full text-[10px] font-medium transition-all ${

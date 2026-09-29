@@ -106,7 +106,7 @@ export const SearchListingCard = memo(function SearchListingCard({
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   <p className="text-lg md:text-2xl font-bold text-primary">
-                    {listing.price ? `$${listing.price.toLocaleString()}` : 'Call'}
+                    {listing.price ? `$${listing.price.toLocaleString()}` : 'Call for Price'}
                   </p>
                   {dealInfo && (
                     <span className="text-xs text-muted-foreground" title="AI market estimate">
@@ -241,8 +241,10 @@ export const SearchListingCard = memo(function SearchListingCard({
         </div>
 
         <div className="p-2 md:p-4">
-          <div className="flex items-center gap-1">
-            <h3 className="font-semibold text-sm md:text-base line-clamp-1">{displayTitle}</h3>
+          <div className="flex items-start gap-1">
+            {/* Two lines: these titles carry the specs (length, width,
+                tonnage) — one line cut them off mid-number */}
+            <h3 className="min-w-0 font-semibold text-sm md:text-base line-clamp-2 min-h-[2lh]">{displayTitle}</h3>
             {isTranslated && (
               <span title="Translated">
                 <Languages className="w-3 h-3 text-muted-foreground flex-shrink-0" />
@@ -251,7 +253,7 @@ export const SearchListingCard = memo(function SearchListingCard({
           </div>
           <div className="flex flex-wrap items-baseline gap-x-1.5 mt-0.5 md:mt-1">
             <p className="text-base md:text-xl font-bold text-primary">
-              {listing.price ? `$${listing.price.toLocaleString()}` : 'Call'}
+              {listing.price ? `$${listing.price.toLocaleString()}` : 'Call for Price'}
             </p>
             {dealInfo && (
               <span className="text-xs text-muted-foreground" title="AI market estimate">
@@ -260,11 +262,13 @@ export const SearchListingCard = memo(function SearchListingCard({
             )}
           </div>
 
-          <div className="flex flex-wrap gap-1 md:gap-2 mt-1 md:mt-2 text-xs text-muted-foreground">
-            {listing.year && <span>{listing.year}</span>}
-            {listing.year && listing.mileage && <span>-</span>}
-            {listing.mileage && <span>{listing.mileage.toLocaleString()} mi</span>}
-          </div>
+          {(listing.year || listing.mileage) && (
+            <div className="flex flex-wrap gap-1 md:gap-2 mt-1 md:mt-2 text-xs text-muted-foreground">
+              {listing.year && <span>{listing.year}</span>}
+              {listing.year && listing.mileage && <span>-</span>}
+              {listing.mileage && <span>{listing.mileage.toLocaleString()} mi</span>}
+            </div>
+          )}
 
           {(listing.city || listing.state) && (
             <p className="text-xs text-muted-foreground mt-1 md:mt-2 flex items-center gap-1 line-clamp-1">

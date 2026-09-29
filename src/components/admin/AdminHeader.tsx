@@ -48,7 +48,8 @@ export function AdminHeader({ user, sections, badges }: AdminHeaderProps) {
 
         {/* Title - desktop only */}
         <div className="hidden lg:block">
-          <h1 className="text-lg font-semibold">Admin Panel</h1>
+          {/* Not an h1 — each admin page renders its own h1 */}
+          <p className="text-lg font-semibold">Admin Panel</p>
         </div>
 
         {/* Right Side */}
@@ -58,7 +59,12 @@ export function AdminHeader({ user, sections, badges }: AdminHeaderProps) {
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                aria-label={totalNotifications > 0 ? `${totalNotifications} action items` : 'Action items'}
+              >
                 <Bell className="w-5 h-5" />
                 {totalNotifications > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
@@ -82,7 +88,7 @@ export function AdminHeader({ user, sections, badges }: AdminHeaderProps) {
               )}
               {badges.newLeads > 0 && (
                 <DropdownMenuItem asChild>
-                  <Link href="/admin/leads" className="cursor-pointer">
+                  <Link href="/admin/leads?status=new" className="cursor-pointer">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-green-500 rounded-full" />
                       <span>{badges.newLeads} new lead{badges.newLeads !== 1 ? 's' : ''}</span>
@@ -111,9 +117,9 @@ export function AdminHeader({ user, sections, badges }: AdminHeaderProps) {
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
+              <Button variant="ghost" size="icon" className="rounded-full" aria-label="Account menu">
                 <Avatar className="w-8 h-8">
-                  <AvatarFallback className="text-xs bg-red-100 text-red-700">{initials}</AvatarFallback>
+                  <AvatarFallback className="text-xs bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400">{initials}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>

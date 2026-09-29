@@ -5,6 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { formatEnum } from '@/components/admin/tones';
+
+// A malformed website value used to throw inside render and take the page down
+function hostnameOf(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
 import {
   RefreshCw,
   Globe,
@@ -132,10 +142,11 @@ export default function DealerSourcesPage() {
       {/* Status message */}
       {message && (
         <div
+          role="status"
           className={`flex items-center gap-2 p-3 rounded-lg text-sm ${
             message.type === 'success'
-              ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-              : 'bg-red-500/10 text-red-400 border border-red-500/20'
+              ? 'bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20'
+              : 'bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20'
           }`}
         >
           {message.type === 'success' ? (
@@ -194,7 +205,7 @@ export default function DealerSourcesPage() {
               <CardContent className="p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
                       <h3 className="font-semibold truncate">{dealer.name}</h3>
                       <Badge
                         variant={dealer.is_active ? 'default' : 'secondary'}
@@ -203,7 +214,10 @@ export default function DealerSourcesPage() {
                         {dealer.is_active ? 'Active' : 'Inactive'}
                       </Badge>
                       <Badge variant="outline" className="text-[10px]">
-                        {dealer.scrape_method}
+                        {/* 'css' / 'api' are acronyms — formatEnum would print "Css" / "Api" */}
+                        {dealer.scrape_method === 'css' || dealer.scrape_method === 'api'
+                          ? dealer.scrape_method.toUpperCase()
+                          : formatEnum(dealer.scrape_method)}
                       </Badge>
                       {dealer.claimed_by && (
                         <Badge className="text-[10px] bg-green-600 hover:bg-green-600 gap-1">
@@ -221,7 +235,7 @@ export default function DealerSourcesPage() {
                           className="flex items-center gap-1 hover:text-foreground transition-colors"
                         >
                           <Globe className="w-3 h-3" />
-                          {new URL(dealer.website).hostname}
+                          {hostnameOf(dealer.website)}
                         </a>
                       )}
                       {(dealer.location_city || dealer.location_state) && (
@@ -235,7 +249,7 @@ export default function DealerSourcesPage() {
                       </span>
                       <span className="flex items-center gap-1">
                         <Package className="w-3 h-3" />
-                        {dealer.active_listings} listings
+                        {dealer.active_listings} listing{dealer.active_listings !== 1 ? 's' : ''}
                       </span>
                     </div>
                   </div>

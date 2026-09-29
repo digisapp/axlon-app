@@ -30,11 +30,18 @@ export function AnalyticsCharts({ data, type }: AnalyticsChartsProps) {
   const color = type === 'views' ? '#3b82f6' : '#22c55e';
   const gradientId = `gradient-${type}`;
 
-  // Format date for display
+  // Dates arrive as UTC calendar days ("2026-09-28"). Format them in UTC too —
+  // otherwise every label west of UTC shows the previous day.
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
   };
+  const unit = (n: unknown) => {
+    const singular = type === 'views' ? 'view' : 'lead';
+    return Number(n) === 1 ? singular : `${singular}s`;
+  };
+  // Theme-aware axis/grid colors (recharts defaults are fixed light-mode greys)
+  const tick = { fontSize: 12, fill: 'var(--muted-foreground)' };
 
   return (
     <div className="h-[300px] w-full">
@@ -49,22 +56,21 @@ export function AnalyticsCharts({ data, type }: AnalyticsChartsProps) {
               <stop offset="95%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
           <XAxis
             dataKey="date"
             tickFormatter={formatDate}
-            tick={{ fontSize: 12 }}
+            tick={tick}
             tickLine={false}
             axisLine={false}
-            className="text-muted-foreground"
             interval="preserveStartEnd"
             minTickGap={50}
           />
           <YAxis
-            tick={{ fontSize: 12 }}
+            tick={tick}
             tickLine={false}
             axisLine={false}
-            className="text-muted-foreground"
+            allowDecimals={false}
           />
           <Tooltip
             content={({ active, payload, label }) => {
@@ -75,7 +81,7 @@ export function AnalyticsCharts({ data, type }: AnalyticsChartsProps) {
                       {formatDate(label)}
                     </p>
                     <p className="text-lg font-semibold">
-                      {payload[0].value} {type}
+                      {payload[0].value} {unit(payload[0].value)}
                     </p>
                   </div>
                 );

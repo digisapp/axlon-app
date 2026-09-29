@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Facebook, Twitter, Instagram, Linkedin, Youtube } from 'lucide-react';
+import { SALES_PHONE_DISPLAY, SALES_PHONE_E164 } from '@/lib/contact';
 
 const footerLinks = {
   marketplace: [
     { href: '/search', label: 'Browse Equipment' },
     { href: '/new-trailers', label: 'New Trailers' },
     { href: '/categories', label: 'Categories' },
+    { href: '/deals', label: 'Below-Market Deals' },
     { href: '/dealers', label: 'Directory' },
     { href: '/finance', label: 'Financing' },
     { href: '/tools/axle-weight-calculator', label: 'Axle Calculator' },
@@ -28,14 +29,6 @@ const footerLinks = {
   ],
 };
 
-const socialLinks = [
-  { href: 'https://facebook.com/axlonai', icon: Facebook, label: 'Facebook' },
-  { href: 'https://twitter.com/axlonai', icon: Twitter, label: 'Twitter' },
-  { href: 'https://instagram.com/axlonai', icon: Instagram, label: 'Instagram' },
-  { href: 'https://linkedin.com/company/axlonai', icon: Linkedin, label: 'LinkedIn' },
-  { href: 'https://youtube.com/@axlonai', icon: Youtube, label: 'YouTube' },
-];
-
 export function Footer() {
   const currentYear = new Date().getFullYear();
 
@@ -54,23 +47,9 @@ export function Footer() {
                 className="h-8 w-auto"
               />
             </Link>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm text-muted-foreground">
               The AI platform for equipment businesses. Buy, sell, and manage with AI.
             </p>
-            <div className="flex gap-3">
-              {socialLinks.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center p-3.5 rounded-lg bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={link.label}
-                >
-                  <link.icon className="w-4 h-4" />
-                </a>
-              ))}
-            </div>
           </div>
 
           {/* Marketplace Links */}
@@ -148,6 +127,10 @@ export function Footer() {
             &copy; {currentYear} <span className="font-[family-name:var(--font-gunship)]">AXLEYARD</span>. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground">
+            <a href={`tel:${SALES_PHONE_E164}`} className="inline-block py-3 -my-3 hover:text-foreground whitespace-nowrap">
+              {SALES_PHONE_DISPLAY}
+            </a>
+            <span aria-hidden="true"> · </span>
             Made with AI in Miami, FL
           </p>
         </div>

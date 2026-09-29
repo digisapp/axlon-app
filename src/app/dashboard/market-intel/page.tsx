@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 import {
   TrendingUp, TrendingDown, BarChart3, Package,
   AlertTriangle, DollarSign, Clock, ArrowUpRight,
@@ -69,12 +70,14 @@ export default async function MarketIntelPage() {
     .eq('dealer_id', user.id)
     .in('status', ['new', 'contacted']);
 
+  const trendPct: number | null = latestReport?.market_trends?.priceChangePercent ?? null;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Market Intelligence</h1>
-        <p className="text-muted-foreground">AI-powered market analysis for {profile?.company_name || 'your business'}</p>
-      </div>
+      <PageHeader
+        title="Market Intelligence"
+        description={`AI-powered market analysis for ${profile?.company_name || 'your business'}`}
+      />
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -115,13 +118,16 @@ export default async function MarketIntelPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              {latestReport && (latestReport.market_trends?.priceChangePercent ?? 0) >= 0
-                ? <TrendingUp className="w-4 h-4 text-green-600" />
-                : <TrendingDown className="w-4 h-4 text-red-600" />
+              {trendPct == null
+                ? <TrendingUp className="w-4 h-4" />
+                : trendPct >= 0
+                ? <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+                : <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400" />
               }
               <span className="text-xs font-medium">Market Trend</span>
             </div>
-            <p className={`text-2xl font-bold ${latestReport && (latestReport.market_trends?.priceChangePercent ?? 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {/* No report yet → neutral "—", not a red "down" trend */}
+            <p className={`text-2xl font-bold ${trendPct == null ? '' : trendPct >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
               {latestReport?.market_trends?.priceChangePercent != null ? `${latestReport.market_trends.priceChangePercent >= 0 ? '+' : ''}${latestReport.market_trends.priceChangePercent}%` : '—'}
             </p>
           </CardContent>

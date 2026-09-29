@@ -72,9 +72,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: 'Not Found' };
   }
 
-  const types = (manufacturer.equipment_types ?? []).join(', ');
+  // "Caterpillar Heavy Equipment", "Volvo Trucks & Trailers" — and no
+  // "Dorsey Trailer Trailers" when the brand name already ends in the type.
+  const types = (manufacturer.equipment_types ?? [])
+    .map((t: string) => EQUIPMENT_TYPE_LABELS[t] ?? t.charAt(0).toUpperCase() + t.slice(1))
+    // Singular on both sides so "Mack Trucks" / "XL Specialized Trailers"
+    // (plural) are caught too, not just "Dorsey Trailer".
+    .filter((label: string) => !manufacturer.name.toLowerCase().replace(/s$/, '').endsWith(label.toLowerCase().replace(/s$/, '')))
+    .join(' & ');
   // No brand suffix — the root layout's "%s | Axleyard" template appends it.
-  const title = `${manufacturer.name} ${types.charAt(0).toUpperCase() + types.slice(1)}`;
+  const title = types ? `${manufacturer.name} ${types}` : manufacturer.name;
   const description = manufacturer.short_description || `Browse ${manufacturer.name} equipment on Axleyard. Find trucks, trailers, and equipment.`;
 
   return {
@@ -149,6 +156,12 @@ function BreadcrumbJsonLd({ manufacturerName, slug }: { manufacturerName: string
     />
   );
 }
+
+const EQUIPMENT_TYPE_LABELS: Record<string, string> = {
+  trucks: 'Trucks',
+  trailers: 'Trailers',
+  'heavy-equipment': 'Heavy Equipment',
+};
 
 const EQUIPMENT_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   trucks: Truck,
@@ -315,7 +328,7 @@ export default async function ManufacturerPage({ params }: PageProps) {
                       }`}
                     >
                       <Icon className="w-3.5 h-3.5 mr-1.5" />
-                      {type === 'heavy-equipment' ? 'Heavy Equipment' : type.charAt(0).toUpperCase() + type.slice(1)}
+                      {EQUIPMENT_TYPE_LABELS[type] ?? type.charAt(0).toUpperCase() + type.slice(1)}
                     </Badge>
                   );
                 })}
@@ -329,7 +342,7 @@ export default async function ManufacturerPage({ params }: PageProps) {
         {/* Stats Cards */}
         {/* Icon stacks over the text below sm so two columns fit a 320px screen */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-8">
-          <Card className="min-w-0 dark:bg-zinc-900 dark:border-zinc-700">
+          <Card className="min-w-0 py-0 gap-0 dark:bg-zinc-900 dark:border-zinc-700">
             <CardContent className="p-3 sm:p-4 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
               <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
                 <Package className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
@@ -342,7 +355,7 @@ export default async function ManufacturerPage({ params }: PageProps) {
           </Card>
 
           {avgPrice && (
-            <Card className="min-w-0 dark:bg-zinc-900 dark:border-zinc-700">
+            <Card className="min-w-0 py-0 gap-0 dark:bg-zinc-900 dark:border-zinc-700">
               <CardContent className="p-3 sm:p-4 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
                 <div className="p-2 sm:p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
                   <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
@@ -356,7 +369,7 @@ export default async function ManufacturerPage({ params }: PageProps) {
           )}
 
           {manufacturer.country && (
-            <Card className="min-w-0 dark:bg-zinc-900 dark:border-zinc-700">
+            <Card className="min-w-0 py-0 gap-0 dark:bg-zinc-900 dark:border-zinc-700">
               <CardContent className="p-3 sm:p-4 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
                 <div className="p-2 sm:p-3 bg-amber-100 dark:bg-amber-900/30 rounded-xl">
                   <Globe className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 dark:text-amber-400" />
@@ -372,7 +385,7 @@ export default async function ManufacturerPage({ params }: PageProps) {
 
         {/* Description */}
         {manufacturer.description && (
-          <Card className="mb-8 dark:bg-zinc-900 dark:border-zinc-700">
+          <Card className="mb-8 py-0 gap-0 dark:bg-zinc-900 dark:border-zinc-700">
             <CardContent className="p-6">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">About {manufacturer.name}</h2>
               <p className="text-slate-600 dark:text-zinc-400 leading-relaxed">{manufacturer.description}</p>

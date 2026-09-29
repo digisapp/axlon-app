@@ -39,6 +39,8 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
   const [currentStep, setCurrentStep] = useState<Step>('equipment');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [touched, setTouched] = useState({ year: false, email: false });
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
 
   const [formData, setFormData] = useState({
@@ -113,6 +115,7 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+    setSubmitError('');
 
     try {
       const response = await csrfFetch('/api/trade-in', {
@@ -128,25 +131,41 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
 
       if (response.ok) {
         setIsSubmitted(true);
+      } else if (response.status === 429) {
+        setSubmitError('Too many requests in a short time. Please wait a minute and try again.');
       } else {
-        alert('Failed to submit. Please try again.');
+        setSubmitError(
+          'We couldn\'t submit your request. Check the details on the earlier steps and try again.'
+        );
       }
     } catch (error) {
       logger.error('Submit error', { error });
-      alert('Failed to submit. Please try again.');
+      setSubmitError('Could not reach the server. Check your connection and try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Mirrors tradeInRequestSchema so a bad year/email is caught on its own
+  // step instead of failing the final submit with a generic error.
+  const maxYear = new Date().getFullYear() + 1;
+  const yearNum = formData.equipment_year ? parseInt(formData.equipment_year, 10) : null;
+  const yearInvalid = yearNum !== null && (Number.isNaN(yearNum) || yearNum < 1900 || yearNum > maxYear);
+  const emailInvalid =
+    formData.contact_email.trim() !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contact_email.trim());
+  // Only flag a field once the visitor has finished with it (blur, or a full
+  // 4-digit year) — not on the first keystroke of a value that will be valid.
+  const showYearError = yearInvalid && (touched.year || formData.equipment_year.length >= 4);
+  const showEmailError = emailInvalid && touched.email;
+
   const isStepValid = () => {
     switch (currentStep) {
       case 'equipment':
-        return formData.equipment_make && formData.equipment_model;
+        return !!(formData.equipment_make.trim() && formData.equipment_model.trim()) && !yearInvalid;
       case 'condition':
-        return formData.equipment_condition;
+        return !!formData.equipment_condition;
       case 'contact':
-        return formData.contact_name && formData.contact_email;
+        return !!(formData.contact_name.trim() && formData.contact_email.trim()) && !emailInvalid;
       case 'interest':
         return true; // Optional step
       default:
@@ -158,8 +177,8 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
     return (
       <Card className="max-w-2xl mx-auto">
         <CardContent className="pt-12 pb-12 text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-8 h-8 text-green-600" />
+          <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
           </div>
           <h2 className="text-2xl font-bold mb-2">Trade-In Request Submitted!</h2>
           <p className="text-muted-foreground mb-6">
@@ -167,10 +186,10 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
             within 24-48 hours with a valuation.
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
-            <Button variant="outline" onClick={() => router.push('/')}>
+            <Button variant="outline" className="h-11" onClick={() => router.push('/')}>
               Back to Home
             </Button>
-            <Button onClick={() => router.push('/search')}>
+            <Button className="h-11" onClick={() => router.push('/search')}>
               Browse Inventory
             </Button>
           </div>
@@ -225,7 +244,7 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
           <div className="space-y-4">
             <h3 className="font-semibold">Equipment Information</h3>
             <div className="grid md:grid-cols-3 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="year">Year</Label>
                 <Input
                   id="year"
@@ -233,11 +252,21 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
                   inputMode="numeric"
                   pattern="[0-9]*"
                   placeholder="2020"
+                  min={1900}
+                  max={maxYear}
+                  aria-invalid={showYearError || undefined}
+                  aria-describedby={showYearError ? 'year-error' : undefined}
                   value={formData.equipment_year}
                   onChange={(e) => setFormData({ ...formData, equipment_year: e.target.value })}
+                  onBlur={() => setTouched((t) => ({ ...t, year: true }))}
                 />
+                {showYearError && (
+                  <p id="year-error" className="text-xs text-destructive">
+                    Enter a year between 1900 and {maxYear}.
+                  </p>
+                )}
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="make">Make *</Label>
                 <Input
                   id="make"
@@ -247,7 +276,7 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
                   required
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="model">Model *</Label>
                 <Input
                   id="model"
@@ -260,16 +289,20 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
             </div>
 
             <div className="grid md:grid-cols-3 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="vin">VIN (Optional)</Label>
                 <Input
                   id="vin"
                   placeholder="1XPWD40X1ED215307"
+                  maxLength={17}
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
                   value={formData.equipment_vin}
                   onChange={(e) => setFormData({ ...formData, equipment_vin: e.target.value })}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="mileage">Mileage</Label>
                 <Input
                   id="mileage"
@@ -281,7 +314,7 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
                   onChange={(e) => setFormData({ ...formData, equipment_mileage: e.target.value })}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="hours">Hours (Equipment)</Label>
                 <Input
                   id="hours"
@@ -301,13 +334,13 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
         {currentStep === 'condition' && (
           <div className="space-y-4">
             <h3 className="font-semibold">Equipment Condition</h3>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="condition">Overall Condition *</Label>
               <Select
                 value={formData.equipment_condition}
                 onValueChange={(v) => setFormData({ ...formData, equipment_condition: v })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="condition" className="w-full">
                   <SelectValue placeholder="Select condition" />
                 </SelectTrigger>
                 <SelectContent>
@@ -319,7 +352,7 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
               </Select>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
@@ -332,8 +365,8 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
 
             <div className="p-4 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground">
-                <strong>Tip:</strong> Providing detailed information and photos helps dealers give
-                you a more accurate valuation.
+                <strong>Tip:</strong> Mentioning recent maintenance, upgrades and any known issues
+                helps dealers give you a more accurate valuation.
               </p>
             </div>
           </div>
@@ -343,7 +376,7 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
         {currentStep === 'contact' && (
           <div className="space-y-4">
             <h3 className="font-semibold">Contact Information</h3>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="name">Name *</Label>
               <Input
                 id="name"
@@ -356,7 +389,7 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
@@ -364,12 +397,20 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
                   autoComplete="email"
                   inputMode="email"
                   placeholder="john@example.com"
+                  aria-invalid={showEmailError || undefined}
+                  aria-describedby={showEmailError ? 'email-error' : undefined}
                   value={formData.contact_email}
                   onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                  onBlur={() => setTouched((t) => ({ ...t, email: true }))}
                   required
                 />
+                {showEmailError && (
+                  <p id="email-error" className="text-xs text-destructive">
+                    Enter a valid email address.
+                  </p>
+                )}
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="phone">Phone (Optional)</Label>
                 <Input
                   id="phone"
@@ -377,6 +418,7 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
                   autoComplete="tel"
                   inputMode="tel"
                   placeholder="(555) 123-4567"
+                  maxLength={20}
                   value={formData.contact_phone}
                   onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
                 />
@@ -393,13 +435,13 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
               Let us know if you&apos;re interested in trading towards a specific listing or category.
             </p>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="category">Interested Category</Label>
               <Select
                 value={formData.interested_category_id}
                 onValueChange={(v) => setFormData({ ...formData, interested_category_id: v })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="category" className="w-full">
                   <SelectValue placeholder="Select category (optional)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -412,13 +454,13 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
               </Select>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="timeline">Purchase Timeline</Label>
               <Select
                 value={formData.purchase_timeline}
                 onValueChange={(v) => setFormData({ ...formData, purchase_timeline: v })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="timeline" className="w-full">
                   <SelectValue placeholder="When are you looking to buy?" />
                 </SelectTrigger>
                 <SelectContent>
@@ -432,10 +474,17 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
           </div>
         )}
 
+        {submitError && currentStep === 'interest' && (
+          <div role="alert" className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
+            {submitError}
+          </div>
+        )}
+
         {/* Navigation */}
         <div className="flex justify-between pt-4 border-t">
           <Button
             variant="outline"
+            className="h-11"
             onClick={handleBack}
             disabled={currentStepIndex === 0}
           >
@@ -444,7 +493,7 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
           </Button>
 
           {currentStepIndex === steps.length - 1 ? (
-            <Button onClick={handleSubmit} disabled={isSubmitting || !isStepValid()}>
+            <Button className="h-11" onClick={handleSubmit} disabled={isSubmitting || !isStepValid()}>
               {isSubmitting ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
@@ -453,7 +502,7 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
               Submit Request
             </Button>
           ) : (
-            <Button onClick={handleNext} disabled={!isStepValid()}>
+            <Button className="h-11" onClick={handleNext} disabled={!isStepValid()}>
               Next
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>

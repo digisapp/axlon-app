@@ -155,6 +155,18 @@ function SearchPageContent() {
   }, [resetToFirstPage]);
 
   const categories = useCategories();
+  // Heading shows the category's real name ("Lowboy Trailers"), not its URL
+  // slug ("lowboy trailers"); title-case the slug until categories load.
+  const categoryLabel = useMemo(() => {
+    if (!category) return '';
+    const match = categories.find((c) => c.slug === category);
+    if (match?.name) return match.name;
+    return category
+      .split('-')
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }, [category, categories]);
 
   const {
     listings,
@@ -378,10 +390,12 @@ function SearchPageContent() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-4 md:mb-6">
           <div>
             <h1 className="text-xl md:text-2xl font-bold line-clamp-1">
-              {query ? `Results for "${query}"` : category ? `${category.replace(/-/g, ' ')}` : 'All Listings'}
+              {query ? `Results for "${query}"` : category ? categoryLabel : 'All Listings'}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {totalCount.toLocaleString()} listings found
+              {isLoading
+                ? 'Searching…'
+                : `${totalCount.toLocaleString()} ${totalCount === 1 ? 'listing' : 'listings'} found`}
             </p>
           </div>
 
@@ -507,7 +521,7 @@ function SearchPageContent() {
             <div className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
               <Sparkles className="w-8 h-8 md:w-10 md:h-10 text-primary" />
             </div>
-            <h2 className="text-lg md:text-xl font-semibold mb-2">Axlon couldn&apos;t find a match</h2>
+            <h2 className="text-lg md:text-xl font-semibold mb-2">AXLON couldn&apos;t find a match</h2>
             <p className="text-sm md:text-base text-muted-foreground mb-4 max-w-md mx-auto">
               No listings match your search. Try different keywords or adjust your filters.
             </p>

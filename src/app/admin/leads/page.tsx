@@ -15,10 +15,14 @@ import {
   Globe,
   Megaphone,
 } from 'lucide-react';
+import { INTENT_TONE, TONE, formatEnum } from '@/components/admin/tones';
 
 export const dynamic = 'force-dynamic';
 
 const PAGE_SIZE = 100;
+
+/** leads.status CHECK constraint values, in pipeline order. */
+const LEAD_STATUSES = ['new', 'contacted', 'qualified', 'negotiating', 'won', 'lost'] as const;
 
 /** Only the fields this page renders. `leads` carries columns from several
  *  migrations plus two embedded relations, and there are no generated DB
@@ -149,23 +153,28 @@ export default async function AdminLeadsPage({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'new': return 'bg-blue-100 text-blue-700';
-      case 'contacted': return 'bg-yellow-100 text-yellow-700';
-      case 'qualified': return 'bg-green-100 text-green-700';
-      case 'won': return 'bg-emerald-100 text-emerald-700';
-      case 'lost': return 'bg-gray-100 text-gray-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'new': return TONE.blue;
+      case 'contacted': return TONE.yellow;
+      case 'qualified': return TONE.green;
+      case 'negotiating': return TONE.purple;
+      case 'won': return TONE.emerald;
+      default: return TONE.gray;
     }
   };
 
-  const getIntentColor = (intent: string | null) => {
-    switch (intent) {
-      case 'buy': return 'bg-green-100 text-green-700';
-      case 'lease': return 'bg-blue-100 text-blue-700';
-      case 'rent': return 'bg-purple-100 text-purple-700';
-      default: return 'bg-gray-100 text-gray-600';
-    }
+  const getIntentColor = (intent: string | null) =>
+    (intent && INTENT_TONE[intent]) || TONE.gray;
+
+  // Source/microsite and status filters combine; each link keeps the other half.
+  const leadsHref = (next: { source?: string; microsite?: string; status?: string }) => {
+    const params = new URLSearchParams();
+    if (next.microsite) params.set('microsite', next.microsite);
+    else if (next.source) params.set('source', next.source);
+    if (next.status) params.set('status', next.status);
+    const qs = params.toString();
+    return `/admin/leads${qs ? `?${qs}` : ''}`;
   };
+  const activeStatus = LEAD_STATUSES.find((st) => st === filters.status);
 
   const activeSite = filters.microsite
     ? sites?.find((s) => s.id === filters.microsite)
@@ -188,7 +197,7 @@ export default async function AdminLeadsPage({
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
         <Card>
           <CardContent className="p-6">
             <div className="mb-2 flex items-center justify-between">
@@ -204,7 +213,7 @@ export default async function AdminLeadsPage({
             <div className="mb-2 flex items-center justify-between">
               <MessageSquare className="h-5 w-5 text-green-500" />
               {(newLeads || 0) > 0 && (
-                <Badge variant="outline" className="border-green-300 text-xs text-green-600">
+                <Badge variant="outline" className="border-green-300 text-xs text-green-600 dark:border-green-800 dark:text-green-400">
                   Action needed
                 </Badge>
               )}
@@ -252,7 +261,7 @@ export default async function AdminLeadsPage({
           return (
             <Link
               key={tab.label}
-              href={tab.key ? `/admin/leads?source=${tab.key}` : '/admin/leads'}
+              href={leadsHref({ source: tab.key, status: activeStatus })}
               className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
                 isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
               }`}
@@ -263,11 +272,11 @@ export default async function AdminLeadsPage({
         })}
 
         {(sites?.length ?? 0) > 0 && (
-          <span className="ml-2 flex flex-wrap items-center gap-2">
+          <span className="flex flex-wrap items-center gap-2 sm:ml-2">
             {sites!.map((site) => (
               <Link
                 key={site.id}
-                href={`/admin/leads?microsite=${site.id}`}
+                href={leadsHref({ microsite: site.id, status: activeStatus })}
                 className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
                   filters.microsite === site.id
                     ? 'bg-primary text-primary-foreground'
@@ -281,11 +290,29 @@ export default async function AdminLeadsPage({
         )}
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm text-muted-foreground">Status:</span>
+        {[undefined, ...LEAD_STATUSES].map((st) => (
+          <Link
+            key={st ?? 'any'}
+            href={leadsHref({ source: filters.source, microsite: filters.microsite, status: st })}
+            className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
+              activeStatus === st ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+            }`}
+          >
+            {st ? formatEnum(st) : 'Any'}
+          </Link>
+        ))}
+      </div>
+
       {/* Leads List */}
       <Card>
         <CardHeader>
           <CardTitle>
-            {activeSite ? `Leads from ${activeSite.domain}` : 'All Leads'}
+            {activeSite
+              ? `Leads from ${activeSite.domain}`
+              : `${sourceTabs.find((t) => t.key && t.key === filters.source)?.label ?? 'All'} Leads`}
+            {activeStatus ? ` — ${formatEnum(activeStatus)}` : ''}
           </CardTitle>
           <CardDescription>
             Showing {leads.length} of {filteredCount || 0} matching leads
@@ -312,11 +339,11 @@ export default async function AdminLeadsPage({
                             {lead.buyer_name || lead.name || 'Unknown'}
                           </span>
                           <span className={`rounded-full px-2 py-0.5 text-xs ${getStatusColor(lead.status)}`}>
-                            {lead.status}
+                            {formatEnum(lead.status)}
                           </span>
                           {lead.intent && (
                             <span className={`rounded-full px-2 py-0.5 text-xs ${getIntentColor(lead.intent)}`}>
-                              {lead.intent}
+                              {formatEnum(lead.intent)}
                             </span>
                           )}
                           {site && (
@@ -396,7 +423,7 @@ export default async function AdminLeadsPage({
                               <PlayCircle className="h-4 w-4" />
                               Play Recording
                             </a>
-                            {lead.call_duration_seconds && (
+                            {!!lead.call_duration_seconds && (
                               <span className="text-xs text-muted-foreground">
                                 ({formatDuration(lead.call_duration_seconds)})
                               </span>
@@ -405,7 +432,7 @@ export default async function AdminLeadsPage({
                         )}
                       </div>
 
-                      <div className="flex flex-col items-end gap-2">
+                      <div className="flex flex-col gap-2 md:items-end">
                         <span className="text-xs text-muted-foreground">
                           {new Date(lead.created_at).toLocaleDateString()}{' '}
                           {new Date(lead.created_at).toLocaleTimeString([], {
@@ -419,12 +446,13 @@ export default async function AdminLeadsPage({
                         {lead.listings && (
                           <Link
                             href={`/listing/${lead.listings.id}`}
+                            target="_blank"
                             className="flex items-center gap-1 text-sm text-primary hover:underline"
                           >
                             <Package className="h-3 w-3" />
                             {lead.listings.title?.slice(0, 30)}
                             {(lead.listings.title?.length ?? 0) > 30 ? '…' : ''}
-                            {lead.listings.price && (
+                            {!!lead.listings.price && (
                               <span className="text-muted-foreground">
                                 ${lead.listings.price.toLocaleString()}
                               </span>

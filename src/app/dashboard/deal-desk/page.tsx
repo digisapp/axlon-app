@@ -1,10 +1,11 @@
 'use client';
 
+import { toast } from 'sonner';
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, RefreshCw, Handshake } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import {
   DealsKanban,
   DealStats,
@@ -12,6 +13,7 @@ import {
   DealDetailSheet,
 } from '@/components/dashboard/deal-desk';
 import type { Deal, DealStatus, DealDashboardMetrics } from '@/types/deals';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 import { logger } from '@/lib/logger';
 
 export default function DealDeskPage() {
@@ -55,7 +57,9 @@ export default function DealDeskPage() {
     try {
       const res = await fetch('/api/deal-desk/dashboard');
 
-      if (res.ok) {
+      if (!res.ok) {
+        toast.error('Couldn\'t load your deals. Please try Refresh.');
+      } else {
         const data = await res.json();
         setMetrics(data.metrics);
         setDealsByStatus({
@@ -69,6 +73,7 @@ export default function DealDeskPage() {
       }
     } catch (error) {
       logger.error('Error fetching deal desk data', { error });
+      toast.error('Couldn\'t load your deals. Check your connection and try Refresh.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -111,17 +116,11 @@ export default function DealDeskPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-            <Handshake className="w-8 h-8" />
-            Deal Desk
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage quotes, negotiations, and close deals
-          </p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        title="Deal Desk"
+        description="Manage quotes, negotiations, and close deals"
+        actions={
+          <>
           <Button
             variant="outline"
             size="sm"
@@ -135,8 +134,9 @@ export default function DealDeskPage() {
             <Plus className="w-4 h-4 mr-2" />
             New Deal
           </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Stats */}
       <DealStats metrics={metrics || defaultMetrics} />

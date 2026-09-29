@@ -3,15 +3,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function AdminLoading() {
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
+    // The admin layout already pads <main>; match the pages' own wrapper so the
+    // skeleton doesn't jump sideways when the real page streams in
+    <div className="space-y-6" role="status" aria-busy="true" aria-label="Loading">
       {/* Header */}
-      <div className="mb-8">
+      <div>
         <Skeleton className="h-8 w-48 mb-2" />
         <Skeleton className="h-5 w-72" />
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <Card key={i}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">

@@ -16,7 +16,6 @@ import {
   Award,
   Calendar,
   Settings,
-  BarChart3,
   Users,
   Clock,
   Star,
@@ -112,7 +111,7 @@ const phases = [
     title: 'Foundation',
     icon: Zap,
     color: 'text-primary',
-    borderColor: 'border-primary',
+    borderColor: 'border-primary/30',
     items: [
       'AI Lead Response System — instant replies to inbound inquiries 24/7',
       'Intelligent CRM with automated follow-up sequences',
@@ -126,7 +125,7 @@ const phases = [
     title: 'Core Automation',
     icon: Bot,
     color: 'text-amber-500',
-    borderColor: 'border-amber-500',
+    borderColor: 'border-amber-500/30',
     items: [
       'AI Dispatch & Load Matching system',
       'Automated quoting engine tailored to your fleet or inventory',
@@ -140,7 +139,7 @@ const phases = [
     title: 'Optimization & Marketplace',
     icon: TrendingUp,
     color: 'text-emerald-500',
-    borderColor: 'border-emerald-500',
+    borderColor: 'border-emerald-500/30',
     items: [
       'Full analytics dashboard and AI performance reporting',
       'Complete Axleyard marketplace integration — we handle everything',
@@ -197,7 +196,7 @@ export default function TransformPage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="rounded-full border-slate-600 text-slate-200 hover:bg-slate-800"
+                className="rounded-full bg-transparent border-slate-600 text-slate-200 hover:bg-slate-800 hover:text-white"
                 asChild
               >
                 <Link href="/contact">Talk to Our Team</Link>
@@ -297,7 +296,7 @@ export default function TransformPage() {
             {phases.map((phase) => (
               <div
                 key={phase.phase}
-                className={`bg-card border-2 ${phase.borderColor}/30 rounded-xl p-5 md:p-6`}
+                className={`bg-card border-2 ${phase.borderColor} rounded-xl p-5 md:p-6`}
               >
                 <div className="flex items-center gap-2 mb-1">
                   <phase.icon className={`w-4 h-4 ${phase.color}`} />
@@ -443,7 +442,7 @@ export default function TransformPage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="rounded-full border-slate-600 text-slate-200 hover:bg-slate-800"
+                className="rounded-full bg-transparent border-slate-600 text-slate-200 hover:bg-slate-800 hover:text-white"
                 asChild
               >
                 <Link href="/contact">Talk to Our Team</Link>

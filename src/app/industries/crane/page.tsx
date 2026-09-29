@@ -16,10 +16,10 @@ import {
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'AI Tools for Crane & Rigging Companies',
-  description: 'Axleyard helps crane and rigging companies manage leads, automate customer inquiries, list equipment, and grow their business with AI-powered tools.',
+  title: 'AI Tools for Crane Companies',
+  description: 'Axleyard helps crane companies manage leads, automate customer inquiries, list equipment, and grow their business with AI-powered tools.',
   openGraph: {
-    title: 'AI Tools for Crane & Rigging Companies | Axleyard',
+    title: 'AI Tools for Crane Companies | Axleyard',
     description: 'Manage leads, automate inquiries, and grow your crane business with AI.',
   },
   alternates: { canonical: '/industries/crane' },
@@ -59,8 +59,8 @@ const features = [
 ];
 
 const useCases = [
-  'A contractor needs a 200-ton crane next week — your AI assistant qualifies the lead and books a call',
-  'List surplus rigging gear and reach buyers across the country instantly',
+  'A contractor needs a 200-ton crane next week — your AI assistant qualifies the lead and alerts you',
+  'List surplus cranes and boom trucks and reach buyers across the country',
   'Track which crane models get the most inquiries and optimize your fleet mix',
   'Your AI chatbot answers "What\'s your mobilization rate?" at 2 AM while you sleep',
 ];
@@ -91,10 +91,10 @@ export default function CranePage() {
               <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
                 <Construction className="w-6 h-6 text-orange-600" />
               </div>
-              <span className="text-sm font-medium text-orange-600">For Crane & Rigging Companies</span>
+              <span className="text-sm font-medium text-orange-600">For Crane Companies</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              AI-Powered Tools Built for Crane & Rigging
+              AI-Powered Tools Built for Crane Companies
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
               Stop missing leads after hours. Let AI handle customer inquiries, qualify prospects, and manage your equipment listings — so you can focus on lifting.
@@ -115,7 +115,7 @@ export default function CranePage() {
       <section className="max-w-6xl mx-auto px-4 py-16 md:py-24">
         <h2 className="text-3xl font-bold mb-4 text-center">Everything your crane business needs</h2>
         <p className="text-lg text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
-          From lead capture to fleet analytics, Axleyard gives crane and rigging companies the AI tools to compete and grow.
+          From lead capture to fleet analytics, Axleyard gives crane companies the AI tools to compete and grow.
         </p>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((f) => (
@@ -154,7 +154,7 @@ export default function CranePage() {
         </div>
         <h2 className="text-3xl font-bold mb-4">Ready to grow your crane business?</h2>
         <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
-          Join crane and rigging companies already using AI to capture more leads and sell equipment faster.
+          Use AI to capture more leads and sell equipment faster.
         </p>
         <Button asChild size="lg">
           <Link href="/get-started?industry=crane">Get Started Free</Link>
@@ -165,7 +165,10 @@ export default function CranePage() {
       {/* Footer */}
       <footer className="border-t py-8">
         <div className="max-w-6xl mx-auto px-4 flex flex-wrap items-center justify-between gap-4">
-          <Image src="/images/axlonai-logo.png" alt="Axleyard" width={80} height={30} />
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/images/axlonai-logo.png" alt="" width={28} height={33} className="w-7 h-auto" />
+            <span className="font-bold">Axleyard</span>
+          </Link>
           <div className="flex gap-4 text-sm text-muted-foreground">
             <Link href="/industries/transport" className="inline-flex items-center min-h-10 md:min-h-0 hover:text-foreground">Transport</Link>
             <Link href="/industries/rigging" className="inline-flex items-center min-h-10 md:min-h-0 hover:text-foreground">Rigging</Link>

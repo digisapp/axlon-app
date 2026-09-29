@@ -22,8 +22,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 import {
-  ArrowLeft,
   Loader2,
   User,
   Building2,
@@ -277,17 +277,17 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-24" role="status" aria-label="Loading settings">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="max-w-2xl mx-auto space-y-6">
       {/* Success Toast */}
       {showSuccess && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg">
+        <div role="status" className="fixed top-4 left-4 right-4 sm:left-auto z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg">
           <CheckCircle className="w-5 h-5" />
           <span>{successMessage}</span>
         </div>
@@ -295,28 +295,18 @@ export default function SettingsPage() {
 
       {/* Error Toast */}
       {errorMessage && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-destructive text-destructive-foreground px-4 py-3 rounded-lg shadow-lg">
+        <div role="alert" className="fixed top-4 left-4 right-4 sm:left-auto z-50 flex items-center gap-2 bg-destructive text-white px-4 py-3 rounded-lg shadow-lg">
           <AlertTriangle className="w-5 h-5" />
           <span>{errorMessage}</span>
         </div>
       )}
 
-      {/* Header */}
-      <header className="bg-background border-b">
-        <div className="max-w-2xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <h1 className="text-xl font-bold">Settings</h1>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        title="Account Settings"
+        description="Your profile, password, and email notifications"
+      />
 
-      <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+      <div className="space-y-6">
         {/* Profile */}
         <Card>
           <CardHeader>
@@ -340,9 +330,10 @@ export default function SettingsPage() {
                 </Avatar>
                 <label
                   htmlFor="avatar-upload"
-                  className="absolute bottom-0 right-0 p-1.5 bg-primary text-primary-foreground rounded-full cursor-pointer hover:bg-primary/90"
+                  className="absolute -bottom-1 -right-1 p-2.5 bg-primary text-primary-foreground rounded-full cursor-pointer hover:bg-primary/90 ring-2 ring-background"
                 >
                   <Camera className="w-4 h-4" />
+                  <span className="sr-only">Upload profile photo</span>
                 </label>
                 <input
                   id="avatar-upload"
@@ -355,7 +346,7 @@ export default function SettingsPage() {
               <div>
                 <p className="font-medium">Profile Photo</p>
                 <p className="text-sm text-muted-foreground">
-                  Click the camera icon to upload
+                  {avatarFile ? 'New photo selected — save changes to keep it' : 'Tap the camera icon to upload'}
                 </p>
               </div>
             </div>
@@ -420,18 +411,18 @@ export default function SettingsPage() {
             </div>
 
             {/* Business Status */}
-            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+            <div className="flex items-center justify-between gap-4 p-4 bg-muted/50 rounded-lg">
               <div>
                 <p className="font-medium">Business Account</p>
                 <p className="text-sm text-muted-foreground">
                   {formData.is_business
-                    ? 'Your account is verified for business features'
+                    ? 'Dealer features are turned on for your account'
                     : 'Upgrade to a business account for additional features'}
                 </p>
               </div>
               {formData.is_business ? (
-                <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">
-                  Verified
+                <span className="shrink-0 px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-sm rounded-full">
+                  Active
                 </span>
               ) : (
                 <Button variant="outline" size="sm" asChild>
@@ -505,56 +496,61 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-1">
-            <div className="flex items-center justify-between py-3">
+            <div className="flex items-center justify-between gap-4 py-3">
               <div>
                 <p className="font-medium text-sm">New chat conversations</p>
                 <p className="text-sm text-muted-foreground">When a visitor starts a chat on your storefront</p>
               </div>
               <Switch
+                aria-label="New chat conversations"
                 checked={notifications.new_chat}
                 onCheckedChange={(checked) => setNotifications({ ...notifications, new_chat: checked })}
               />
             </div>
             <Separator />
-            <div className="flex items-center justify-between py-3">
+            <div className="flex items-center justify-between gap-4 py-3">
               <div>
                 <p className="font-medium text-sm">New leads</p>
                 <p className="text-sm text-muted-foreground">When a buyer submits a contact form or AI captures a lead</p>
               </div>
               <Switch
+                aria-label="New leads"
                 checked={notifications.new_lead}
                 onCheckedChange={(checked) => setNotifications({ ...notifications, new_lead: checked })}
               />
             </div>
             <Separator />
-            <div className="flex items-center justify-between py-3">
+            <div className="flex items-center justify-between gap-4 py-3">
               <div>
                 <p className="font-medium text-sm">New messages</p>
                 <p className="text-sm text-muted-foreground">When a buyer sends you a direct message</p>
               </div>
               <Switch
+                aria-label="New messages"
                 checked={notifications.new_message}
                 onCheckedChange={(checked) => setNotifications({ ...notifications, new_message: checked })}
               />
             </div>
             <Separator />
-            <div className="flex items-center justify-between py-3">
+            <div className="flex items-center justify-between gap-4 py-3">
               <div>
                 <p className="font-medium text-sm">Weekly performance digest</p>
                 <p className="text-sm text-muted-foreground">Summary of views, leads, and sales activity each week</p>
               </div>
               <Switch
+                aria-label="Weekly performance digest"
                 checked={notifications.weekly_digest}
                 onCheckedChange={(checked) => setNotifications({ ...notifications, weekly_digest: checked })}
               />
             </div>
             <Separator />
-            <div className="flex items-center justify-between py-3">
+            <div className="flex items-center justify-between gap-4 py-3">
               <div>
                 <p className="font-medium text-sm">Product updates & tips</p>
                 <p className="text-sm text-muted-foreground">New features, selling tips, and marketplace news</p>
               </div>
               <Switch
+                aria-label="Product updates & tips"
                 checked={notifications.marketing}
                 onCheckedChange={(checked) => setNotifications({ ...notifications, marketing: checked })}
               />
@@ -579,7 +575,7 @@ export default function SettingsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="font-medium">Sign Out</p>
                 <p className="text-sm text-muted-foreground">
@@ -594,7 +590,7 @@ export default function SettingsPage() {
 
             <Separator />
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="font-medium">Delete Account</p>
                 <p className="text-sm text-muted-foreground">
@@ -637,7 +633,7 @@ export default function SettingsPage() {
                     <AlertDialogAction
                       onClick={handleDeleteAccount}
                       disabled={deleteConfirmation !== 'DELETE' || isDeleting}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      className="bg-destructive text-white hover:bg-destructive/90"
                     >
                       {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                       Delete My Account
@@ -648,7 +644,7 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
-      </main>
+      </div>
     </div>
   );
 }

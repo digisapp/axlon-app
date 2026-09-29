@@ -45,7 +45,7 @@ describe('LeadCard', () => {
     render(
       <LeadCard lead={mockLead} onStatusChange={() => {}} onViewDetails={() => {}} />
     );
-    expect(screen.getByText('high')).toBeInTheDocument();
+    expect(screen.getByText('High')).toBeInTheDocument();
   });
 
   it('calls onViewDetails when card is clicked', () => {

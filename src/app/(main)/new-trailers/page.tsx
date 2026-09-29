@@ -24,6 +24,18 @@ const PREVIEW_ROW =
   'sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-4 lg:gap-5 sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0';
 const PREVIEW_ROW_ITEM = 'w-[78%] max-w-80 shrink-0 snap-start sm:w-auto sm:max-w-none';
 
+// From sm up the preview is a grid, and two-plus rows of 8 cards per
+// manufacturer made the desktop index ~17,000px tall. Show one grid's worth
+// instead (2x2 at sm/md, one row of 3 at lg, one row of 4 at xl) and let
+// "View all" carry the rest. The extra cards stay in the HTML (the phone
+// swipe row shows all 8), so crawlers still see the same links.
+function previewItemClass(index: number) {
+  if (index >= 4) return `${PREVIEW_ROW_ITEM} sm:hidden`;
+  if (index === 3) return `${PREVIEW_ROW_ITEM} lg:hidden xl:block`;
+  return PREVIEW_ROW_ITEM;
+}
+const DESKTOP_PREVIEW_MIN = 3;
+
 interface PageProps {
   searchParams: Promise<{ manufacturer?: string }>;
 }
@@ -261,7 +273,9 @@ async function CatalogContent({ slug }: { slug: string | null }) {
           <div className="space-y-10 sm:space-y-12">
             {grouped.map((mfr) => {
               const visible = isSingle ? mfr.products : mfr.products.slice(0, PREVIEW_PER_MANUFACTURER);
-              const hidden = mfr.products.length - visible.length;
+              // Desktop can show as few as 3 of the preview, so offer
+              // "View all" whenever there is more than that.
+              const hidden = isSingle ? 0 : mfr.products.length - DESKTOP_PREVIEW_MIN;
               return (
                 <section key={mfr.id}>
                   <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
@@ -297,8 +311,8 @@ async function CatalogContent({ slug }: { slug: string | null }) {
                     </div>
                   ) : (
                     <div className={PREVIEW_ROW}>
-                      {visible.map((product) => (
-                        <ProductCard key={product.id} product={product} className={PREVIEW_ROW_ITEM} />
+                      {visible.map((product, i) => (
+                        <ProductCard key={product.id} product={product} className={previewItemClass(i)} />
                       ))}
                     </div>
                   )}

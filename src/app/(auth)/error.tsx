@@ -22,7 +22,7 @@ export default function AuthError({
         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
           <AlertTriangle className="w-8 h-8 text-destructive" />
         </div>
-        <h2 className="text-xl font-semibold mb-2">Authentication Error</h2>
+        <h1 className="text-xl font-semibold mb-2">Authentication Error</h1>
         <p className="text-sm text-muted-foreground mb-6">
           Something went wrong. Please try again.
         </p>

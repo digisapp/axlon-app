@@ -20,6 +20,7 @@ import { ActivityFeed, type ActivityItem } from '@/components/dashboard/Activity
 import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist';
 import { TrialBanner } from '@/components/dashboard/TrialBanner';
 import { RoiSnapshot } from '@/components/dashboard/RoiSnapshot';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -371,6 +372,11 @@ export default async function DashboardPage() {
   // Business dashboard
   return (
     <div className="space-y-4 md:space-y-6">
+      <PageHeader
+        title={profile?.company_name ? `Welcome back, ${profile.company_name}` : 'Welcome back'}
+        description="Here's what's happening across your listings, leads, and AI tools."
+      />
+
       {/* Trial Conversion Banner */}
       {showTrialBanner && (
         <TrialBanner
@@ -421,7 +427,7 @@ export default async function DashboardPage() {
           title="Total Views"
           value={totalViews}
           icon={<Eye className="w-5 h-5" />}
-          description="Last 7 days"
+          description={`${(viewsLast7 || 0).toLocaleString()} in the last 7 days`}
           trend={viewsTrend || undefined}
         />
         <StatCard
@@ -513,7 +519,7 @@ export default async function DashboardPage() {
                   </div>
                   <div className="flex items-center gap-2 ml-3 md:ml-4">
                     <StatusBadge status={listing.status} />
-                    <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
+                    <Button variant="ghost" size="sm" asChild>
                       <Link href={`/dashboard/listings/${listing.id}/edit`}>
                         Edit
                       </Link>
@@ -565,8 +571,9 @@ function StatCard({
           {trend !== undefined && (
             <span
               className={`flex items-center text-xs font-medium ${
-                trend >= 0 ? 'text-green-600' : 'text-red-600'
+                trend >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
               }`}
+              title="vs. the previous 7 days"
             >
               {trend >= 0 ? (
                 <ArrowUpRight className="w-3 h-3 mr-0.5" />
@@ -598,8 +605,8 @@ function StatusBadge({ status }: { status: string }) {
 
   return (
     <span
-      className={`px-2 py-1 text-xs font-medium rounded-full ${
-        styles[status as keyof typeof styles] || styles.draft
+      className={`px-2 py-1 text-xs font-medium rounded-full capitalize whitespace-nowrap ${
+        styles[status as keyof typeof styles] || styles.expired
       }`}
     >
       {status}

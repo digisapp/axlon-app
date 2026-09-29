@@ -9,14 +9,12 @@ import {
   ArrowRight,
   PhoneCall,
   Headphones,
-  Clock,
   Users,
   Globe,
   Zap,
   BarChart3,
   Shield,
   Bot,
-  Mic,
   KeyRound,
   Building2,
   Phone,
@@ -85,7 +83,7 @@ export function VoiceContent() {
                     'Searches your live inventory during the call',
                     'Quotes pricing based on your rules',
                     'Captures lead info — name, email, what they need',
-                    'Books appointments or transfers to sales',
+                    'Transfers the call to your sales team',
                     'Handles after-hours calls like it\'s business hours',
                   ].map((item) => (
                     <li key={item} className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -337,13 +335,13 @@ export function VoiceContent() {
             30-day free trial. No credit card required. Cancel anytime.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button size="lg" className="w-full sm:w-auto" asChild>
+            <Button size="lg" className="rounded-full w-full sm:w-auto" asChild>
               <Link href="/get-started">
-                <Zap className="w-4 h-4 mr-2" />
+                <Zap className="w-4 h-4" />
                 Start 30-Day Free Trial
               </Link>
             </Button>
-            <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
+            <Button size="lg" variant="outline" className="rounded-full w-full sm:w-auto" asChild>
               <Link href="/contact?plan=demo">
                 Book a Demo
               </Link>

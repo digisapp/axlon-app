@@ -153,7 +153,7 @@ export default function RiggingPage() {
         </div>
         <h2 className="text-3xl font-bold mb-4">Ready to grow your rigging business?</h2>
         <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
-          Join rigging and heavy lift companies already using AI to win more projects and manage their pipeline.
+          Use AI to win more projects and manage your pipeline.
         </p>
         <Button asChild size="lg">
           <Link href="/get-started?industry=rigging">Get Started Free</Link>
@@ -163,7 +163,10 @@ export default function RiggingPage() {
 
       <footer className="border-t py-8">
         <div className="max-w-6xl mx-auto px-4 flex flex-wrap items-center justify-between gap-4">
-          <Image src="/images/axlonai-logo.png" alt="Axleyard" width={80} height={30} />
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/images/axlonai-logo.png" alt="" width={28} height={33} className="w-7 h-auto" />
+            <span className="font-bold">Axleyard</span>
+          </Link>
           <div className="flex gap-4 text-sm text-muted-foreground">
             <Link href="/industries/crane" className="inline-flex items-center min-h-10 md:min-h-0 hover:text-foreground">Crane</Link>
             <Link href="/industries/transport" className="inline-flex items-center min-h-10 md:min-h-0 hover:text-foreground">Transport</Link>

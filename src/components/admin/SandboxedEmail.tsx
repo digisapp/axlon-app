@@ -53,9 +53,12 @@ export function SandboxedEmail({ html, text }: { html?: string | null; text?: st
       <base target="_blank">
       <style>
         * { box-sizing: border-box; }
+        /* Email HTML is authored for a white page; the iframe is transparent by
+           default, which left dark text on the admin's dark-mode card. */
+        html { background: #ffffff; }
         body {
           margin: 0;
-          padding: 0;
+          padding: 12px;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           font-size: 14px;
           line-height: 1.5;
@@ -87,6 +90,7 @@ export function SandboxedEmail({ html, text }: { html?: string | null; text?: st
         width: '100%',
         height: `${height}px`,
         border: 'none',
+        borderRadius: '6px',
         overflow: 'hidden',
       }}
       title="Email content"

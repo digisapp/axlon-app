@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
-  ArrowLeft,
   Bot,
   Clock,
   Mail,
@@ -24,6 +23,7 @@ import {
   Loader2,
   Calendar,
 } from 'lucide-react';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 import { logger } from '@/lib/logger';
 
 type Period = 7 | 30 | 90;
@@ -105,48 +105,39 @@ export default function AIPerformancePage() {
   const dollarsSaved = s.hoursSaved * 22;
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-background border-b sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <div>
-              <h1 className="text-lg font-bold flex items-center gap-2">
-                <Bot className="w-5 h-5 text-primary" />
-                AI Performance Report
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                What your AI systems delivered
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
+    <div className="max-w-6xl mx-auto space-y-6">
+      <PageHeader
+        icon={<Bot />}
+        title="AI Performance"
+        description="What your AI systems delivered"
+        actions={
+          <div className="flex items-center gap-2" role="group" aria-label="Reporting period">
             {([7, 30, 90] as Period[]).map((d) => (
               <Button
                 key={d}
                 size="sm"
                 variant={period === d ? 'default' : 'outline'}
-                className="rounded-full text-xs"
+                className="rounded-full text-xs min-w-12"
+                aria-pressed={period === d}
                 onClick={() => setPeriod(d)}
               >
-                {d}d
+                {d} days
               </Button>
             ))}
           </div>
-        </div>
-      </header>
+        }
+      />
 
-      <main className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+      <div className="space-y-6">
         {loading ? (
           <div className="flex items-center justify-center py-24">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
         ) : !data ? (
-          <div className="text-center py-24 text-muted-foreground">
-            Failed to load performance data.
+          <div className="text-center py-24">
+            <p className="font-medium">Couldn&apos;t load your AI performance report</p>
+            <p className="text-sm text-muted-foreground mt-1 mb-4">Something went wrong. Please try again.</p>
+            <Button variant="outline" onClick={load}>Retry</Button>
           </div>
         ) : (
           <>
@@ -318,10 +309,10 @@ export default function AIPerformancePage() {
                     <div className="flex items-center gap-2">
                       <div className={`text-sm font-bold px-2 py-0.5 rounded-full ${
                         s.avgLeadScore >= 70
-                          ? 'bg-emerald-100 text-emerald-700'
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                           : s.avgLeadScore >= 50
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-slate-100 text-slate-700'
+                          ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                          : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
                       }`}>
                         {s.avgLeadScore}/100
                       </div>
@@ -442,7 +433,7 @@ export default function AIPerformancePage() {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <Button variant="outline" className="rounded-full gap-2" asChild>
                 <Link href="/dashboard/leads">
                   <Users className="w-4 h-4" />
@@ -464,7 +455,7 @@ export default function AIPerformancePage() {
             </div>
           </>
         )}
-      </main>
+      </div>
     </div>
   );
 }

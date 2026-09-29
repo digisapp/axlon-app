@@ -49,6 +49,7 @@ import {
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { TONE } from '@/components/admin/tones';
 
 interface User {
   id: string;
@@ -72,6 +73,9 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
+  // The query only follows the box after typing pauses — firing per keystroke
+  // raced responses and could leave an older result on screen.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
@@ -88,7 +92,7 @@ export default function AdminUsersPage() {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        search,
+        search: debouncedSearch,
         type: typeFilter,
         status: statusFilter,
       });
@@ -98,17 +102,25 @@ export default function AdminUsersPage() {
         setUsers(data.data || []);
         setTotalPages(data.total_pages || 1);
         setStats(data.stats || { total_users: 0, total_businesses: 0, suspended_users: 0 });
+      } else {
+        toast.error('Could not load users');
       }
     } catch (error) {
       logger.error('Error fetching users', { error });
+      toast.error('Could not load users');
     }
     setIsLoading(false);
   };
 
   useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchUsers flips isLoading synchronously before awaiting; standard fetch-on-change pattern
     fetchUsers();
-  }, [search, typeFilter, statusFilter, page]);
+  }, [debouncedSearch, typeFilter, statusFilter, page]);
 
   const handleAction = async () => {
     if (!selectedUser || !actionType) return;
@@ -125,6 +137,13 @@ export default function AdminUsersPage() {
       });
 
       if (response.ok) {
+        const done = {
+          suspend: 'suspended',
+          unsuspend: 'unsuspended',
+          make_admin: 'is now an admin',
+          remove_admin: 'is no longer an admin',
+        }[actionType];
+        toast.success(`${selectedUser.company_name || selectedUser.email} ${done}`);
         setSelectedUser(null);
         setActionType(null);
         setSuspendReason('');
@@ -189,11 +208,11 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
           <Card>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="w-5 h-5 text-blue-600" />
+            <CardContent className="p-3 sm:p-4 flex items-center gap-4">
+              <div className={`hidden sm:block p-2 rounded-lg ${TONE.blue}`}>
+                <Users className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.total_users}</p>
@@ -203,21 +222,21 @@ export default function AdminUsersPage() {
           </Card>
 
           <Card>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Building2 className="w-5 h-5 text-green-600" />
+            <CardContent className="p-3 sm:p-4 flex items-center gap-4">
+              <div className={`hidden sm:block p-2 rounded-lg ${TONE.green}`}>
+                <Building2 className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.total_businesses}</p>
-                <p className="text-sm text-muted-foreground">Businesss</p>
+                <p className="text-sm text-muted-foreground">Businesses</p>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <UserX className="w-5 h-5 text-red-600" />
+            <CardContent className="p-3 sm:p-4 flex items-center gap-4">
+              <div className={`hidden sm:block p-2 rounded-lg ${TONE.red}`}>
+                <UserX className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.suspended_users}</p>
@@ -241,10 +260,11 @@ export default function AdminUsersPage() {
                     setPage(1);
                   }}
                   className="pl-10"
+                  aria-label="Search users"
                 />
               </div>
               <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-full sm:w-[150px]" aria-label="User type">
                   <SelectValue placeholder="User Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -254,7 +274,7 @@ export default function AdminUsersPage() {
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-full sm:w-[150px]" aria-label="Account status">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -284,17 +304,17 @@ export default function AdminUsersPage() {
                 {users.map((user) => (
                   <div
                     key={user.id}
-                    className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-between gap-3 p-4 hover:bg-muted/50 transition-colors"
                   >
-                    <div className="flex items-center gap-4">
-                      <Avatar className="w-10 h-10">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                      <Avatar className="w-10 h-10 shrink-0">
                         <AvatarImage src={user.avatar_url || undefined} />
                         <AvatarFallback>
                           {(user.company_name || user.email)?.[0]?.toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
                           <h3 className="font-semibold">
                             {user.company_name || user.email.split('@')[0]}
                           </h3>
@@ -311,15 +331,18 @@ export default function AdminUsersPage() {
                             <Badge variant="destructive">Suspended</Badge>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                        <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                        <p className="sm:hidden text-xs text-muted-foreground">
+                          {user.listing_count} listing{user.listing_count !== 1 ? 's' : ''}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                      <div className="text-right text-sm">
+                    <div className="flex items-center gap-4 shrink-0">
+                      <div className="hidden sm:block text-right text-sm">
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <Package className="w-3 h-3" />
-                          {user.listing_count} listings
+                          {user.listing_count} listing{user.listing_count !== 1 ? 's' : ''}
                         </div>
                         <p className="text-xs text-muted-foreground">
                           Joined {new Date(user.created_at).toLocaleDateString()}
@@ -328,7 +351,7 @@ export default function AdminUsersPage() {
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
+                          <Button variant="ghost" size="icon" aria-label={`Actions for ${user.company_name || user.email}`}>
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -336,7 +359,7 @@ export default function AdminUsersPage() {
                           {user.is_business && user.slug && (
                             <>
                               <DropdownMenuItem asChild>
-                                <Link href={`/${user.slug}`}>
+                                <Link href={`/${user.slug}`} target="_blank">
                                   View Profile
                                 </Link>
                               </DropdownMenuItem>
@@ -349,7 +372,7 @@ export default function AdminUsersPage() {
                                 setSelectedUser(user);
                                 setActionType('unsuspend');
                               }}
-                              className="text-green-600"
+                              className="text-green-600 dark:text-green-400"
                             >
                               <CheckCircle className="w-4 h-4 mr-2" />
                               Unsuspend
@@ -360,7 +383,7 @@ export default function AdminUsersPage() {
                                 setSelectedUser(user);
                                 setActionType('suspend');
                               }}
-                              className="text-red-600"
+                              className="text-red-600 dark:text-red-400"
                             >
                               <Ban className="w-4 h-4 mr-2" />
                               Suspend
@@ -373,7 +396,7 @@ export default function AdminUsersPage() {
                                 setSelectedUser(user);
                                 setActionType('remove_admin');
                               }}
-                              className="text-orange-600"
+                              className="text-orange-600 dark:text-orange-400"
                             >
                               <ShieldAlert className="w-4 h-4 mr-2" />
                               Remove Admin
@@ -405,6 +428,7 @@ export default function AdminUsersPage() {
                   size="sm"
                   onClick={() => setPage(page - 1)}
                   disabled={page <= 1}
+                  aria-label="Previous page"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
@@ -416,6 +440,7 @@ export default function AdminUsersPage() {
                   size="sm"
                   onClick={() => setPage(page + 1)}
                   disabled={page >= totalPages}
+                  aria-label="Next page"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </Button>
@@ -443,6 +468,7 @@ export default function AdminUsersPage() {
             {dialogContent.showReason && (
               <div className="py-4">
                 <Textarea
+                  aria-label="Reason for suspension"
                   placeholder="Reason for suspension..."
                   value={suspendReason}
                   onChange={(e) => setSuspendReason(e.target.value)}
@@ -465,7 +491,7 @@ export default function AdminUsersPage() {
               <Button
                 variant={dialogContent.buttonVariant}
                 onClick={handleAction}
-                disabled={isSubmitting || (actionType === 'suspend' && !suspendReason)}
+                disabled={isSubmitting || (actionType === 'suspend' && !suspendReason.trim())}
               >
                 {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {dialogContent.buttonText}

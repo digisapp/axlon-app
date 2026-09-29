@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { formatEnum } from '@/components/admin/tones';
 import { ArrowLeft, ExternalLink, MousePointerClick, Users, TrendingUp, Percent } from 'lucide-react';
 import { MicrositeTrafficChart } from './MicrositeTrafficChart';
 import { MicrositeSettingsForm } from './MicrositeSettingsForm';
@@ -85,7 +86,7 @@ export default async function MicrositeDetailPage({
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold">{site.domain}</h1>
           <Badge variant="secondary" className={STATUS_STYLES[site.status] ?? ''}>
-            {site.status}
+            {formatEnum(site.status)}
           </Badge>
           {site.status === 'live' && (
             <a
@@ -102,7 +103,7 @@ export default async function MicrositeDetailPage({
       </div>
 
       {/* Range picker */}
-      <div className="flex gap-2">
+      <div className="flex gap-2" role="group" aria-label="Date range">
         {[7, 30, 90].map((d) => (
           <Link
             key={d}
@@ -194,11 +195,15 @@ export default async function MicrositeDetailPage({
                 <tbody className="divide-y">
                   {recentLeads.map((lead) => (
                     <tr key={lead.id} className="hover:bg-muted/30">
-                      <td className="px-4 py-2.5 font-medium">{lead.buyer_name}</td>
+                      <td className="px-4 py-2.5 font-medium">{lead.buyer_name || 'Unknown'}</td>
                       <td className="px-4 py-2.5">
-                        <a href={`mailto:${lead.buyer_email}`} className="hover:underline">
-                          {lead.buyer_email}
-                        </a>
+                        {lead.buyer_email ? (
+                          <a href={`mailto:${lead.buyer_email}`} className="hover:underline">
+                            {lead.buyer_email}
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                         {lead.buyer_phone && (
                           <div className="text-xs text-muted-foreground">{lead.buyer_phone}</div>
                         )}

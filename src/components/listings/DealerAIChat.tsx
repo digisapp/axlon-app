@@ -63,7 +63,7 @@ export function DealerAIChat({
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [assistantName, setAssistantName] = useState('Axlon');
+  const [assistantName, setAssistantName] = useState('AXLON');
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [leadCaptured, setLeadCaptured] = useState(false);
   const [visitorInfo, setVisitorInfo] = useState({
@@ -162,7 +162,7 @@ export function DealerAIChat({
       setMessages([{
         id: `msg-${Date.now()}`,
         role: 'assistant',
-        content: `Hey there! I'm Axlon, here to help you explore ${dealerName}'s inventory. What are you looking for today?`,
+        content: `Hey there! I'm here to help you explore ${dealerName}'s inventory. What are you looking for today?`,
         timestamp: new Date(),
       }]);
     } finally {
@@ -628,7 +628,7 @@ export function DealerAIChat({
                   </Button>
                 </div>
                 <p className="text-[10px] text-muted-foreground text-center mt-2">
-                  Powered by Axlon • {dealerName}
+                  Powered by AXLON • {dealerName}
                 </p>
               </div>
             </>

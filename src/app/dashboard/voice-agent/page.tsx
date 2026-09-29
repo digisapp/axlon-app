@@ -29,7 +29,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  ArrowLeft,
   Loader2,
   Phone,
   Mic,
@@ -56,6 +55,7 @@ import {
 } from 'lucide-react';
 import { DealerVoiceAgent } from '@/types';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
 
@@ -419,10 +419,10 @@ export default function VoiceAgentPage() {
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'manager': return 'bg-purple-100 text-purple-700';
-      case 'admin': return 'bg-red-100 text-red-700';
-      case 'service': return 'bg-blue-100 text-blue-700';
-      default: return 'bg-green-100 text-green-700';
+      case 'manager': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+      case 'admin': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+      case 'service': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+      default: return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
     }
   };
 
@@ -430,7 +430,7 @@ export default function VoiceAgentPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-24" role="status" aria-label="Loading voice agent">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -439,73 +439,75 @@ export default function VoiceAgentPage() {
   // ─── Render ─────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="max-w-3xl mx-auto space-y-6">
       {/* Success Toast */}
       {showSuccess && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg">
+        <div role="status" className="fixed top-4 left-4 right-4 sm:left-auto z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg">
           <CheckCircle className="w-5 h-5" />
           <span>Settings saved successfully!</span>
         </div>
       )}
 
-      {/* Header */}
-      <header className="bg-background border-b">
-        <div className="max-w-3xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <div className="flex-1">
-              <h1 className="text-xl font-bold">AI Voice Agent</h1>
-              <p className="text-sm text-muted-foreground">
-                Your personal AI receptionist for handling phone calls
-              </p>
-            </div>
-            {agent && (
+      <PageHeader
+        title="AI Voice Agent"
+        description="Your AI receptionist answers calls 24/7, searches your inventory, and logs leads"
+        actions={
+          agent ? (
+            <>
               <Badge variant={agent.is_active ? 'default' : 'secondary'}>
                 {agent.is_active ? 'Active' : 'Inactive'}
               </Badge>
-            )}
-          </div>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/dashboard/calls">
+                  <PhoneIncoming className="w-4 h-4 mr-2" />
+                  Call Log
+                </Link>
+              </Button>
+            </>
+          ) : undefined
+        }
+      />
 
-          {/* Tabs */}
-          {agent && (
-            <div className="flex gap-1 mt-4 -mb-4 border-b-0">
-              <button
-                onClick={() => setActiveTab('agent')}
-                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'agent'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  Agent
-                </span>
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('staff');
-                  if (staffLoading) fetchStaff();
-                }}
-                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'staff'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  Staff Access
-                </span>
-              </button>
-            </div>
-          )}
+      {/* Tabs */}
+      {agent && (
+        <div className="flex gap-1 border-b" role="tablist">
+          <button
+            role="tab"
+            aria-selected={activeTab === 'agent'}
+            onClick={() => setActiveTab('agent')}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === 'agent'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <Phone className="w-4 h-4" />
+              Agent
+            </span>
+          </button>
+          <button
+            role="tab"
+            aria-selected={activeTab === 'staff'}
+            onClick={() => {
+              setActiveTab('staff');
+              if (staffLoading) fetchStaff();
+            }}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === 'staff'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Staff Access
+            </span>
+          </button>
         </div>
-      </header>
+      )}
 
-      <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      <div className="space-y-6">
         {!agent ? (
           /* Setup Card */
           <Card>
@@ -614,17 +616,17 @@ export default function VoiceAgentPage() {
           <>
             {/* Usage Alert */}
             {isNearingLimit() && (
-              <Card className={isOverLimit() ? 'border-red-500 bg-red-50' : 'border-yellow-500 bg-yellow-50'}>
+              <Card className={isOverLimit() ? 'border-red-500 bg-red-50 dark:bg-red-950/30' : 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950/30'}>
                 <CardContent className="py-4">
-                  <div className="flex items-center gap-3">
-                    <AlertTriangle className={`w-5 h-5 ${isOverLimit() ? 'text-red-600' : 'text-yellow-600'}`} />
-                    <div className="flex-1">
-                      <p className={`font-medium ${isOverLimit() ? 'text-red-700' : 'text-yellow-700'}`}>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <AlertTriangle className={`w-5 h-5 shrink-0 ${isOverLimit() ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'}`} />
+                    <div className="flex-1 min-w-[12rem]">
+                      <p className={`font-medium ${isOverLimit() ? 'text-red-700 dark:text-red-300' : 'text-yellow-700 dark:text-yellow-300'}`}>
                         {isOverLimit()
                           ? 'You\'ve used all your minutes!'
                           : `You've used ${getUsagePercentage()}% of your minutes`}
                       </p>
-                      <p className={`text-sm ${isOverLimit() ? 'text-red-600' : 'text-yellow-600'}`}>
+                      <p className={`text-sm ${isOverLimit() ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
                         {isOverLimit()
                           ? 'Upgrade now to continue receiving calls.'
                           : `${agent.minutes_included - agent.minutes_used} minutes remaining this billing cycle.`}
@@ -641,12 +643,12 @@ export default function VoiceAgentPage() {
             {/* Status Card */}
             <Card>
               <CardContent className="py-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                      agent.is_active ? 'bg-green-100' : 'bg-gray-100'
+                    <div className={`w-12 h-12 shrink-0 rounded-full flex items-center justify-center ${
+                      agent.is_active ? 'bg-green-100 dark:bg-green-900/30' : 'bg-muted'
                     }`}>
-                      <Phone className={`w-6 h-6 ${agent.is_active ? 'text-green-600' : 'text-gray-400'}`} />
+                      <Phone className={`w-6 h-6 ${agent.is_active ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`} />
                     </div>
                     <div>
                       <h3 className="font-semibold">
@@ -661,13 +663,13 @@ export default function VoiceAgentPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="flex items-center gap-2 text-sm">
+                  <div className="sm:text-right">
+                    <div className="flex items-center sm:justify-end gap-2 text-sm">
                       <Clock className="w-4 h-4 text-muted-foreground" />
                       <span className="font-medium">{agent.minutes_used || 0}</span>
                       <span className="text-muted-foreground">/ {agent.minutes_included} min</span>
                     </div>
-                    <div className="w-32 h-2 bg-gray-200 rounded-full mt-2 overflow-hidden">
+                    <div className="w-full sm:w-32 sm:ml-auto h-2 bg-muted rounded-full mt-2 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${
                           isOverLimit() ? 'bg-red-500' : isNearingLimit() ? 'bg-yellow-500' : 'bg-green-500'
@@ -947,12 +949,12 @@ export default function VoiceAgentPage() {
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            call.status === 'completed' ? 'bg-green-100' : 'bg-gray-100'
+                            call.status === 'completed' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-muted'
                           }`}>
                             {call.status === 'completed' ? (
-                              <PhoneIncoming className="w-5 h-5 text-green-600" />
+                              <PhoneIncoming className="w-5 h-5 text-green-600 dark:text-green-400" />
                             ) : (
-                              <PhoneMissed className="w-5 h-5 text-gray-400" />
+                              <PhoneMissed className="w-5 h-5 text-muted-foreground" />
                             )}
                           </div>
                           <div>
@@ -1330,7 +1332,7 @@ export default function VoiceAgentPage() {
             )}
           </>
         )}
-      </main>
+      </div>
     </div>
   );
 }

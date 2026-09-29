@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { LeadKanban } from '@/components/dashboard/LeadKanban';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 
 export default async function LeadsPage({
   searchParams,
@@ -61,18 +62,13 @@ export default async function LeadsPage({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Lead Management</h1>
-          <p className="text-muted-foreground mt-1">
-            Track and manage buyer inquiries
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Leads"
+        description="Every buyer inquiry in one place — move each lead forward as you follow up."
+      />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 md:gap-4">
         <StatBadge label="Total" count={stats.total} />
         <StatBadge label="New" count={stats.new} color="blue" />
         <StatBadge label="Contacted" count={stats.contacted} color="yellow" />
@@ -96,8 +92,8 @@ export default async function LeadsPage({
               <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No leads yet</h3>
               <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-                Leads will appear here when potential buyers inquire about your listings.
-                Make sure your listings have contact information enabled.
+                Leads appear here when buyers inquire about your listings.
+                Listings with photos and a price get the most inquiries.
               </p>
               <Button asChild>
                 <Link href="/dashboard/listings">
@@ -132,8 +128,8 @@ function StatBadge({
 
   return (
     <Card>
-      <CardContent className="p-4 text-center">
-        <p className="text-2xl font-bold">{count}</p>
+      <CardContent className="p-3 md:p-4 text-center">
+        <p className="text-xl md:text-2xl font-bold">{count}</p>
         <Badge
           variant="secondary"
           className={color ? colors[color] : ''}

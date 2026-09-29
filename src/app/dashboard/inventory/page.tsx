@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { InventoryTable } from '@/components/dashboard/InventoryTable';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 
 export default async function InventoryPage() {
   const supabase = await createClient();
@@ -87,14 +88,11 @@ export default async function InventoryPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Inventory Management</h1>
-          <p className="text-muted-foreground mt-1">
-            Track stock levels, costs, and profitability
-          </p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        title="Inventory"
+        description="Track stock levels, costs, and profitability"
+        actions={
+          <>
           <Button variant="outline" size="sm" asChild>
             <Link href="/dashboard/floor-plan">
               <Landmark className="w-4 h-4 mr-2" />
@@ -114,11 +112,12 @@ export default async function InventoryPage() {
               Add Inventory
             </Link>
           </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           title="Total Units"
           value={stats.totalUnits}
@@ -148,7 +147,7 @@ export default async function InventoryPage() {
       </div>
 
       {/* Status Breakdown */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <StatusCard label="Active" count={stats.activeListings} color="green" />
         <StatusCard label="Draft" count={stats.draftListings} color="yellow" />
         <StatusCard label="Sold" count={stats.soldListings} color="blue" />
@@ -210,21 +209,21 @@ function StatCard({
           : ''
       }
     >
-      <CardContent className="p-4 md:p-6">
-        <div className="flex items-center justify-between mb-3">
+      <CardContent className="p-3 md:p-6">
+        <div className="flex items-center justify-between mb-2 md:mb-3">
           <span
             className={
               warning
-                ? 'text-yellow-600'
+                ? 'text-yellow-600 dark:text-yellow-400'
                 : highlight
-                ? 'text-green-600'
+                ? 'text-green-600 dark:text-green-400'
                 : 'text-muted-foreground'
             }
           >
             {icon}
           </span>
         </div>
-        <p className="text-2xl md:text-3xl font-bold">{value}</p>
+        <p className="text-xl md:text-3xl font-bold break-words">{value}</p>
         <p className="text-sm text-muted-foreground">{title}</p>
         <p className="text-xs text-muted-foreground mt-1">{description}</p>
       </CardContent>

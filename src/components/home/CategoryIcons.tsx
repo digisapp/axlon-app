@@ -44,6 +44,18 @@ export function SleeperTruckIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function EndDumpTrailerIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 64 40" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M2 8 H54 V20 Q54 25 49 25 H8 Q2 25 2 19 Z" />
+      <rect x="12" y="25" width="3" height="7" />
+      <rect x="36" y="25" width="26" height="3" />
+      <circle cx="44" cy="30" r="5.5" />
+      <circle cx="56" cy="30" r="5.5" />
+    </svg>
+  );
+}
+
 export function DayCabTruckIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 64 40" fill="currentColor" aria-hidden="true" {...props}>

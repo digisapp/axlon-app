@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -21,7 +22,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  ArrowLeft,
   Loader2,
   Bot,
   CheckCircle,
@@ -547,17 +547,17 @@ export default function AIAssistantPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-24" role="status" aria-label="Loading AI assistant settings">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Success Toast */}
       {showSuccess && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg">
+        <div role="status" className="fixed top-4 left-4 right-4 sm:left-auto z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg">
           <CheckCircle className="w-5 h-5" />
           <span>AI Assistant settings saved!</span>
         </div>
@@ -565,79 +565,62 @@ export default function AIAssistantPage() {
 
       {/* Error Toast */}
       {errorMessage && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-destructive text-destructive-foreground px-4 py-3 rounded-lg shadow-lg">
+        <div role="alert" className="fixed top-4 left-4 right-4 sm:left-auto z-50 flex items-center gap-2 bg-destructive text-white px-4 py-3 rounded-lg shadow-lg">
           <AlertCircle className="w-5 h-5" />
           <span>{errorMessage}</span>
         </div>
       )}
 
-      {/* Header */}
-      <header className="bg-background border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </Link>
-              <div>
-                <h1 className="text-xl font-bold flex items-center gap-2">
-                  <Bot className="w-5 h-5" />
-                  AI Sales Assistant
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Your 24/7 AI-powered salesperson
-                </p>
-              </div>
-            </div>
-            <Badge variant={isPro ? 'default' : 'secondary'} className="flex items-center gap-1">
-              {isPro ? <Crown className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-              {subscriptionTier === 'enterprise' ? 'Enterprise' : isPro ? 'Pro' : 'Free'}
-            </Badge>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        icon={<Bot />}
+        title="AI Sales Assistant"
+        description="Your 24/7 AI salesperson on your storefront"
+        actions={
+          <Badge variant={isPro ? 'default' : 'secondary'} className="flex items-center gap-1">
+            {isPro ? <Crown className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+            {subscriptionTier === 'enterprise' ? 'Transformation' : isPro ? 'Platform' : 'Free'}
+          </Badge>
+        }
+      />
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <div>
         {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-3 gap-2 md:gap-4 mb-6 md:mb-8">
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-3 md:p-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
+                <div className="hidden md:block p-2 bg-primary/10 rounded-lg">
                   <MessageCircle className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{settings.total_conversations}</p>
-                  <p className="text-sm text-muted-foreground">Conversations</p>
+                  <p className="text-xl md:text-2xl font-bold">{settings.total_conversations}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Conversations</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-3 md:p-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500/10 rounded-lg">
+                <div className="hidden md:block p-2 bg-blue-500/10 rounded-lg">
                   <Users className="w-5 h-5 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{settings.total_leads_generated}</p>
-                  <p className="text-sm text-muted-foreground">Leads Captured</p>
+                  <p className="text-xl md:text-2xl font-bold">{settings.total_leads_generated}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Leads Captured</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="p-3 md:p-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500/10 rounded-lg">
+                <div className="hidden md:block p-2 bg-green-500/10 rounded-lg">
                   <TrendingUp className="w-5 h-5 text-green-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{settings.total_messages}</p>
-                  <p className="text-sm text-muted-foreground">Messages</p>
+                  <p className="text-xl md:text-2xl font-bold">{settings.total_messages}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Messages</p>
                 </div>
               </div>
             </CardContent>
@@ -647,13 +630,13 @@ export default function AIAssistantPage() {
         {/* Enable Toggle */}
         <Card className="mb-6">
           <CardContent className="py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-full ${settings.is_enabled ? 'bg-green-500' : 'bg-muted'}`}>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className={`shrink-0 p-3 rounded-full ${settings.is_enabled ? 'bg-green-500' : 'bg-muted'}`}>
                   <Bot className={`w-6 h-6 ${settings.is_enabled ? 'text-white' : 'text-muted-foreground'}`} />
                 </div>
                 <div>
-                  <p className="font-semibold text-lg">
+                  <p className="font-semibold md:text-lg">
                     {settings.is_enabled ? 'AI Assistant is Active' : 'AI Assistant is Disabled'}
                   </p>
                   <p className="text-sm text-muted-foreground">
@@ -664,6 +647,7 @@ export default function AIAssistantPage() {
                 </div>
               </div>
               <Switch
+                aria-label="Enable AI assistant"
                 checked={settings.is_enabled}
                 onCheckedChange={(checked) => setSettings({ ...settings, is_enabled: checked })}
               />
@@ -672,7 +656,8 @@ export default function AIAssistantPage() {
         </Card>
 
         <Tabs defaultValue="identity" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          {/* Scrolls sideways on phones instead of clipping five icon+label tabs */}
+          <TabsList className="w-full justify-start overflow-x-auto [&>button]:flex-none sm:[&>button]:flex-1">
             <TabsTrigger value="identity">
               <Bot className="w-4 h-4 mr-2" />
               Identity
@@ -1265,20 +1250,20 @@ export default function AIAssistantPage() {
         </Tabs>
 
         {/* Save Button */}
-        <div className="flex justify-end mt-6 gap-4">
-          <Link href="/dashboard/conversations">
-            <Button variant="outline">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end mt-6 gap-3 sm:gap-4">
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/conversations">
               <MessageCircle className="w-4 h-4 mr-2" />
               View Conversations
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           <Button onClick={handleSave} disabled={isSaving} size="lg">
             {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Save AI Settings
+            {isSaving ? 'Saving…' : 'Save AI Settings'}
           </Button>
         </div>
 
-      </main>
+      </div>
     </div>
   );
 }

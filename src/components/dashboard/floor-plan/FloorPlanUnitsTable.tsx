@@ -128,7 +128,7 @@ function FloorPlanUnitRow({
         </div>
       </TableCell>
       <TableCell className="text-center">
-        <Badge variant="secondary" className={statusColors[unit.status] || statusColors.active}>
+        <Badge variant="secondary" className={`capitalize ${statusColors[unit.status] || statusColors.active}`}>
           {unit.status.replace('_', ' ')}
         </Badge>
       </TableCell>
@@ -143,7 +143,7 @@ function FloorPlanUnitRow({
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onViewDetails?.(unit)}>
               <Eye className="w-4 h-4 mr-2" />
-              View Details
+              View Listing
             </DropdownMenuItem>
             {unit.status === 'active' && (
               <>

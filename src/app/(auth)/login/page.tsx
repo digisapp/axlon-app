@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { Loader2, Mail, ArrowLeft } from 'lucide-react';
+import { PasswordInput } from '../_components/PasswordInput';
 
 const PROBE_ORIGIN = 'https://redirect-check.invalid';
 function isSameOriginPath(path: string): boolean {
@@ -18,6 +19,18 @@ function isSameOriginPath(path: string): boolean {
   } catch {
     return false;
   }
+}
+
+// Supabase's raw messages ("Invalid login credentials") read like a stack
+// trace to a dealer on a phone; translate the common ones.
+function friendlyAuthError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes('invalid login credentials')) return 'Incorrect email or password.';
+  if (m.includes('email not confirmed'))
+    return 'Please confirm your email first — check your inbox for the confirmation link.';
+  if (m.includes('rate limit') || m.includes('too many'))
+    return 'Too many attempts. Please wait a minute and try again.';
+  return message;
 }
 
 function LoginForm() {
@@ -37,6 +50,10 @@ function LoginForm() {
       ? rawRedirect
       : '/dashboard';
   const authError = searchParams.get('error');
+  // Carry a non-default destination over to /signup so someone who arrives
+  // from a gated page (e.g. /claim) and needs an account still lands back there.
+  const signupHref =
+    redirect !== '/dashboard' ? `/signup?redirect=${encodeURIComponent(redirect)}` : '/signup';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -56,7 +73,7 @@ function LoginForm() {
     });
 
     if (error) {
-      setError(error.message);
+      setError(friendlyAuthError(error.message));
       setIsLoading(false);
       return;
     }
@@ -67,14 +84,20 @@ function LoginForm() {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
+    setError('');
     const supabase = createClient();
 
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirect)}`,
       },
     });
+    // On success the browser navigates away; only a failure returns here.
+    if (error) {
+      setError('Could not start Google sign-in. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -83,13 +106,15 @@ function LoginForm() {
         <Link href="/" className="flex justify-center mb-4">
           <Image
             src="/images/axlonai-logo.png"
-            alt="AXLON AI"
+            alt="Axleyard home"
             width={120}
             height={80}
             className="dark:brightness-110"
           />
         </Link>
-        <CardTitle>Sign In</CardTitle>
+        <CardTitle className="text-xl">
+          <h1>Sign In</h1>
+        </CardTitle>
         <CardDescription>
           Sign in to manage your listings
         </CardDescription>
@@ -98,14 +123,15 @@ function LoginForm() {
       <CardContent>
         <form onSubmit={handleLogin} className="space-y-4">
           {error && (
-            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
+            <div role="alert" className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
               {error}
             </div>
           )}
 
           {!error && authError === 'auth_failed' && (
-            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
-              Sign-in failed. Please try again.
+            <div role="alert" className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
+              {/* /auth/callback sends both Google sign-in and email-confirmation failures here. */}
+              Sign-in didn&apos;t complete. If you used an email link, it may have expired. Please try again.
             </div>
           )}
 
@@ -122,7 +148,7 @@ function LoginForm() {
                 placeholder="you@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-11 h-12 text-base"
+                className="pl-11 h-12 md:h-12 text-base md:text-base"
                 required
               />
             </div>
@@ -138,25 +164,20 @@ function LoginForm() {
                 Forgot password?
               </Link>
             </div>
-            <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                enterKeyHint="go"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-11 h-12 text-base"
-                required
-              />
-            </div>
+            <PasswordInput
+              id="password"
+              autoComplete="current-password"
+              enterKeyHint="go"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
           </div>
 
-          <Button type="submit" className="w-full h-12 text-base" disabled={isLoading}>
+          <Button type="submit" className="w-full h-12 md:h-12 text-base" disabled={isLoading}>
             {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Sign In
+            {isLoading ? 'Signing in…' : 'Sign In'}
           </Button>
         </form>
 
@@ -173,11 +194,11 @@ function LoginForm() {
 
         <Button
           variant="outline"
-          className="w-full"
+          className="w-full h-12 md:h-12 text-base"
           onClick={handleGoogleLogin}
           disabled={isLoading}
         >
-          <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" aria-hidden="true">
             <path
               fill="currentColor"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -202,7 +223,7 @@ function LoginForm() {
       <CardFooter className="flex justify-center">
         <p className="text-sm text-muted-foreground">
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className="text-primary hover:underline">
+          <Link href={signupHref} className="text-primary hover:underline">
             Create account
           </Link>
         </p>
@@ -214,15 +235,19 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/30">
+      {/* In flow above the card on phones (absolute overlapped the card's top
+          edge once the card filled the viewport); pinned top-left from sm up. */}
       <Link
         href="/"
-        className="absolute top-4 left-4 -m-2.5 p-2.5 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+        className="self-start -ml-2.5 mb-2 p-2.5 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors sm:absolute sm:top-1.5 sm:left-1.5 sm:m-0"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Home
       </Link>
 
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense
+        fallback={<Loader2 className="w-8 h-8 animate-spin text-muted-foreground" aria-label="Loading" />}
+      >
         <LoginForm />
       </Suspense>
     </div>

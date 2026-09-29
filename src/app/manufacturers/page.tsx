@@ -131,6 +131,8 @@ export default async function ManufacturersPage({ searchParams }: PageProps) {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <Input
               name="q"
+              type="search"
+              aria-label="Search manufacturers"
               placeholder="Search manufacturers..."
               defaultValue={q}
               className="h-12 pl-12 pr-4 bg-white dark:bg-zinc-800 border-slate-200 dark:border-zinc-700 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:border-slate-400 dark:focus:border-zinc-500 focus:ring-1 focus:ring-slate-400 dark:focus:ring-zinc-500 transition-all shadow-sm"
@@ -140,9 +142,9 @@ export default async function ManufacturersPage({ searchParams }: PageProps) {
 
           {/* Equipment Type Filter */}
           <div className="flex flex-wrap gap-2 items-center">
-            <Link href="/manufacturers">
+            <Link href={q ? `/manufacturers?q=${encodeURIComponent(q)}` : '/manufacturers'} aria-current={!type ? 'page' : undefined}>
               <Badge
-                className={`cursor-pointer px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`cursor-pointer min-h-10 md:min-h-0 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   !type
                     ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-0 shadow-md'
                     : 'bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-700 hover:border-slate-300'
@@ -152,9 +154,9 @@ export default async function ManufacturersPage({ searchParams }: PageProps) {
               </Badge>
             </Link>
             {EQUIPMENT_TYPES.map((et) => (
-              <Link key={et.value} href={`/manufacturers?type=${et.value}${q ? `&q=${encodeURIComponent(q)}` : ''}`}>
+              <Link key={et.value} href={`/manufacturers?type=${et.value}${q ? `&q=${encodeURIComponent(q)}` : ''}`} aria-current={type === et.value ? 'page' : undefined}>
                 <Badge
-                  className={`cursor-pointer px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+                  className={`cursor-pointer min-h-10 md:min-h-0 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
                     type === et.value
                       ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-0 shadow-md'
                       : 'bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-700 hover:border-slate-300'
@@ -170,7 +172,7 @@ export default async function ManufacturersPage({ searchParams }: PageProps) {
 
         {/* Results Count */}
         <p className="text-slate-600 dark:text-zinc-400 mb-6">
-          <span className="text-slate-900 dark:text-white font-semibold">{updatedManufacturers.length}</span> manufacturers found
+          <span className="text-slate-900 dark:text-white font-semibold">{updatedManufacturers.length}</span> {updatedManufacturers.length === 1 ? 'manufacturer' : 'manufacturers'} found
           {q && ` matching "${q}"`}
           {type && ` in ${EQUIPMENT_TYPES.find(t => t.value === type)?.label || type}`}
         </p>
@@ -206,6 +208,11 @@ export default async function ManufacturersPage({ searchParams }: PageProps) {
             <p className="text-slate-600 dark:text-zinc-400">
               {q ? `No results for "${q}"` : 'Check back soon for manufacturer listings'}
             </p>
+            {(q || type) && (
+              <Link href="/manufacturers" className="inline-flex items-center min-h-10 mt-4 text-sm font-medium text-primary hover:underline">
+                Clear search and filters
+              </Link>
+            )}
           </div>
         ) : null}
       </div>

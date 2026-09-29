@@ -14,6 +14,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { TradeInActions } from './TradeInActions';
+import { TONE, formatEnum } from '@/components/admin/tones';
 
 export default async function AdminTradeInsPage() {
   const supabase = await createClient();
@@ -47,23 +48,23 @@ export default async function AdminTradeInsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-700';
-      case 'contacted': return 'bg-blue-100 text-blue-700';
-      case 'offered': return 'bg-purple-100 text-purple-700';
-      case 'accepted': return 'bg-green-100 text-green-700';
-      case 'rejected': return 'bg-red-100 text-red-700';
-      case 'completed': return 'bg-emerald-100 text-emerald-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'pending': return TONE.yellow;
+      case 'contacted': return TONE.blue;
+      case 'offered': return TONE.purple;
+      case 'accepted': return TONE.green;
+      case 'rejected': return TONE.red;
+      case 'completed': return TONE.emerald;
+      default: return TONE.gray;
     }
   };
 
   const getConditionColor = (condition: string | null) => {
     switch (condition) {
-      case 'excellent': return 'bg-green-100 text-green-700';
-      case 'good': return 'bg-blue-100 text-blue-700';
-      case 'fair': return 'bg-yellow-100 text-yellow-700';
-      case 'poor': return 'bg-red-100 text-red-700';
-      default: return 'bg-gray-100 text-gray-600';
+      case 'excellent': return TONE.green;
+      case 'good': return TONE.blue;
+      case 'fair': return TONE.yellow;
+      case 'poor': return TONE.red;
+      default: return TONE.gray;
     }
   };
 
@@ -75,7 +76,7 @@ export default async function AdminTradeInsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-2">
@@ -91,7 +92,7 @@ export default async function AdminTradeInsPage() {
             <div className="flex items-center justify-between mb-2">
               <Clock className="w-5 h-5 text-yellow-500" />
               {(pendingCount || 0) > 0 && (
-                <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-300">
+                <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-300 dark:text-yellow-400 dark:border-yellow-800">
                   Action needed
                 </Badge>
               )}
@@ -141,7 +142,7 @@ export default async function AdminTradeInsPage() {
                   <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                     {/* Trade-In Info */}
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
                         <Truck className="w-4 h-4 text-muted-foreground" />
                         <span className="font-medium">
                           {[tradeIn.equipment_year, tradeIn.equipment_make, tradeIn.equipment_model]
@@ -149,7 +150,7 @@ export default async function AdminTradeInsPage() {
                             .join(' ') || 'Unknown Equipment'}
                         </span>
                         <span className={`px-2 py-0.5 text-xs rounded-full ${getStatusColor(tradeIn.status)}`}>
-                          {tradeIn.status}
+                          {formatEnum(tradeIn.status)}
                         </span>
                         {tradeIn.equipment_condition && (
                           <span className={`px-2 py-0.5 text-xs rounded-full capitalize ${getConditionColor(tradeIn.equipment_condition)}`}>
@@ -177,18 +178,18 @@ export default async function AdminTradeInsPage() {
                         {tradeIn.contact_email && (
                           <a
                             href={`mailto:${tradeIn.contact_email}`}
-                            className="flex items-center gap-1 hover:text-foreground"
+                            className="flex items-center gap-1 hover:text-foreground break-all"
                           >
-                            <Mail className="w-3 h-3" />
+                            <Mail className="w-3 h-3 shrink-0" />
                             {tradeIn.contact_email}
                           </a>
                         )}
-                        {tradeIn.equipment_mileage && (
+                        {tradeIn.equipment_mileage > 0 && (
                           <span className="flex items-center gap-1">
                             {tradeIn.equipment_mileage.toLocaleString()} miles
                           </span>
                         )}
-                        {tradeIn.equipment_hours && (
+                        {tradeIn.equipment_hours > 0 && (
                           <span className="flex items-center gap-1">
                             {tradeIn.equipment_hours.toLocaleString()} hours
                           </span>
@@ -210,7 +211,8 @@ export default async function AdminTradeInsPage() {
                               className="text-primary hover:underline flex items-center gap-1"
                             >
                               <ArrowRight className="w-3 h-3" />
-                              Interested in: {tradeIn.interested_listing.title?.slice(0, 30)}...
+                              Interested in: {tradeIn.interested_listing.title?.slice(0, 30)}
+                              {(tradeIn.interested_listing.title?.length ?? 0) > 30 ? '…' : ''}
                             </Link>
                           )}
                           {tradeIn.interested_category && (
@@ -220,7 +222,7 @@ export default async function AdminTradeInsPage() {
                           )}
                           {tradeIn.purchase_timeline && (
                             <Badge variant="outline" className="text-xs">
-                              Timeline: {tradeIn.purchase_timeline.replace('_', ' ')}
+                              Timeline: {formatEnum(tradeIn.purchase_timeline)}
                             </Badge>
                           )}
                         </div>
@@ -228,7 +230,7 @@ export default async function AdminTradeInsPage() {
                     </div>
 
                     {/* Actions & Time */}
-                    <div className="flex flex-col items-end gap-2">
+                    <div className="flex flex-col gap-2 lg:items-end">
                       <span className="text-xs text-muted-foreground">
                         {new Date(tradeIn.created_at).toLocaleDateString()}{' '}
                         {new Date(tradeIn.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

@@ -7,7 +7,6 @@ import {
   Truck,
   Package,
   Building2,
-  ArrowRight,
 } from 'lucide-react';
 
 const popularLinks = [
@@ -22,17 +21,20 @@ export default function NotFound() {
     <div className="min-h-[80vh] flex items-center justify-center p-4">
       <div className="max-w-lg w-full text-center">
         {/* 404 Header */}
-        <div className="text-8xl font-bold text-muted-foreground/20 mb-2">404</div>
-        <h2 className="text-2xl font-bold mb-2">Page Not Found</h2>
+        <div aria-hidden="true" className="text-8xl font-bold text-muted-foreground/20 mb-2">404</div>
+        <h1 className="text-2xl font-bold mb-2">Page Not Found</h1>
         <p className="text-muted-foreground mb-8">
           The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
 
         {/* Search Bar */}
         <form action="/search" className="relative mb-8">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Search aria-hidden="true" className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
+            type="search"
             name="q"
+            aria-label="Search for equipment"
+            enterKeyHint="search"
             placeholder="Search for equipment..."
             className="h-12 pl-12 pr-4 rounded-full bg-background border shadow-sm"
           />

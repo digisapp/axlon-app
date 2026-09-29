@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from 'sonner';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -75,6 +76,7 @@ export default function ConversationDetailPage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [replyError, setReplyError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -163,6 +165,7 @@ export default function ConversationDetailPage() {
     if (!replyText.trim() || isSending) return;
 
     setIsSending(true);
+    setReplyError(null);
 
     try {
       const response = await csrfFetch(`/api/dashboard/conversations/${conversationId}/reply`, {
@@ -174,9 +177,12 @@ export default function ConversationDetailPage() {
       if (response.ok) {
         setReplyText('');
         await fetchConversation();
+      } else {
+        setReplyError('Your reply wasn\'t sent. Please try again.');
       }
     } catch (error) {
       logger.error('Reply error', { error });
+      setReplyError('Your reply wasn\'t sent. Check your connection and try again.');
     } finally {
       setIsSending(false);
     }
@@ -190,11 +196,18 @@ export default function ConversationDetailPage() {
   };
 
   const updateStatus = async (newStatus: 'active' | 'closed' | 'converted') => {
-    await csrfFetch(`/api/dashboard/conversations/${conversationId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
-    });
+    try {
+      const res = await csrfFetch(`/api/dashboard/conversations/${conversationId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error(`Status update failed (${res.status})`);
+      toast.success(newStatus === 'closed' ? 'Conversation closed' : 'Conversation reopened');
+    } catch (error) {
+      logger.error('Conversation status error', { error });
+      toast.error('Couldn\'t update the conversation. Please try again.');
+    }
     await fetchConversation();
   };
 
@@ -211,18 +224,18 @@ export default function ConversationDetailPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-120px)]">
+    <div className="flex flex-col h-[calc(100dvh-6rem)] md:h-[calc(100dvh-7rem)] lg:h-[calc(100dvh-8rem)]">
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b">
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard/conversations">
-            <Button variant="ghost" size="icon">
+      <div className="flex items-center justify-between gap-3 pb-4 border-b">
+        <div className="flex items-center gap-2 md:gap-4 min-w-0">
+          <Button variant="ghost" size="icon" asChild className="shrink-0">
+            <Link href="/dashboard/conversations" aria-label="Back to AI chats">
               <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold">
+            </Link>
+          </Button>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h1 className="text-lg md:text-xl font-bold truncate">
                 {conversation.visitor_name || 'Anonymous Visitor'}
               </h1>
               {conversation.status === 'active' && (
@@ -241,7 +254,7 @@ export default function ConversationDetailPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {conversation.status !== 'closed' && (
             <Button variant="outline" size="sm" onClick={() => updateStatus('closed')}>
               <XCircle className="w-4 h-4 mr-2" />
@@ -256,6 +269,36 @@ export default function ConversationDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Phones: the contact sidebar is hidden, so surface the essentials here */}
+      {(conversation.visitor_email || conversation.visitor_phone || conversation.lead) && (
+        <div className="lg:hidden flex flex-wrap items-center gap-2 pt-3">
+          {conversation.visitor_phone && (
+            <Button variant="outline" size="sm" asChild>
+              <a href={`tel:${conversation.visitor_phone}`}>
+                <Phone className="w-4 h-4 mr-1.5" />
+                Call
+              </a>
+            </Button>
+          )}
+          {conversation.visitor_email && (
+            <Button variant="outline" size="sm" asChild>
+              <a href={`mailto:${conversation.visitor_email}`}>
+                <Mail className="w-4 h-4 mr-1.5" />
+                Email
+              </a>
+            </Button>
+          )}
+          {conversation.lead && (
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/dashboard/leads">
+                <UserCheck className="w-4 h-4 mr-1.5" />
+                View Lead
+              </Link>
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-1 gap-4 pt-4 overflow-hidden">
         {/* Messages */}
@@ -288,32 +331,32 @@ export default function ConversationDetailPage() {
                 >
                   {message.role !== 'user' && (
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      message.metadata?.from_dealer ? 'bg-blue-100' : 'bg-primary/10'
+                      message.metadata?.from_dealer ? 'bg-blue-100 dark:bg-blue-900/40' : 'bg-primary/10'
                     }`}>
                       {message.metadata?.from_dealer ? (
-                        <User className="w-4 h-4 text-blue-600" />
+                        <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                       ) : (
                         <Bot className="w-4 h-4 text-primary" />
                       )}
                     </div>
                   )}
-                  <div className={`max-w-[70%] ${message.role === 'user' ? 'order-first' : ''}`}>
+                  <div className={`max-w-[80%] md:max-w-[70%] min-w-0 ${message.role === 'user' ? 'order-first' : ''}`}>
                     <div
                       className={`rounded-2xl px-4 py-2 ${
                         message.role === 'user'
                           ? 'bg-primary text-primary-foreground rounded-br-md'
                           : message.metadata?.from_dealer
-                          ? 'bg-blue-100 border border-blue-200 rounded-bl-md'
+                          ? 'bg-blue-100 border border-blue-200 text-blue-950 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-50 rounded-bl-md'
                           : 'bg-muted rounded-bl-md'
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                     </div>
                     <div className={`flex items-center gap-2 mt-1 text-xs text-muted-foreground ${
                       message.role === 'user' ? 'justify-end' : ''
                     }`}>
                       {message.metadata?.from_dealer && (
-                        <span className="text-blue-600">You</span>
+                        <span className="text-blue-600 dark:text-blue-400">You</span>
                       )}
                       {message.role === 'assistant' && !message.metadata?.from_dealer && (
                         <span>AI</span>
@@ -332,10 +375,14 @@ export default function ConversationDetailPage() {
             </div>
 
             {/* Reply Input */}
-            <div className="p-4 border-t">
+            <div className="p-3 md:p-4 border-t">
+              {replyError && (
+                <p role="alert" className="text-sm text-destructive mb-2">{replyError}</p>
+              )}
               <div className="flex gap-2">
                 <Input
-                  placeholder="Type a reply to take over from AI..."
+                  placeholder={conversation.status === 'closed' ? 'Reopen this chat to reply' : 'Type a reply to take over from AI...'}
+                  aria-label="Reply to visitor"
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   onKeyPress={handleKeyPress}
@@ -343,6 +390,8 @@ export default function ConversationDetailPage() {
                 />
                 <Button
                   onClick={handleSendReply}
+                  aria-label="Send reply"
+                  className="shrink-0"
                   disabled={!replyText.trim() || isSending || conversation.status === 'closed'}
                 >
                   {isSending ? (
@@ -360,7 +409,7 @@ export default function ConversationDetailPage() {
         </div>
 
         {/* Sidebar - Contact Info */}
-        <div className="w-80 space-y-4">
+        <div className="hidden lg:block w-80 shrink-0 space-y-4 overflow-y-auto">
           {/* Visitor Info */}
           <Card>
             <CardHeader className="pb-3">
@@ -414,11 +463,9 @@ export default function ConversationDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Link href="/dashboard/leads">
-                  <Button variant="outline" size="sm" className="w-full">
-                    View in Leads
-                  </Button>
-                </Link>
+                <Button variant="outline" size="sm" className="w-full" asChild>
+                  <Link href="/dashboard/leads">View in Leads</Link>
+                </Button>
               </CardContent>
             </Card>
           )}

@@ -18,6 +18,7 @@ import {
   Search,
 } from 'lucide-react';
 import { jsonLdString } from '@/lib/seo/json-ld';
+import { ProductGallery } from '@/components/new-trailers/ProductGallery';
 import { isOptimizerBlockedImage } from '@/lib/images/optimizer-blocked-hosts';
 import { isBrandBanner, withBrandBannersLast } from '@/lib/images/catalog-junk-images';
 import { HIDDEN_PRODUCT_FILTER, cleanCopy, cleanProductName, correctedTonnage, isHiddenProduct } from '@/lib/catalog/quality';
@@ -164,6 +165,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+// Scraped values often already carry their unit ("160,000 lbs. overall") —
+// appending spec_unit again printed "… lbs lbs".
+function specValue(spec: ProductSpec): string {
+  const unit = spec.spec_unit?.trim();
+  if (!unit) return spec.spec_value;
+  // Only a unit that follows a number counts ("24 in", "24in", "24 inches",
+  // "24-inch") — a bare substring test matched "in" inside "Min", "ft"
+  // inside "lift", "m" inside "Maximum" and dropped the real unit.
+  const escaped = unit.replace(/\.$/, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`\\d[\\s-]*${escaped}`, 'i').test(spec.spec_value)
+    ? spec.spec_value
+    : `${spec.spec_value} ${unit}`;
+}
+
 // Full-width CTAs carry the product name — let them wrap instead of pushing
 // the page wider than a phone (Button is whitespace-nowrap with a fixed height).
 const WRAP_BUTTON = 'h-auto md:h-auto min-h-11 md:min-h-10 py-2.5 whitespace-normal text-center';
@@ -262,47 +277,16 @@ export default async function ProductDetailPage({ params }: PageProps) {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           {/* Image Gallery - Left */}
           <div className="lg:col-span-3">
-            {/* Main Image */}
-            <div className="aspect-[4/3] relative rounded-xl overflow-hidden bg-muted mb-4">
-              {primaryImage ? (
-                <Image
-                  src={primaryImage.url}
-                  alt={primaryImage.alt_text || product.name}
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 800px"
-                  className="object-cover"
-                  preload
-                  unoptimized={isOptimizerBlockedImage(primaryImage.url)}
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Truck className="w-20 h-20 text-muted-foreground/20" />
-                </div>
-              )}
-            </div>
-
-            {/* Thumbnail Gallery */}
-            {sortedImages.length > 1 && (
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                {sortedImages.map((img: ProductImage) => (
-                  <div key={img.id} className="aspect-[4/3] relative rounded-lg overflow-hidden bg-muted">
-                    <Image
-                      src={img.url}
-                      alt={img.alt_text || product.name}
-                      fill
-                      sizes="(max-width: 640px) 25vw, 120px"
-                      className="object-cover"
-                      unoptimized={isOptimizerBlockedImage(img.url)}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+            <ProductGallery
+              images={sortedImages}
+              initialIndex={primaryImage ? Math.max(0, sortedImages.indexOf(primaryImage)) : 0}
+              productName={product.name}
+            />
           </div>
 
           {/* Product Info - Right */}
           <div className="lg:col-span-2 min-w-0">
-            <div className="sticky top-20">
+            <div className="lg:sticky lg:top-20">
               <Badge variant="secondary" className="mb-3">
                 {product.manufacturer.name}
               </Badge>
@@ -317,7 +301,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
               {/* Key Specs Cards */}
               <div className="grid grid-cols-2 gap-3 mt-6">
                 {tonnageLabel && (
-                  <Card className="bg-muted/50 min-w-0">
+                  <Card className="bg-muted/50 min-w-0 py-0 gap-0">
                     <CardContent className="p-3 text-center break-words">
                       <Weight className="w-5 h-5 mx-auto mb-1 text-primary" />
                       <p className="text-sm text-muted-foreground">Capacity</p>
@@ -326,7 +310,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   </Card>
                 )}
                 {product.deck_height_inches && (
-                  <Card className="bg-muted/50 min-w-0">
+                  <Card className="bg-muted/50 min-w-0 py-0 gap-0">
                     <CardContent className="p-3 text-center break-words">
                       <Ruler className="w-5 h-5 mx-auto mb-1 text-primary" />
                       <p className="text-sm text-muted-foreground">Deck Height</p>
@@ -335,7 +319,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   </Card>
                 )}
                 {product.axle_count && (
-                  <Card className="bg-muted/50 min-w-0">
+                  <Card className="bg-muted/50 min-w-0 py-0 gap-0">
                     <CardContent className="p-3 text-center break-words">
                       <Layers className="w-5 h-5 mx-auto mb-1 text-primary" />
                       <p className="text-sm text-muted-foreground">Axles</p>
@@ -344,7 +328,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   </Card>
                 )}
                 {gooseneckLabel && (
-                  <Card className="bg-muted/50 min-w-0">
+                  <Card className="bg-muted/50 min-w-0 py-0 gap-0">
                     <CardContent className="p-3 text-center break-words">
                       <Truck className="w-5 h-5 mx-auto mb-1 text-primary" />
                       <p className="text-sm text-muted-foreground">Gooseneck</p>
@@ -385,7 +369,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
               {/* CTAs */}
               <div className="mt-6 space-y-3">
                 <Button asChild className={`w-full ${WRAP_BUTTON}`} size="lg">
-                  <Link href={`/?q=Tell me about the ${product.manufacturer.name} ${product.name}`}>
+                  <Link href={`/ask?q=${encodeURIComponent(`Tell me about the ${product.manufacturer.name} ${product.name}`)}`}>
                     <MessageSquare className="w-4 h-4 mr-2" />
                     Ask AXLON About This Trailer
                   </Link>
@@ -425,17 +409,17 @@ export default async function ProductDetailPage({ params }: PageProps) {
             <h2 className="text-xl font-bold mb-6">Full Specifications</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {Object.entries(specsByCategory).map(([category, specs]) => (
-                <Card key={category}>
-                  <CardHeader className="pb-3">
+                <Card key={category} className="gap-3">
+                  <CardHeader>
                     <CardTitle className="text-base">{category}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
                       {specs.map((spec: ProductSpec) => (
                         <div key={spec.id} className="flex justify-between gap-3 py-1.5 border-b border-border/50 last:border-0">
-                          <span className="min-w-0 break-words text-sm text-muted-foreground">{spec.spec_key}</span>
+                          <span className="shrink-0 max-w-[45%] break-words text-sm text-muted-foreground">{spec.spec_key}</span>
                           <span className="min-w-0 break-words text-sm font-medium text-right">
-                            {spec.spec_value}{spec.spec_unit ? ` ${spec.spec_unit}` : ''}
+                            {specValue(spec)}
                           </span>
                         </div>
                       ))}
@@ -491,12 +475,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
         {product.relatedProducts && product.relatedProducts.length > 0 && (
           <div className="mt-12">
             <h2 className="text-xl font-bold mb-6">More from {product.manufacturer.name}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
               {product.relatedProducts.map((rp: RelatedProduct) => {
                 const rpImage = rp.images?.find((i: RelatedProductImage) => i.is_primary && !isBrandBanner(i.url)) || rp.images?.[0];
                 return (
                   <Link key={rp.id} href={`/new-trailers/${product.manufacturer.slug}/${rp.slug}`}>
-                    <Card className="h-full overflow-hidden hover:shadow-md transition-shadow cursor-pointer group">
+                    <Card className="h-full overflow-hidden py-0 gap-0 hover:shadow-md transition-shadow cursor-pointer group">
                       <div className="aspect-[4/3] relative bg-muted">
                         {rpImage ? (
                           <Image
@@ -514,7 +498,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                         )}
                       </div>
                       <CardContent className="p-3">
-                        <h3 className="font-medium text-sm line-clamp-1">{rp.name}</h3>
+                        <h3 className="font-medium text-sm line-clamp-2" title={rp.name}>{rp.name}</h3>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {[rp.tonnage_max ? `${rp.tonnage_max}T` : null, rp.deck_height_inches ? `${rp.deck_height_inches}"` : null, rp.axle_count ? `${rp.axle_count}-Axle` : null].filter(Boolean).join(' | ')}
                         </p>

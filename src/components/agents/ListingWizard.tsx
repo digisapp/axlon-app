@@ -165,6 +165,7 @@ export function ListingWizard({ onComplete, onCancel }: ListingWizardProps) {
               onChange={(e) => setImageInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addImage()}
               placeholder="Paste image URL..."
+              aria-label="Image URL"
               className="flex-1 px-3 py-2 border rounded-md text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <Button onClick={addImage} variant="outline" size="sm">
@@ -192,6 +193,13 @@ export function ListingWizard({ onComplete, onCancel }: ListingWizardProps) {
                   )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* A failed run drops back to this phase, so the error has to show here */}
+          {error && (
+            <div role="alert" className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm dark:bg-red-950/30 dark:border-red-900/50 dark:text-red-300">
+              {error} — check the image URLs and try again.
             </div>
           )}
 
@@ -230,8 +238,8 @@ export function ListingWizard({ onComplete, onCancel }: ListingWizardProps) {
                   key={config.key}
                   className={`flex items-start gap-4 p-4 rounded-lg border transition-all ${
                     status === 'running' ? 'border-primary bg-primary/5' :
-                    status === 'completed' ? 'border-green-500/30 bg-green-50' :
-                    status === 'failed' ? 'border-red-500/30 bg-red-50' :
+                    status === 'completed' ? 'border-green-500/30 bg-green-50 dark:bg-green-950/20' :
+                    status === 'failed' ? 'border-red-500/30 bg-red-50 dark:bg-red-950/20' :
                     'border-muted'
                   }`}
                 >
@@ -253,7 +261,7 @@ export function ListingWizard({ onComplete, onCancel }: ListingWizardProps) {
           </div>
 
           {error && (
-            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm dark:bg-red-950/30 dark:border-red-900/50 dark:text-red-300">
               {error}
             </div>
           )}
@@ -300,8 +308,9 @@ export function ListingWizard({ onComplete, onCancel }: ListingWizardProps) {
 
           {/* Editable Title */}
           <div className="mb-4">
-            <label className="text-sm font-medium text-muted-foreground mb-1 block">Title</label>
+            <label htmlFor="wizard-title" className="text-sm font-medium text-muted-foreground mb-1 block">Title</label>
             <input
+              id="wizard-title"
               type="text"
               value={editedTitle}
               onChange={(e) => setEditedTitle(e.target.value)}
@@ -311,11 +320,11 @@ export function ListingWizard({ onComplete, onCancel }: ListingWizardProps) {
 
           {/* Manufacturer Match */}
           {draft.manufacturer_match && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm font-medium text-blue-800">
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/30 dark:border-blue-900/50">
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
                 Matched to: {draft.manufacturer_match.name} by {draft.manufacturer_match.manufacturer}
               </p>
-              <p className="text-xs text-blue-600 mt-1">
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                 {draft.manufacturer_match.category}
                 {draft.manufacturer_match.subcategory && ` › ${draft.manufacturer_match.subcategory}`}
                 {' · '}
@@ -371,7 +380,7 @@ export function ListingWizard({ onComplete, onCancel }: ListingWizardProps) {
           {/* Pricing */}
           <div className="mb-6 p-4 border rounded-lg">
             <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-medium text-muted-foreground">Suggested Price</label>
+              <label htmlFor="wizard-price" className="text-sm font-medium text-muted-foreground">Suggested Price</label>
               <Badge variant="outline">
                 {Math.round(draft.confidence * 100)}% confidence · Market {draft.market_trend}
               </Badge>
@@ -380,7 +389,9 @@ export function ListingWizard({ onComplete, onCancel }: ListingWizardProps) {
               <div className="flex items-center gap-1">
                 <span className="text-lg text-muted-foreground">$</span>
                 <input
+                  id="wizard-price"
                   type="number"
+                  inputMode="numeric"
                   value={editedPrice}
                   onChange={(e) => setEditedPrice(e.target.value)}
                   className="text-2xl font-bold w-40 border-b-2 border-primary focus:outline-none bg-transparent"
@@ -401,9 +412,9 @@ export function ListingWizard({ onComplete, onCancel }: ListingWizardProps) {
 
           {/* Damage Warning */}
           {draft.damage_detected && (
-            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
-              <p className="font-medium text-amber-800">Damage Detected</p>
-              <p className="text-amber-700">{draft.damage_areas.join(', ')}</p>
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm dark:bg-amber-950/30 dark:border-amber-900/50">
+              <p className="font-medium text-amber-800 dark:text-amber-300">Damage Detected</p>
+              <p className="text-amber-700 dark:text-amber-400">{draft.damage_areas.join(', ')}</p>
             </div>
           )}
 

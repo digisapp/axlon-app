@@ -52,8 +52,17 @@ export default function FinancePage() {
   }
 
   const handlePriceChange = (value: number) => {
-    setPrice(value);
-    setDownPayment(Math.round(value * (downPaymentPercent / 100)));
+    const next = Number.isFinite(value) ? Math.max(0, value) : 0;
+    setPrice(next);
+    setDownPayment(Math.round(next * (downPaymentPercent / 100)));
+  };
+
+  // Keep the down payment within 0..price so "Amount Financed" can't go
+  // negative, and never divide by a zero price (the % read "NaN%"/"Infinity%").
+  const handleDownPaymentChange = (value: number) => {
+    const next = Math.min(Math.max(0, Number.isFinite(value) ? value : 0), price);
+    setDownPayment(next);
+    setDownPaymentPercent(price > 0 ? Math.round((next / price) * 100) : 0);
   };
 
   const handleDownPaymentPercentChange = (value: number[]) => {
@@ -108,23 +117,32 @@ export default function FinancePage() {
 
               {/* Vehicle Price */}
               <div className="space-y-3">
-                <Label className="flex items-center gap-2">
+                <Label htmlFor="finance-price" className="flex items-center gap-2">
                   <Truck className="w-4 h-4" />
                   Vehicle Price
                 </Label>
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  value={price}
-                  onChange={(e) => handlePriceChange(Number(e.target.value))}
-                  className="text-lg"
-                />
+                <div className="relative">
+                  <span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    id="finance-price"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    step={1000}
+                    // 0 renders empty — otherwise clearing the box wrote "0" back
+                    // and the next keystroke read "05…"
+                    value={price || ''}
+                    placeholder="0"
+                    onChange={(e) => handlePriceChange(Number(e.target.value))}
+                    className="pl-7 h-11 md:h-11 text-base md:text-base"
+                  />
+                </div>
               </div>
 
               {/* Down Payment */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="flex items-center gap-2">
+                  <Label htmlFor="finance-down" className="flex items-center gap-2">
                     <DollarSign className="w-4 h-4" />
                     Down Payment
                   </Label>
@@ -132,23 +150,28 @@ export default function FinancePage() {
                 </div>
                 <Slider
                   value={[downPaymentPercent]}
+                  aria-label="Down payment percentage"
                   onValueChange={handleDownPaymentPercentChange}
                   min={0}
                   max={50}
                   step={5}
                   className="mb-2"
                 />
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  value={downPayment}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    setDownPayment(val);
-                    setDownPaymentPercent(Math.round((val / price) * 100));
-                  }}
-                  className="text-right"
-                />
+                <div className="relative">
+                  <span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    id="finance-down"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={price}
+                    step={500}
+                    value={downPayment || ''}
+                    placeholder="0"
+                    onChange={(e) => handleDownPaymentChange(Number(e.target.value))}
+                    className="pl-7 h-11 md:h-11 text-base md:text-base"
+                  />
+                </div>
               </div>
 
               {/* Interest Rate */}
@@ -162,6 +185,7 @@ export default function FinancePage() {
                 </div>
                 <Slider
                   value={[interestRate]}
+                  aria-label="Interest rate (APR)"
                   onValueChange={(v) => setInterestRate(v[0])}
                   min={0}
                   max={20}
@@ -171,12 +195,12 @@ export default function FinancePage() {
 
               {/* Loan Term */}
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
+                <Label htmlFor="finance-term" className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   Loan Term
                 </Label>
                 <Select value={loanTerm.toString()} onValueChange={(v) => setLoanTerm(Number(v))}>
-                  <SelectTrigger>
+                  <SelectTrigger id="finance-term" className="w-full md:data-[size=default]:h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -206,7 +230,7 @@ export default function FinancePage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Interest</span>
-                  <span className="font-medium text-orange-600">{formatCurrency(totalInterest)}</span>
+                  <span className="font-medium text-orange-600 dark:text-orange-400">{formatCurrency(totalInterest)}</span>
                 </div>
                 <div className="flex justify-between border-t pt-2 mt-2">
                   <span className="font-medium">Total Cost</span>

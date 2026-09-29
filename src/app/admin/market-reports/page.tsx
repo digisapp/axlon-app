@@ -5,13 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -29,6 +22,8 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { toast } from 'sonner';
+import { TONE } from '@/components/admin/tones';
 
 interface MarketReport {
   id: string;
@@ -80,9 +75,12 @@ export default function AdminMarketReportsPage() {
         const data = await res.json();
         setReports(data.reports || []);
         setSubscribers(data.subscribers || []);
+      } else {
+        toast.error('Could not load market reports');
       }
     } catch (error) {
       logger.error('Error fetching market reports data', { error });
+      toast.error('Could not load market reports');
     }
     setIsLoading(false);
   };
@@ -106,11 +104,11 @@ export default function AdminMarketReportsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <FileText className="w-5 h-5 text-blue-600" />
+          <CardContent className="p-3 sm:p-4 flex items-center gap-4">
+            <div className={`hidden sm:block p-2 rounded-lg ${TONE.blue}`}>
+              <FileText className="w-5 h-5" />
             </div>
             <div>
               <p className="text-2xl font-bold">{totalReports}</p>
@@ -119,9 +117,9 @@ export default function AdminMarketReportsPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Users className="w-5 h-5 text-green-600" />
+          <CardContent className="p-3 sm:p-4 flex items-center gap-4">
+            <div className={`hidden sm:block p-2 rounded-lg ${TONE.green}`}>
+              <Users className="w-5 h-5" />
             </div>
             <div>
               <p className="text-2xl font-bold">{totalSubscribers}</p>
@@ -130,9 +128,9 @@ export default function AdminMarketReportsPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Building2 className="w-5 h-5 text-purple-600" />
+          <CardContent className="p-3 sm:p-4 flex items-center gap-4">
+            <div className={`hidden sm:block p-2 rounded-lg ${TONE.purple}`}>
+              <Building2 className="w-5 h-5" />
             </div>
             <div>
               <p className="text-2xl font-bold">{uniqueDealers}</p>
@@ -143,10 +141,11 @@ export default function AdminMarketReportsPage() {
       </div>
 
       {/* Tab Switcher */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button
           variant={activeTab === 'reports' ? 'default' : 'outline'}
           onClick={() => setActiveTab('reports')}
+          aria-pressed={activeTab === 'reports'}
         >
           <FileText className="w-4 h-4 mr-2" />
           Reports ({totalReports})
@@ -154,6 +153,7 @@ export default function AdminMarketReportsPage() {
         <Button
           variant={activeTab === 'subscribers' ? 'default' : 'outline'}
           onClick={() => setActiveTab('subscribers')}
+          aria-pressed={activeTab === 'subscribers'}
         >
           <Users className="w-4 h-4 mr-2" />
           Subscribers ({totalSubscribers})
@@ -183,17 +183,17 @@ export default function AdminMarketReportsPage() {
                 {reports.map((report) => (
                   <div
                     key={report.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-between gap-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 bg-blue-50 rounded-lg">
-                        <FileText className="w-5 h-5 text-blue-600" />
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className={`hidden sm:block p-2 rounded-lg ${TONE.blue}`}>
+                        <FileText className="w-5 h-5" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <h3 className="font-semibold">
                           {report.report_data?.dealer_name || 'Unknown Dealer'}
                         </h3>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
                             {new Date(report.created_at).toLocaleDateString('en-US', {
@@ -203,7 +203,8 @@ export default function AdminMarketReportsPage() {
                             })}
                           </span>
                           <span>
-                            {report.report_data?.inventory_stats?.totalListings || 0} listings
+                            {report.report_data?.inventory_stats?.totalListings || 0} listing
+                            {(report.report_data?.inventory_stats?.totalListings || 0) !== 1 ? 's' : ''}
                           </span>
                           {report.report_data?.inventory_stats?.overpriced?.length > 0 && (
                             <Badge variant="destructive" className="text-xs">
@@ -217,6 +218,7 @@ export default function AdminMarketReportsPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setPreviewReport(report)}
+                      className="shrink-0"
                     >
                       <Eye className="w-4 h-4 mr-1" />
                       Preview
@@ -243,22 +245,22 @@ export default function AdminMarketReportsPage() {
                 {subscribers.map((sub) => (
                   <div
                     key={sub.dealer_id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
+                    className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-lg ${sub.market_reports_enabled ? 'bg-green-50' : 'bg-gray-100'}`}>
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className={`p-2 rounded-lg shrink-0 ${sub.market_reports_enabled ? TONE.green : TONE.gray}`}>
                         {sub.market_reports_enabled ? (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
+                          <CheckCircle className="w-5 h-5" />
                         ) : (
-                          <Mail className="w-5 h-5 text-gray-400" />
+                          <Mail className="w-5 h-5" />
                         )}
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <h3 className="font-semibold">
                           {sub.profile?.company_name || 'Unknown Dealer'}
                         </h3>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                          <span>{sub.profile?.email || 'No email'}</span>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                          <span className="break-all">{sub.profile?.email || 'No email'}</span>
                           {(sub.profile?.city || sub.profile?.state) && (
                             <span>
                               {[sub.profile?.city, sub.profile?.state].filter(Boolean).join(', ')}
@@ -267,9 +269,9 @@ export default function AdminMarketReportsPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 sm:shrink-0">
                       {sub.market_reports_enabled ? (
-                        <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                        <Badge className={TONE.green}>
                           Subscribed
                         </Badge>
                       ) : (
@@ -297,7 +299,7 @@ export default function AdminMarketReportsPage() {
           </DialogHeader>
           {previewReport?.report_html && (
             <iframe
-              className="mt-4 w-full border-0 rounded"
+              className="mt-4 w-full border-0 rounded bg-white"
               style={{ height: '60vh' }}
               srcDoc={previewReport.report_html}
               sandbox="allow-same-origin"

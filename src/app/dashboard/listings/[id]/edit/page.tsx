@@ -1,9 +1,11 @@
 'use client';
 
+import { toast } from 'sonner';
 import { useState, useEffect, use } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -121,6 +123,10 @@ export default function EditListingPage({ params }: PageProps) {
     if (searchParams.get('success') === 'true') {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 5000);
+    }
+    if (searchParams.get('cloned') === 'true') {
+      // Fixed id: a re-run of this effect (Strict Mode, param re-render) updates the one toast instead of stacking duplicates
+      toast.success('Listing copied — you are now editing the copy', { id: 'listing-cloned' });
     }
   }, [searchParams]);
 
@@ -291,7 +297,7 @@ export default function EditListingPage({ params }: PageProps) {
   // Generate AI description from images
   const handleGenerateDescription = async () => {
     if (images.length === 0) {
-      alert('Please upload at least one image first');
+      toast.error('Please upload at least one image first');
       return;
     }
 
@@ -324,11 +330,11 @@ export default function EditListingPage({ params }: PageProps) {
         const { data } = await response.json();
         setFormData({ ...formData, description: data.description });
       } else {
-        alert('Failed to generate description');
+        toast.error('Failed to generate description');
       }
     } catch (error) {
       logger.error('Description generation error', { error });
-      alert('Failed to generate description');
+      toast.error('Failed to generate description');
     } finally {
       setIsGeneratingDescription(false);
     }
@@ -336,7 +342,7 @@ export default function EditListingPage({ params }: PageProps) {
 
   const handleGetPriceEstimate = async () => {
     if (!formData.make || !formData.model) {
-      alert('Please enter make and model first');
+      toast.error('Please enter make and model first');
       return;
     }
 
@@ -419,7 +425,7 @@ export default function EditListingPage({ params }: PageProps) {
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       logger.error('Save error', { error });
-      alert('Failed to save listing');
+      toast.error('Failed to save listing');
     } finally {
       setIsSaving(false);
     }
@@ -434,13 +440,14 @@ export default function EditListingPage({ params }: PageProps) {
       });
 
       if (response.ok) {
-        router.push('/dashboard?deleted=true');
+        toast.success('Listing deleted');
+        router.push('/dashboard/listings');
       } else {
         throw new Error('Failed to delete');
       }
     } catch (error) {
       logger.error('Delete error', { error });
-      alert('Failed to delete listing');
+      toast.error('Failed to delete listing');
       setIsDeleting(false);
     }
   };
@@ -461,7 +468,7 @@ export default function EditListingPage({ params }: PageProps) {
       }
     } catch (error) {
       logger.error('Clone error', { error });
-      alert('Failed to clone listing');
+      toast.error('Failed to clone listing');
       setIsCloning(false);
     }
   };
@@ -476,48 +483,49 @@ export default function EditListingPage({ params }: PageProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-24" role="status" aria-label="Loading listing">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Success Toast */}
       {showSuccess && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg">
+        <div role="status" className="fixed top-4 left-4 right-4 sm:left-auto z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg">
           <CheckCircle className="w-5 h-5" />
           <span>Listing saved successfully!</span>
         </div>
       )}
 
-      {/* Header */}
-      <header className="bg-background border-b sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Dashboard
-            </Link>
-            <h1 className="text-xl font-bold">Edit Listing</h1>
+      {/* Header — was a second sticky top-0 z-40 bar that slid over the
+          dashboard header and overflowed at phone width */}
+      <PageHeader
+        title={
+          <span className="flex flex-wrap items-center gap-2">
+            Edit Listing
             <span
-              className={`px-2 py-1 text-xs rounded-full ${
+              className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
                 formData.status === 'active'
-                  ? 'bg-green-100 text-green-700'
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                   : formData.status === 'draft'
-                  ? 'bg-yellow-100 text-yellow-700'
-                  : 'bg-gray-100 text-gray-700'
+                  ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                  : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
               }`}
             >
               {formData.status}
             </span>
-          </div>
-
-          <div className="flex items-center gap-2">
+          </span>
+        }
+        description={
+          <Link href="/dashboard/listings" className="inline-flex items-center gap-1 hover:text-foreground">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            All listings
+          </Link>
+        }
+        actions={
+          <>
             <Button variant="outline" size="sm" asChild>
               <Link href={`/listing/${id}`} target="_blank">
                 <Eye className="w-4 h-4 mr-2" />
@@ -556,7 +564,7 @@ export default function EditListingPage({ params }: PageProps) {
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleDelete}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    className="bg-destructive text-white hover:bg-destructive/90"
                     disabled={isDeleting}
                   >
                     {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -565,11 +573,11 @@ export default function EditListingPage({ params }: PageProps) {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <div>
         <div className="space-y-6">
           {/* Images */}
           <Card>
@@ -1091,7 +1099,7 @@ export default function EditListingPage({ params }: PageProps) {
           </Card>
 
           {/* Submit Buttons */}
-          <div className="flex items-center justify-end gap-3 p-4 bg-background border rounded-xl sticky bottom-[calc(1rem+env(safe-area-inset-bottom))]">
+          <div className="flex items-center justify-end gap-3 p-3 md:p-4 bg-background border rounded-xl shadow-sm sticky bottom-[calc(1rem+env(safe-area-inset-bottom))] z-10 [&>button]:flex-1 sm:[&>button]:flex-none">
             <Button
               type="button"
               variant="outline"
@@ -1110,7 +1118,7 @@ export default function EditListingPage({ params }: PageProps) {
             </Button>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

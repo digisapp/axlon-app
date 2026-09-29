@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { AdminListingCard } from '@/components/admin/AdminListingCard';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { TONE, formatEnum } from '@/components/admin/tones';
 
 const PAGE_SIZE = 50;
 const ALL_STATUSES = ['active', 'draft', 'sold', 'expired', 'deleted'] as const;
@@ -139,13 +140,13 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
   };
 
   const getStatusBadge = (status: string, isDeleted: boolean) => {
-    if (isDeleted) return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Deleted</Badge>;
+    if (isDeleted) return <Badge className={TONE.red}>Deleted</Badge>;
     switch (status) {
-      case 'active':  return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Active</Badge>;
-      case 'draft':   return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">Draft</Badge>;
-      case 'sold':    return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Sold</Badge>;
-      case 'expired': return <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100">Expired</Badge>;
-      default:        return <Badge variant="secondary">{status}</Badge>;
+      case 'active':  return <Badge className={TONE.green}>Active</Badge>;
+      case 'draft':   return <Badge className={TONE.yellow}>Draft</Badge>;
+      case 'sold':    return <Badge className={TONE.blue}>Sold</Badge>;
+      case 'expired': return <Badge className={TONE.gray}>Expired</Badge>;
+      default:        return <Badge variant="secondary">{formatEnum(status)}</Badge>;
     }
   };
 
@@ -166,9 +167,26 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
         <h1 className="text-2xl font-bold">Listing Management</h1>
         <p className="text-sm text-muted-foreground">
           {filteredTotal.toLocaleString()} listing{filteredTotal !== 1 ? 's' : ''}
-          {statusFilter ? ` — ${statusFilter}` : ''}
+          {statusFilter ? ` — ${formatEnum(statusFilter)}` : ''}
         </p>
       </div>
+
+      {userFilter && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
+          <span>
+            Showing listings from{' '}
+            <span className="font-medium">
+              {profileMap[userFilter]?.company_name || profileMap[userFilter]?.email || 'one seller'}
+            </span>
+          </span>
+          <Button variant="ghost" size="sm" asChild className="ml-auto">
+            <Link href={`/admin/listings${statusFilter ? `?status=${statusFilter}` : ''}`}>
+              <X className="w-4 h-4 mr-1" />
+              Clear filter
+            </Link>
+          </Button>
+        </div>
+      )}
 
       {/* Status Filters */}
       <div className="flex flex-wrap gap-2">
@@ -176,7 +194,7 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
           <Badge
             className={`cursor-pointer px-3 py-1 ${
               !statusFilter
-                ? 'bg-slate-900 text-white hover:bg-slate-800'
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
@@ -190,9 +208,9 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
                 statusFilter === s
                   ? s === 'deleted'
                     ? 'bg-red-700 text-white hover:bg-red-600'
-                    : 'bg-slate-900 text-white hover:bg-slate-800'
+                    : 'bg-primary text-primary-foreground hover:bg-primary/90'
                   : s === 'deleted' && statusCounts.deleted > 0
-                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                    ? `${TONE.red} hover:opacity-90`
                     : 'bg-muted text-muted-foreground hover:bg-muted/80'
               }`}
             >
@@ -231,19 +249,19 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
             Showing {offset + 1}–{Math.min(offset + PAGE_SIZE, filteredTotal)} of{' '}
             {filteredTotal.toLocaleString()}
           </p>
           <div className="flex items-center gap-2">
             {currentPage > 1 ? (
-              <Link href={buildHref(currentPage - 1, statusFilter)}>
-                <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" asChild>
+                <Link href={buildHref(currentPage - 1, statusFilter)}>
                   <ChevronLeft className="w-4 h-4 mr-1" />
                   Previous
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             ) : (
               <Button variant="outline" size="sm" disabled>
                 <ChevronLeft className="w-4 h-4 mr-1" />
@@ -254,12 +272,12 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
               Page {currentPage} of {totalPages}
             </span>
             {currentPage < totalPages ? (
-              <Link href={buildHref(currentPage + 1, statusFilter)}>
-                <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" asChild>
+                <Link href={buildHref(currentPage + 1, statusFilter)}>
                   Next
                   <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             ) : (
               <Button variant="outline" size="sm" disabled>
                 Next

@@ -24,6 +24,18 @@ import {
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { TONE } from '@/components/admin/tones';
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -58,12 +70,12 @@ interface OutreachStats {
 }
 
 const STATUS_OPTIONS = [
-  { value: 'new', label: 'New', color: 'bg-blue-100 text-blue-700' },
-  { value: 'contacted', label: 'Contacted', color: 'bg-yellow-100 text-yellow-700' },
-  { value: 'interested', label: 'Interested', color: 'bg-green-100 text-green-700' },
-  { value: 'not_interested', label: 'Not Interested', color: 'bg-gray-100 text-gray-700' },
-  { value: 'signed_up', label: 'Signed Up', color: 'bg-purple-100 text-purple-700' },
-  { value: 'archived', label: 'Archived', color: 'bg-red-100 text-red-700' },
+  { value: 'new', label: 'New', color: TONE.blue },
+  { value: 'contacted', label: 'Contacted', color: TONE.yellow },
+  { value: 'interested', label: 'Interested', color: TONE.green },
+  { value: 'not_interested', label: 'Not Interested', color: TONE.gray },
+  { value: 'signed_up', label: 'Signed Up', color: TONE.purple },
+  { value: 'archived', label: 'Archived', color: TONE.red },
 ];
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -98,6 +110,9 @@ export default function OutreachPage() {
   // Expanded rows
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  // Contacts awaiting delete confirmation (was a native window.confirm)
+  const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
+
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const fetchContacts = useCallback(async (showRefresh = false) => {
@@ -119,9 +134,12 @@ export default function OutreachPage() {
         setContacts(data.contacts || []);
         setTotal(data.total || 0);
         setStats(data.stats || null);
+      } else {
+        toast.error('Could not load contacts');
       }
     } catch (error) {
       logger.error('Error fetching outreach contacts', { error });
+      toast.error('Could not load contacts');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -166,45 +184,53 @@ export default function OutreachPage() {
         setContacts(prev =>
           prev.map(c => (c.id === id ? { ...c, status: newStatus } : c))
         );
+      } else {
+        toast.error('Could not update status');
       }
     } catch (error) {
       logger.error('Error updating status', { error });
+      toast.error('Could not update status');
     }
   };
 
-  const handleDeleteSelected = async () => {
-    if (selected.size === 0) return;
-    const confirmed = window.confirm(`Delete ${selected.size} contact(s)?`);
-    if (!confirmed) return;
+  // Runs after the AlertDialog below is confirmed
+  const confirmDelete = async () => {
+    const ids = pendingDelete;
+    setPendingDelete(null);
+    if (!ids || ids.length === 0) return;
 
     try {
-      const res = await csrfFetch('/api/admin/outreach', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: [...selected] }),
-      });
+      const res = ids.length === 1
+        ? await csrfFetch(`/api/admin/outreach/${ids[0]}`, { method: 'DELETE' })
+        : await csrfFetch('/api/admin/outreach', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids }),
+          });
       if (res.ok) {
-        setSelected(new Set());
+        toast.success(`Deleted ${ids.length} contact${ids.length !== 1 ? 's' : ''}`);
+        setSelected(prev => {
+          const next = new Set(prev);
+          ids.forEach(id => next.delete(id));
+          return next;
+        });
         setSelectAll(false);
         fetchContacts(true);
+      } else {
+        toast.error('Could not delete');
       }
     } catch (error) {
       logger.error('Error deleting contacts', { error });
+      toast.error('Could not delete');
     }
   };
 
-  const handleDeleteOne = async (id: string) => {
-    const confirmed = window.confirm('Delete this contact?');
-    if (!confirmed) return;
-
-    try {
-      const res = await csrfFetch(`/api/admin/outreach/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        fetchContacts(true);
-      }
-    } catch (error) {
-      logger.error('Error deleting contact', { error });
-    }
+  // Selection is per page — clear it when paging so a bulk delete never
+  // silently includes rows the admin can no longer see
+  const goToPage = (next: number) => {
+    setPage(next);
+    setSelected(new Set());
+    setSelectAll(false);
   };
 
   const toggleSelect = (id: string) => {
@@ -232,7 +258,7 @@ export default function OutreachPage() {
     setSourceFilter('');
     setStatusFilter('');
     setStateFilter('');
-    setPage(0);
+    goToPage(0);
   };
 
   const hasActiveFilters = search || sourceFilter || statusFilter || stateFilter;
@@ -248,11 +274,11 @@ export default function OutreachPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-            <Megaphone className="w-8 h-8" />
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Megaphone className="w-6 h-6" />
             Outreach
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             {stats?.total || 0} prospective companies from industry directories
           </p>
         </div>
@@ -267,7 +293,7 @@ export default function OutreachPage() {
             Refresh
           </Button>
           {selected.size > 0 && (
-            <Button variant="destructive" size="sm" onClick={handleDeleteSelected}>
+            <Button variant="destructive" size="sm" onClick={() => setPendingDelete([...selected])}>
               <Trash2 className="w-4 h-4 mr-2" />
               Delete ({selected.size})
             </Button>
@@ -285,21 +311,27 @@ export default function OutreachPage() {
             </CardContent>
           </Card>
           {Object.entries(stats.bySource).map(([src, count]) => (
-            <Card
+            <button
               key={src}
-              className={`cursor-pointer transition-colors ${sourceFilter === src ? 'ring-2 ring-primary' : 'hover:bg-muted/50'}`}
+              type="button"
+              aria-pressed={sourceFilter === src}
               onClick={() => {
                 setSourceFilter(sourceFilter === src ? '' : src);
-                setPage(0);
+                goToPage(0);
               }}
+              className="rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <CardContent className="p-4">
-                <div className="text-sm text-muted-foreground">
-                  {SOURCE_LABELS[src] || src}
-                </div>
-                <div className="text-2xl font-bold">{count.toLocaleString()}</div>
-              </CardContent>
-            </Card>
+              <Card
+                className={`h-full transition-colors ${sourceFilter === src ? 'ring-2 ring-primary' : 'hover:bg-muted/50'}`}
+              >
+                <CardContent className="p-4">
+                  <div className="text-sm text-muted-foreground">
+                    {SOURCE_LABELS[src] || src}
+                  </div>
+                  <div className="text-2xl font-bold">{count.toLocaleString()}</div>
+                </CardContent>
+              </Card>
+            </button>
           ))}
         </div>
       )}
@@ -309,9 +341,11 @@ export default function OutreachPage() {
         {STATUS_OPTIONS.map(opt => (
           <button
             key={opt.value}
+            type="button"
+            aria-pressed={statusFilter === opt.value}
             onClick={() => {
               setStatusFilter(statusFilter === opt.value ? '' : opt.value);
-              setPage(0);
+              goToPage(0);
             }}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
               statusFilter === opt.value
@@ -331,6 +365,7 @@ export default function OutreachPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search by name, email, city, state, phone..."
+            aria-label="Search contacts"
             className="pl-10"
             value={searchInput}
             onChange={(e) => debouncedSearch(e.target.value)}
@@ -339,7 +374,8 @@ export default function OutreachPage() {
         <div className="flex gap-2">
           <select
             value={stateFilter}
-            onChange={(e) => { setStateFilter(e.target.value); setPage(0); }}
+            onChange={(e) => { setStateFilter(e.target.value); goToPage(0); }}
+            aria-label="Filter by state"
             className="h-10 px-3 rounded-md border border-input bg-background text-base md:text-sm"
           >
             <option value="">All States</option>
@@ -357,8 +393,8 @@ export default function OutreachPage() {
       </div>
 
       {/* Results Count + Select All */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -369,7 +405,9 @@ export default function OutreachPage() {
             Select all on page
           </label>
           <span>
-            Showing {page * LIMIT + 1}–{Math.min((page + 1) * LIMIT, total)} of {total.toLocaleString()}
+            {total === 0
+              ? 'No results'
+              : `Showing ${page * LIMIT + 1}–${Math.min((page + 1) * LIMIT, total)} of ${total.toLocaleString()}`}
           </span>
         </div>
         <div className="flex gap-2">
@@ -377,7 +415,7 @@ export default function OutreachPage() {
             variant="outline"
             size="sm"
             disabled={page === 0}
-            onClick={() => setPage(p => p - 1)}
+            onClick={() => goToPage(page - 1)}
           >
             Previous
           </Button>
@@ -388,7 +426,7 @@ export default function OutreachPage() {
             variant="outline"
             size="sm"
             disabled={page >= totalPages - 1}
-            onClick={() => setPage(p => p + 1)}
+            onClick={() => goToPage(page + 1)}
           >
             Next
           </Button>
@@ -417,7 +455,7 @@ export default function OutreachPage() {
               onToggleSelect={() => toggleSelect(contact.id)}
               onToggleExpand={() => setExpandedId(expandedId === contact.id ? null : contact.id)}
               onStatusChange={(status) => handleStatusUpdate(contact.id, status)}
-              onDelete={() => handleDeleteOne(contact.id)}
+              onDelete={() => setPendingDelete([contact.id])}
             />
           ))
         )}
@@ -430,7 +468,7 @@ export default function OutreachPage() {
             variant="outline"
             size="sm"
             disabled={page === 0}
-            onClick={() => setPage(p => p - 1)}
+            onClick={() => goToPage(page - 1)}
           >
             Previous
           </Button>
@@ -441,12 +479,37 @@ export default function OutreachPage() {
             variant="outline"
             size="sm"
             disabled={page >= totalPages - 1}
-            onClick={() => setPage(p => p + 1)}
+            onClick={() => goToPage(page + 1)}
           >
             Next
           </Button>
         </div>
       )}
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {pendingDelete?.length === 1 ? 'this contact' : `${pendingDelete?.length ?? 0} contacts`}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete?.length === 1
+                ? `${contacts.find(c => c.id === pendingDelete[0])?.name ?? 'This contact'} will be removed from outreach.`
+                : 'The selected contacts will be removed from outreach.'}{' '}
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={confirmDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -475,23 +538,30 @@ function ContactRow({
   return (
     <div className={`${selected ? 'bg-primary/5' : ''}`}>
       {/* Main Row */}
-      <div className="flex items-center gap-3 p-3 hover:bg-muted/30 cursor-pointer" onClick={onToggleExpand}>
+      {/* The whole row toggles on click for mouse users; keyboard/screen-reader
+          users get the chevron button below (a role="button" row would nest the
+          checkbox, status select and delete button inside another control) */}
+      <div
+        className="flex items-center gap-3 p-3 hover:bg-muted/30 cursor-pointer"
+        onClick={onToggleExpand}
+      >
         <input
           type="checkbox"
           checked={selected}
           onChange={(e) => { e.stopPropagation(); onToggleSelect(); }}
           onClick={(e) => e.stopPropagation()}
+          aria-label={`Select ${contact.name}`}
           className="rounded border-gray-300 shrink-0"
         />
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <span className="font-medium truncate">{contact.name}</span>
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase">
               {SOURCE_LABELS[contact.source] || contact.source}
             </span>
           </div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
             {contact.city && contact.state && (
               <span className="flex items-center gap-1">
                 <MapPin className="w-3 h-3" />
@@ -511,8 +581,8 @@ function ContactRow({
               </span>
             )}
             {contact.email && (
-              <span className="flex items-center gap-1">
-                <Mail className="w-3 h-3" />
+              <span className="flex items-center gap-1 min-w-0 break-all">
+                <Mail className="w-3 h-3 shrink-0" />
                 {contact.email}
               </span>
             )}
@@ -524,7 +594,8 @@ function ContactRow({
           value={contact.status}
           onChange={(e) => { e.stopPropagation(); onStatusChange(e.target.value); }}
           onClick={(e) => e.stopPropagation()}
-          className={`text-xs px-2 py-1 rounded-full border-0 font-medium ${statusInfo?.color || 'bg-muted'}`}
+          aria-label={`Status for ${contact.name}`}
+          className={`shrink-0 text-base sm:text-xs px-2 py-1 rounded-full border-0 font-medium ${statusInfo?.color || 'bg-muted'}`}
         >
           {STATUS_OPTIONS.map(opt => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -536,20 +607,29 @@ function ContactRow({
           size="icon"
           className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          aria-label={`Delete ${contact.name}`}
         >
           <Trash2 className="w-4 h-4" />
         </Button>
 
-        {expanded ? (
-          <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
-        ) : (
-          <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-        )}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
+          aria-expanded={expanded}
+          aria-label={`${expanded ? 'Hide' : 'Show'} details for ${contact.name}`}
+          className="shrink-0 rounded text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {expanded ? (
+            <ChevronUp className="w-4 h-4" />
+          ) : (
+            <ChevronDown className="w-4 h-4" />
+          )}
+        </button>
       </div>
 
       {/* Expanded Detail */}
       {expanded && (
-        <div className="px-10 pb-4 space-y-4 bg-muted/20">
+        <div className="px-4 sm:px-10 pt-2 pb-4 space-y-4 bg-muted/20">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Company Info */}
             <div className="space-y-2">
@@ -597,7 +677,7 @@ function ContactRow({
               {contact.service_codes && contact.service_codes.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
                   {contact.service_codes.map((code, i) => (
-                    <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                    <span key={i} className={`text-[10px] px-2 py-0.5 rounded-full ${TONE.blue}`}>
                       {code}
                     </span>
                   ))}

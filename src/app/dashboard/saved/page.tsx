@@ -6,10 +6,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Heart, MapPin, ImageOff, Sparkles } from 'lucide-react';
 import { getImageSrc } from '@/lib/utils';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Saved Listings | AXLON AI',
+  title: 'Saved Listings',
   description: 'View your saved trucks, trailers, and equipment listings.',
 };
 
@@ -65,17 +66,15 @@ export default async function SavedListingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Saved Listings</h1>
-          <p className="text-muted-foreground">
-            {savedListings.length} saved listing{savedListings.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-        <Button asChild variant="outline">
-          <Link href="/search">Browse More</Link>
-        </Button>
-      </div>
+      <PageHeader
+        title="Saved Listings"
+        description={`${savedListings.length} saved listing${savedListings.length !== 1 ? 's' : ''}`}
+        actions={
+          <Button asChild variant="outline">
+            <Link href="/search">Browse More</Link>
+          </Button>
+        }
+      />
 
       {savedListings.length === 0 ? (
         <Card>
@@ -101,7 +100,7 @@ export default async function SavedListingsPage() {
             const primaryImage = listing.images?.find((img) => img.is_primary) || listing.images?.[0];
 
             return (
-              <Link key={listing.id} href={`/listing/${listing.id}`}>
+              <Link key={listing.id} href={`/listing/${listing.id}`} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full">
                   <div className="relative aspect-[4/3]">
                     {getImageSrc(primaryImage) ? (

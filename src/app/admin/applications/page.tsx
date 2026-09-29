@@ -12,6 +12,7 @@ import {
   Calendar,
   ExternalLink,
 } from 'lucide-react';
+import { TONE, formatEnum } from '@/components/admin/tones';
 
 export const metadata = { title: 'Applications | Admin' };
 
@@ -37,7 +38,7 @@ export default async function ApplicationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <ClipboardList className="w-6 h-6" />
@@ -48,7 +49,7 @@ export default async function ApplicationsPage() {
           </p>
         </div>
         <Button asChild>
-          <Link href="/transform" target="_blank">
+          <Link href="/apply" target="_blank" rel="noopener noreferrer">
             View Apply Page <ExternalLink className="w-4 h-4 ml-2" />
           </Link>
         </Button>
@@ -81,7 +82,7 @@ export default async function ApplicationsPage() {
               <ClipboardList className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
               <p className="text-muted-foreground">No applications yet.</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Applications submitted at <Link href="/apply" className="text-primary hover:underline">/apply</Link> will appear here.
+                Applications submitted at <Link href="/apply" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">/apply</Link> will appear here.
               </p>
             </div>
           ) : (
@@ -111,11 +112,11 @@ export default async function ApplicationsPage() {
                             <span className="text-sm text-muted-foreground">— {app.company}</span>
                           )}
                           <Badge variant={app.status === 'new' ? 'default' : 'secondary'} className="text-xs">
-                            {app.status || 'new'}
+                            {formatEnum(app.status || 'new')}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-4 mt-1 flex-wrap">
-                          <a href={`mailto:${app.email}`} className="text-sm text-primary hover:underline flex items-center gap-1">
+                          <a href={`mailto:${app.email}`} className="text-sm text-primary hover:underline flex items-center gap-1 break-all">
                             <Mail className="w-3 h-3" />
                             {app.email}
                           </a>
@@ -156,16 +157,16 @@ export default async function ApplicationsPage() {
                     {/* Qualification flags */}
                     <div className="flex items-center gap-2 flex-wrap">
                       {decisionMaker?.toLowerCase().startsWith('yes') && (
-                        <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">✓ Decision maker</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${TONE.emerald}`}>✓ Decision maker</span>
                       )}
                       {commitment?.toLowerCase().startsWith('yes') && (
-                        <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">✓ Open to 12-month</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${TONE.emerald}`}>✓ Open to 12-month</span>
                       )}
                       {commitment?.toLowerCase().includes('need') && (
-                        <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">~ Needs more info</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${TONE.yellow}`}>~ Needs more info</span>
                       )}
                       {decisionMaker?.toLowerCase().startsWith('no') && (
-                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">⚠ Not sole decision maker</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${TONE.orange}`}>⚠ Not sole decision maker</span>
                       )}
                     </div>
                   </div>

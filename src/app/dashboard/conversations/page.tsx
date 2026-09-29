@@ -20,6 +20,7 @@ import {
   Bot,
   AlertCircle,
 } from 'lucide-react';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Conversation {
@@ -45,6 +46,7 @@ export default function ConversationsPage() {
   const [totalConversations, setTotalConversations] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'active' | 'converted' | 'closed'>('all');
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     const checkDealerAndFetch = async () => {
@@ -58,11 +60,16 @@ export default function ConversationsPage() {
       }
 
       // Fetch conversations
-      const response = await fetch(`/api/dashboard/conversations?status=${filter}`);
-      if (response.ok) {
-        const data = await response.json();
-        setConversations(data.conversations || []);
-        setTotalConversations(data.total ?? 0);
+      try {
+        const response = await fetch(`/api/dashboard/conversations?status=${filter}`);
+        setLoadError(!response.ok);
+        if (response.ok) {
+          const data = await response.json();
+          setConversations(data.conversations || []);
+          setTotalConversations(data.total ?? 0);
+        }
+      } catch {
+        setLoadError(true);
       }
 
       setIsLoading(false);
@@ -127,52 +134,49 @@ export default function ConversationsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Chat Conversations</h1>
-        <p className="text-muted-foreground">
-          View and manage AI chat conversations from your storefront
-        </p>
-      </div>
+      <PageHeader
+        title="AI Chats"
+        description="Conversations buyers had with the AI assistant on your storefront"
+      />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 md:gap-4">
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+          <CardContent className="p-3 md:p-6">
+            <div className="flex items-center justify-between gap-2">
               <div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs md:text-sm text-muted-foreground">
                   {filter === 'all' ? 'Total Chats' : 'Matching Chats'}
                 </p>
-                <p className="text-3xl font-bold">{stats.total}</p>
+                <p className="text-xl md:text-3xl font-bold">{stats.total}</p>
               </div>
-              <MessageCircle className="w-10 h-10 text-muted-foreground/30" />
+              <MessageCircle className="hidden md:block w-10 h-10 text-muted-foreground/30" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+          <CardContent className="p-3 md:p-6">
+            <div className="flex items-center justify-between gap-2">
               <div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs md:text-sm text-muted-foreground">
                   {filter === 'active' ? 'Active Now' : 'Active Now (this page)'}
                 </p>
-                <p className="text-3xl font-bold text-green-600">{stats.active}</p>
+                <p className="text-xl md:text-3xl font-bold text-green-600 dark:text-green-400">{stats.active}</p>
               </div>
-              <Bot className="w-10 h-10 text-green-500/30" />
+              <Bot className="hidden md:block w-10 h-10 text-green-500/30" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+          <CardContent className="p-3 md:p-6">
+            <div className="flex items-center justify-between gap-2">
               <div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs md:text-sm text-muted-foreground">
                   {filter === 'converted' ? 'Leads Captured' : 'Leads Captured (this page)'}
                 </p>
-                <p className="text-3xl font-bold text-blue-600">{stats.converted}</p>
+                <p className="text-xl md:text-3xl font-bold text-blue-600 dark:text-blue-400">{stats.converted}</p>
               </div>
-              <UserCheck className="w-10 h-10 text-blue-500/30" />
+              <UserCheck className="hidden md:block w-10 h-10 text-blue-500/30" />
             </div>
           </CardContent>
         </Card>
@@ -193,17 +197,38 @@ export default function ConversationsPage() {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
+      ) : loadError ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Inbox className="w-12 h-12 text-destructive/60 mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-1">Couldn&apos;t load conversations</h3>
+            <p className="text-muted-foreground mb-4">Something went wrong. Please try again.</p>
+            <Button variant="outline" onClick={() => window.location.reload()}>Retry</Button>
+          </CardContent>
+        </Card>
       ) : conversations.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Inbox className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-1">No conversations yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Conversations will appear here when visitors chat with your AI assistant
-            </p>
-            <Link href="/dashboard/storefront">
-              <Button>Configure Chat Settings</Button>
-            </Link>
+            {filter === 'all' ? (
+              <>
+                <h3 className="text-lg font-medium mb-1">No conversations yet</h3>
+                <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                  Conversations appear here when visitors chat with the AI assistant on your storefront. Make sure AI chat is turned on.
+                </p>
+                <Button asChild>
+                  <Link href="/dashboard/storefront">Configure Chat Settings</Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-medium mb-1">
+                  No {filter === 'converted' ? 'lead-captured' : filter} conversations
+                </h3>
+                <p className="text-muted-foreground mb-4">Try another filter.</p>
+                <Button variant="outline" onClick={() => setFilter('all')}>Show all chats</Button>
+              </>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -212,20 +237,21 @@ export default function ConversationsPage() {
             <Link
               key={conversation.id}
               href={`/dashboard/conversations/${conversation.id}`}
+              className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardContent className="py-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                      <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
                         {conversation.visitor_name ? (
                           <User className="w-6 h-6 text-primary" />
                         ) : (
                           <Bot className="w-6 h-6 text-primary" />
                         )}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                           <p className="font-medium">
                             {conversation.visitor_name || 'Anonymous Visitor'}
                           </p>
@@ -249,9 +275,9 @@ export default function ConversationsPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 shrink-0">
                       {conversation.visitor_email && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs hidden lg:inline-flex">
                           {conversation.visitor_email}
                         </Badge>
                       )}

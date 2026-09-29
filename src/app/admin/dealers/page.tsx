@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Dialog,
@@ -16,19 +15,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import {
   CheckCircle,
   XCircle,
   Clock,
-  Search,
   Building2,
   Mail,
   Phone,
@@ -39,6 +30,13 @@ import {
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { TONE } from '@/components/admin/tones';
+
+const STATUS_CARDS = [
+  { key: 'pending', label: 'Pending', icon: Clock, tone: TONE.yellow },
+  { key: 'approved', label: 'Approved', icon: CheckCircle, tone: TONE.green },
+  { key: 'rejected', label: 'Rejected', icon: XCircle, tone: TONE.red },
+] as const;
 
 interface Dealer {
   id: string;
@@ -77,9 +75,12 @@ export default function AdminDealersPage() {
         const data = await response.json();
         setDealers(data.data || []);
         setCounts(data.counts || { pending: 0, approved: 0, rejected: 0 });
+      } else {
+        toast.error('Could not load businesses');
       }
     } catch (error) {
       logger.error('Error fetching dealers', { error });
+      toast.error('Could not load businesses');
     }
     setIsLoading(false);
   };
@@ -104,6 +105,9 @@ export default function AdminDealersPage() {
       });
 
       if (response.ok) {
+        toast.success(
+          `${selectedDealer.company_name || selectedDealer.email} ${actionType === 'approve' ? 'approved' : 'rejected'}`
+        );
         setSelectedDealer(null);
         setActionType(null);
         setRejectionReason('');
@@ -126,59 +130,34 @@ export default function AdminDealersPage() {
         <p className="text-sm text-muted-foreground">Review and approve business applications</p>
       </div>
 
-      {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-4">
-          <Card
-            className={`cursor-pointer transition-colors ${
-              statusFilter === 'pending' ? 'border-primary' : ''
-            }`}
-            onClick={() => setStatusFilter('pending')}
+      {/* Stats Cards — double as the status filter */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-4" role="group" aria-label="Filter by status">
+        {STATUS_CARDS.map(({ key, label, icon: Icon, tone }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setStatusFilter(key)}
+            aria-pressed={statusFilter === key}
+            className="rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="w-5 h-5 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{counts.pending}</p>
-                <p className="text-sm text-muted-foreground">Pending</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            className={`cursor-pointer transition-colors ${
-              statusFilter === 'approved' ? 'border-primary' : ''
-            }`}
-            onClick={() => setStatusFilter('approved')}
-          >
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{counts.approved}</p>
-                <p className="text-sm text-muted-foreground">Approved</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            className={`cursor-pointer transition-colors ${
-              statusFilter === 'rejected' ? 'border-primary' : ''
-            }`}
-            onClick={() => setStatusFilter('rejected')}
-          >
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <XCircle className="w-5 h-5 text-red-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{counts.rejected}</p>
-                <p className="text-sm text-muted-foreground">Rejected</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            <Card
+              className={`h-full transition-colors hover:bg-muted/50 ${
+                statusFilter === key ? 'border-primary ring-1 ring-primary' : ''
+              }`}
+            >
+              <CardContent className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4">
+                <div className={`hidden sm:block p-2 rounded-lg ${tone}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{counts[key]}</p>
+                  <p className="text-sm text-muted-foreground">{label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </button>
+        ))}
+      </div>
 
         {/* Dealers List */}
         <Card>
@@ -204,22 +183,22 @@ export default function AdminDealersPage() {
                 {dealers.map((dealer) => (
                   <div
                     key={dealer.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                   >
-                    <div className="flex items-center gap-4">
-                      <Avatar className="w-12 h-12">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <Avatar className="w-12 h-12 shrink-0">
                         <AvatarImage src={dealer.avatar_url || undefined} />
                         <AvatarFallback>
                           {(dealer.company_name || dealer.email)?.[0]?.toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
+                      <div className="min-w-0">
                         <h3 className="font-semibold">
                           {dealer.company_name || 'No Company Name'}
                         </h3>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Mail className="w-3 h-3" />
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1 min-w-0 break-all">
+                            <Mail className="w-3 h-3 shrink-0" />
                             {dealer.email}
                           </span>
                           {dealer.phone && (
@@ -243,7 +222,7 @@ export default function AdminDealersPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                       {dealer.business_license && (
                         <Badge variant="outline" className="gap-1">
                           <FileText className="w-3 h-3" />
@@ -256,7 +235,7 @@ export default function AdminDealersPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950"
                             onClick={() => {
                               setSelectedDealer(dealer);
                               setActionType('approve');
@@ -268,7 +247,7 @@ export default function AdminDealersPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                             onClick={() => {
                               setSelectedDealer(dealer);
                               setActionType('reject');
@@ -281,17 +260,21 @@ export default function AdminDealersPage() {
                       )}
 
                       {statusFilter === 'rejected' && dealer.business_rejection_reason && (
-                        <Badge variant="destructive" className="max-w-[200px] truncate">
+                        <Badge
+                          variant="destructive"
+                          className="max-w-[200px] truncate"
+                          title={dealer.business_rejection_reason}
+                        >
                           {dealer.business_rejection_reason}
                         </Badge>
                       )}
 
                       {dealer.slug && (
-                        <Link href={`/${dealer.slug}`}>
-                          <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/${dealer.slug}`} target="_blank" aria-label="View storefront">
                             <Eye className="w-4 h-4" />
-                          </Button>
-                        </Link>
+                          </Link>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -325,6 +308,7 @@ export default function AdminDealersPage() {
           {actionType === 'reject' && (
             <div className="py-4">
               <Textarea
+                aria-label="Reason for rejection"
                 placeholder="Reason for rejection..."
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
@@ -347,7 +331,7 @@ export default function AdminDealersPage() {
             <Button
               variant={actionType === 'approve' ? 'default' : 'destructive'}
               onClick={handleAction}
-              disabled={isSubmitting || (actionType === 'reject' && !rejectionReason)}
+              disabled={isSubmitting || (actionType === 'reject' && !rejectionReason.trim())}
             >
               {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {actionType === 'approve' ? 'Approve' : 'Reject'}

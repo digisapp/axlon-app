@@ -18,7 +18,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AskAxlonPage() {
+interface PageProps {
+  searchParams: Promise<{ q?: string | string[] }>;
+}
+
+export default async function AskAxlonPage({ searchParams }: PageProps) {
+  // Links like the new-trailers "Ask AXLON About This Trailer" button arrive
+  // with ?q=<question>. Read it on the server (no useSearchParams / Suspense
+  // boundary needed) and prefill the box — never auto-submit.
+  const { q } = await searchParams;
+  const initialQuery = (Array.isArray(q) ? q[0] : q)?.trim().slice(0, 500) ?? '';
+
   return (
     <main className="relative flex min-h-[100dvh] flex-col items-center justify-start bg-white px-4 pt-[18dvh] dark:bg-zinc-950">
       {/* Subtle radial glow behind the mascot */}
@@ -27,7 +37,7 @@ export default function AskAxlonPage() {
         className="pointer-events-none absolute inset-x-0 top-0 h-[60dvh] bg-[radial-gradient(ellipse_at_top,theme(colors.primary/12%),transparent_65%)]"
       />
 
-      <AskAxlonHero />
+      <AskAxlonHero initialQuery={initialQuery} />
 
       <footer className="mt-auto flex flex-col items-center gap-1 px-4 pt-10 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-center">
         <a

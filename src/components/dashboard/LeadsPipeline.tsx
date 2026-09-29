@@ -24,11 +24,11 @@ interface LeadsPipelineProps {
 
 export function LeadsPipeline({ pipeline }: LeadsPipelineProps) {
   const stages: PipelineStage[] = [
-    { key: 'new', label: 'New', count: pipeline.new, color: 'text-blue-600', bgColor: 'bg-blue-500' },
-    { key: 'contacted', label: 'Contacted', count: pipeline.contacted, color: 'text-amber-600', bgColor: 'bg-amber-500' },
-    { key: 'qualified', label: 'Qualified', count: pipeline.qualified, color: 'text-purple-600', bgColor: 'bg-purple-500' },
-    { key: 'won', label: 'Won', count: pipeline.won, color: 'text-emerald-600', bgColor: 'bg-emerald-500' },
-    { key: 'lost', label: 'Lost', count: pipeline.lost, color: 'text-slate-500', bgColor: 'bg-slate-400' },
+    { key: 'new', label: 'New', count: pipeline.new, color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-500' },
+    { key: 'contacted', label: 'Contacted', count: pipeline.contacted, color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-500' },
+    { key: 'qualified', label: 'Qualified', count: pipeline.qualified, color: 'text-purple-600 dark:text-purple-400', bgColor: 'bg-purple-500' },
+    { key: 'won', label: 'Won', count: pipeline.won, color: 'text-emerald-600 dark:text-emerald-400', bgColor: 'bg-emerald-500' },
+    { key: 'lost', label: 'Lost', count: pipeline.lost, color: 'text-slate-500 dark:text-slate-400', bgColor: 'bg-slate-400' },
   ];
 
   const totalActive = pipeline.new + pipeline.contacted + pipeline.qualified;

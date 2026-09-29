@@ -21,6 +21,8 @@ import {
 import Link from 'next/link';
 import { ManageBillingButton } from '@/components/dashboard/ManageBillingButton';
 import { CheckoutButton } from '@/components/dashboard/CheckoutButton';
+import { PageHeader } from '@/components/dashboard/PageHeader';
+import { getEffectiveTier, TRIAL_DAYS } from '@/lib/plans';
 
 // Self-serve Stripe Checkout is gated behind this flag. Off by default: plan
 // CTAs keep routing to /contact (sales) until Stripe is configured + tested and
@@ -84,7 +86,7 @@ export default async function BillingPage({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('subscription_tier, company_name')
+    .select('subscription_tier, company_name, created_at')
     .eq('id', user.id)
     .single();
 
@@ -100,6 +102,12 @@ export default async function BillingPage({
     .eq('user_id', user.id);
 
   const currentTier = profile?.subscription_tier || 'free';
+  // Free accounts get every Platform feature for their first TRIAL_DAYS — say
+  // so here, or "Free" reads as if the AI tools they're using are already gone.
+  const onTrial = currentTier === 'free' && getEffectiveTier(currentTier, profile?.created_at) !== 'free';
+  const trialDaysLeft = onTrial && profile?.created_at
+    ? Math.max(0, Math.ceil((new Date(profile.created_at).getTime() + TRIAL_DAYS * 86_400_000 - new Date().getTime()) / 86_400_000))
+    : 0;
   const isPro = currentTier === 'pro' || currentTier === 'enterprise';
   const hasVoice = voiceAgent?.is_active;
   const voiceMinutesUsed = voiceAgent?.minutes_used || 0;
@@ -108,14 +116,14 @@ export default async function BillingPage({
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold">Plans & Billing</h1>
-        <p className="text-muted-foreground mt-1">Manage your subscription and usage</p>
-      </div>
+      <PageHeader
+        title="Plans & Billing"
+        description="Manage your subscription and usage"
+      />
 
       {checkout === 'success' && (
         <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-4 text-sm">
-          <p className="font-medium text-green-600">Payment received — thank you!</p>
+          <p className="font-medium text-green-600 dark:text-green-400">Payment received — thank you!</p>
           <p className="text-muted-foreground mt-1">
             Your plan is being activated. If it doesn&apos;t show as active within a
             minute, refresh this page.
@@ -131,14 +139,16 @@ export default async function BillingPage({
       {/* Current Plan */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between gap-3">
             <div>
               <CardTitle className="flex items-center gap-2">
                 Current Plan
                 {isPro && <Crown className="w-5 h-5 text-primary" />}
               </CardTitle>
               <CardDescription>
-                {currentTier === 'free' && 'Marketplace — free forever'}
+                {currentTier === 'free' && (onTrial
+                  ? `Marketplace — free forever · Platform trial: ${trialDaysLeft} day${trialDaysLeft !== 1 ? 's' : ''} left`
+                  : 'Marketplace — free forever')}
                 {currentTier === 'pro' && 'AXLON Platform — $499/month'}
                 {currentTier === 'enterprise' && 'AI Transformation Program'}
               </CardDescription>
@@ -153,7 +163,7 @@ export default async function BillingPage({
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
                 <Package className="w-4 h-4 text-muted-foreground" />
-                <span>Active Listings</span>
+                <span>Listings</span>
               </div>
               <span className="font-medium">{listingCount || 0} / ∞</span>
             </div>
@@ -169,7 +179,7 @@ export default async function BillingPage({
                 </div>
                 <Progress value={voicePercentage} className="h-2" />
                 {voicePercentage >= 80 && (
-                  <p className="text-xs text-amber-600">Approaching limit — overage at $0.25/min</p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400">Approaching limit — overage at $0.25/min</p>
                 )}
               </div>
             )}
@@ -343,10 +353,10 @@ export default async function BillingPage({
           {/* AI Transformation */}
           <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent">
             <CardHeader>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Building2 className="w-5 h-5 text-amber-600" />
                 <CardTitle>AI Transformation Program</CardTitle>
-                <Badge className="bg-amber-600 text-white ml-2">By Application</Badge>
+                <Badge className="bg-amber-600 text-white">By Application</Badge>
               </div>
               <CardDescription>
                 We build, configure, and run your entire AI operation — you focus on selling.

@@ -26,6 +26,8 @@ export function AdminSidebar({ sections }: AdminSidebarProps) {
   return (
     <TooltipProvider delayDuration={0}>
       <aside
+        // The layout's content column reads this to match its left padding.
+        data-collapsed={collapsed}
         className={cn(
           'fixed left-0 top-0 z-40 h-screen bg-background border-r transition-all duration-300 flex flex-col',
           collapsed ? 'w-16' : 'w-64'
@@ -75,6 +77,8 @@ export function AdminSidebar({ sections }: AdminSidebarProps) {
                     <Link
                       key={item.href}
                       href={item.href}
+                      // Non-admin entries (e.g. "Transform Page ↗") are public pages — open them beside the admin
+                      target={item.href.startsWith('/admin') ? undefined : '_blank'}
                       className={cn(
                         'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors relative text-sm',
                         isActive

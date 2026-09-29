@@ -42,23 +42,25 @@ function UnsubscribeContent() {
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
         {status === 'success' ? (
-          <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+          <CheckCircle aria-hidden="true" className="w-12 h-12 text-green-500 mx-auto mb-4" />
         ) : status === 'invalid' ? (
-          <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+          <AlertCircle aria-hidden="true" className="w-12 h-12 text-amber-500 mx-auto mb-4" />
         ) : (
-          <MailX className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <MailX aria-hidden="true" className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
         )}
-        <CardTitle>
-          {status === 'success'
-            ? 'Unsubscribed'
-            : status === 'invalid'
-              ? 'Invalid unsubscribe link'
-              : 'Unsubscribe from emails'}
+        <CardTitle className="text-xl">
+          <h1>
+            {status === 'success'
+              ? 'Unsubscribed'
+              : status === 'invalid'
+                ? 'Invalid unsubscribe link'
+                : 'Unsubscribe from emails'}
+          </h1>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {status === 'success' ? (
-          <p className="text-center text-muted-foreground">
+          <p role="status" className="text-center text-muted-foreground">
             You have been unsubscribed. You will no longer receive market reports
             or follow-up emails from Axleyard.
           </p>
@@ -66,7 +68,7 @@ function UnsubscribeContent() {
           <p className="text-center text-sm text-muted-foreground">
             This unsubscribe link is missing or has an invalid token. Please use
             the unsubscribe link from a recent Axleyard email, or contact{' '}
-            <a href="mailto:sales@axlon.ai" className="underline">
+            <a href="mailto:sales@axlon.ai" className="underline hover:text-foreground">
               sales@axlon.ai
             </a>{' '}
             and we&apos;ll remove you manually.
@@ -78,7 +80,7 @@ function UnsubscribeContent() {
               from all Axleyard automated emails?
             </p>
             <Button
-              className="w-full"
+              className="w-full h-11"
               onClick={handleUnsubscribe}
               disabled={status === 'loading'}
             >
@@ -86,8 +88,9 @@ function UnsubscribeContent() {
               Unsubscribe
             </Button>
             {status === 'error' && (
-              <p className="text-sm text-red-500 text-center">
-                Something went wrong. Please try again or contact support.
+              <p role="alert" className="text-sm text-destructive text-center">
+                Something went wrong. Please try again or email{' '}
+                <a href="mailto:sales@axlon.ai" className="underline">sales@axlon.ai</a>.
               </p>
             )}
           </div>

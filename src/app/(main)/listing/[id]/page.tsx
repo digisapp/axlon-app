@@ -21,6 +21,10 @@ import {
   Check,
   AlertCircle,
   Store,
+  Factory,
+  Tag,
+  Clock,
+  BadgeCheck,
 } from 'lucide-react';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { FavoriteButton } from '@/components/listings/FavoriteButton';
@@ -352,6 +356,16 @@ export default async function ListingPage({ params }: PageProps) {
     imageUrl: primaryImage?.url || null,
   };
 
+  // Scraped specs can carry null/blank/nested values — never print "null"
+  // or "[object Object]" as a spec.
+  const specEntries = Object.entries((listing.specs ?? {}) as Record<string, unknown>).filter(
+    ([, value]) =>
+      value !== null &&
+      value !== undefined &&
+      typeof value !== 'object' &&
+      String(value).trim() !== ''
+  );
+
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com';
   const listingUrl = `${baseUrl}/listing/${id}`;
 
@@ -451,14 +465,14 @@ export default async function ListingPage({ params }: PageProps) {
                     {listing.make && <span>{listing.make}</span>}
                     {listing.model && <span>{listing.model}</span>}
                     {listing.condition && (
-                      <Badge variant="outline" className="capitalize text-xs">
-                        {listing.condition}
+                      <Badge variant="outline" className="text-xs">
+                        {formatCondition(listing.condition)}
                       </Badge>
                     )}
                   </div>
                 </div>
-                <div className="md:text-right">
-                  <p className="text-2xl md:text-3xl font-bold text-primary">
+                <div className="md:text-right md:shrink-0">
+                  <p className="text-2xl md:text-3xl font-bold text-primary whitespace-nowrap">
                     {listing.price ? `$${listing.price.toLocaleString()}` : 'Call for Price'}
                   </p>
                   {listing.price_type === 'negotiable' && (
@@ -470,14 +484,14 @@ export default async function ListingPage({ params }: PageProps) {
 
             {/* AI Price Analysis */}
             {listing.ai_price_estimate && (
-              <Card className="border-primary/20 bg-primary/5">
+              <Card className="py-0 border-primary/20 bg-primary/5">
                 <CardContent className="p-3 md:p-4">
                   <div className="flex items-start gap-3">
                     <div className="p-1.5 md:p-2 bg-primary/10 rounded-lg flex-shrink-0">
                       <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-sm md:text-base">Axlon&apos;s Price Analysis</h3>
+                      <h3 className="font-semibold text-sm md:text-base">AXLON&apos;s Price Analysis</h3>
                       <p className="text-xs md:text-sm text-muted-foreground mt-1">
                         Estimated market value:{' '}
                         <strong>${listing.ai_price_estimate.toLocaleString()}</strong>
@@ -513,8 +527,8 @@ export default async function ListingPage({ params }: PageProps) {
             )}
 
             {/* Details */}
-            <Card>
-              <CardHeader className="pb-2 md:pb-4">
+            <Card className="gap-3 md:gap-4">
+              <CardHeader className="gap-0">
                 <CardTitle className="text-base md:text-lg">Details</CardTitle>
               </CardHeader>
               <CardContent>
@@ -523,10 +537,10 @@ export default async function ListingPage({ params }: PageProps) {
                     <DetailRow icon={<Calendar className="w-4 h-4" />} label="Year" value={listing.year} />
                   )}
                   {listing.make && (
-                    <DetailRow icon={null} label="Make" value={listing.make} />
+                    <DetailRow icon={<Factory className="w-4 h-4" />} label="Make" value={listing.make} />
                   )}
                   {listing.model && (
-                    <DetailRow icon={null} label="Model" value={listing.model} />
+                    <DetailRow icon={<Tag className="w-4 h-4" />} label="Model" value={listing.model} />
                   )}
                   {listing.mileage && (
                     <DetailRow
@@ -536,13 +550,17 @@ export default async function ListingPage({ params }: PageProps) {
                     />
                   )}
                   {listing.hours && (
-                    <DetailRow icon={null} label="Hours" value={listing.hours.toLocaleString()} />
+                    <DetailRow icon={<Clock className="w-4 h-4" />} label="Hours" value={listing.hours.toLocaleString()} />
                   )}
                   {listing.vin && (
                     <DetailRow icon={<Shield className="w-4 h-4" />} label="VIN" value={listing.vin} />
                   )}
                   {listing.condition && (
-                    <DetailRow icon={null} label="Condition" value={listing.condition} />
+                    <DetailRow
+                      icon={<BadgeCheck className="w-4 h-4" />}
+                      label="Condition"
+                      value={formatCondition(listing.condition)}
+                    />
                   )}
                   {(listing.city || listing.state) && (
                     <DetailRow
@@ -556,14 +574,14 @@ export default async function ListingPage({ params }: PageProps) {
             </Card>
 
             {/* Specifications */}
-            {listing.specs && Object.keys(listing.specs).length > 0 && (
-              <Card>
-                <CardHeader className="pb-2 md:pb-4">
+            {specEntries.length > 0 && (
+              <Card className="gap-3 md:gap-4">
+                <CardHeader className="gap-0">
                   <CardTitle className="text-base md:text-lg">Specifications</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-3 md:gap-4">
-                    {Object.entries(listing.specs).map(([key, value]) => (
+                    {specEntries.map(([key, value]) => (
                       <DetailRow
                         key={key}
                         icon={null}
@@ -578,8 +596,8 @@ export default async function ListingPage({ params }: PageProps) {
 
             {/* Description */}
             {listing.description && (
-              <Card>
-                <CardHeader className="pb-2 md:pb-4">
+              <Card className="gap-3 md:gap-4">
+                <CardHeader className="gap-0">
                   <CardTitle className="text-base md:text-lg">Description</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -617,7 +635,7 @@ export default async function ListingPage({ params }: PageProps) {
 
             {/* Claim CTA for the dealer whose inventory this is */}
             {unclaimedSourceName && (
-              <Card className="border-dashed">
+              <Card className="py-0 border-dashed">
                 <CardContent className="p-4 flex items-start gap-3">
                   <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0">
                     <Store className="w-4 h-4 text-primary" />
@@ -649,7 +667,7 @@ export default async function ListingPage({ params }: PageProps) {
             )}
 
             {/* Quick Stats */}
-            <Card>
+            <Card className="py-0">
               <CardContent className="p-4">
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div>
@@ -697,6 +715,12 @@ export default async function ListingPage({ params }: PageProps) {
       <MobileContactCTA phone={seller?.phone || null} />
     </div>
   );
+}
+
+// Stored as lowercase enums ("used", "like_new") — show them as words.
+function formatCondition(condition: string): string {
+  const words = condition.replace(/[_-]+/g, ' ').trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 function DetailRow({

@@ -171,7 +171,7 @@ export function LeadKanban({ leads: initialLeads, teamMembers = [], currentUserI
             </div>
 
             <div
-              className={`space-y-3 min-h-[200px] p-2 rounded-lg ${
+              className={`space-y-3 md:min-h-[200px] p-2 rounded-lg ${
                 highlightStatus === column.id
                   ? 'bg-primary/5 ring-2 ring-primary/40'
                   : 'bg-muted/30'
@@ -188,8 +188,8 @@ export function LeadKanban({ leads: initialLeads, teamMembers = [], currentUserI
               ))}
 
               {getLeadsByStatus(column.id).length === 0 && (
-                <div className="text-center py-8 text-sm text-muted-foreground">
-                  No leads
+                <div className="text-center py-3 md:py-8 text-sm text-muted-foreground">
+                  No {column.label.toLowerCase()} leads
                 </div>
               )}
             </div>

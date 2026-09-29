@@ -32,7 +32,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
 
   return (
     <Link href={`/new-trailers/${product.manufacturer?.slug}/${product.slug}`} className={cn('block', className)}>
-      <Card className="h-full overflow-hidden hover:shadow-lg transition-all duration-300 hover:border-primary/30 group cursor-pointer">
+      <Card className="h-full overflow-hidden py-0 gap-0 hover:shadow-lg transition-all duration-300 hover:border-primary/30 group cursor-pointer">
         <div className="aspect-[4/3] relative bg-muted">
           {primaryImage && !hasError ? (
             <Image
@@ -50,14 +50,14 @@ export function ProductCard({ product, className }: ProductCardProps) {
             </div>
           )}
           {product.manufacturer?.name && (
-            <Badge variant="secondary" className="absolute top-2 left-2 bg-background/90 backdrop-blur-sm text-xs">
+            <Badge variant="secondary" className="absolute top-2 left-2 bg-background/90 text-foreground backdrop-blur-sm text-xs">
               {product.manufacturer.name}
             </Badge>
           )}
         </div>
 
         <CardContent className="p-4">
-          <h3 className="font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+          <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors" title={product.name}>
             {product.name}
           </h3>
           {product.series && (

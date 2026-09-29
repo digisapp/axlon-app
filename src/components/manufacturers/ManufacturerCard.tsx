@@ -32,14 +32,16 @@ export function ManufacturerCard({
   featured?: boolean;
 }) {
   return (
-    <Link href={`/manufacturers/${manufacturer.slug}`} className="group">
-      <div className={`h-full bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 ${
+    <Link href={`/manufacturers/${manufacturer.slug}`} className="group block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+      {/* flex-col + flex-1 body pins the footer to the bottom so footers line
+          up across a grid row whatever the description/details length. */}
+      <div className={`h-full flex flex-col bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 ${
         featured
           ? 'border-amber-300 dark:border-amber-700 hover:border-amber-400'
           : 'border-slate-200 dark:border-zinc-700 hover:border-slate-300 dark:hover:border-zinc-500'
       }`}>
         {/* Manufacturer Header */}
-        <div className="p-5">
+        <div className="flex-1 p-4 sm:p-5">
           <div className="flex items-start gap-4">
             {/* Logo */}
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md ${
@@ -48,7 +50,7 @@ export function ManufacturerCard({
               {manufacturer.logo_url ? (
                 <Image
                   src={manufacturer.logo_url}
-                  alt={manufacturer.name}
+                  alt={`${manufacturer.name} logo`}
                   width={56}
                   height={56}
                   className="object-contain"
@@ -106,7 +108,7 @@ export function ManufacturerCard({
               </span>
             )}
             {manufacturer.has_website && (
-              <span className="flex items-center gap-1.5">
+              <span className="hidden sm:flex items-center gap-1.5">
                 <Globe className="w-3.5 h-3.5" />
                 Website
               </span>
@@ -115,7 +117,7 @@ export function ManufacturerCard({
         </div>
 
         {/* Footer */}
-        <div className={`px-5 py-3 border-t flex items-center justify-between ${
+        <div className={`px-4 sm:px-5 py-3 border-t flex items-center justify-between ${
           featured
             ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/50'
             : 'bg-slate-50 dark:bg-zinc-800/50 border-slate-100 dark:border-zinc-800'
@@ -127,7 +129,9 @@ export function ManufacturerCard({
               <Truck className="w-3.5 h-3.5 text-white" />
             </div>
             <span className="text-sm font-medium text-slate-700 dark:text-zinc-300">
-              {manufacturer.listing_count} listings
+              {manufacturer.listing_count === 0
+                ? 'No listings yet'
+                : `${manufacturer.listing_count} ${manufacturer.listing_count === 1 ? 'listing' : 'listings'}`}
             </span>
           </div>
           <span className={`text-sm font-medium flex items-center gap-1 transition-colors ${

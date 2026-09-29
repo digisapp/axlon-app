@@ -295,7 +295,7 @@ export function VideoUpload({ value, onChange, listingId }: VideoUploadProps) {
           <button
             type="button"
             onClick={handleRemove}
-            className="absolute top-2 right-2 p-1.5 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
+            className="absolute top-2 right-2 p-1.5 bg-destructive text-white rounded-full hover:bg-destructive/90"
           >
             <X className="w-4 h-4" />
           </button>

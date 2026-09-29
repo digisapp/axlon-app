@@ -64,8 +64,12 @@ export function CompareBar() {
   const mobileLabel = ready ? `Compare (${listings.length})` : 'Add 1 more';
 
   return (
-    // Sits on top of whatever bottom bar the page has (nav or contact bar)
-    // instead of covering it — the listing page's Call/Contact CTA stays usable.
+    <>
+    {/* In-flow spacer (this renders after the page) so the bar never covers
+        the end of the page — footer included — like MobileBottomNav's. */}
+    <div aria-hidden="true" style={{ height: 'var(--compare-bar-h, 0px)' }} />
+    {/* Sits on top of whatever bottom bar the page has (nav or contact bar)
+        instead of covering it — the listing page's Call/Contact CTA stays usable. */}
     <div
       ref={barRef}
       data-bottom-bar
@@ -110,5 +114,6 @@ export function CompareBar() {
         </div>
       </div>
     </div>
+    </>
   );
 }

@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Mail, Lock, Building2, ArrowLeft, Check, Package, BarChart3, Users } from 'lucide-react';
+import { Loader2, Mail, Building2, ArrowLeft, Check, Package, BarChart3, Users } from 'lucide-react';
+import { PasswordInput } from '../_components/PasswordInput';
 import { csrfFetch } from '@/lib/csrf-fetch';
 
 export default function SignupPage() {
@@ -23,6 +24,7 @@ export default function SignupPage() {
     rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') && !rawRedirect.startsWith('/\\')
       ? rawRedirect
       : '';
+  const loginHref = redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -80,14 +82,20 @@ export default function SignupPage() {
 
   const handleGoogleSignup = async () => {
     setIsLoading(true);
+    setError('');
     const supabase = createClient();
 
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`,
       },
     });
+    // On success the browser navigates away; only a failure returns here.
+    if (error) {
+      setError('Could not start Google sign-up. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   if (success) {
@@ -96,17 +104,19 @@ export default function SignupPage() {
         <Card className="w-full max-w-md text-center">
           <CardHeader>
             <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8 text-green-600" />
+              <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
             </div>
-            <CardTitle>Check Your Email</CardTitle>
+            <CardTitle className="text-xl">
+              <h1>Check Your Email</h1>
+            </CardTitle>
             <CardDescription>
               We&apos;ve sent a confirmation link to <strong>{formData.email}</strong>.
               Click the link to activate your account.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild className="w-full">
-              <Link href="/login">Go to Login</Link>
+            <Button asChild className="w-full h-12 md:h-12 text-base">
+              <Link href={loginHref}>Go to Login</Link>
             </Button>
           </CardContent>
         </Card>
@@ -118,7 +128,7 @@ export default function SignupPage() {
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/30">
       <Link
         href="/"
-        className="absolute top-4 left-4 -m-2.5 p-2.5 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+        className="self-start -ml-2.5 mb-2 p-2.5 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors sm:absolute sm:top-1.5 sm:left-1.5 sm:m-0"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Home
@@ -129,13 +139,15 @@ export default function SignupPage() {
           <Link href="/" className="flex justify-center mb-4">
             <Image
               src="/images/axlonai-logo.png"
-              alt="Axleyard"
+              alt="Axleyard home"
               width={120}
               height={80}
               className="dark:brightness-110"
             />
           </Link>
-          <CardTitle>Create Your Account</CardTitle>
+          <CardTitle className="text-xl">
+            <h1>Create Your Account</h1>
+          </CardTitle>
           <CardDescription>
             AI-powered tools for the heavy equipment industry
           </CardDescription>
@@ -146,21 +158,21 @@ export default function SignupPage() {
           <div className="grid grid-cols-3 gap-2 mb-6 text-center">
             <div className="p-2 rounded-lg bg-muted/50">
               <Package className="w-4 h-4 mx-auto mb-1 text-primary" />
-              <span className="text-xs text-muted-foreground">List Equipment</span>
+              <span className="block text-xs leading-tight text-muted-foreground">List Equipment</span>
             </div>
             <div className="p-2 rounded-lg bg-muted/50">
               <Users className="w-4 h-4 mx-auto mb-1 text-green-500" />
-              <span className="text-xs text-muted-foreground">Get Leads</span>
+              <span className="block text-xs leading-tight text-muted-foreground">Get Leads</span>
             </div>
             <div className="p-2 rounded-lg bg-muted/50">
               <BarChart3 className="w-4 h-4 mx-auto mb-1 text-blue-500" />
-              <span className="text-xs text-muted-foreground">Track Sales</span>
+              <span className="block text-xs leading-tight text-muted-foreground">Track Sales</span>
             </div>
           </div>
 
           <form onSubmit={handleSignup} className="space-y-4">
             {error && (
-              <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
+              <div role="alert" className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
                 {error}
               </div>
             )}
@@ -176,7 +188,7 @@ export default function SignupPage() {
                   placeholder="Your company name"
                   value={formData.companyName}
                   onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                  className="pl-11 h-12 text-base"
+                  className="pl-11 h-12 md:h-12 text-base md:text-base"
                   required
                 />
               </div>
@@ -194,7 +206,7 @@ export default function SignupPage() {
                   placeholder="you@company.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="pl-11 h-12 text-base"
+                  className="pl-11 h-12 md:h-12 text-base md:text-base"
                   required
                 />
               </div>
@@ -202,41 +214,32 @@ export default function SignupPage() {
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-base">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="At least 8 characters"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="pl-11 h-12 text-base"
-                  required
-                />
-              </div>
+              <PasswordInput
+                id="password"
+                autoComplete="new-password"
+                placeholder="At least 8 characters"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
+                minLength={8}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword" className="text-base">Confirm Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  placeholder="Confirm your password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="pl-11 h-12 text-base"
-                  required
-                />
-              </div>
+              <PasswordInput
+                id="confirmPassword"
+                autoComplete="new-password"
+                placeholder="Confirm your password"
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                required
+              />
             </div>
 
-            <Button type="submit" className="w-full h-12 text-base" disabled={isLoading}>
+            <Button type="submit" className="w-full h-12 md:h-12 text-base" disabled={isLoading}>
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Create Account
+              {isLoading ? 'Creating account…' : 'Create Account'}
             </Button>
           </form>
 
@@ -253,11 +256,11 @@ export default function SignupPage() {
 
           <Button
             variant="outline"
-            className="w-full"
+            className="w-full h-12 md:h-12 text-base"
             onClick={handleGoogleSignup}
             disabled={isLoading}
           >
-            <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 fill="currentColor"
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -293,7 +296,7 @@ export default function SignupPage() {
         <CardFooter className="flex justify-center">
           <p className="text-sm text-muted-foreground">
             Already have an account?{' '}
-            <Link href="/login" className="text-primary hover:underline">
+            <Link href={loginHref} className="text-primary hover:underline">
               Sign in
             </Link>
           </p>

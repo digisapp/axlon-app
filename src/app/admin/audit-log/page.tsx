@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { ChevronLeft, ChevronRight, Shield, Search, X } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { TONE } from '@/components/admin/tones';
 
 interface AuditEntry {
   id: string;
@@ -30,17 +31,17 @@ interface AuditEntry {
 }
 
 const ACTION_COLORS: Record<string, string> = {
-  approve_dealer:      'bg-green-100 text-green-700',
-  reject_dealer:       'bg-red-100 text-red-700',
-  suspend_user:        'bg-orange-100 text-orange-700',
-  unsuspend_user:      'bg-blue-100 text-blue-700',
-  make_admin:          'bg-purple-100 text-purple-700',
-  remove_admin:        'bg-gray-100 text-gray-700',
-  restore_listing:     'bg-teal-100 text-teal-700',
-  hard_delete_listing: 'bg-red-100 text-red-700',
-  create_manufacturer: 'bg-green-100 text-green-700',
-  update_manufacturer: 'bg-yellow-100 text-yellow-700',
-  delete_manufacturer: 'bg-red-100 text-red-700',
+  approve_dealer:      TONE.green,
+  reject_dealer:       TONE.red,
+  suspend_user:        TONE.orange,
+  unsuspend_user:      TONE.blue,
+  make_admin:          TONE.purple,
+  remove_admin:        TONE.gray,
+  restore_listing:     TONE.teal,
+  hard_delete_listing: TONE.red,
+  create_manufacturer: TONE.green,
+  update_manufacturer: TONE.yellow,
+  delete_manufacturer: TONE.red,
 };
 
 function actionLabel(action: string) {
@@ -77,6 +78,7 @@ export default function AuditLogPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const [actionFilter, setActionFilter] = useState('');
   const [targetFilter, setTargetFilter] = useState('');
@@ -90,6 +92,7 @@ export default function AuditLogPage() {
   const fetchLog = useCallback(async () => {
     const id = ++requestId.current;
     setIsLoading(true);
+    setLoadError(false);
     try {
       const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
       if (actionFilter) params.set('action', actionFilter);
@@ -117,7 +120,10 @@ export default function AuditLogPage() {
       setTotal(data.total || 0);
       setTotalPages(data.total_pages || 1);
     } catch (err) {
-      if (id === requestId.current) logger.error('Audit log fetch error', { error: err });
+      if (id === requestId.current) {
+        logger.error('Audit log fetch error', { error: err });
+        setLoadError(true);
+      }
     } finally {
       if (id === requestId.current) setIsLoading(false);
     }
@@ -126,6 +132,12 @@ export default function AuditLogPage() {
   useEffect(() => {
     fetchLog();
   }, [fetchLog]);
+
+  // Search follows the box once typing pauses (Enter still applies it at once)
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput.trim()), 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -154,21 +166,22 @@ export default function AuditLogPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
-        <div className="relative">
+        <div className="relative w-full sm:w-64">
           <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
           <Input
-            className="pl-8 w-64"
-            placeholder="Search admin, details, ID…"
+            className="pl-8 w-full"
+            aria-label="Search this page of the audit log"
+            placeholder="Filter this page: admin, details, ID…"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') setSearch(searchInput);
+              if (e.key === 'Enter') setSearch(searchInput.trim());
             }}
           />
         </div>
 
         <Select value={actionFilter || 'all'} onValueChange={(v) => setActionFilter(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-52">
+          <SelectTrigger className="w-52" aria-label="Filter by action">
             <SelectValue placeholder="All actions" />
           </SelectTrigger>
           <SelectContent>
@@ -180,7 +193,7 @@ export default function AuditLogPage() {
         </Select>
 
         <Select value={targetFilter || 'all'} onValueChange={(v) => setTargetFilter(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-40" aria-label="Filter by target">
             <SelectValue placeholder="All targets" />
           </SelectTrigger>
           <SelectContent>
@@ -207,17 +220,26 @@ export default function AuditLogPage() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="py-16 text-center text-muted-foreground text-sm">Loading…</div>
+          ) : loadError ? (
+            <div className="py-16 text-center text-sm">
+              <p className="text-destructive">Could not load the audit log.</p>
+              <Button variant="outline" size="sm" className="mt-3" onClick={fetchLog}>
+                Try again
+              </Button>
+            </div>
           ) : entries.length === 0 ? (
-            <div className="py-16 text-center text-muted-foreground text-sm">No entries found</div>
+            <div className="py-16 text-center text-muted-foreground text-sm">
+              {hasFilters ? 'No entries match these filters' : 'No admin actions logged yet'}
+            </div>
           ) : (
             <div className="divide-y">
               {entries.map((entry) => (
                 <div key={entry.id} className="px-6 py-4 hover:bg-muted/30 transition-colors">
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge
-                          className={`text-xs font-medium ${ACTION_COLORS[entry.action] ?? 'bg-muted text-muted-foreground'} hover:${ACTION_COLORS[entry.action] ?? ''}`}
+                          className={`text-xs font-medium ${ACTION_COLORS[entry.action] ?? 'bg-muted text-muted-foreground'}`}
                         >
                           {actionLabel(entry.action)}
                         </Badge>
@@ -232,7 +254,7 @@ export default function AuditLogPage() {
                       <DetailsSummary details={entry.details} />
                     </div>
 
-                    <div className="flex-shrink-0 text-right">
+                    <div className="flex-shrink-0 sm:text-right">
                       <p className="text-sm font-medium">
                         {entry.admin?.company_name || entry.admin?.email || 'Unknown admin'}
                       </p>
@@ -256,7 +278,7 @@ export default function AuditLogPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
             Page {page} of {totalPages} — {total.toLocaleString()} total
           </p>

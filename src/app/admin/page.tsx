@@ -14,6 +14,7 @@ import {
   ArrowUpRight,
   ArrowRight,
 } from 'lucide-react';
+import { TONE, formatEnum } from '@/components/admin/tones';
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
@@ -66,13 +67,18 @@ export default async function AdminDashboardPage() {
   // Action items that need attention
   // Static class strings — Tailwind can't generate interpolated `bg-${color}-100`
   const actionItems = [
-    { label: 'Pending Businesses', count: pendingBusinesses || 0, href: '/admin/dealers', colorClass: 'bg-yellow-100', icon: <Building2 className="w-5 h-5" /> },
-    { label: 'New Leads', count: newLeads || 0, href: '/admin/leads', colorClass: 'bg-green-100', icon: <PhoneCall className="w-5 h-5" /> },
-    { label: 'Pending Trade-Ins', count: pendingTradeIns || 0, href: '/admin/trade-ins', colorClass: 'bg-amber-100', icon: <ArrowUpRight className="w-5 h-5" /> },
+    { label: 'Pending Businesses', count: pendingBusinesses || 0, href: '/admin/dealers', colorClass: TONE.yellow, icon: <Building2 className="w-5 h-5" /> },
+    { label: 'New Leads', count: newLeads || 0, href: '/admin/leads?status=new', colorClass: TONE.green, icon: <PhoneCall className="w-5 h-5" /> },
+    { label: 'Pending Trade-Ins', count: pendingTradeIns || 0, href: '/admin/trade-ins', colorClass: TONE.amber, icon: <ArrowUpRight className="w-5 h-5" /> },
   ].filter((item) => item.count > 0);
 
   return (
     <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Overview</h1>
+        <p className="text-sm text-muted-foreground">What needs attention and how the platform is doing</p>
+      </div>
+
       {/* Action Items Banner */}
       {actionItems.length > 0 && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -125,7 +131,7 @@ export default async function AdminDashboardPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Building2 className="w-4 h-4 text-blue-500" />
-                <span className="text-sm text-muted-foreground">Businesss</span>
+                <span className="text-sm text-muted-foreground">Businesses (total)</span>
               </div>
               <p className="text-2xl font-bold">{totalBusinesses || 0}</p>
             </CardContent>
@@ -134,7 +140,7 @@ export default async function AdminDashboardPage() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Eye className="w-4 h-4 text-orange-500" />
-                <span className="text-sm text-muted-foreground">Views</span>
+                <span className="text-sm text-muted-foreground">Views (all time)</span>
               </div>
               <p className="text-2xl font-bold">{totalViews.toLocaleString()}</p>
             </CardContent>
@@ -160,21 +166,21 @@ export default async function AdminDashboardPage() {
               <div className="flex items-center justify-between mb-1">
                 <Building2 className="w-4 h-4 text-green-500" />
                 {(pendingBusinesses || 0) > 0 && (
-                  <Badge variant="outline" className="text-[10px] text-yellow-600 border-yellow-300">
+                  <Badge variant="outline" className="text-[10px] text-yellow-600 border-yellow-300 dark:text-yellow-400 dark:border-yellow-800">
                     {pendingBusinesses} pending
                   </Badge>
                 )}
               </div>
               <p className="text-2xl font-bold">{totalBusinesses || 0}</p>
-              <p className="text-xs text-muted-foreground">Businesss</p>
+              <p className="text-xs text-muted-foreground">Businesses</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-1">
                 <Package className="w-4 h-4 text-purple-500" />
-                <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
-                  {activeListings} active
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${TONE.green}`}>
+                  {activeListings || 0} active
                 </span>
               </div>
               <p className="text-2xl font-bold">{totalListings || 0}</p>
@@ -216,7 +222,7 @@ export default async function AdminDashboardPage() {
                 {recentUsers.map((u) => (
                   <div
                     key={u.id}
-                    className="flex items-center justify-between p-2.5 bg-muted/50 rounded-lg"
+                    className="flex items-center justify-between gap-3 p-2.5 bg-muted/50 rounded-lg"
                   >
                     <div className="min-w-0">
                       <p className="font-medium text-sm truncate">
@@ -263,12 +269,20 @@ export default async function AdminDashboardPage() {
                 {recentListings.map((listing) => (
                   <div
                     key={listing.id}
-                    className="flex items-center justify-between p-2.5 bg-muted/50 rounded-lg"
+                    className="flex items-center justify-between gap-3 p-2.5 bg-muted/50 rounded-lg"
                   >
                     <div className="min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {listing.title}
-                      </p>
+                      {listing.status === 'active' ? (
+                        <Link
+                          href={`/listing/${listing.id}`}
+                          target="_blank"
+                          className="block font-medium text-sm truncate hover:underline"
+                        >
+                          {listing.title}
+                        </Link>
+                      ) : (
+                        <p className="font-medium text-sm truncate">{listing.title}</p>
+                      )}
                       <p className="text-xs text-muted-foreground truncate">
                         by {listingProfileMap[listing.user_id]?.company_name || listingProfileMap[listing.user_id]?.email || 'Unknown'}
                       </p>
@@ -277,13 +291,13 @@ export default async function AdminDashboardPage() {
                       <span
                         className={`px-2 py-0.5 text-[10px] rounded-full ${
                           listing.status === 'active'
-                            ? 'bg-green-100 text-green-700'
+                            ? TONE.green
                             : listing.status === 'draft'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-gray-100 text-gray-700'
+                            ? TONE.yellow
+                            : TONE.gray
                         }`}
                       >
-                        {listing.status}
+                        {formatEnum(listing.status)}
                       </span>
                     </div>
                   </div>

@@ -38,6 +38,7 @@ import {
   Cell,
 } from 'recharts';
 import { logger } from '@/lib/logger';
+import { TONE } from '@/components/admin/tones';
 
 interface AnalyticsData {
   overview: {
@@ -85,6 +86,8 @@ export default function AdminAnalyticsPage() {
       if (response.ok) {
         const result = await response.json();
         setData(result);
+      } else {
+        setData(null);
       }
     } catch (error) {
       logger.error('Error fetching analytics', { error });
@@ -108,13 +111,13 @@ export default function AdminAnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Analytics</h1>
           <p className="text-sm text-muted-foreground">Platform performance and insights</p>
         </div>
         <Select value={range} onValueChange={setRange}>
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-[150px]" aria-label="Time range">
             <SelectValue placeholder="Time Range" />
           </SelectTrigger>
           <SelectContent>
@@ -133,6 +136,9 @@ export default function AdminAnalyticsPage() {
           <div className="text-center py-24">
             <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">Failed to load analytics</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={fetchAnalytics}>
+              Try again
+            </Button>
           </div>
         ) : (
           <>
@@ -141,15 +147,15 @@ export default function AdminAnalyticsPage() {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Users className="w-5 h-5 text-blue-600" />
+                    <div className={`hidden sm:block p-2 rounded-lg ${TONE.blue}`}>
+                      <Users className="w-5 h-5" />
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{data.overview.total_users}</p>
                       <div className="flex items-center gap-1">
                         <p className="text-sm text-muted-foreground">Users</p>
                         {data.period.new_users > 0 && (
-                          <Badge variant="outline" className="text-xs text-green-600 border-green-300">
+                          <Badge variant="outline" className="text-xs text-green-600 border-green-300 dark:text-green-400 dark:border-green-800">
                             +{data.period.new_users}
                           </Badge>
                         )}
@@ -162,15 +168,15 @@ export default function AdminAnalyticsPage() {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <Building2 className="w-5 h-5 text-green-600" />
+                    <div className={`hidden sm:block p-2 rounded-lg ${TONE.green}`}>
+                      <Building2 className="w-5 h-5" />
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{data.overview.total_businesses}</p>
                       <div className="flex items-center gap-1">
                         <p className="text-sm text-muted-foreground">Businesses</p>
                         {data.overview.pending_businesses > 0 && (
-                          <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-300">
+                          <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-300 dark:text-yellow-400 dark:border-yellow-800">
                             {data.overview.pending_businesses} pending
                           </Badge>
                         )}
@@ -183,15 +189,15 @@ export default function AdminAnalyticsPage() {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-100 rounded-lg">
-                      <Package className="w-5 h-5 text-purple-600" />
+                    <div className={`hidden sm:block p-2 rounded-lg ${TONE.purple}`}>
+                      <Package className="w-5 h-5" />
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{data.overview.total_listings}</p>
                       <div className="flex items-center gap-1">
                         <p className="text-sm text-muted-foreground">Listings</p>
                         {data.period.new_listings > 0 && (
-                          <Badge variant="outline" className="text-xs text-green-600 border-green-300">
+                          <Badge variant="outline" className="text-xs text-green-600 border-green-300 dark:text-green-400 dark:border-green-800">
                             +{data.period.new_listings}
                           </Badge>
                         )}
@@ -204,15 +210,15 @@ export default function AdminAnalyticsPage() {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-orange-100 rounded-lg">
-                      <Mail className="w-5 h-5 text-orange-600" />
+                    <div className={`hidden sm:block p-2 rounded-lg ${TONE.orange}`}>
+                      <Mail className="w-5 h-5" />
                     </div>
                     <div>
                       <p className="text-2xl font-bold">{data.overview.total_leads}</p>
                       <div className="flex items-center gap-1">
                         <p className="text-sm text-muted-foreground">Leads</p>
                         {data.period.new_leads > 0 && (
-                          <Badge variant="outline" className="text-xs text-green-600 border-green-300">
+                          <Badge variant="outline" className="text-xs text-green-600 border-green-300 dark:text-green-400 dark:border-green-800">
                             +{data.period.new_leads}
                           </Badge>
                         )}
@@ -243,7 +249,7 @@ export default function AdminAnalyticsPage() {
                             <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                         <XAxis
                           dataKey="date"
                           tickFormatter={formatDate}
@@ -260,8 +266,9 @@ export default function AdminAnalyticsPage() {
                         <Tooltip
                           labelFormatter={(label) => formatDate(label as string)}
                           contentStyle={{
-                            backgroundColor: 'white',
-                            border: '1px solid #e5e7eb',
+                            backgroundColor: 'var(--popover)',
+                            color: 'var(--popover-foreground)',
+                            border: '1px solid var(--border)',
                             borderRadius: '8px',
                             boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                           }}
@@ -298,7 +305,7 @@ export default function AdminAnalyticsPage() {
                             <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                         <XAxis
                           dataKey="date"
                           tickFormatter={formatDate}
@@ -315,8 +322,9 @@ export default function AdminAnalyticsPage() {
                         <Tooltip
                           labelFormatter={(label) => formatDate(label as string)}
                           contentStyle={{
-                            backgroundColor: 'white',
-                            border: '1px solid #e5e7eb',
+                            backgroundColor: 'var(--popover)',
+                            color: 'var(--popover-foreground)',
+                            border: '1px solid var(--border)',
                             borderRadius: '8px',
                             boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                           }}
@@ -350,7 +358,7 @@ export default function AdminAnalyticsPage() {
                   <div className="h-[250px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={data.charts.leads}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                         <XAxis
                           dataKey="date"
                           tickFormatter={formatDate}
@@ -367,8 +375,9 @@ export default function AdminAnalyticsPage() {
                         <Tooltip
                           labelFormatter={(label) => formatDate(label as string)}
                           contentStyle={{
-                            backgroundColor: 'white',
-                            border: '1px solid #e5e7eb',
+                            backgroundColor: 'var(--popover)',
+                            color: 'var(--popover-foreground)',
+                            border: '1px solid var(--border)',
                             borderRadius: '8px',
                             boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                           }}
@@ -413,8 +422,9 @@ export default function AdminAnalyticsPage() {
                           </Pie>
                           <Tooltip
                             contentStyle={{
-                              backgroundColor: 'white',
-                              border: '1px solid #e5e7eb',
+                              backgroundColor: 'var(--popover)',
+                            color: 'var(--popover-foreground)',
+                              border: '1px solid var(--border)',
                               borderRadius: '8px',
                             }}
                           />
@@ -445,16 +455,14 @@ export default function AdminAnalyticsPage() {
 
             {/* Top Businesses */}
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Building2 className="w-5 h-5 text-green-500" />
                   Top Businesses by Listings
                 </CardTitle>
-                <Link href="/admin/dealers">
-                  <Button variant="outline" size="sm">
-                    View All Businesses
-                  </Button>
-                </Link>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/admin/users">View All Users</Link>
+                </Button>
               </CardHeader>
               <CardContent>
                 {data.top_businesses.length > 0 ? (
@@ -462,26 +470,26 @@ export default function AdminAnalyticsPage() {
                     {data.top_businesses.map((dealer, index) => (
                       <div
                         key={dealer.id}
-                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                        className="flex items-center justify-between gap-3 p-3 bg-muted/50 rounded-lg"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center font-semibold text-primary">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 shrink-0 rounded-full bg-primary/10 flex items-center justify-center font-semibold text-primary">
                             {index + 1}
                           </div>
-                          <Avatar className="w-10 h-10">
+                          <Avatar className="hidden sm:flex w-10 h-10 shrink-0">
                             <AvatarImage src={dealer.avatar_url || undefined} />
                             <AvatarFallback>
                               {(dealer.company_name || dealer.email)?.[0]?.toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <div>
-                            <p className="font-medium">
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">
                               {dealer.company_name || dealer.email.split('@')[0]}
                             </p>
-                            <p className="text-sm text-muted-foreground">{dealer.email}</p>
+                            <p className="text-sm text-muted-foreground truncate">{dealer.email}</p>
                           </div>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right shrink-0">
                           <p className="text-2xl font-bold">{dealer.listing_count}</p>
                           <p className="text-xs text-muted-foreground">active listings</p>
                         </div>

@@ -40,7 +40,8 @@ export async function proxy(request: NextRequest) {
       const askHeaders = new Headers(request.headers);
       askHeaders.delete(MICROSITE_HOST_HEADER);
       askHeaders.set('x-nonce', nonce);
-      const rewrite = NextResponse.rewrite(new URL('/ask', request.url), {
+      // Keep the query: /ask prefills its box from ?q=.
+      const rewrite = NextResponse.rewrite(new URL(`/ask${search}`, request.url), {
         request: { headers: askHeaders },
       });
       rewrite.headers.set('Content-Security-Policy', buildCsp(nonce));

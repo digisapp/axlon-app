@@ -37,12 +37,9 @@ function OrganizationJsonLd({ nonce }: { nonce?: string }) {
       email: 'sales@axlon.ai',
       availableLanguage: 'English',
     },
-    sameAs: [
-      'https://instagram.com/axlonai',
-      'https://facebook.com/axlonai',
-      'https://twitter.com/axlonai',
-      'https://linkedin.com/company/axlonai',
-    ],
+    // No sameAs until Axleyard has verified social profiles — the old
+    // @axlonai handles aren't confirmed ours (the YouTube one belongs to
+    // someone else), and sameAs tells search engines they're the same entity.
   };
 
   return (
@@ -194,6 +191,9 @@ export default async function RootLayout({
           attribute="class"
           defaultTheme="system"
           enableSystem
+          // Microsites are light-only designs; a dark-mode visitor otherwise
+          // got .dark on <html> and near-black behind light cards.
+          forcedTheme={isMicrositeHost ? 'light' : undefined}
           disableTransitionOnChange
           // next-themes injects an inline theme-detection script; without the
           // request nonce the CSP blocks it on every page (console error +

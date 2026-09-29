@@ -59,10 +59,13 @@ interface LeadCardProps {
 }
 
 const priorityColors: Record<string, string> = {
-  low: 'bg-gray-100 text-gray-700',
-  medium: 'bg-blue-100 text-blue-700',
-  high: 'bg-red-100 text-red-700',
+  low: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+  medium: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  high: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
+
+// Status/priority are stored as lowercase enums — show them as words.
+const titleCase = (value?: string | null) => (value ? value.charAt(0).toUpperCase() + value.slice(1) : '');
 
 const nextStatus: Record<string, string> = {
   new: 'contacted',
@@ -89,7 +92,7 @@ export const LeadCard = memo(function LeadCard({
   const scoreDisplay = getScoreDisplay(lead.score);
 
   return (
-    <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onViewDetails}>
+    <Card className="py-0 cursor-pointer hover:shadow-md transition-shadow" onClick={onViewDetails}>
       <CardContent className="p-3 space-y-2">
         {/* Score Badge */}
         {scoreDisplay && (
@@ -125,7 +128,7 @@ export const LeadCard = memo(function LeadCard({
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="icon" className="h-10 w-10 md:h-8 md:w-8">
+              <Button variant="ghost" size="icon" className="h-10 w-10 md:h-8 md:w-8" aria-label="Lead actions">
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -138,7 +141,7 @@ export const LeadCard = memo(function LeadCard({
                   }}
                 >
                   <ArrowRight className="w-4 h-4 mr-2" />
-                  Move to {nextStatus[lead.status]}
+                  Move to {titleCase(nextStatus[lead.status])}
                 </DropdownMenuItem>
               )}
               {lead.status !== 'won' && (
@@ -222,7 +225,7 @@ export const LeadCard = memo(function LeadCard({
             variant="secondary"
             className={`text-xs ${priorityColors[lead.priority] || ''}`}
           >
-            {lead.priority}
+            {titleCase(lead.priority)}
           </Badge>
           <span className="text-xs text-muted-foreground">
             {new Date(lead.created_at).toLocaleDateString()}

@@ -42,21 +42,32 @@ export function ContactForm({ defaultSubject, defaultPlan, defaultMessage }: Con
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to send message');
+        // A proxy/edge error page isn't JSON — don't surface "Unexpected token <".
+        const data = await res.json().catch(() => ({}));
+        throw new Error(
+          res.status === 429
+            ? 'Too many messages in a short time. Please wait a minute and try again.'
+            : data.error || 'Failed to send message. Please try again.'
+        );
       }
 
       setStatus('success');
       form.reset();
     } catch (err) {
       setStatus('error');
-      setErrorMessage(err instanceof Error ? err.message : 'Something went wrong');
+      setErrorMessage(
+        err instanceof TypeError
+          ? 'Could not reach the server. Check your connection and try again.'
+          : err instanceof Error
+            ? err.message
+            : 'Something went wrong'
+      );
     }
   }
 
   if (status === 'success') {
     return (
-      <div className="text-center py-12">
+      <div role="status" className="text-center py-12">
         <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-emerald-500/10 flex items-center justify-center">
           <CheckCircle className="w-7 h-7 text-emerald-500" />
         </div>
@@ -88,7 +99,7 @@ export function ContactForm({ defaultSubject, defaultPlan, defaultMessage }: Con
             placeholder="John Smith"
             autoComplete="name"
             required
-            className="h-11"
+            className="h-11 md:h-11"
           />
         </div>
         <div>
@@ -100,7 +111,7 @@ export function ContactForm({ defaultSubject, defaultPlan, defaultMessage }: Con
             name="company"
             placeholder="ABC Equipment"
             autoComplete="organization"
-            className="h-11"
+            className="h-11 md:h-11"
           />
         </div>
       </div>
@@ -118,7 +129,7 @@ export function ContactForm({ defaultSubject, defaultPlan, defaultMessage }: Con
             autoComplete="email"
             inputMode="email"
             required
-            className="h-11"
+            className="h-11 md:h-11"
           />
         </div>
         <div>
@@ -132,7 +143,7 @@ export function ContactForm({ defaultSubject, defaultPlan, defaultMessage }: Con
             placeholder="(555) 123-4567"
             autoComplete="tel"
             inputMode="tel"
-            className="h-11"
+            className="h-11 md:h-11"
           />
         </div>
       </div>
@@ -145,7 +156,7 @@ export function ContactForm({ defaultSubject, defaultPlan, defaultMessage }: Con
           id="subject"
           name="subject"
           defaultValue={defaultSubject || ''}
-          className="w-full h-11 px-3 rounded-md border bg-background text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="w-full h-11 px-3 rounded-md border border-input bg-background shadow-xs text-base md:text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <option value="">Select a topic...</option>
           <option value="demo">Book a Demo</option>
@@ -169,12 +180,12 @@ export function ContactForm({ defaultSubject, defaultPlan, defaultMessage }: Con
           placeholder="Tell us how we can help..."
           defaultValue={defaultMessage}
           required
-          className="w-full px-3 py-2 rounded-md border bg-background text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+          className="w-full px-3 py-2 rounded-md border border-input bg-transparent dark:bg-input/30 shadow-xs text-base md:text-sm placeholder:text-muted-foreground outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 resize-y min-h-32"
         />
       </div>
 
       {status === 'error' && (
-        <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 px-4 py-3 rounded-lg">
+        <div role="alert" className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 px-4 py-3 rounded-lg">
           <AlertCircle className="w-4 h-4 shrink-0" />
           {errorMessage}
         </div>

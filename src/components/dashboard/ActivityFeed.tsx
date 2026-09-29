@@ -87,7 +87,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
         );
 
         if (activity.href) {
-          return <Link key={activity.id} href={activity.href}>{content}</Link>;
+          return <Link key={activity.id} href={activity.href} className="block">{content}</Link>;
         }
         return <div key={activity.id}>{content}</div>;
       })}

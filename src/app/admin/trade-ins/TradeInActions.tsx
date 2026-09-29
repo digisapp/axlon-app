@@ -55,7 +55,7 @@ export function TradeInActions({
   const [showOfferDialog, setShowOfferDialog] = useState(false);
   const [offerAmount, setOfferAmount] = useState('');
   const [offerMessage, setOfferMessage] = useState(
-    `Hi ${contactName},\n\nThank you for your interest in trading in your ${equipmentInfo}.\n\nAfter reviewing your submission, we'd like to offer you $[AMOUNT] for your equipment.\n\nPlease let us know if you'd like to proceed or if you have any questions.\n\nBest regards,\nAXLON AI Team`
+    `Hi ${contactName},\n\nThank you for your interest in trading in your ${equipmentInfo}.\n\nAfter reviewing your submission, we'd like to offer you $[AMOUNT] for your equipment.\n\nPlease let us know if you'd like to proceed or if you have any questions.\n\nBest regards,\nThe Axleyard Team`
   );
   const [isSendingOffer, setIsSendingOffer] = useState(false);
 
@@ -69,7 +69,7 @@ export function TradeInActions({
       });
 
       if (response.ok) {
-        toast.success(`Status updated to ${newStatus}`);
+        toast.success(`Status updated to ${newStatus.charAt(0).toUpperCase()}${newStatus.slice(1)}`);
         router.refresh();
       } else {
         toast.error('Failed to update status');
@@ -82,21 +82,23 @@ export function TradeInActions({
   };
 
   const sendOffer = async () => {
-    if (!offerAmount) {
-      toast.error('Please enter an offer amount');
+    const amount = parseFloat(offerAmount);
+    if (!offerAmount || !Number.isFinite(amount) || amount <= 0) {
+      toast.error('Please enter an offer amount greater than $0');
       return;
     }
 
     setIsSendingOffer(true);
     try {
       // Update message with actual amount
-      const finalMessage = offerMessage.replace('[AMOUNT]', offerAmount);
+      // "$25,000" reads better in the email than "$25000"
+      const finalMessage = offerMessage.replaceAll('[AMOUNT]', amount.toLocaleString('en-US'));
 
       const response = await csrfFetch(`/api/admin/trade-ins/${tradeInId}/offer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          offer_amount: parseFloat(offerAmount),
+          offer_amount: amount,
           message: finalMessage,
           email: contactEmail,
         }),
@@ -139,6 +141,8 @@ export function TradeInActions({
               <Input
                 id="offer"
                 type="number"
+                inputMode="decimal"
+                min={1}
                 placeholder="25000"
                 value={offerAmount}
                 onChange={(e) => setOfferAmount(e.target.value)}
@@ -179,7 +183,7 @@ export function TradeInActions({
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" disabled={isUpdating}>
+          <Button variant="ghost" size="sm" disabled={isUpdating} aria-label="Change status">
             {isUpdating ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
@@ -188,25 +192,25 @@ export function TradeInActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => updateStatus('contacted')}>
+          <DropdownMenuItem disabled={currentStatus === 'contacted'} onClick={() => updateStatus('contacted')}>
             <Mail className="w-4 h-4 mr-2" />
             Mark as Contacted
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => updateStatus('offered')}>
+          <DropdownMenuItem disabled={currentStatus === 'offered'} onClick={() => updateStatus('offered')}>
             <DollarSign className="w-4 h-4 mr-2" />
             Mark as Offered
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => updateStatus('accepted')} className="text-green-600">
+          <DropdownMenuItem disabled={currentStatus === 'accepted'} onClick={() => updateStatus('accepted')} className="text-green-600 dark:text-green-400">
             <CheckCircle className="w-4 h-4 mr-2" />
             Mark as Accepted
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => updateStatus('rejected')} className="text-red-600">
+          <DropdownMenuItem disabled={currentStatus === 'rejected'} onClick={() => updateStatus('rejected')} className="text-red-600 dark:text-red-400">
             <XCircle className="w-4 h-4 mr-2" />
             Mark as Rejected
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => updateStatus('pending')}>
+          <DropdownMenuItem disabled={currentStatus === 'pending'} onClick={() => updateStatus('pending')}>
             <Clock className="w-4 h-4 mr-2" />
             Reset to Pending
           </DropdownMenuItem>

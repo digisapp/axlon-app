@@ -206,16 +206,13 @@ export function HomeHeader() {
       ) : (
         <>
           <ThemeToggle size="sm" />
-          <Link href="/login" className="hidden md:inline-flex">
-            <Button variant="ghost" size="sm" className="glass-button rounded-full">
-              Sign In
-            </Button>
-          </Link>
-          <Link href="/signup" className="hidden md:inline-flex">
-            <Button size="sm" className="rounded-full shadow-lg shadow-primary/25">
-              List Equipment Free
-            </Button>
-          </Link>
+          {/* asChild: a <button> inside an <a> is invalid and flaky on iOS */}
+          <Button variant="ghost" size="sm" className="hidden md:inline-flex glass-button rounded-full" asChild>
+            <Link href="/login">Sign In</Link>
+          </Button>
+          <Button size="sm" className="hidden md:inline-flex rounded-full shadow-lg shadow-primary/25" asChild>
+            <Link href="/signup">List Equipment Free</Link>
+          </Button>
         </>
       )}
 

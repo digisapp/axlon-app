@@ -13,8 +13,8 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 import {
-  ArrowLeft,
   Loader2,
   Store,
   MessageCircle,
@@ -43,6 +43,9 @@ export default function StorefrontSettingsPage() {
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+  // The slug as last saved — "View Storefront" must not link to an unsaved URL
+  const [savedSlug, setSavedSlug] = useState('');
   // Full notification_settings object as loaded — this page only owns 3 of its keys.
   const [notificationSettings, setNotificationSettings] = useState<Record<string, unknown>>({});
 
@@ -103,6 +106,7 @@ export default function StorefrontSettingsPage() {
         const loadedNotifications: Record<string, unknown> = profile.notification_settings || {};
         setNotificationSettings(loadedNotifications);
 
+        setSavedSlug(profile.slug || '');
         setFormData({
           slug: profile.slug || '',
           tagline: profile.tagline || '',
@@ -252,6 +256,7 @@ export default function StorefrontSettingsPage() {
         .eq('id', user.id);
 
       if (!error) {
+        setSavedSlug(formData.slug);
         setFormData((prev) => ({ ...prev, banner_url: bannerUrl }));
         setBannerFile(null);
         setBannerPreview(null);
@@ -275,17 +280,17 @@ export default function StorefrontSettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-24" role="status" aria-label="Loading storefront settings">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Success Toast */}
       {showSuccess && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg">
+        <div role="status" className="fixed top-4 left-4 right-4 sm:left-auto z-50 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg">
           <CheckCircle className="w-5 h-5" />
           <span>Storefront settings saved!</span>
         </div>
@@ -293,42 +298,31 @@ export default function StorefrontSettingsPage() {
 
       {/* Error Toast */}
       {errorMessage && (
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-destructive text-destructive-foreground px-4 py-3 rounded-lg shadow-lg">
+        <div role="alert" className="fixed top-4 left-4 right-4 sm:left-auto z-50 flex items-center gap-2 bg-destructive text-white px-4 py-3 rounded-lg shadow-lg">
           <AlertTriangle className="w-5 h-5" />
           <span>{errorMessage}</span>
         </div>
       )}
 
-      {/* Header */}
-      <header className="bg-background border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </Link>
-              <h1 className="text-xl font-bold">Storefront Settings</h1>
-            </div>
-            {formData.slug && (
-              <Link
-                href={`/${formData.slug}`}
-                target="_blank"
-                className="flex items-center gap-2 text-primary hover:underline"
-              >
+      <PageHeader
+        title="Storefront"
+        description="Your dealer page on Axleyard — URL, details, AI chat, and hours"
+        actions={
+          savedSlug ? (
+            <Button variant="outline" asChild>
+              <Link href={`/${savedSlug}`} target="_blank">
                 View Storefront
-                <ExternalLink className="w-4 h-4" />
+                <ExternalLink className="w-4 h-4 ml-2" />
               </Link>
-            )}
-          </div>
-        </div>
-      </header>
+            </Button>
+          ) : undefined
+        }
+      />
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <div>
         <Tabs defaultValue="general" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          {/* Five tabs don't fit a phone: scroll the strip instead of clipping labels */}
+          <TabsList className="w-full justify-start overflow-x-auto [&>button]:flex-none sm:[&>button]:flex-1">
             <TabsTrigger value="general">
               <Store className="w-4 h-4 mr-2" />
               General
@@ -362,11 +356,12 @@ export default function StorefrontSettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex gap-2">
-                  <div className="flex items-center px-3 bg-muted rounded-l-md border border-r-0 text-sm text-muted-foreground">
+                  <div className="flex items-center px-3 bg-muted rounded-l-md border border-r-0 text-sm text-muted-foreground shrink-0">
                     axleyard.com/
                   </div>
                   <Input
                     placeholder="your-company-name"
+                    aria-label="Storefront URL"
                     value={formData.slug}
                     onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
                     className="rounded-l-none"
@@ -525,20 +520,18 @@ export default function StorefrontSettingsPage() {
                     </div>
                   )}
                   <div className="flex items-center gap-4">
-                    <label className="cursor-pointer">
-                      <Button variant="outline" asChild>
-                        <span>
-                          <Upload className="w-4 h-4 mr-2" />
-                          Upload Banner
-                        </span>
-                      </Button>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleBannerChange}
-                        className="hidden"
-                      />
-                    </label>
+                    {/* A real button (keyboard-focusable) that opens the hidden file input */}
+                    <Button variant="outline" type="button" onClick={() => bannerInputRef.current?.click()}>
+                      <Upload className="w-4 h-4 mr-2" />
+                      {bannerPreview || formData.banner_url ? 'Replace Banner' : 'Upload Banner'}
+                    </Button>
+                    <input
+                      ref={bannerInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBannerChange}
+                      className="hidden"
+                    />
                     {(bannerPreview || formData.banner_url) && (
                       <Button
                         variant="ghost"
@@ -567,7 +560,7 @@ export default function StorefrontSettingsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between gap-4 p-4 bg-muted/50 rounded-lg">
                   <div>
                     <p className="font-medium">Enable AI Chat</p>
                     <p className="text-sm text-muted-foreground">
@@ -575,6 +568,7 @@ export default function StorefrontSettingsPage() {
                     </p>
                   </div>
                   <Switch
+                    aria-label="Enable AI chat"
                     checked={formData.chat_enabled}
                     onCheckedChange={(checked) => setFormData({ ...formData, chat_enabled: checked })}
                   />
@@ -645,7 +639,7 @@ export default function StorefrontSettingsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between gap-4 p-4 bg-muted/50 rounded-lg">
                   <div>
                     <p className="font-medium">New Chat Conversations</p>
                     <p className="text-sm text-muted-foreground">
@@ -653,12 +647,13 @@ export default function StorefrontSettingsPage() {
                     </p>
                   </div>
                   <Switch
+                    aria-label="Email me about new chat conversations"
                     checked={formData.notify_new_chat}
                     onCheckedChange={(checked) => setFormData({ ...formData, notify_new_chat: checked })}
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between gap-4 p-4 bg-muted/50 rounded-lg">
                   <div>
                     <p className="font-medium">New Leads Captured</p>
                     <p className="text-sm text-muted-foreground">
@@ -666,12 +661,13 @@ export default function StorefrontSettingsPage() {
                     </p>
                   </div>
                   <Switch
+                    aria-label="Email me about new leads"
                     checked={formData.notify_new_lead}
                     onCheckedChange={(checked) => setFormData({ ...formData, notify_new_lead: checked })}
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between gap-4 p-4 bg-muted/50 rounded-lg">
                   <div>
                     <p className="font-medium">New Messages</p>
                     <p className="text-sm text-muted-foreground">
@@ -679,6 +675,7 @@ export default function StorefrontSettingsPage() {
                     </p>
                   </div>
                   <Switch
+                    aria-label="Email me about new messages"
                     checked={formData.notify_new_message}
                     onCheckedChange={(checked) => setFormData({ ...formData, notify_new_message: checked })}
                   />
@@ -699,9 +696,10 @@ export default function StorefrontSettingsPage() {
               <CardContent>
                 <div className="space-y-3">
                   {Object.entries(formData.business_hours).map(([day, hours]) => (
-                    <div key={day} className="flex items-center gap-4">
+                    <div key={day} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-1">
                       <div className="w-24 capitalize font-medium">{day}</div>
                       <Switch
+                        aria-label={`Open on ${day}`}
                         checked={!hours.closed}
                         onCheckedChange={(open) => {
                           setFormData((prev) => ({
@@ -717,6 +715,7 @@ export default function StorefrontSettingsPage() {
                         <>
                           <Input
                             type="time"
+                            aria-label={`${day} opening time`}
                             value={hours.open}
                             onChange={(e) => {
                               setFormData((prev) => ({
@@ -732,6 +731,7 @@ export default function StorefrontSettingsPage() {
                           <span className="text-muted-foreground">to</span>
                           <Input
                             type="time"
+                            aria-label={`${day} closing time`}
                             value={hours.close}
                             onChange={(e) => {
                               setFormData((prev) => ({
@@ -758,12 +758,12 @@ export default function StorefrontSettingsPage() {
 
         {/* Save Button */}
         <div className="flex justify-end mt-6">
-          <Button onClick={handleSave} disabled={isSaving} size="lg">
+          <Button onClick={handleSave} disabled={isSaving} size="lg" className="w-full sm:w-auto">
             {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Save Storefront Settings
+            {isSaving ? 'Saving…' : 'Save Storefront Settings'}
           </Button>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

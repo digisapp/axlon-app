@@ -12,6 +12,7 @@ import {
   PhoneOff,
   CheckCircle,
 } from 'lucide-react';
+import { INTENT_TONE, TONE, formatEnum } from '@/components/admin/tones';
 
 export default async function AdminCallLogsPage() {
   const supabase = await createClient();
@@ -69,15 +70,9 @@ export default async function AdminCallLogsPage() {
 
   const getIntentBadge = (intent: string | null) => {
     if (!intent) return null;
-    const colors: Record<string, string> = {
-      buy: 'bg-green-100 text-green-700',
-      lease: 'bg-blue-100 text-blue-700',
-      rent: 'bg-purple-100 text-purple-700',
-      browsing: 'bg-gray-100 text-gray-600',
-    };
     return (
-      <span className={`px-2 py-0.5 text-xs rounded-full ${colors[intent] || colors.browsing}`}>
-        {intent}
+      <span className={`px-2 py-0.5 text-xs rounded-full ${INTENT_TONE[intent] || TONE.gray}`}>
+        {formatEnum(intent)}
       </span>
     );
   };
@@ -90,7 +85,7 @@ export default async function AdminCallLogsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-2">
@@ -127,7 +122,11 @@ export default async function AdminCallLogsPage() {
               <Clock className="w-5 h-5 text-orange-500" />
             </div>
             <p className="text-3xl font-bold">{Math.round(totalMinutes / 60)}</p>
-            <p className="text-sm text-muted-foreground">Total Minutes</p>
+            <p className="text-sm text-muted-foreground">
+              {(totalCalls || 0) > (callLogs?.length || 0)
+                ? `Minutes (last ${callLogs?.length || 0} calls)`
+                : 'Total Minutes'}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -152,8 +151,8 @@ export default async function AdminCallLogsPage() {
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     {/* Call Info */}
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        {getStatusIcon(call.status)}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
+                        <span title={formatEnum(call.status)}>{getStatusIcon(call.status)}</span>
                         <a
                           href={`tel:${call.caller_phone}`}
                           className="font-medium hover:text-primary"
@@ -201,7 +200,7 @@ export default async function AdminCallLogsPage() {
                     </div>
 
                     {/* Time & Duration */}
-                    <div className="flex flex-col items-end gap-1">
+                    <div className="flex flex-row flex-wrap items-center gap-x-3 gap-y-1 md:flex-col md:items-end">
                       <span className="text-xs text-muted-foreground">
                         {new Date(call.started_at).toLocaleDateString()}{' '}
                         {new Date(call.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

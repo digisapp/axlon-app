@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,8 +31,10 @@ import type {
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 
 export default function FloorPlanDashboardPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [metrics, setMetrics] = useState<FloorPlanDashboardMetrics | null>(null);
@@ -57,6 +60,10 @@ export default function FloorPlanDashboardPage() {
         fetch('/api/floor-plan/accounts'),
       ]);
 
+      if (!dashboardRes.ok || !unitsRes.ok || !accountsRes.ok) {
+        toast.error('Some floor plan data didn\'t load. Please try Refresh.');
+      }
+
       if (dashboardRes.ok) {
         const dashboardData = await dashboardRes.json();
         setMetrics(dashboardData.metrics);
@@ -75,6 +82,7 @@ export default function FloorPlanDashboardPage() {
       }
     } catch (error) {
       logger.error('Error fetching floor plan data', { error });
+      toast.error('Couldn\'t load floor plan data. Check your connection and try Refresh.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -136,14 +144,11 @@ export default function FloorPlanDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Floor Plan Management</h1>
-          <p className="text-muted-foreground mt-1">
-            Track inventory financing, curtailments, and interest
-          </p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        title="Floor Plan"
+        description="Track inventory financing, curtailments, and interest"
+        actions={
+          <>
           <Button
             variant="outline"
             size="sm"
@@ -157,8 +162,9 @@ export default function FloorPlanDashboardPage() {
             <Plus className="w-4 h-4 mr-2" />
             Floor Unit
           </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Alerts */}
       <FloorPlanAlertBanner alerts={alerts} onDismiss={handleDismissAlert} />
@@ -168,7 +174,7 @@ export default function FloorPlanDashboardPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="units" className="space-y-4">
-        <TabsList>
+        <TabsList className="w-full sm:w-fit justify-start overflow-x-auto [&>button]:flex-none">
           <TabsTrigger value="units" className="gap-2">
             <Package className="w-4 h-4" />
             Units ({units.length})
@@ -186,10 +192,8 @@ export default function FloorPlanDashboardPage() {
         <TabsContent value="units">
           <FloorPlanUnitsTable
             units={units}
-            onViewDetails={(unit) => {
-              // Could open a detail sheet
-              logger.debug('View details', { unit });
-            }}
+            // "View Details" used to only write a debug log — open the listing instead
+            onViewDetails={(unit) => router.push(`/dashboard/listings/${unit.listing_id}/edit`)}
             onRecordPayment={handleRecordPayment}
             onRecordPayoff={handleRecordPayoff}
           />

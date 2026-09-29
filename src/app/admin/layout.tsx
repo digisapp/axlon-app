@@ -8,6 +8,7 @@ import { adminNavSections, getAdminNavWithBadges } from '@/lib/admin-nav';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
+  title: 'Admin',
   robots: { index: false, follow: false },
 };
 
@@ -65,14 +66,15 @@ export default async function AdminLayout({
   const sections = getAdminNavWithBadges(adminNavSections, badges);
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="group/admin min-h-screen bg-muted/30">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block">
         <AdminSidebar sections={sections} />
       </div>
 
       {/* Main Content */}
-      <div className="lg:pl-64 min-h-screen flex flex-col transition-all duration-300">
+      {/* pl tracks the sidebar width (w-64, or w-16 when collapsed) */}
+      <div className="lg:pl-64 lg:group-has-[aside[data-collapsed=true]]/admin:pl-16 min-h-screen flex flex-col transition-all duration-300">
         <AdminHeader
           user={{ email: user.email || '', id: user.id }}
           sections={sections}

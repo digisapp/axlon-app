@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { formatEnum } from '@/components/admin/tones';
 import { Globe, Users, MousePointerClick, TrendingUp, ExternalLink } from 'lucide-react';
 import { NewMicrositeButton } from './NewMicrositeButton';
 
@@ -132,7 +133,7 @@ export default async function AdminMicrositesPage() {
                         </td>
                         <td className="px-4 py-3">
                           <Badge variant="secondary" className={STATUS_STYLES[site.status] ?? ''}>
-                            {site.status}
+                            {formatEnum(site.status)}
                           </Badge>
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums">

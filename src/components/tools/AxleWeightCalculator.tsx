@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, CheckCircle, Info, Calculator, Truck, Container } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +28,43 @@ interface CalculationResult {
   isLegal: boolean;
 }
 
+/** Label stacked over a numeric input, bottom-aligned so a label that wraps
+ *  to two lines doesn't push its input out of line with its neighbour. */
+function NumberField({
+  label,
+  value,
+  onChange,
+  min = 0,
+  hint,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  min?: number;
+  hint?: string;
+}) {
+  const id = useId();
+  return (
+    <div className="flex h-full flex-col justify-end gap-2">
+      <Label htmlFor={id} className="leading-snug">{label}</Label>
+      <Input
+        id={id}
+        type="number"
+        inputMode="numeric"
+        min={min}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-describedby={hint ? `${id}-hint` : undefined}
+      />
+      {hint && (
+        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
+          {hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
 const PRESET_TRUCKS = [
   { name: 'Day Cab (Tandem)', emptyWeight: 16000, steerWeight: 10000, driveWeight: 6000, wheelbase: 180 },
   { name: 'Sleeper (Tandem)', emptyWeight: 19000, steerWeight: 11000, driveWeight: 8000, wheelbase: 245 },
@@ -46,7 +82,6 @@ const PRESET_TRAILERS = [
 export function AxleWeightCalculator() {
   // Truck inputs
   const [truckPreset, setTruckPreset] = useState<string>('');
-  const [truckEmptyWeight, setTruckEmptyWeight] = useState(19000);
   const [steerAxleEmpty, setSteerAxleEmpty] = useState(11000);
   const [driveAxleEmpty, setDriveAxleEmpty] = useState(8000);
   const [wheelbase, setWheelbase] = useState(245);
@@ -61,15 +96,20 @@ export function AxleWeightCalculator() {
   const [cargoWeight, setCargoWeight] = useState(40000);
   const [cargoPosition, setCargoPosition] = useState(50); // percentage from front
 
-  // Results
-  const [result, setResult] = useState<CalculationResult | null>(null);
+  // Results are derived from the inputs once the visitor has pressed
+  // Calculate, so editing a value afterwards updates them instead of leaving
+  // stale numbers on screen.
+  const [hasCalculated, setHasCalculated] = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const truckEmptyWeight = steerAxleEmpty + driveAxleEmpty;
+  const truckPresetId = useId();
+  const trailerPresetId = useId();
 
   // Handle truck preset selection
   const handleTruckPresetChange = (presetName: string) => {
     setTruckPreset(presetName);
     const preset = PRESET_TRUCKS.find(p => p.name === presetName);
     if (preset) {
-      setTruckEmptyWeight(preset.emptyWeight);
       setSteerAxleEmpty(preset.steerWeight);
       setDriveAxleEmpty(preset.driveWeight);
       setWheelbase(preset.wheelbase);
@@ -87,7 +127,7 @@ export function AxleWeightCalculator() {
     }
   };
 
-  const calculateWeights = () => {
+  const calculateWeights = (): CalculationResult | null => {
     // Simplified bridge formula calculation
     // This is an approximation - real calculations would need more precise measurements
 
@@ -96,6 +136,10 @@ export function AxleWeightCalculator() {
 
     // Trailer kingpin to trailer axle center
     const kingpinToTrailerAxle = (trailerLength * 12) - (axleSpread * 12 / 2) - 36; // converting feet to inches
+
+    // Inputs that make the lever model meaningless (e.g. a cleared field
+    // reading 0) would otherwise render NaN / negative axle weights.
+    if (wheelbase <= 36 || kingpinToTrailerAxle <= 0) return null;
 
     // Calculate where cargo center of gravity is
     const cargoFromKingpin = (trailerLength * 12 - 48) * (cargoPosition / 100); // 48" assumed kingpin location from front
@@ -142,14 +186,24 @@ export function AxleWeightCalculator() {
       violations.push(`Gross weight ${totalWeight.toLocaleString()} lbs exceeds ${WEIGHT_LIMITS.grossWeight.toLocaleString()} lb federal limit`);
     }
 
-    setResult({
+    return {
       steerAxleWeight,
       driveAxleWeight,
       trailerAxleWeight,
       totalWeight,
       violations,
       isLegal: violations.length === 0,
-    });
+    };
+  };
+
+  const result = hasCalculated ? calculateWeights() : null;
+
+  const handleCalculate = () => {
+    setHasCalculated(true);
+    // Results render below the fold on phones — bring them into view.
+    requestAnimationFrame(() =>
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    );
   };
 
   return (
@@ -182,10 +236,10 @@ export function AxleWeightCalculator() {
             <CardDescription>Enter your tractor specifications</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label>Preset Configuration</Label>
+            <div className="space-y-2">
+              <Label htmlFor={truckPresetId}>Preset Configuration</Label>
               <Select value={truckPreset} onValueChange={handleTruckPresetChange}>
-                <SelectTrigger>
+                <SelectTrigger id={truckPresetId} className="w-full">
                   <SelectValue placeholder="Select or enter custom" />
                 </SelectTrigger>
                 <SelectContent>
@@ -199,44 +253,20 @@ export function AxleWeightCalculator() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Tractor Empty Weight (lbs)</Label>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  value={truckEmptyWeight}
-                  onChange={(e) => setTruckEmptyWeight(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <Label>Wheelbase (inches)</Label>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  value={wheelbase}
-                  onChange={(e) => setWheelbase(Number(e.target.value))}
-                />
-              </div>
+              <NumberField label="Steer Axle Empty (lbs)" value={steerAxleEmpty} onChange={setSteerAxleEmpty} />
+              <NumberField label="Drive Axles Empty (lbs)" value={driveAxleEmpty} onChange={setDriveAxleEmpty} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Steer Axle Empty (lbs)</Label>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  value={steerAxleEmpty}
-                  onChange={(e) => setSteerAxleEmpty(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <Label>Drive Axles Empty (lbs)</Label>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  value={driveAxleEmpty}
-                  onChange={(e) => setDriveAxleEmpty(Number(e.target.value))}
-                />
+              <NumberField label="Wheelbase (inches)" value={wheelbase} onChange={setWheelbase} />
+              {/* The empty weight used to be its own input that the math never
+                  read; it is simply steer + drive, so show it that way. */}
+              <div className="flex h-full flex-col justify-end gap-2">
+                <p className="text-sm font-medium leading-snug">Tractor Empty Weight</p>
+                <p className="flex h-11 md:h-9 items-center rounded-md bg-muted/60 px-3 text-base md:text-sm tabular-nums" aria-live="polite">
+                  {/* Server-rendered: pin the locale so a non-en-US browser doesn't hydrate "19.000" over "19,000". */}
+                  {truckEmptyWeight.toLocaleString('en-US')} lbs
+                </p>
               </div>
             </div>
           </CardContent>
@@ -252,10 +282,10 @@ export function AxleWeightCalculator() {
             <CardDescription>Enter your trailer specifications</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label>Preset Configuration</Label>
+            <div className="space-y-2">
+              <Label htmlFor={trailerPresetId}>Preset Configuration</Label>
               <Select value={trailerPreset} onValueChange={handleTrailerPresetChange}>
-                <SelectTrigger>
+                <SelectTrigger id={trailerPresetId} className="w-full">
                   <SelectValue placeholder="Select or enter custom" />
                 </SelectTrigger>
                 <SelectContent>
@@ -269,35 +299,11 @@ export function AxleWeightCalculator() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Trailer Empty Weight (lbs)</Label>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  value={trailerEmptyWeight}
-                  onChange={(e) => setTrailerEmptyWeight(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <Label>Trailer Length (ft)</Label>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  value={trailerLength}
-                  onChange={(e) => setTrailerLength(Number(e.target.value))}
-                />
-              </div>
+              <NumberField label="Trailer Empty Weight (lbs)" value={trailerEmptyWeight} onChange={setTrailerEmptyWeight} />
+              <NumberField label="Trailer Length (ft)" value={trailerLength} onChange={setTrailerLength} />
             </div>
 
-            <div>
-              <Label>Axle Spread (ft from kingpin)</Label>
-              <Input
-                type="number"
-                inputMode="numeric"
-                value={axleSpread}
-                onChange={(e) => setAxleSpread(Number(e.target.value))}
-              />
-            </div>
+            <NumberField label="Axle Spread (ft from kingpin)" value={axleSpread} onChange={setAxleSpread} />
           </CardContent>
         </Card>
       </div>
@@ -310,24 +316,18 @@ export function AxleWeightCalculator() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <Label>Cargo Weight (lbs)</Label>
-              <Input
-                type="number"
-                inputMode="numeric"
-                value={cargoWeight}
-                onChange={(e) => setCargoWeight(Number(e.target.value))}
-                className="text-lg"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Total weight of cargo being hauled
-              </p>
-            </div>
+            <NumberField
+              label="Cargo Weight (lbs)"
+              value={cargoWeight}
+              onChange={setCargoWeight}
+              hint="Total weight of cargo being hauled"
+            />
 
             <div>
               <Label>Cargo Position: {cargoPosition}% from front</Label>
               <Slider
                 value={[cargoPosition]}
+                aria-label="Cargo position, percent from front"
                 onValueChange={([value]) => setCargoPosition(value)}
                 min={10}
                 max={90}
@@ -344,7 +344,7 @@ export function AxleWeightCalculator() {
           {/* Visual Trailer Representation */}
           <div className="bg-muted/50 rounded-lg p-4">
             <p className="text-xs text-muted-foreground mb-2">Cargo Position Visualization</p>
-            <div className="relative h-16 bg-muted rounded flex items-center">
+            <div className="relative h-16 bg-muted rounded flex items-center" aria-hidden="true">
               {/* Kingpin */}
               <div className="absolute left-4 top-0 bottom-0 w-1 bg-foreground/30" />
 
@@ -362,7 +362,7 @@ export function AxleWeightCalculator() {
             </div>
           </div>
 
-          <Button onClick={calculateWeights} size="lg" className="w-full">
+          <Button onClick={handleCalculate} size="lg" className="w-full">
             <Calculator className="w-4 h-4 mr-2" />
             Calculate Weight Distribution
           </Button>
@@ -370,6 +370,18 @@ export function AxleWeightCalculator() {
       </Card>
 
       {/* Results */}
+      <div ref={resultsRef} className="scroll-mt-20" aria-live="polite">
+      {hasCalculated && !result && (
+        <Card className="border-2 border-amber-500/50">
+          <CardContent className="flex items-start gap-3 pt-6 text-sm">
+            <AlertTriangle className="w-5 h-5 shrink-0 text-amber-500" />
+            <p>
+              These dimensions can&apos;t be calculated. Check that the wheelbase is more than
+              36 inches and the trailer is longer than half its axle spread plus 3 ft.
+            </p>
+          </CardContent>
+        </Card>
+      )}
       {result && (
         <Card className={cn(
           "border-2",
@@ -430,7 +442,7 @@ export function AxleWeightCalculator() {
             </div>
 
             {/* Summary */}
-            <div className="grid grid-cols-4 gap-4 pt-4 border-t">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t">
               <div className="text-center">
                 <p className="text-2xl font-bold">{result.steerAxleWeight.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">Steer (lbs)</p>
@@ -472,6 +484,7 @@ export function AxleWeightCalculator() {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   );
 }

@@ -89,7 +89,7 @@ function RecentCard({ listing }: { listing: RecentListing }) {
 
   return (
     <Link href={`/listing/${listing.id}`}>
-      <Card className="overflow-hidden hover:shadow-md transition-shadow h-full">
+      <Card className="gap-0 py-0 overflow-hidden hover:shadow-md transition-shadow h-full">
         <div className="relative aspect-[4/3] bg-muted">
           {listing.imageUrl && !hasError ? (
             <Image
@@ -116,7 +116,7 @@ function RecentCard({ listing }: { listing: RecentListing }) {
             {listing.title}
           </h3>
           <p className="text-sm md:text-base font-bold text-primary mt-0.5">
-            {listing.price ? `$${listing.price.toLocaleString()}` : 'Call'}
+            {listing.price ? `$${listing.price.toLocaleString()}` : 'Call for Price'}
           </p>
           <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
             {[listing.year, listing.make].filter(Boolean).join(' ')}
@@ -242,7 +242,7 @@ function RecentCompactCard({ listing }: { listing: RecentListing }) {
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium line-clamp-1">{listing.title}</p>
         <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <span>{listing.price ? `$${listing.price.toLocaleString()}` : 'Call'}</span>
+          <span>{listing.price ? `$${listing.price.toLocaleString()}` : 'Call for Price'}</span>
           <span className="text-muted-foreground/50">·</span>
           <span className="text-muted-foreground/70">{formatRelativeTime(listing.viewedAt)}</span>
         </p>

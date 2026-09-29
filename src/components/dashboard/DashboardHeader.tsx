@@ -1,6 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { dashboardNavItems } from '@/lib/dashboard-nav';
+import type { PlanTier } from '@/lib/plans';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +20,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   Plus,
   Bell,
-  Settings,
+  Store,
   LogOut,
   User,
   CreditCard,
@@ -39,6 +42,9 @@ interface DashboardHeaderProps {
   newLeads?: number;
   pendingAiInbox?: number;
   trialDaysRemaining?: number | null;
+  /** Passed through to the mobile nav so it shows the same locks/upsell as desktop */
+  subscriptionTier?: string;
+  effectiveTier?: PlanTier;
 }
 
 export function DashboardHeader({
@@ -48,20 +54,34 @@ export function DashboardHeader({
   newLeads = 0,
   pendingAiInbox = 0,
   trialDaysRemaining,
+  subscriptionTier,
+  effectiveTier,
 }: DashboardHeaderProps) {
+  const pathname = usePathname();
   const displayName = profile?.company_name || user.email?.split('@')[0] || 'User';
   const initials = displayName.slice(0, 2).toUpperCase();
-  const totalNotifications = unreadMessages + newLeads;
+  const totalNotifications = unreadMessages + newLeads + pendingAiInbox;
+  // Current section name (longest matching nav href wins, e.g. /dashboard/listings/new → Listings)
+  const sectionLabel =
+    dashboardNavItems
+      .filter((item) => (item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href)))
+      .sort((a, b) => b.href.length - a.href.length)[0]?.label ?? 'Dashboard';
 
   return (
     <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30">
       <div className="h-full px-4 flex items-center justify-between gap-4">
         {/* Mobile Menu Trigger */}
-        <MobileSidebar unreadMessages={unreadMessages} newLeads={newLeads} pendingAiInbox={pendingAiInbox} />
+        <MobileSidebar
+          unreadMessages={unreadMessages}
+          newLeads={newLeads}
+          pendingAiInbox={pendingAiInbox}
+          subscriptionTier={subscriptionTier}
+          effectiveTier={effectiveTier}
+        />
 
-        {/* Page Title - Hidden on mobile, visible on desktop */}
+        {/* Section name — not an <h1>: every page renders its own h1 via PageHeader */}
         <div className="hidden lg:block">
-          <h1 className="text-lg font-semibold">Dashboard</h1>
+          <p className="text-lg font-semibold">{sectionLabel}</p>
         </div>
 
         {/* Right Side Actions */}
@@ -94,7 +114,12 @@ export function DashboardHeader({
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                aria-label={totalNotifications > 0 ? `Notifications (${totalNotifications} new)` : 'Notifications'}
+              >
                 <Bell className="w-5 h-5" />
                 {totalNotifications > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
@@ -126,6 +151,16 @@ export function DashboardHeader({
                   </Link>
                 </DropdownMenuItem>
               )}
+              {pendingAiInbox > 0 && (
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/ai-inbox" className="cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full" />
+                      <span>{pendingAiInbox} AI draft{pendingAiInbox !== 1 ? 's' : ''} to review</span>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+              )}
               {totalNotifications === 0 && (
                 <div className="px-2 py-4 text-center text-sm text-muted-foreground">
                   No new notifications
@@ -137,7 +172,7 @@ export function DashboardHeader({
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
+              <Button variant="ghost" size="icon" className="rounded-full" aria-label="Account menu">
                 <Avatar className="w-8 h-8">
                   <AvatarImage src={profile?.avatar_url || undefined} />
                   <AvatarFallback className="text-xs">{initials}</AvatarFallback>
@@ -157,7 +192,7 @@ export function DashboardHeader({
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/settings" className="cursor-pointer">
                   <User className="w-4 h-4 mr-2" />
-                  Profile
+                  Account Settings
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -167,9 +202,9 @@ export function DashboardHeader({
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/settings" className="cursor-pointer">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
+                <Link href="/dashboard/storefront" className="cursor-pointer">
+                  <Store className="w-4 h-4 mr-2" />
+                  Storefront
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

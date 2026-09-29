@@ -7,7 +7,7 @@ import {
   LowboyTrailerIcon,
   FlatbedTrailerIcon,
   SleeperTruckIcon,
-  DayCabTruckIcon,
+  EndDumpTrailerIcon,
   HeavyEquipmentIcon,
   AllCategoriesIcon,
 } from '@/components/home/CategoryIcons';
@@ -54,8 +54,8 @@ export const revalidate = 300;
 const CATEGORY_TILES = [
   { name: 'Lowboy Trailers', href: '/search?category=lowboy-trailers', icon: LowboyTrailerIcon },
   { name: 'Flatbed Trailers', href: '/search?category=flatbed-trailers', icon: FlatbedTrailerIcon },
-  { name: 'Sleeper Trucks', href: '/search?category=sleeper-trucks', icon: SleeperTruckIcon },
-  { name: 'Day Cab Trucks', href: '/search?category=day-cab-trucks', icon: DayCabTruckIcon },
+  { name: 'End Dump Trailers', href: '/search?category=end-dump-trailers', icon: EndDumpTrailerIcon },
+  { name: 'Trucks', href: '/search?category=trucks', icon: SleeperTruckIcon },
   { name: 'Heavy Equipment', href: '/search?category=heavy-equipment', icon: HeavyEquipmentIcon },
   { name: 'All Categories', href: '/categories', icon: AllCategoriesIcon },
 ];
@@ -213,7 +213,10 @@ export default async function HomePage() {
           <p className="text-xs text-muted-foreground dark:text-foreground/50 text-center mb-4 uppercase tracking-widest font-medium">
             Equipment from the brands you know
           </p>
-          <div className="flex items-center justify-center gap-x-6 gap-y-4 md:gap-x-8 flex-wrap opacity-60 dark:opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
+          {/* Phones: an even 4×2 grid (flex-wrap orphaned one logo on a third
+              row); max-w-full + object-contain lets the wide wordmarks shrink
+              into their cell without distorting */}
+          <div className="grid grid-cols-4 place-items-center gap-x-4 gap-y-5 sm:flex sm:items-center sm:justify-center sm:gap-x-6 sm:gap-y-4 md:gap-x-8 sm:flex-wrap opacity-60 dark:opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500 [&_img]:max-w-full [&_img]:object-contain">
             <Image src="/images/brands/peterbilt.svg" alt="Peterbilt" width={90} height={36} className="h-7 md:h-8 w-auto dark:invert" />
             <Image src="/images/brands/freightliner.svg" alt="Freightliner" width={120} height={36} className="h-7 md:h-8 w-auto dark:invert" />
             <Image src="/images/brands/kenworth.png" alt="Kenworth" width={120} height={30} className="h-6 md:h-7 w-auto dark:invert" />
@@ -277,7 +280,6 @@ export default async function HomePage() {
             <FooterLink href="/deals">Deals</FooterLink>
             <FooterLink href="/finance">Financing</FooterLink>
             <FooterLink href="/for-business">For Dealers</FooterLink>
-            <FooterLink href="/pricing">Pricing</FooterLink>
             <FooterLink href="/dealers">Directory</FooterLink>
             <FooterLink href="/transform">Transform</FooterLink>
             <FooterLink href="/about">About</FooterLink>

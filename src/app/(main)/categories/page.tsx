@@ -71,10 +71,21 @@ export default async function CategoriesPage() {
 
   // Build category tree
   const parentCategories = categories?.filter((c) => !c.parent_id) || [];
-  const categoryTree = parentCategories.map((parent) => ({
-    ...parent,
-    children: categories?.filter((c) => c.parent_id === parent.id) || [],
-  }));
+  // Stocked subcategories first (stable within each group), so the grid
+  // doesn't lead with a wall of empty dead-ends.
+  const categoryTree = parentCategories.map((parent) => {
+    const children = categories?.filter((c) => c.parent_id === parent.id) || [];
+    return {
+      ...parent,
+      children: [
+        ...children.filter((c) => (countMap[c.id] || 0) > 0),
+        ...children.filter((c) => !countMap[c.id]),
+      ],
+    };
+  });
+
+  const listingsLabel = (count: number) =>
+    count === 0 ? 'No listings yet' : `${count.toLocaleString()} ${count === 1 ? 'listing' : 'listings'}`;
 
   const getCategoryCount = (categoryId: string, children?: Array<{ id: string }>) => {
     let count = countMap[categoryId] || 0;
@@ -89,16 +100,17 @@ export default async function CategoriesPage() {
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Header */}
-      <header className="bg-background border-b">
+      <div className="bg-background border-b">
         <div className="max-w-6xl mx-auto px-4 py-6 md:py-8 text-center">
           <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">Browse Categories</h1>
           <p className="text-sm md:text-base text-muted-foreground">
             Find trucks, trailers, equipment, and parts
           </p>
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-6xl mx-auto px-4 py-6 md:py-8">
+      {/* A <div>, not <main>: the (main) layout already renders the page's main landmark */}
+      <div className="max-w-6xl mx-auto px-4 py-6 md:py-8">
         <div className="space-y-8 md:space-y-12">
           {categoryTree.map((parent) => (
             <div key={parent.id}>
@@ -115,7 +127,7 @@ export default async function CategoriesPage() {
                     {parent.name}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    {getCategoryCount(parent.id, parent.children)} listings
+                    {listingsLabel(getCategoryCount(parent.id, parent.children))}
                   </p>
                 </div>
                 <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
@@ -126,11 +138,11 @@ export default async function CategoriesPage() {
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 ml-0 md:ml-16">
                   {parent.children.map((child: { id: string; name: string; slug: string }) => (
                     <Link key={child.id} href={`/search?category=${child.slug}`}>
-                      <Card className="hover:border-primary hover:shadow-md transition-all cursor-pointer h-full">
+                      <Card className="gap-0 py-0 hover:border-primary hover:shadow-md transition-all cursor-pointer h-full">
                         <CardContent className="p-3 md:p-4">
-                          <h3 className="font-medium text-sm md:text-base line-clamp-2">{child.name}</h3>
+                          <h3 className={`font-medium text-sm md:text-base line-clamp-2 ${countMap[child.id] ? '' : 'text-muted-foreground'}`}>{child.name}</h3>
                           <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
-                            {countMap[child.id] || 0} listings
+                            {listingsLabel(countMap[child.id] || 0)}
                           </p>
                         </CardContent>
                       </Card>
@@ -161,14 +173,14 @@ export default async function CategoriesPage() {
               <Link
                 key={term}
                 href={`/search?q=${encodeURIComponent(term)}`}
-                className="px-3 md:px-4 py-1.5 md:py-2 text-sm bg-background border rounded-full hover:border-primary hover:text-primary transition-colors"
+                className="px-3 md:px-4 py-2.5 md:py-2 text-sm bg-background border rounded-full hover:border-primary hover:text-primary transition-colors"
               >
                 {term}
               </Link>
             ))}
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

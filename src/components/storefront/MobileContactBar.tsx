@@ -27,12 +27,12 @@ export function MobileContactBar({ phone, email, dealerName }: MobileContactBarP
   return (
     <div data-bottom-bar className="fixed bottom-0 left-0 right-0 z-40 lg:hidden pointer-events-none">
       {/* Gradient fade — taps pass through it to the page */}
-      <div className="h-6 bg-gradient-to-t from-white to-transparent" />
+      <div className="h-6 bg-gradient-to-t from-background to-transparent" />
 
       {/* Contact Bar */}
       <div
         ref={barRef}
-        className="pointer-events-auto bg-white border-t border-slate-200 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex gap-2 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+        className="pointer-events-auto bg-background border-t border-border px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex gap-2 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
       >
         {phone && (
           <Button size="lg" className="flex-1 gap-2 shadow-md" asChild>

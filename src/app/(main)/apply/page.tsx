@@ -88,7 +88,13 @@ export default function ApplyPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isValid || submitting) return;
+    if (submitting) return;
+    // Native `required` catches empty fields and selects; this catches the two
+    // custom radio questions (and whitespace-only text).
+    if (!isValid) {
+      setError('Please complete every required field (marked *), including both quick questions.');
+      return;
+    }
 
     setSubmitting(true);
     setError('');
@@ -199,11 +205,12 @@ Phone: ${form.phone || 'Not provided'}
               <h2 className="font-semibold text-base">Your Information</h2>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">
+                  <label htmlFor="apply-name" className="block text-sm font-medium mb-1.5">
                     Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
+                    id="apply-name"
                     value={form.name}
                     onChange={set('name')}
                     placeholder="John Smith"
@@ -213,11 +220,12 @@ Phone: ${form.phone || 'Not provided'}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">
+                  <label htmlFor="apply-email" className="block text-sm font-medium mb-1.5">
                     Email Address <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="email"
+                    id="apply-email"
                     value={form.email}
                     onChange={set('email')}
                     placeholder="john@company.com"
@@ -228,9 +236,10 @@ Phone: ${form.phone || 'Not provided'}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">Phone Number</label>
+                  <label htmlFor="apply-phone" className="block text-sm font-medium mb-1.5">Phone Number</label>
                   <input
                     type="tel"
+                    id="apply-phone"
                     value={form.phone}
                     onChange={set('phone')}
                     placeholder="+1 (555) 000-0000"
@@ -240,11 +249,12 @@ Phone: ${form.phone || 'Not provided'}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">
+                  <label htmlFor="apply-company" className="block text-sm font-medium mb-1.5">
                     Company Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
+                    id="apply-company"
                     value={form.company}
                     onChange={set('company')}
                     placeholder="Smith Heavy Haul LLC"
@@ -260,10 +270,11 @@ Phone: ${form.phone || 'Not provided'}
             <div className="bg-card border rounded-xl p-5 md:p-6 space-y-4">
               <h2 className="font-semibold text-base">About Your Business</h2>
               <div>
-                <label className="block text-sm font-medium mb-1.5">
+                <label htmlFor="apply-businessType" className="block text-sm font-medium mb-1.5">
                   What type of business do you operate? <span className="text-red-500">*</span>
                 </label>
                 <NativeSelect
+                  id="apply-businessType"
                   value={form.businessType}
                   onChange={set('businessType')}
                   required
@@ -276,10 +287,11 @@ Phone: ${form.phone || 'Not provided'}
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">
+                  <label htmlFor="apply-employees" className="block text-sm font-medium mb-1.5">
                     Number of employees <span className="text-red-500">*</span>
                   </label>
                   <NativeSelect
+                    id="apply-employees"
                     value={form.employees}
                     onChange={set('employees')}
                     required
@@ -291,10 +303,11 @@ Phone: ${form.phone || 'Not provided'}
                   </NativeSelect>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">
+                  <label htmlFor="apply-revenue" className="block text-sm font-medium mb-1.5">
                     Estimated annual revenue <span className="text-red-500">*</span>
                   </label>
                   <NativeSelect
+                    id="apply-revenue"
                     value={form.revenue}
                     onChange={set('revenue')}
                     required
@@ -307,10 +320,11 @@ Phone: ${form.phone || 'Not provided'}
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">
+                <label htmlFor="apply-painPoint" className="block text-sm font-medium mb-1.5">
                   What is your biggest operational pain right now? <span className="text-red-500">*</span>
                 </label>
                 <NativeSelect
+                  id="apply-painPoint"
                   value={form.painPoint}
                   onChange={set('painPoint')}
                   required
@@ -326,16 +340,16 @@ Phone: ${form.phone || 'Not provided'}
             {/* Qualification */}
             <div className="bg-card border rounded-xl p-5 md:p-6 space-y-4">
               <h2 className="font-semibold text-base">Two Quick Questions</h2>
-              <div>
-                <label className="block text-sm font-medium mb-2.5">
+              <fieldset>
+                <legend className="block text-sm font-medium mb-2.5">
                   Are you the owner or primary decision-maker for this type of investment?{' '}
                   <span className="text-red-500">*</span>
-                </label>
-                <div className="flex gap-3">
+                </legend>
+                <div className="flex flex-col sm:flex-row gap-3">
                   {['Yes', 'No — I will involve my partner/investor'].map((opt) => (
                     <label
                       key={opt}
-                      className={`flex-1 flex items-center gap-2.5 px-4 py-3 rounded-lg border cursor-pointer transition-colors text-sm ${
+                      className={`flex-1 flex items-center gap-2.5 px-4 py-3 rounded-lg border cursor-pointer transition-colors text-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/50 ${
                         form.isDecisionMaker === opt
                           ? 'border-primary bg-primary/5 text-foreground'
                           : 'border-border hover:border-muted-foreground/40 text-muted-foreground'
@@ -362,17 +376,17 @@ Phone: ${form.phone || 'Not provided'}
                     </label>
                   ))}
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2.5">
+              </fieldset>
+              <fieldset>
+                <legend className="block text-sm font-medium mb-2.5">
                   If the ROI is clearly demonstrated, are you open to a 12-month commitment?{' '}
                   <span className="text-red-500">*</span>
-                </label>
-                <div className="flex gap-3">
+                </legend>
+                <div className="flex flex-col sm:flex-row gap-3">
                   {['Yes', 'Need to learn more first'].map((opt) => (
                     <label
                       key={opt}
-                      className={`flex-1 flex items-center gap-2.5 px-4 py-3 rounded-lg border cursor-pointer transition-colors text-sm ${
+                      className={`flex-1 flex items-center gap-2.5 px-4 py-3 rounded-lg border cursor-pointer transition-colors text-sm has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/50 ${
                         form.openToCommitment === opt
                           ? 'border-primary bg-primary/5 text-foreground'
                           : 'border-border hover:border-muted-foreground/40 text-muted-foreground'
@@ -399,11 +413,11 @@ Phone: ${form.phone || 'Not provided'}
                     </label>
                   ))}
                 </div>
-              </div>
+              </fieldset>
             </div>
 
             {error && (
-              <p className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
+              <p role="alert" className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
                 {error}
               </p>
             )}
@@ -412,7 +426,7 @@ Phone: ${form.phone || 'Not provided'}
               type="submit"
               size="lg"
               className="w-full rounded-full gap-2 group"
-              disabled={!isValid || submitting}
+              disabled={submitting}
             >
               {submitting ? 'Submitting...' : 'Submit Application'}
               {!submitting && (

@@ -130,7 +130,7 @@ export default function AboutPage() {
               word-of-mouth.
             </p>
             <p>
-              We started AXLON because we saw an opportunity to bring modern AI tools to an
+              We started Axleyard because we saw an opportunity to bring modern AI tools to an
               industry that&apos;s been underserved by technology. Not another generic CRM with
               a chatbot bolted on — but a purpose-built platform that understands how equipment
               businesses actually work.
@@ -224,7 +224,7 @@ export default function AboutPage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="rounded-full border-slate-600 text-slate-200 hover:bg-slate-800"
+                className="rounded-full bg-transparent border-slate-600 text-slate-200 hover:bg-slate-800 hover:text-white"
                 asChild
               >
                 <Link href="/contact?plan=demo">Book a Demo</Link>

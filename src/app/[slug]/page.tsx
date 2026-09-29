@@ -203,6 +203,9 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
   // buyers every self-signup had been vetted.
   const isVerified = dealer.business_status === 'approved';
 
+  // Dial digits only, as MobileContactBar does — "(555) 123-4567" isn't a clean tel: URI.
+  const telHref = dealer.phone ? `tel:${dealer.phone.replace(/[^\d+]/g, '')}` : '';
+
   // Increment view count (fire and forget). Atomic, and via the service role:
   // as the visitor this UPDATE matched zero rows under the profiles policies,
   // so the counter sat at 0 and the /dealers ordering was meaningless.
@@ -318,7 +321,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
   const hasActiveFilters = !!(minPrice || maxPrice || minYear || maxYear || condition);
 
   return (
-    <div className="min-h-dvh bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-dvh bg-gradient-to-b from-muted/50 to-background">
       {/* JSON-LD Structured Data */}
       <DealerJsonLd dealer={dealer as DealerForSchema} slug={slug} />
       <DealerBreadcrumbJsonLd dealerName={dealer.company_name} slug={slug} />
@@ -335,7 +338,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
 
       {/* Subtle Background Pattern */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:48px_48px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:48px_48px]" />
       </div>
 
       {/* Hero Section */}
@@ -345,7 +348,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
           {dealer.banner_url ? (
             <Image
               src={dealer.banner_url}
-              alt={dealer.company_name}
+              alt=""
               fill
               className="object-cover"
               sizes="100vw"
@@ -354,12 +357,12 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
         </div>
 
         {/* Dealer Info Card */}
         <div className="relative max-w-7xl mx-auto px-4 -mt-24 md:-mt-32 pb-6">
-          <div className="relative bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="relative bg-card rounded-2xl shadow-xl border border-border overflow-hidden">
             {/* Main Info Row */}
             <div className="p-6 md:p-8">
               <div className="flex flex-col lg:flex-row gap-6">
@@ -367,11 +370,11 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                 <div className="flex flex-col sm:flex-row gap-5 flex-1">
                   {/* Logo */}
                   <div className="flex-shrink-0">
-                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 shadow-lg flex items-center justify-center overflow-hidden ring-4 ring-white">
+                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 shadow-lg flex items-center justify-center overflow-hidden ring-4 ring-card">
                       {dealer.avatar_url ? (
                         <Image
                           src={dealer.avatar_url}
-                          alt={dealer.company_name}
+                          alt={`${dealer.company_name} logo`}
                           width={96}
                           height={96}
                           className="object-contain"
@@ -387,7 +390,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
+                      <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-foreground tracking-tight">
                         {dealer.company_name}
                       </h1>
                       {isVerified && (
@@ -399,19 +402,19 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                     </div>
 
                     {dealer.tagline && (
-                      <p className="text-slate-500 mb-3 text-sm md:text-base">{dealer.tagline}</p>
+                      <p className="text-muted-foreground mb-3 text-sm md:text-base">{dealer.tagline}</p>
                     )}
 
                     {/* Contact Row */}
                     <div className="flex flex-wrap gap-2 text-sm">
                       {(dealer.city || dealer.state) && (
-                        <span className="flex items-center gap-1.5 text-slate-500">
+                        <span className="flex items-center gap-1.5 text-muted-foreground">
                           <MapPin className="w-4 h-4" />
                           {[dealer.city, dealer.state].filter(Boolean).join(', ')}
                         </span>
                       )}
                       {dealer.phone && (
-                        <a href={`tel:${dealer.phone}`} className="-my-2.5 flex min-h-10 items-center gap-1.5 text-slate-600 hover:text-primary transition-colors md:my-0 md:min-h-0">
+                        <a href={telHref} className="-my-2.5 flex min-h-10 items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors md:my-0 md:min-h-0">
                           <Phone className="w-4 h-4" />
                           {dealer.phone}
                         </a>
@@ -424,7 +427,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                 <div className="flex flex-col sm:flex-row lg:flex-col gap-3 sm:items-start lg:items-stretch">
                   {dealer.phone && (
                     <Button size="lg" className="gap-2 shadow-md" asChild>
-                      <a href={`tel:${dealer.phone}`}>
+                      <a href={telHref}>
                         <Phone className="w-4 h-4" />
                         Call Now
                       </a>
@@ -432,7 +435,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                   )}
                   {dealer.email && (
                     <Button size="lg" variant="outline" className="gap-2" asChild>
-                      <a href={`mailto:${dealer.email}?subject=Inquiry via Axleyard`}>
+                      <a href={`mailto:${dealer.email}?subject=${encodeURIComponent(`Inquiry via Axleyard - ${dealer.company_name}`)}`}>
                         <Mail className="w-4 h-4" />
                         Email Dealer
                       </a>
@@ -443,38 +446,39 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
             </div>
 
             {/* Stats Bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-100 border-t border-slate-100 bg-slate-50/50">
+            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-border border-t border-border bg-muted/40">
               <div className="p-4 text-center">
-                <p className="text-2xl font-bold text-slate-900">{totalListings}</p>
-                <p className="text-xs text-slate-500 uppercase tracking-wider">Vehicles</p>
+                <p className="text-2xl font-bold text-foreground">{totalListings}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Vehicles</p>
               </div>
               <div className="p-4 text-center">
-                <p className="text-2xl font-bold text-emerald-600">{newCount}</p>
-                <p className="text-xs text-slate-500 uppercase tracking-wider">New</p>
+                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{newCount}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">New</p>
               </div>
               <div className="p-4 text-center">
-                <p className="text-2xl font-bold text-slate-900">{usedCount}</p>
-                <p className="text-xs text-slate-500 uppercase tracking-wider">Used</p>
+                <p className="text-2xl font-bold text-foreground">{usedCount}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Used</p>
               </div>
               <div className="p-4 text-center">
                 <div className="flex items-center justify-center gap-1">
                   <Clock className="w-4 h-4 text-amber-500" />
-                  <p className="text-lg font-bold text-slate-900">&lt;1hr</p>
+                  <p className="text-lg font-bold text-foreground">&lt;1hr</p>
                 </div>
-                <p className="text-xs text-slate-500 uppercase tracking-wider">Response</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Response</p>
               </div>
             </div>
 
             {/* Social Links + Website */}
             {(socialLinks.facebook || socialLinks.instagram || dealer.website) && (
-              <div className="flex items-center justify-between px-6 py-3 border-t border-slate-100 bg-white">
+              <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-card">
                 <div className="flex items-center gap-2">
                   {socialLinks.facebook && (
                     <a
                       href={socialLinks.facebook}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-11 h-11 md:w-8 md:h-8 rounded-lg bg-slate-100 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all"
+                      aria-label={`${dealer.company_name} on Facebook`}
+                      className="w-11 h-11 md:w-8 md:h-8 rounded-lg bg-muted text-foreground flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all"
                     >
                       <Facebook className="w-4 h-4" />
                     </a>
@@ -484,7 +488,8 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                       href={socialLinks.instagram}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-11 h-11 md:w-8 md:h-8 rounded-lg bg-slate-100 flex items-center justify-center hover:bg-pink-500 hover:text-white transition-all"
+                      aria-label={`${dealer.company_name} on Instagram`}
+                      className="w-11 h-11 md:w-8 md:h-8 rounded-lg bg-muted text-foreground flex items-center justify-center hover:bg-pink-500 hover:text-white transition-all"
                     >
                       <Instagram className="w-4 h-4" />
                     </a>
@@ -495,7 +500,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                     href={dealer.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex min-h-10 items-center gap-2 text-sm text-slate-600 hover:text-primary transition-colors md:min-h-0"
+                    className="flex min-h-10 items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors md:min-h-0"
                   >
                     <Globe className="w-4 h-4" />
                     Visit Website
@@ -511,17 +516,17 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
       {/* About Section - Above Inventory */}
       {dealer.about && (
         <div className="relative max-w-7xl mx-auto px-4 pb-8">
-          <Card className="bg-white/80 backdrop-blur border-slate-200">
+          <Card className="py-0 gap-0 bg-card/80 backdrop-blur">
             <CardContent className="p-6">
               <div className="flex items-start gap-4">
-                <div className="hidden sm:flex w-12 h-12 rounded-xl bg-slate-100 items-center justify-center flex-shrink-0">
-                  <Building2 className="w-6 h-6 text-slate-600" />
+                <div className="hidden sm:flex w-12 h-12 rounded-xl bg-muted items-center justify-center flex-shrink-0">
+                  <Building2 className="w-6 h-6 text-muted-foreground" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-lg font-semibold text-slate-900 mb-2">
+                  <h2 className="text-lg font-semibold text-foreground mb-2">
                     About {dealer.company_name}
                   </h2>
-                  <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap line-clamp-4">
+                  <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap line-clamp-4">
                     {dealer.about}
                   </p>
                 </div>
@@ -534,7 +539,7 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
       {/* Main Content */}
       <div className="relative max-w-7xl mx-auto px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-8">
         {/* Search & Filters Bar */}
-        <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm -mx-4 px-4 py-4 border-b border-slate-200 mb-6">
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm -mx-4 px-4 py-4 border-b border-border mb-6">
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Search */}
             <form className="flex-1 relative" action={`/${slug}`}>
@@ -547,12 +552,14 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
               {maxYear && <input type="hidden" name="maxYear" value={maxYear} />}
               {condition && <input type="hidden" name="condition" value={condition} />}
 
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 name="q"
+                type="search"
+                aria-label={`Search ${dealer.company_name} inventory`}
                 placeholder="Search by make, model, or keyword..."
                 defaultValue={q}
-                className="h-12 pl-12 pr-4 bg-white border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm"
+                className="h-12 pl-12 pr-4 bg-background dark:bg-background rounded-xl placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm"
               />
             </form>
 
@@ -581,8 +588,8 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
               <Badge
                 className={`cursor-pointer px-3 py-2 md:py-1.5 rounded-lg text-sm font-medium transition-all ${
                   !category
-                    ? 'bg-slate-900 text-white border-0 shadow-md'
-                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                    ? 'bg-foreground text-background border-0 shadow-md'
+                    : 'bg-background border border-border text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >
                 <Package className="w-3 h-3 mr-1.5" />
@@ -605,8 +612,8 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
                   <Badge
                     className={`cursor-pointer px-3 py-2 md:py-1.5 rounded-lg text-sm font-medium transition-all ${
                       isActive
-                        ? 'bg-slate-900 text-white border-0 shadow-md'
-                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                        ? 'bg-foreground text-background border-0 shadow-md'
+                        : 'bg-background border border-border text-muted-foreground hover:bg-muted hover:text-foreground'
                     }`}
                   >
                     {cat.name} ({count})
@@ -619,9 +626,9 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
 
         {/* Results Header */}
         <div className="flex items-center justify-between mb-6">
-          <p className="text-slate-600">
-            <span className="text-slate-900 font-semibold">{filteredListings?.length || 0}</span> vehicles
-            {q && <span className="text-slate-500"> matching &quot;{q}&quot;</span>}
+          <p className="text-muted-foreground">
+            <span className="text-foreground font-semibold">{filteredListings?.length || 0}</span> {filteredListings?.length === 1 ? 'vehicle' : 'vehicles'}
+            {q && <span> matching &quot;{q}&quot;</span>}
             {hasActiveFilters && (
               <Link
                 href={`/${slug}${q ? `?q=${encodeURIComponent(q)}` : ''}${category ? `${q ? '&' : '?'}category=${encodeURIComponent(category)}` : ''}`}
@@ -635,27 +642,27 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
 
         {/* Listings Grid */}
         {filteredListings && filteredListings.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
             {filteredListings.map((listing) => {
               const primaryImage = listing.images?.find((img: { is_primary: boolean }) => img.is_primary) || listing.images?.[0];
               const cat = Array.isArray(listing.category) ? listing.category[0] : listing.category;
 
               return (
                 <Link key={listing.id} href={`/listing/${listing.id}`} className="group block">
-                  <div className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg hover:border-slate-300 transition-all duration-300 h-full">
+                  <div className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-300 h-full">
                     {/* Image */}
-                    <div className="relative aspect-[4/3] bg-slate-100">
+                    <div className="relative aspect-[4/3] bg-muted">
                       {getImageSrc(primaryImage) ? (
                         <Image
                           src={getImageSrc(primaryImage)!}
                           alt={listing.title}
                           fill
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                          sizes="(max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                           className="object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Truck className="w-12 h-12 text-slate-300" />
+                          <Truck className="w-12 h-12 text-muted-foreground/40" />
                         </div>
                       )}
 
@@ -670,15 +677,15 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
 
                     {/* Content */}
                     <div className="p-3 md:p-4">
-                      <h3 className="font-semibold text-slate-900 text-sm md:text-base line-clamp-2 group-hover:text-primary transition-colors">
+                      <h3 className="font-semibold text-foreground text-sm md:text-base line-clamp-2 group-hover:text-primary transition-colors">
                         {listing.title}
                       </h3>
 
-                      <p className="text-lg md:text-xl font-bold text-primary mt-1">
+                      <p className="text-base sm:text-lg md:text-xl font-bold text-primary mt-1">
                         {listing.price ? `$${listing.price.toLocaleString()}` : 'Call for Price'}
                       </p>
 
-                      <div className="flex flex-wrap gap-x-2 gap-y-1 mt-2 text-xs text-slate-500">
+                      <div className="flex flex-wrap gap-x-2 gap-y-1 mt-2 text-xs text-muted-foreground">
                         {listing.year && <span>{listing.year}</span>}
                         {listing.year && listing.mileage && <span>·</span>}
                         {listing.mileage && <span>{listing.mileage.toLocaleString()} mi</span>}
@@ -691,11 +698,11 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
           </div>
         ) : (
           <div className="text-center py-20">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-slate-100 flex items-center justify-center">
-              <Search className="w-10 h-10 text-slate-300" />
+            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-muted flex items-center justify-center">
+              <Search className="w-10 h-10 text-muted-foreground/50" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900 mb-2">No listings found</h2>
-            <p className="text-slate-500 mb-4">
+            <h2 className="text-xl font-bold text-foreground mb-2">No listings found</h2>
+            <p className="text-muted-foreground mb-4">
               {q ? `No results for "${q}"` : 'No vehicles match your filters'}
             </p>
             {hasActiveFilters && (
@@ -707,28 +714,29 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
         )}
 
         {/* Trust Badges */}
-        <div className="mt-16 pt-8 border-t border-slate-200">
-          <h3 className="text-center text-sm font-medium text-slate-400 uppercase tracking-wider mb-6">
+        <div className="mt-16 pt-8 border-t border-border">
+          <h2 className="text-center text-sm font-medium text-muted-foreground uppercase tracking-wider mb-6">
             Why Choose {dealer.company_name}
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          </h2>
+          <div className={`grid grid-cols-2 gap-4 ${dealer.chat_enabled ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
             {[
               isVerified
                 ? { icon: Shield, label: 'Verified Business', desc: 'Trusted & vetted' }
                 : { icon: Shield, label: 'Direct from Seller', desc: 'Contact them directly' },
               { icon: Award, label: 'Quality Inventory', desc: 'Inspected vehicles' },
               { icon: Clock, label: 'Fast Response', desc: 'Quick replies' },
-              { icon: Sparkles, label: 'AI Powered', desc: '24/7 assistance' },
+              // Only claim 24/7 AI help when this dealer's chat is actually on.
+              ...(dealer.chat_enabled ? [{ icon: Sparkles, label: 'AI Powered', desc: '24/7 assistance' }] : []),
             ].map((item, i) => (
               <div
                 key={i}
-                className="text-center p-5 rounded-xl bg-white border border-slate-200 hover:border-primary/30 hover:shadow-lg transition-all duration-300"
+                className="text-center p-5 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-lg transition-all duration-300"
               >
                 <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
                   <item.icon className="w-6 h-6 text-primary" />
                 </div>
-                <p className="font-semibold text-slate-900 mb-0.5 text-sm">{item.label}</p>
-                <p className="text-xs text-slate-500">{item.desc}</p>
+                <p className="font-semibold text-foreground mb-0.5 text-sm">{item.label}</p>
+                <p className="text-xs text-muted-foreground">{item.desc}</p>
               </div>
             ))}
           </div>

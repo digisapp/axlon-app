@@ -28,12 +28,28 @@ interface PageProps {
   searchParams: Promise<{ plan?: string; subject?: string; dealer?: string }>;
 }
 
+// ?subject= values the form's <select> understands, and what each ?plan=
+// preselects — plan names aren't subjects, so /contact?plan=pro used to land
+// on "Select a topic...".
+const SUBJECTS = new Set(['demo', 'voice', 'pricing', 'support', 'partnership', 'claim', 'other']);
+const planSubjects: Record<string, string> = {
+  demo: 'demo',
+  voice: 'voice',
+  enterprise: 'pricing',
+  starter: 'pricing',
+  pro: 'pricing',
+  platform: 'pricing',
+  bundle: 'pricing',
+};
+
 const planLabels: Record<string, string> = {
   demo: 'Book a Demo',
   voice: 'Voice Agent Inquiry',
   enterprise: 'Enterprise Plan',
   starter: 'Starter Plan',
   pro: 'Pro Plan',
+  platform: 'Platform Plan',
+  bundle: 'Platform + Voice Bundle',
 };
 
 export default async function ContactPage({ searchParams }: PageProps) {
@@ -44,6 +60,13 @@ export default async function ContactPage({ searchParams }: PageProps) {
   const planLabel = isClaim
     ? `Storefront claim request${dealerName ? ` · ${dealerName}` : ''}`
     : plan ? planLabels[plan] || 'General Inquiry' : null;
+  const defaultSubject = isClaim
+    ? 'claim'
+    : subject && SUBJECTS.has(subject)
+      ? subject
+      : plan
+        ? planSubjects[plan]
+        : undefined;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted/50 via-background to-background">
@@ -84,7 +107,7 @@ export default async function ContactPage({ searchParams }: PageProps) {
               </p>
 
               <ContactForm
-            defaultSubject={isClaim ? 'claim' : plan}
+            defaultSubject={defaultSubject}
             defaultPlan={plan}
             defaultMessage={
               isClaim

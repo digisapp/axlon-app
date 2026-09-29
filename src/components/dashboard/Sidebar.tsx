@@ -34,6 +34,8 @@ export function Sidebar({ unreadMessages = 0, newLeads = 0, pendingAiInbox = 0, 
   return (
     <TooltipProvider delayDuration={0}>
       <aside
+        // The layout's content column reads this to match its left padding.
+        data-collapsed={collapsed}
         className={cn(
           'fixed left-0 top-0 z-40 h-screen bg-background border-r transition-all duration-300 flex flex-col',
           collapsed ? 'w-16' : 'w-64'
@@ -79,6 +81,7 @@ export function Sidebar({ unreadMessages = 0, newLeads = 0, pendingAiInbox = 0, 
                     <Link
                       key={item.href}
                       href={item.href}
+                      aria-current={isActive ? 'page' : undefined}
                       className={cn(
                         'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors relative text-sm',
                         isActive
@@ -92,16 +95,16 @@ export function Sidebar({ unreadMessages = 0, newLeads = 0, pendingAiInbox = 0, 
                         <>
                           <span className="flex-1">{item.label}</span>
                           {isLocked && (
-                            <Lock className="w-3.5 h-3.5 text-muted-foreground/60" />
+                            <Lock className="w-3.5 h-3.5 text-muted-foreground/60" aria-label="Paid feature" />
                           )}
-                          {item.badge && item.badge > 0 && (
+                          {!!item.badge && item.badge > 0 && (
                             <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
                               {item.badge}
                             </span>
                           )}
                         </>
                       )}
-                      {collapsed && item.badge && item.badge > 0 && (
+                      {collapsed && !!item.badge && item.badge > 0 && (
                         <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
                           {item.badge > 9 ? '9+' : item.badge}
                         </span>
@@ -115,7 +118,7 @@ export function Sidebar({ unreadMessages = 0, newLeads = 0, pendingAiInbox = 0, 
                         <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
                         <TooltipContent side="right" className="flex items-center gap-2">
                           {item.label}
-                          {item.badge && item.badge > 0 && (
+                          {!!item.badge && item.badge > 0 && (
                             <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
                               {item.badge}
                             </span>

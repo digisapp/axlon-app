@@ -100,10 +100,10 @@ export function MicrositeLeadForm({
 
   if (status === 'sent') {
     return (
-      <div className="rounded-lg border bg-background p-6 text-center">
+      <div role="status" className="rounded-lg border border-slate-200 bg-white p-6 text-center text-slate-900">
         <CheckCircle2 className="mx-auto h-10 w-10" style={{ color: 'var(--ms-accent)' }} />
         <h3 className="mt-3 text-lg font-semibold">Request received</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-slate-500">
           A specialist will follow up shortly with pricing and availability.
         </p>
       </div>
@@ -123,7 +123,7 @@ export function MicrositeLeadForm({
           style={{ borderColor: 'var(--ms-accent)', backgroundColor: 'color-mix(in srgb, var(--ms-accent) 8%, transparent)' }}
         >
           <div className="min-w-0">
-            <p className="text-xs font-medium text-muted-foreground">Asking about</p>
+            <p className="text-xs font-medium text-slate-500">Asking about</p>
             <p className="truncate text-sm font-semibold" title={unit}>
               {unit}
             </p>
@@ -132,7 +132,7 @@ export function MicrositeLeadForm({
             type="button"
             onClick={clearUnit}
             aria-label="Clear selected trailer"
-            className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="-m-1 flex h-9 w-9 shrink-0 items-center justify-center rounded text-slate-500 hover:bg-slate-100 hover:text-slate-900"
           >
             <X className="h-4 w-4" />
           </button>

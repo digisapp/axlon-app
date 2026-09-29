@@ -54,7 +54,11 @@ export function NotificationBell() {
                 variant="ghost"
                 size="sm"
                 className="h-8 text-xs text-destructive"
-                onClick={() => clearAll()}
+                aria-label="Clear all notifications"
+                title="Clear all notifications"
+                onClick={() => {
+                  if (confirm('Clear all notifications?')) clearAll();
+                }}
               >
                 <Trash2 className="w-3 h-3" />
               </Button>
@@ -117,8 +121,9 @@ export function NotificationBell() {
 
         {notifications.length > 0 && (
           <div className="p-2 border-t">
+            {/* Only closes the panel — "Dismiss All" read like it cleared them */}
             <Button variant="ghost" size="sm" className="w-full" onClick={() => setOpen(false)}>
-              Dismiss All
+              Close
             </Button>
           </div>
         )}

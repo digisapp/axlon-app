@@ -59,7 +59,7 @@ export const ChatResponsePanel = memo(function ChatResponsePanel({
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2 text-primary">
             <Sparkles className="w-4 h-4" />
-            <span className="text-sm font-medium">Axlon</span>
+            <span className="text-sm font-medium">AXLON</span>
           </div>
           <button
             onClick={onClose}
@@ -124,7 +124,7 @@ export const ChatResponsePanel = memo(function ChatResponsePanel({
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                       <span className="font-semibold text-primary">
-                        {listing.price ? `$${listing.price.toLocaleString()}` : 'Call'}
+                        {listing.price ? `$${listing.price.toLocaleString()}` : 'Call for Price'}
                       </span>
                       {listing.location && (
                         <span className="flex items-center gap-0.5">

@@ -108,8 +108,8 @@ export function ContactSeller({ listingId, sellerId, listingTitle }: ContactSell
 
   if (isSent) {
     return (
-      <Card>
-        <CardContent className="p-6 text-center">
+      <Card className="py-0">
+        <CardContent className="p-6 text-center" role="status">
           <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="w-6 h-6 text-green-600" />
           </div>
@@ -211,7 +211,7 @@ export function ContactSeller({ listingId, sellerId, listingTitle }: ContactSell
           </div>
 
           {error && (
-            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
+            <div role="alert" className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
               {error}
             </div>
           )}

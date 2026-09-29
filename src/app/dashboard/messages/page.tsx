@@ -10,8 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 import {
-  ArrowLeft,
   Search,
   MessageSquare,
   Loader2,
@@ -111,46 +111,34 @@ export default function MessagesPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-24" role="status" aria-label="Loading messages">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-background border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4 mb-4">
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold">Messages</h1>
-              <p className="text-sm text-muted-foreground">
-                {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
-              </p>
-            </div>
-          </div>
+    <div className="max-w-4xl mx-auto space-y-4 md:space-y-6">
+      <PageHeader
+        title="Messages"
+        description={`${conversations.length} conversation${conversations.length !== 1 ? 's' : ''}`}
+      />
 
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search conversations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+      {/* Search */}
+      {conversations.length > 0 && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, email or listing..."
+            aria-label="Search conversations"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 bg-background"
+          />
         </div>
-      </header>
+      )}
 
-      <main className="max-w-4xl mx-auto px-4 py-6">
+      <div>
         {loadError ? (
           <Card>
             <CardContent className="py-16 text-center">
@@ -174,7 +162,7 @@ export default function MessagesPage() {
               const isFromMe = conv.lastMessage.sender_id === userId;
 
               return (
-                <Link key={conversationId} href={`/dashboard/messages/${conversationId}`}>
+                <Link key={conversationId} href={`/dashboard/messages/${conversationId}`} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <Card className={`hover:bg-muted/50 transition-colors ${conv.unreadCount > 0 ? 'border-primary/50' : ''}`}>
                     <CardContent className="p-4">
                       <div className="flex gap-4">
@@ -236,6 +224,16 @@ export default function MessagesPage() {
               );
             })}
           </div>
+        ) : conversations.length > 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="font-medium mb-1">No conversations match &ldquo;{searchQuery}&rdquo;</p>
+              <p className="text-sm text-muted-foreground mb-4">Try a name, email, or listing title.</p>
+              <Button variant="outline" onClick={() => setSearchQuery('')}>
+                Clear search
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <Card>
             <CardContent className="py-16 text-center">
@@ -243,18 +241,18 @@ export default function MessagesPage() {
                 <MessageSquare className="w-8 h-8 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-semibold mb-2">No messages yet</h3>
-              <p className="text-muted-foreground mb-6">
-                When you contact sellers or receive inquiries, they&apos;ll appear here
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                When a buyer messages you about a listing, or you message a seller, the conversation shows up here.
               </p>
               <Button asChild>
-                <Link href="/search">
-                  Browse Listings
+                <Link href="/dashboard/listings">
+                  Review Your Listings
                 </Link>
               </Button>
             </CardContent>
           </Card>
         )}
-      </main>
+      </div>
     </div>
   );
 }

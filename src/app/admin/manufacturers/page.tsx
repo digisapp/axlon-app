@@ -41,6 +41,7 @@ import {
 import { Manufacturer } from '@/types';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { TONE, formatEnum } from '@/components/admin/tones';
 
 const EQUIPMENT_TYPE_OPTIONS = [
   { value: 'trucks', label: 'Trucks' },
@@ -100,6 +101,7 @@ export default function AdminManufacturersPage() {
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('active');
   const [counts, setCounts] = useState({ total: 0, active: 0, featured: 0 });
 
@@ -118,24 +120,33 @@ export default function AdminManufacturersPage() {
     try {
       const params = new URLSearchParams();
       params.set('status', statusFilter);
-      if (searchQuery) params.set('search', searchQuery);
+      if (debouncedSearch) params.set('search', debouncedSearch);
 
       const response = await csrfFetch(`/api/admin/manufacturers?${params}`);
       if (response.ok) {
         const data = await response.json();
         setManufacturers(data.data || []);
         setCounts(data.counts || { total: 0, active: 0, featured: 0 });
+      } else {
+        toast.error('Could not load manufacturers');
       }
     } catch (error) {
       logger.error('Error fetching manufacturers', { error });
+      toast.error('Could not load manufacturers');
     }
     setIsLoading(false);
   };
 
+  // Query only after typing pauses — per-keystroke fetches raced each other
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchManufacturers flips isLoading synchronously before awaiting; standard fetch-on-change pattern
     fetchManufacturers();
-  }, [statusFilter, searchQuery]);
+  }, [statusFilter, debouncedSearch]);
 
   const openAddDialog = () => {
     setFormData(emptyManufacturer);
@@ -172,7 +183,7 @@ export default function AdminManufacturersPage() {
 
   const handleSubmit = async () => {
     if (!formData.name || !formData.canonical_name) {
-      alert('Name and canonical name are required');
+      toast.error('Name and canonical name are required');
       return;
     }
 
@@ -203,14 +214,16 @@ export default function AdminManufacturersPage() {
       });
 
       if (response.ok) {
+        toast.success(isEditing ? 'Manufacturer saved' : 'Manufacturer added');
         setIsDialogOpen(false);
         fetchManufacturers();
       } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to save manufacturer');
+        const error = await response.json().catch(() => ({}));
+        toast.error(error.error || 'Failed to save manufacturer');
       }
     } catch (error) {
       logger.error('Error saving manufacturer', { error });
+      toast.error('Failed to save manufacturer');
     }
     setIsSubmitting(false);
   };
@@ -224,6 +237,7 @@ export default function AdminManufacturersPage() {
       });
 
       if (response.ok) {
+        toast.success(`${manufacturer.name} ${manufacturer.is_active ? 'deactivated' : 'activated'}`);
         fetchManufacturers();
       } else {
         const data = await response.json().catch(() => ({}));
@@ -242,6 +256,7 @@ export default function AdminManufacturersPage() {
       });
 
       if (response.ok) {
+        toast.success('Manufacturer deactivated');
         setDeleteConfirmId(null);
         fetchManufacturers();
       } else {
@@ -265,7 +280,7 @@ export default function AdminManufacturersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Manufacturers</h1>
           <p className="text-sm text-muted-foreground">Manage equipment manufacturers</p>
@@ -276,54 +291,42 @@ export default function AdminManufacturersPage() {
         </Button>
       </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <Card
-            className={`cursor-pointer transition-colors ${
-              statusFilter === 'all' ? 'border-primary' : ''
-            }`}
-            onClick={() => setStatusFilter('all')}
-          >
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Factory className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{counts.total}</p>
-                <p className="text-sm text-muted-foreground">Total</p>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Stats Cards — Total/Active double as the status filter */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+          {([
+            { key: 'all', label: 'Total', count: counts.total, icon: Factory, tone: TONE.blue },
+            { key: 'active', label: 'Active', count: counts.active, icon: Package, tone: TONE.green },
+          ] as const).map(({ key, label, count, icon: Icon, tone }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setStatusFilter(key)}
+              aria-pressed={statusFilter === key}
+              className="rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Card
+                className={`h-full transition-colors hover:bg-muted/50 ${
+                  statusFilter === key ? 'border-primary ring-1 ring-primary' : ''
+                }`}
+              >
+                <CardContent className="p-3 sm:p-4 flex items-center gap-4">
+                  <div className={`hidden sm:block p-2 rounded-lg ${tone}`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{count}</p>
+                    <p className="text-sm text-muted-foreground">{label}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </button>
+          ))}
 
-          <Card
-            className={`cursor-pointer transition-colors ${
-              statusFilter === 'active' ? 'border-primary' : ''
-            }`}
-            onClick={() => setStatusFilter('active')}
-          >
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Package className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{counts.active}</p>
-                <p className="text-sm text-muted-foreground">Active</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            className={`cursor-pointer transition-colors ${
-              statusFilter === 'featured' ? 'border-primary' : ''
-            }`}
-            onClick={() => {
-              setStatusFilter('active');
-              // Could add featured filter
-            }}
-          >
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <Star className="w-5 h-5 text-amber-600" />
+          {/* Featured is a count only — the API has no featured filter */}
+          <Card>
+            <CardContent className="p-3 sm:p-4 flex items-center gap-4">
+              <div className={`hidden sm:block p-2 rounded-lg ${TONE.amber}`}>
+                <Star className="w-5 h-5" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{counts.featured}</p>
@@ -334,11 +337,12 @@ export default function AdminManufacturersPage() {
         </div>
 
         {/* Search */}
-        <div className="mb-6">
+        <div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search manufacturers..."
+              aria-label="Search manufacturers"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -372,12 +376,12 @@ export default function AdminManufacturersPage() {
                   return (
                   <div
                     key={manufacturer.id}
-                    className={`flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors ${
+                    className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors ${
                       !manufacturer.is_active ? 'opacity-60' : ''
-                    } ${manufacturer.is_featured ? 'border-amber-300 bg-amber-50/30' : ''}`}
+                    } ${manufacturer.is_featured ? 'border-amber-300 bg-amber-50/30 dark:border-amber-800 dark:bg-amber-950/20' : ''}`}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-12 h-12 shrink-0 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
                         {logo ? (
                           <Image
                             src={logo.src}
@@ -391,25 +395,27 @@ export default function AdminManufacturersPage() {
                           <Factory className="w-6 h-6 text-muted-foreground" />
                         )}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
                           <h3 className="font-semibold">{manufacturer.name}</h3>
                           {manufacturer.is_featured && (
                             <Badge className="bg-amber-500">
                               <Star className="w-3 h-3 mr-1" />
-                              {manufacturer.feature_tier}
+                              {formatEnum(manufacturer.feature_tier)}
                             </Badge>
                           )}
                           {!manufacturer.is_active && (
                             <Badge variant="secondary">Inactive</Badge>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                           <span>{manufacturer.canonical_name}</span>
                           <span>•</span>
                           <span>{manufacturer.equipment_types.join(', ')}</span>
                           <span>•</span>
-                          <span>{manufacturer.listing_count} listings</span>
+                          <span>
+                            {manufacturer.listing_count} listing{manufacturer.listing_count !== 1 ? 's' : ''}
+                          </span>
                           {manufacturer.website && (
                             <>
                               <span>•</span>
@@ -417,7 +423,7 @@ export default function AdminManufacturersPage() {
                                 href={manufacturer.website}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-blue-600 hover:underline"
+                                className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
                               >
                                 <Globe className="w-3 h-3" />
                                 Website
@@ -428,19 +434,25 @@ export default function AdminManufacturersPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <Link href={`/manufacturers/${manufacturer.slug}`} target="_blank">
-                        <Button variant="ghost" size="sm">
+                    <div className="flex items-center gap-2 sm:shrink-0">
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link
+                          href={`/manufacturers/${manufacturer.slug}`}
+                          target="_blank"
+                          aria-label={`View ${manufacturer.name} public page`}
+                        >
                           <ExternalLink className="w-4 h-4" />
-                        </Button>
-                      </Link>
+                        </Link>
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => toggleActive(manufacturer)}
+                        aria-label={manufacturer.is_active ? 'Deactivate' : 'Activate'}
+                        title={manufacturer.is_active ? 'Active — click to deactivate' : 'Inactive — click to activate'}
                       >
                         {manufacturer.is_active ? (
-                          <ToggleRight className="w-5 h-5 text-green-600" />
+                          <ToggleRight className="w-5 h-5 text-green-600 dark:text-green-400" />
                         ) : (
                           <ToggleLeft className="w-5 h-5 text-muted-foreground" />
                         )}
@@ -449,14 +461,16 @@ export default function AdminManufacturersPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => openEditDialog(manufacturer)}
+                        aria-label={`Edit ${manufacturer.name}`}
                       >
                         <Pencil className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                         onClick={() => setDeleteConfirmId(manufacturer.id)}
+                        aria-label={`Remove ${manufacturer.name} from the public directory`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -484,18 +498,20 @@ export default function AdminManufacturersPage() {
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Name *</label>
+                <label htmlFor="mfr-name" className="text-sm font-medium">Name *</label>
                 <Input
+                  id="mfr-name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Peterbilt"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Canonical Name *</label>
+                <label htmlFor="mfr-canonical-name" className="text-sm font-medium">Canonical Name *</label>
                 <Input
+                  id="mfr-canonical-name"
                   value={formData.canonical_name}
                   onChange={(e) => setFormData({ ...formData, canonical_name: e.target.value })}
                   placeholder="Exact match for listings.make"
@@ -506,18 +522,20 @@ export default function AdminManufacturersPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Slug</label>
+                <label htmlFor="mfr-slug" className="text-sm font-medium">Slug</label>
                 <Input
+                  id="mfr-slug"
                   value={formData.slug}
                   onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                   placeholder="Auto-generated from name"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Logo URL</label>
+                <label htmlFor="mfr-logo-url" className="text-sm font-medium">Logo URL</label>
                 <Input
+                  id="mfr-logo-url"
                   value={formData.logo_url}
                   onChange={(e) => {
                     setFormData({ ...formData, logo_url: e.target.value });
@@ -527,14 +545,15 @@ export default function AdminManufacturersPage() {
                   aria-invalid={!!logoUrlError}
                 />
                 {logoUrlError && (
-                  <p className="text-xs text-red-600 mt-1">{logoUrlError}</p>
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">{logoUrlError}</p>
                 )}
               </div>
             </div>
 
             <div>
-              <label className="text-sm font-medium">Short Description</label>
+              <label htmlFor="mfr-short-description" className="text-sm font-medium">Short Description</label>
               <Input
+                id="mfr-short-description"
                 value={formData.short_description}
                 onChange={(e) => setFormData({ ...formData, short_description: e.target.value })}
                 placeholder="Brief description for cards"
@@ -542,8 +561,9 @@ export default function AdminManufacturersPage() {
             </div>
 
             <div>
-              <label className="text-sm font-medium">Full Description</label>
+              <label htmlFor="mfr-full-description" className="text-sm font-medium">Full Description</label>
               <Textarea
+                id="mfr-full-description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Detailed description..."
@@ -551,26 +571,29 @@ export default function AdminManufacturersPage() {
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-3 gap-4">
               <div>
-                <label className="text-sm font-medium">Website</label>
+                <label htmlFor="mfr-website" className="text-sm font-medium">Website</label>
                 <Input
+                  id="mfr-website"
                   value={formData.website}
                   onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                   placeholder="https://..."
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Headquarters</label>
+                <label htmlFor="mfr-headquarters" className="text-sm font-medium">Headquarters</label>
                 <Input
+                  id="mfr-headquarters"
                   value={formData.headquarters}
                   onChange={(e) => setFormData({ ...formData, headquarters: e.target.value })}
                   placeholder="City, State"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Founded Year</label>
+                <label htmlFor="mfr-founded-year" className="text-sm font-medium">Founded Year</label>
                 <Input
+                  id="mfr-founded-year"
                   type="number"
                   value={formData.founded_year || ''}
                   onChange={(e) => setFormData({ ...formData, founded_year: parseInt(e.target.value) || undefined })}
@@ -581,23 +604,30 @@ export default function AdminManufacturersPage() {
 
             <div>
               <label className="text-sm font-medium">Equipment Types</label>
-              <div className="flex gap-2 mt-2">
+              <div className="flex flex-wrap gap-2 mt-2">
                 {EQUIPMENT_TYPE_OPTIONS.map((option) => (
                   <Badge
                     key={option.value}
+                    asChild
                     variant={formData.equipment_types.includes(option.value) ? 'default' : 'outline'}
                     className="cursor-pointer"
-                    onClick={() => toggleEquipmentType(option.value)}
                   >
-                    {option.label}
+                    <button
+                      type="button"
+                      aria-pressed={formData.equipment_types.includes(option.value)}
+                      onClick={() => toggleEquipmentType(option.value)}
+                    >
+                      {option.label}
+                    </button>
                   </Badge>
                 ))}
               </div>
             </div>
 
             <div>
-              <label className="text-sm font-medium">Name Variations</label>
+              <label htmlFor="mfr-name-variations" className="text-sm font-medium">Name Variations</label>
               <Input
+                id="mfr-name-variations"
                 value={nameVariationsInput}
                 onChange={(e) => setNameVariationsInput(e.target.value)}
                 placeholder="pete, peterbuilt (comma-separated)"
@@ -607,7 +637,7 @@ export default function AdminManufacturersPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium">Feature Tier</label>
                 <Select
@@ -629,8 +659,9 @@ export default function AdminManufacturersPage() {
                 </Select>
               </div>
               <div>
-                <label className="text-sm font-medium">Country</label>
+                <label htmlFor="mfr-country" className="text-sm font-medium">Country</label>
                 <Input
+                  id="mfr-country"
                   value={formData.country}
                   onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                   placeholder="USA"

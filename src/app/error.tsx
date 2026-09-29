@@ -21,7 +21,7 @@ export default function GlobalError({
         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
           <AlertTriangle className="w-8 h-8 text-destructive" />
         </div>
-        <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
+        <h1 className="text-xl font-semibold mb-2">Something went wrong</h1>
         <p className="text-sm text-muted-foreground mb-6">
           An unexpected error occurred. Please try again.
         </p>

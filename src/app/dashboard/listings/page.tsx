@@ -3,9 +3,9 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 import {
   Plus,
-  ArrowLeft,
   ImageIcon,
   Upload,
 } from 'lucide-react';
@@ -32,15 +32,13 @@ export default async function ListingsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-100 text-green-700';
+        return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
       case 'draft':
-        return 'bg-yellow-100 text-yellow-700';
+        return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
       case 'sold':
-        return 'bg-blue-100 text-blue-700';
-      case 'expired':
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
       default:
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
     }
   };
 
@@ -51,27 +49,15 @@ export default async function ListingsPage() {
     return primary.url || null;
   };
 
-  return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-background border-b">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold">My Listings</h1>
-              <p className="text-sm text-muted-foreground">
-                {listings?.length || 0} total listings
-              </p>
-            </div>
-          </div>
+  const count = listings?.length || 0;
 
-          <div className="flex items-center gap-2">
+  return (
+    <div className="max-w-6xl mx-auto space-y-6">
+      <PageHeader
+        title="My Listings"
+        description={`${count} listing${count !== 1 ? 's' : ''}`}
+        actions={
+          <>
             <Button variant="outline" asChild>
               <Link href="/dashboard/bulk">
                 <Upload className="w-4 h-4 mr-2" />
@@ -84,11 +70,11 @@ export default async function ListingsPage() {
                 New Listing
               </Link>
             </Button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <div>
         {listings && listings.length > 0 ? (
           <div className="grid gap-4">
             {listings.map((listing) => {
@@ -110,19 +96,27 @@ export default async function ListingsPage() {
                 <ImageIcon className="w-8 h-8 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-semibold mb-2">No listings yet</h3>
-              <p className="text-muted-foreground mb-6">
-                Create your first listing to start selling equipment
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                Create your first listing to start selling equipment, or bring your whole inventory over in one step.
               </p>
-              <Button asChild>
-                <Link href="/dashboard/listings/new">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Listing
-                </Link>
-              </Button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+                <Button asChild>
+                  <Link href="/dashboard/listings/new">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Listing
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/dashboard/bulk">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Import Inventory
+                  </Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
-      </main>
+      </div>
     </div>
   );
 }

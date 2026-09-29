@@ -20,6 +20,9 @@ const TrailerFinderChat = dynamic(
 // real AI, which no competitor in the space offers from their homepage.
 export function TryAxlonLive() {
   const [chatOpen, setChatOpen] = useState(false);
+  // Closing collapses the panel to its FAB but keeps it mounted; bumping
+  // openRequest lets a second click reopen it (with the conversation intact).
+  const [openRequest, setOpenRequest] = useState(0);
 
   return (
     <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 md:p-5 text-center">
@@ -42,7 +45,10 @@ export function TryAxlonLive() {
         </Button>
         <Button
           className="rounded-full gap-2 w-full sm:w-auto"
-          onClick={() => setChatOpen(true)}
+          onClick={() => {
+            setChatOpen(true);
+            setOpenRequest((n) => n + 1);
+          }}
         >
           <MessageSquare className="w-4 h-4" />
           Chat with AXLON AI
@@ -50,7 +56,7 @@ export function TryAxlonLive() {
       </div>
       {/* Portalled to <body>: rendered in place, the panel inherits the page's
           z-10 stacking context and the mobile bottom nav (z-40) covers its input. */}
-      {chatOpen && createPortal(<TrailerFinderChat variant="floating" initialOpen />, document.body)}
+      {chatOpen && createPortal(<TrailerFinderChat variant="floating" initialOpen openRequest={openRequest} />, document.body)}
     </div>
   );
 }

@@ -44,6 +44,7 @@ import {
   X,
 } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { formatEnum } from '@/components/admin/tones';
 import { SandboxedEmail } from '@/components/admin/SandboxedEmail';
 import { toast } from 'sonner';
 import { csrfFetch } from '@/lib/csrf-fetch';
@@ -136,7 +137,7 @@ function CategoryBadge({ category, confidence }: { category: string | null; conf
     auto_reply: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
   };
   const colorClass = colors[category] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
-  const label = category.replace(/_/g, ' ');
+  const label = formatEnum(category);
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${colorClass}`}>
       {label}
@@ -176,6 +177,7 @@ export default function AdminEmailPage() {
 
   // Delete confirmation
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'thread' | 'bulk'; ids: string[] } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Ignored AI drafts (dismissed in current session)
   const [ignoredDrafts, setIgnoredDrafts] = useState<Set<string>>(new Set());
@@ -379,7 +381,8 @@ export default function AdminEmailPage() {
     });
 
     if (res.ok) {
-      toast.success(`${action.replace('_', ' ')} applied to ${threadIds.length} thread(s)`);
+      const n = `${threadIds.length} thread${threadIds.length !== 1 ? 's' : ''}`;
+      toast.success(action === 'mark_read' ? `Marked ${n} as read` : `Updated ${n}`);
     } else {
       toast.error('Bulk action failed');
     }
@@ -389,18 +392,27 @@ export default function AdminEmailPage() {
   };
 
   const confirmDelete = async () => {
-    if (!deleteConfirm) return;
-    const res = await csrfFetch('/api/emails', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ threadIds: deleteConfirm.ids }),
-    });
-    if (res.ok) {
-      toast.success(`${deleteConfirm.ids.length} thread(s) deleted`);
+    if (!deleteConfirm || deleting) return;
+    setDeleting(true);
+    let ok = false;
+    try {
+      const res = await csrfFetch('/api/emails', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ threadIds: deleteConfirm.ids }),
+      });
+      ok = res.ok;
+    } catch {
+      ok = false;
+    } finally {
+      setDeleting(false);
+    }
+    if (ok) {
+      toast.success(`${deleteConfirm.ids.length} thread${deleteConfirm.ids.length !== 1 ? 's' : ''} deleted`);
     } else {
       toast.error('Failed to delete');
     }
-    if (deleteConfirm.type === 'thread') setSelectedThread(null);
+    if (ok && deleteConfirm.type === 'thread') setSelectedThread(null);
     setSelectedIds(new Set());
     setDeleteConfirm(null);
     fetchThreads(pagination.page, searchQuery);
@@ -414,7 +426,8 @@ export default function AdminEmailPage() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && selectedThread) {
+      // defaultPrevented = an open dialog already consumed this Escape to close itself
+      if (e.key === 'Escape' && selectedThread && !e.defaultPrevented) {
         setSelectedThread(null);
       }
     };
@@ -426,6 +439,27 @@ export default function AdminEmailPage() {
 
   const unreadCount = threads.filter(t => t.is_unread).length;
 
+  // Rendered by both views below — the thread view's own Delete button opens it too
+  const deleteDialog = (
+    <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete {deleteConfirm?.ids.length === 1 ? 'thread' : `${deleteConfirm?.ids.length} threads`}?</DialogTitle>
+          <DialogDescription>
+            This will permanently delete {deleteConfirm?.ids.length === 1 ? 'this thread and all its emails' : `these ${deleteConfirm?.ids.length} threads and all their emails`}. This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+          <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
+            {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            Delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
   // ═══════════════════════════════════════════════════════
   // THREAD DETAIL VIEW
   // ═══════════════════════════════════════════════════════
@@ -436,11 +470,11 @@ export default function AdminEmailPage() {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => setSelectedThread(null)}>
+          <Button variant="ghost" size="icon" onClick={() => setSelectedThread(null)} aria-label="Back to inbox">
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-bold truncate">{selectedThread.subject}</h2>
+            <h1 className="text-lg font-bold truncate">{selectedThread.subject}</h1>
             <p className="text-sm text-muted-foreground">
               {selectedThread.participant_name || selectedThread.participant_email}
               {selectedThread.participant_name && (
@@ -449,9 +483,9 @@ export default function AdminEmailPage() {
               {' '}&middot; {selectedThread.message_count} email{selectedThread.message_count !== 1 ? 's' : ''}
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => setShowReply(true)}>
-              <Reply className="w-4 h-4 mr-2" /> Reply
+          <div className="flex gap-2 shrink-0">
+            <Button size="sm" variant="outline" onClick={() => setShowReply(true)} aria-label="Reply">
+              <Reply className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Reply</span>
             </Button>
             <Button size="sm" variant="outline" className="text-destructive" onClick={() => deleteThread(selectedThread.id)} aria-label="Delete thread">
               <Trash2 className="w-4 h-4" />
@@ -519,16 +553,16 @@ export default function AdminEmailPage() {
                     {email.ai_draft_html && email.direction === 'inbound' && !email.replied_at && !ignoredDrafts.has(email.id) && (
                       <div className="mt-4 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
                         <div className="flex items-center gap-2 mb-2">
-                          <Bot className="w-4 h-4 text-amber-600" />
+                          <Bot className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                           <span className="text-sm font-medium text-amber-800 dark:text-amber-200">AI Draft Reply</span>
                           {email.ai_confidence && (
-                            <span className="text-xs text-amber-600">{Math.round(email.ai_confidence * 100)}% confidence</span>
+                            <span className="text-xs text-amber-600 dark:text-amber-400">{Math.round(email.ai_confidence * 100)}% confidence</span>
                           )}
                         </div>
                         <div className="bg-white dark:bg-gray-900 rounded p-3 mb-3 text-sm">
                           <SandboxedEmail html={email.ai_draft_html} />
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <Button
                             size="sm"
                             onClick={() => handleReply(email.ai_draft_html!)}
@@ -566,6 +600,7 @@ export default function AdminEmailPage() {
                       Replying to <strong>{selectedThread.participant_name || selectedThread.participant_email}</strong>
                     </p>
                     <textarea
+                      aria-label="Reply"
                       value={replyText}
                       onChange={(e) => setReplyText(e.target.value)}
                       rows={6}
@@ -602,6 +637,8 @@ export default function AdminEmailPage() {
             )}
           </>
         )}
+
+        {deleteDialog}
       </div>
     );
   }
@@ -613,7 +650,7 @@ export default function AdminEmailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Mail className="w-6 h-6" />
@@ -622,12 +659,12 @@ export default function AdminEmailPage() {
               <Badge variant="destructive" className="ml-2">{unreadCount} new</Badge>
             )}
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             Send and receive emails — all conversations in one place
           </p>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           {/* Auto-reply toggle */}
           <div className="flex items-center gap-2">
             <Bot className="w-4 h-4 text-muted-foreground" />
@@ -651,7 +688,7 @@ export default function AdminEmailPage() {
                 <DialogTitle>New Email</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleCompose} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="to">To (email)</Label>
                     <Input id="to" name="to" type="email" placeholder="recipient@example.com" required />
@@ -701,6 +738,7 @@ export default function AdminEmailPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search by email, name, or subject..."
+            aria-label="Search emails"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -710,7 +748,7 @@ export default function AdminEmailPage() {
 
       {/* Bulk action bar */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 px-4 py-2 bg-muted rounded-lg">
+        <div className="flex flex-wrap items-center gap-3 px-4 py-2 bg-muted rounded-lg">
           <span className="text-sm font-medium">{selectedIds.size} selected</span>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={() => bulkAction('mark_read')}>
@@ -720,7 +758,7 @@ export default function AdminEmailPage() {
               <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
             </Button>
           </div>
-          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())} aria-label="Clear selection">
             <X className="w-3.5 h-3.5" />
           </Button>
         </div>
@@ -755,6 +793,7 @@ export default function AdminEmailPage() {
               <Checkbox
                 checked={selectedIds.size === threads.length && threads.length > 0}
                 onCheckedChange={toggleSelectAll}
+                aria-label="Select all threads on this page"
               />
               <span>Select all</span>
             </div>
@@ -770,6 +809,7 @@ export default function AdminEmailPage() {
                   checked={selectedIds.has(thread.id)}
                   onCheckedChange={() => toggleSelect(thread.id)}
                   onClick={(e) => e.stopPropagation()}
+                  aria-label={`Select thread: ${thread.subject}`}
                 />
 
                 {activeTab === 'inbox' && (
@@ -778,26 +818,28 @@ export default function AdminEmailPage() {
                   </div>
                 )}
 
+                {/* Phone: sender + time on one line, subject below. sm+: one row. */}
                 <button
+                  type="button"
                   onClick={() => openThread(thread)}
-                  className="flex-1 flex items-center gap-4 min-w-0 text-left"
+                  className="flex-1 min-w-0 text-left grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 sm:flex sm:items-center sm:gap-4"
                 >
-                  <div className="shrink-0 w-40 truncate">
+                  <div className="min-w-0 truncate sm:shrink-0 sm:w-40">
                     <span className={`text-sm ${thread.is_unread && activeTab === 'inbox' ? 'font-semibold' : ''}`}>
                       {thread.participant_name || thread.participant_email}
                     </span>
                   </div>
-                  <div className="flex-1 min-w-0 truncate">
-                    <span className={`text-sm ${thread.is_unread && activeTab === 'inbox' ? 'font-semibold' : ''}`}>
-                      {thread.subject}
-                    </span>
-                  </div>
-                  {thread.message_count > 1 && (
-                    <Badge variant="secondary" className="shrink-0 text-xs">{thread.message_count}</Badge>
-                  )}
-                  <span className="shrink-0 text-xs text-muted-foreground w-20 text-right">
+                  <span className="text-xs text-muted-foreground text-right sm:order-last sm:shrink-0 sm:w-20">
                     {formatTime(thread.last_message_at)}
                   </span>
+                  <div className="col-span-2 flex items-center gap-2 min-w-0 sm:flex-1">
+                    <span className={`truncate text-sm ${thread.is_unread && activeTab === 'inbox' ? 'font-semibold' : 'text-muted-foreground sm:text-foreground'}`}>
+                      {thread.subject}
+                    </span>
+                    {thread.message_count > 1 && (
+                      <Badge variant="secondary" className="shrink-0 text-xs">{thread.message_count}</Badge>
+                    )}
+                  </div>
                 </button>
               </div>
             ))}
@@ -807,15 +849,15 @@ export default function AdminEmailPage() {
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
             {(pagination.page - 1) * pagination.limit + 1}-{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
           </p>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={pagination.page <= 1} onClick={() => fetchThreads(pagination.page - 1)}>
+            <Button variant="outline" size="sm" disabled={pagination.page <= 1} onClick={() => fetchThreads(pagination.page - 1)} aria-label="Previous page">
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages} onClick={() => fetchThreads(pagination.page + 1)}>
+            <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages} onClick={() => fetchThreads(pagination.page + 1)} aria-label="Next page">
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
@@ -823,20 +865,7 @@ export default function AdminEmailPage() {
       )}
 
       {/* Delete confirmation dialog */}
-      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete {deleteConfirm?.ids.length === 1 ? 'thread' : `${deleteConfirm?.ids.length} threads`}?</DialogTitle>
-            <DialogDescription>
-              This will permanently delete {deleteConfirm?.ids.length === 1 ? 'this thread and all its emails' : `these ${deleteConfirm?.ids.length} threads and all their emails`}. This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {deleteDialog}
     </div>
   );
 }

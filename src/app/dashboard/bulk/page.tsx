@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BulkImportWizard } from '@/components/dashboard/BulkImportWizard';
 import { BulkExport } from '@/components/dashboard/BulkExport';
 import { SmartImportDropzone } from '@/components/dashboard/SmartImportDropzone';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 
 export default async function BulkPage() {
   const supabase = await createClient();
@@ -35,19 +36,17 @@ export default async function BulkPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold">Bulk Operations</h1>
-        <p className="text-muted-foreground mt-1">
-          Import, export, and manage listings in bulk
-        </p>
-      </div>
+      <PageHeader
+        title="Bulk Import & Export"
+        description="Bring your whole inventory over at once, or download it as a spreadsheet"
+      />
 
       {/* Import Section */}
       <Tabs defaultValue="smart" className="space-y-4">
-        <TabsList>
+        <TabsList className="w-full sm:w-fit">
           <TabsTrigger value="smart" className="gap-2">
             <Sparkles className="w-4 h-4" />
-            Smart Import (AI)
+            Smart Import
           </TabsTrigger>
           <TabsTrigger value="csv" className="gap-2">
             <FileSpreadsheet className="w-4 h-4" />
@@ -107,7 +106,7 @@ export default async function BulkPage() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                  <Download className="w-5 h-5 text-green-600" />
+                  <Download className="w-5 h-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
                   <CardTitle>Export Listings</CardTitle>

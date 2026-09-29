@@ -158,6 +158,8 @@ export default async function DealersPage({ searchParams }: PageProps) {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               name="q"
+              type="search"
+              aria-label="Search businesses"
               placeholder="Search businesses by name or location..."
               defaultValue={q}
               className="h-12 pl-12 pr-4 bg-background border rounded-xl placeholder:text-muted-foreground focus:ring-1 focus:ring-ring transition-all shadow-sm"
@@ -167,9 +169,9 @@ export default async function DealersPage({ searchParams }: PageProps) {
 
           {/* State Filter */}
           <div className="flex flex-wrap gap-2 items-center">
-            <Link href="/dealers">
+            <Link href={q ? `/dealers?q=${encodeURIComponent(q)}` : '/dealers'} aria-current={!state ? 'page' : undefined}>
               <Badge
-                className={`cursor-pointer px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`cursor-pointer min-h-10 md:min-h-0 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   !state
                     ? 'bg-foreground text-background border-0 shadow-md'
                     : 'bg-background border text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -179,10 +181,10 @@ export default async function DealersPage({ searchParams }: PageProps) {
               </Badge>
             </Link>
             {states.slice(0, 10).map((s) => (
-              <Link key={s} href={`/dealers?state=${s}${q ? `&q=${q}` : ''}`}>
+              <Link key={s} href={`/dealers?state=${encodeURIComponent(s)}${q ? `&q=${encodeURIComponent(q)}` : ''}`} aria-current={state?.toUpperCase() === s ? 'page' : undefined}>
                 <Badge
-                  className={`cursor-pointer px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    state === s
+                  className={`cursor-pointer min-h-10 md:min-h-0 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    state?.toUpperCase() === s
                       ? 'bg-foreground text-background border-0 shadow-md'
                       : 'bg-background border text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
@@ -196,26 +198,26 @@ export default async function DealersPage({ searchParams }: PageProps) {
 
         {/* Results Count */}
         <p className="text-muted-foreground mb-6">
-          <span className="text-foreground font-semibold">{dealers?.length || 0}</span> businesses found
+          <span className="text-foreground font-semibold">{dealers?.length || 0}</span> {dealers?.length === 1 ? 'business' : 'businesses'} found
           {q && ` matching "${q}"`}
-          {state && ` in ${state}`}
+          {state && ` in ${state.toUpperCase()}`}
         </p>
 
         {/* Dealers Grid */}
         {dealers && dealers.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
             {dealers.map((dealer) => (
-              <Link key={dealer.id} href={`/${dealer.slug}`} className="group">
-                <div className="h-full bg-card border rounded-xl overflow-hidden hover:shadow-xl hover:border-border/80 transition-all duration-300">
-                  {/* Dealer Header */}
-                  <div className="p-4 md:p-5">
+              <Link key={dealer.id} href={`/${dealer.slug}`} className="group block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                <div className="h-full flex flex-col bg-card border rounded-xl overflow-hidden hover:shadow-xl hover:border-border/80 transition-all duration-300">
+                  {/* Dealer Header — flex-1 pins the footer to the card bottom */}
+                  <div className="flex-1 p-4 md:p-5">
                     <div className="flex items-start gap-3 md:gap-4">
                       {/* Logo */}
                       <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
                         {dealer.avatar_url ? (
                           <Image
                             src={dealer.avatar_url}
-                            alt={dealer.company_name || 'Business'}
+                            alt={`${dealer.company_name || 'Business'} logo`}
                             width={56}
                             height={56}
                             className="object-contain"
@@ -270,7 +272,9 @@ export default async function DealersPage({ searchParams }: PageProps) {
                         <Package className="w-3.5 h-3.5 text-amber-400" />
                       </div>
                       <span className="text-sm font-medium text-foreground/80">
-                        {countMap[dealer.id] || 0} listings
+                        {(countMap[dealer.id] || 0) === 0
+                          ? 'No listings yet'
+                          : `${countMap[dealer.id]} ${countMap[dealer.id] === 1 ? 'listing' : 'listings'}`}
                       </span>
                     </div>
                     <span className="text-sm font-medium text-muted-foreground flex items-center gap-1 group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors">
@@ -289,8 +293,13 @@ export default async function DealersPage({ searchParams }: PageProps) {
             </div>
             <h2 className="text-xl font-bold mb-2">No businesses found</h2>
             <p className="text-muted-foreground">
-              {q ? `No results for "${q}"` : 'No businesses have set up storefronts yet'}
+              {q ? `No results for "${q}"` : state ? `No businesses in ${state.toUpperCase()} yet` : 'No businesses have set up storefronts yet'}
             </p>
+            {(q || state) && (
+              <Link href="/dealers" className="inline-flex items-center min-h-10 mt-4 text-sm font-medium text-primary hover:underline">
+                Clear search and filters
+              </Link>
+            )}
           </div>
         )}
 
@@ -307,7 +316,7 @@ export default async function DealersPage({ searchParams }: PageProps) {
                 Run your business with AI
               </h2>
               <p className="text-slate-400 max-w-lg text-sm md:text-base">
-                Join AXLON and get an AI sales assistant, voice agent, CRM, and marketplace storefront — all in one platform.
+                Join Axleyard and get an AI sales assistant, voice agent, CRM, and marketplace storefront — all in one platform.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 shrink-0">
@@ -317,7 +326,7 @@ export default async function DealersPage({ searchParams }: PageProps) {
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="rounded-full border-slate-600 text-slate-200 hover:bg-slate-800" asChild>
+              <Button size="lg" variant="outline" className="rounded-full bg-transparent dark:bg-transparent border-slate-600 dark:border-slate-600 text-slate-200 hover:bg-slate-800 dark:hover:bg-slate-800 hover:text-white" asChild>
                 <Link href="/contact?plan=demo">
                   Book a Demo
                 </Link>

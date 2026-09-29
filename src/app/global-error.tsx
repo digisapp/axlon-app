@@ -15,8 +15,8 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <html>
-      <body>
+    <html lang="en">
+      <body style={{ margin: 0 }}>
         <div style={{
           minHeight: '100dvh',
           display: 'flex',
@@ -52,9 +52,9 @@ export default function GlobalError({
               </svg>
             </div>
 
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#111827' }}>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#111827' }}>
               Something went wrong
-            </h2>
+            </h1>
             <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
               A critical error occurred. Please refresh the page or try again later.
             </p>

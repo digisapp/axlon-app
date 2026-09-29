@@ -20,6 +20,10 @@ const TrailerFinderChat = dynamic(
  */
 export function HomeHelpBand() {
   const [chatOpen, setChatOpen] = useState(false);
+  // Closing the panel collapses it to its own FAB but leaves it mounted, so
+  // a second "Chat now" would be a no-op; bumping openRequest reopens it
+  // without remounting (a new key wiped the conversation, even mid-chat).
+  const [openRequest, setOpenRequest] = useState(0);
 
   return (
     <section className="w-full max-w-3xl mx-auto mb-10 md:mb-14 px-4">
@@ -40,7 +44,10 @@ export function HomeHelpBand() {
             size="lg"
             variant="outline"
             className="rounded-full gap-2 glass-button !bg-white/80 dark:!bg-white/10 w-full sm:w-auto"
-            onClick={() => setChatOpen(true)}
+            onClick={() => {
+              setChatOpen(true);
+              setOpenRequest((n) => n + 1);
+            }}
           >
             <MessageSquare className="w-4 h-4" />
             Chat now
@@ -49,7 +56,7 @@ export function HomeHelpBand() {
       </div>
       {/* Portalled to <body>: rendered in place, the panel inherits the page's
           z-10 stacking context and the mobile bottom nav (z-40) covers its input. */}
-      {chatOpen && createPortal(<TrailerFinderChat variant="floating" initialOpen />, document.body)}
+      {chatOpen && createPortal(<TrailerFinderChat variant="floating" initialOpen openRequest={openRequest} />, document.body)}
     </section>
   );
 }

@@ -92,15 +92,20 @@ export default async function MicrositeProductPage({ params }: PageProps) {
   const headlineSpecs = headline.filter((row): row is [string, string] => row[1] !== null);
 
   return (
+    // Microsites are light-only designs (explicit slate/white everywhere), but
+    // the root ThemeProvider still puts .dark on <html> for dark-mode visitors;
+    // an explicit light surface keeps the slate-900 headings from landing on
+    // the near-black theme background.
+    <div className="bg-white text-slate-900 [color-scheme:light]">
     <div className="mx-auto max-w-6xl px-4 py-8">
       <JsonLd data={productJsonLd(site, product, maker?.name)} />
 
-      <nav aria-label="Breadcrumb" className="mb-6 flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
-        <Link href="/" className="hover:text-foreground">{site.name}</Link>
+      <nav aria-label="Breadcrumb" className="mb-6 flex flex-wrap items-center gap-1 text-sm text-slate-500">
+        <Link href="/" className="-my-2 py-2 hover:text-slate-900">{site.name}</Link>
         <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-        <Link href="/#models" className="hover:text-foreground">Models</Link>
+        <Link href="/#models" className="-my-2 py-2 hover:text-slate-900">Models</Link>
         <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-        <span className="text-foreground" aria-current="page">{product.name}</span>
+        <span className="text-slate-900" aria-current="page">{product.name}</span>
       </nav>
 
       <div className="grid gap-10 lg:grid-cols-[1fr_400px]">
@@ -148,7 +153,7 @@ export default async function MicrositeProductPage({ params }: PageProps) {
           <h1 className={`text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl ${maker?.name && !site.manufacturer_id ? 'mt-2' : 'mt-8'}`}>
             {product.name}
           </h1>
-          {product.tagline && <p className="mt-2 text-lg text-muted-foreground">{product.tagline}</p>}
+          {product.tagline && <p className="mt-2 text-lg text-slate-600">{product.tagline}</p>}
 
           {headlineSpecs.length > 0 && (
             <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -193,13 +198,13 @@ export default async function MicrositeProductPage({ params }: PageProps) {
               <div className="mt-4 space-y-6">
                 {Object.entries(specGroups).map(([category, rows]) => (
                   <div key={category}>
-                    <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
                       {category}
                     </h3>
-                    <dl className="divide-y rounded-lg border">
+                    <dl className="divide-y divide-slate-200 rounded-lg border border-slate-200">
                       {rows.map((row) => (
                         <div key={`${category}-${row.spec_key}`} className="flex justify-between gap-4 px-4 py-2.5 text-sm">
-                          <dt className="text-muted-foreground">{row.spec_key}</dt>
+                          <dt className="text-slate-500">{row.spec_key}</dt>
                           <dd className="text-right font-medium">
                             {row.spec_value}
                             {/* The scraper often left the unit in the value too
@@ -220,10 +225,10 @@ export default async function MicrositeProductPage({ params }: PageProps) {
               detail page that is title + photos + form is too thin to rank and
               reads as a doorway page. This section is about the trailer TYPE,
               so it is accurate for every product that carries the type. */}
-          <section className="mt-10 rounded-xl border bg-muted/30 p-6">
+          <section className="mt-10 rounded-xl border border-slate-200 bg-slate-50 p-6">
             <h2 className="text-xl font-semibold">About {explainer.plural}</h2>
-            <p className="mt-3 leading-relaxed text-muted-foreground">{explainer.body}</p>
-            <p className="mt-3 text-sm text-muted-foreground">
+            <p className="mt-3 leading-relaxed text-slate-600">{explainer.body}</p>
+            <p className="mt-3 text-sm text-slate-600">
               Not sure this is the right type for your load?{' '}
               <a href="#quote" className="font-medium underline-offset-4 hover:underline" style={{ color: 'var(--ms-accent)' }}>
                 Tell us what you are hauling
@@ -265,6 +270,7 @@ export default async function MicrositeProductPage({ params }: PageProps) {
           </div>
         </section>
       )}
+    </div>
     </div>
   );
 }

@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { Check, Upload, ListPlus, Phone, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface OnboardingStep {
@@ -125,9 +124,11 @@ export function OnboardingChecklist({
                 <p className="text-xs text-muted-foreground">{step.description}</p>
               </div>
               {!step.completed && (
-                <Button variant="ghost" size="sm" className="shrink-0 text-xs">
+                // Visual affordance only — the whole row is the link, and a
+                // <button> nested inside an <a> is invalid and double-focusable.
+                <span className="shrink-0 text-xs font-medium text-primary px-3 py-1.5 rounded-md">
                   Start
-                </Button>
+                </span>
               )}
             </Link>
           ))}

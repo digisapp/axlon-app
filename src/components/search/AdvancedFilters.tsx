@@ -321,6 +321,7 @@ export function AdvancedFilters({
           <AccordionContent className="space-y-4 pt-2">
             <Slider
               value={priceRange}
+              aria-label="Price range"
               onValueChange={handlePriceRangeChange}
               onValueCommit={handlePriceRangeCommit}
               min={0}

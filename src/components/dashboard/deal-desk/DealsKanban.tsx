@@ -96,7 +96,7 @@ export function DealsKanban({ initialDeals, onDealClick }: DealsKanbanProps) {
           </div>
 
           {/* Column Content */}
-          <div className="space-y-3 min-h-[200px] p-2 bg-muted/30 rounded-lg">
+          <div className="space-y-3 md:min-h-[200px] p-2 bg-muted/30 rounded-lg">
             {getDealsByStatus(column.id).map((deal) => (
               <DealCard
                 key={deal.id}

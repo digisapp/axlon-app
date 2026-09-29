@@ -63,7 +63,7 @@ export function AdminListingCard({ listing, imageUrl, sellerName, statusBadge }:
   };
 
   return (
-    <Card className={isDeleted ? 'border-red-200 bg-red-50/30' : ''}>
+    <Card className={isDeleted ? 'border-red-200 bg-red-50/30 dark:border-red-900 dark:bg-red-950/20' : ''}>
       <CardContent className="p-4">
         <div className="flex gap-4">
           {/* Image */}
@@ -87,8 +87,8 @@ export function AdminListingCard({ listing, imageUrl, sellerName, statusBadge }:
           {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className={`font-semibold ${isDeleted ? 'line-through text-muted-foreground' : ''}`}>
+              <div className="min-w-0">
+                <h3 className={`font-semibold break-words ${isDeleted ? 'line-through text-muted-foreground' : ''}`}>
                   {listing.title}
                 </h3>
                 <p className="text-lg font-bold text-primary">
@@ -97,10 +97,11 @@ export function AdminListingCard({ listing, imageUrl, sellerName, statusBadge }:
                 <p className="text-sm text-muted-foreground mt-1">by {sellerName}</p>
               </div>
 
-              <div className="flex flex-col items-end gap-2">
+              <div className="flex flex-col items-end gap-2 shrink-0">
                 {statusBadge}
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Eye className="w-4 h-4" />
+                <div className="flex items-center gap-1 text-sm text-muted-foreground" title="Views">
+                  <Eye className="w-4 h-4" aria-hidden="true" />
+                  <span className="sr-only">Views:</span>
                   {listing.views_count || 0}
                 </div>
               </div>
@@ -148,7 +149,7 @@ export function AdminListingCard({ listing, imageUrl, sellerName, statusBadge }:
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          className="bg-destructive text-white hover:bg-destructive/90"
                           onClick={() => handleAction('hard_delete')}
                         >
                           Delete Forever
@@ -157,7 +158,7 @@ export function AdminListingCard({ listing, imageUrl, sellerName, statusBadge }:
                     </AlertDialogContent>
                   </AlertDialog>
 
-                  <span className="text-xs text-red-500">
+                  <span className="text-xs text-red-600 dark:text-red-400">
                     Deleted {new Date(listing.deleted_at!).toLocaleDateString()}
                   </span>
                 </>

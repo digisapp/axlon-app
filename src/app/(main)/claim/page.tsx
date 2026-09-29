@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Building2, Package, ShieldCheck, Bot, Phone } from 'lucide-react';
+import { Building2, Package, ShieldAlert, Bot, Phone } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { verifyClaimToken } from '@/lib/claims/token';
@@ -27,15 +27,22 @@ export default async function ClaimPage({ searchParams }: PageProps) {
   if (!valid) {
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
-        <ShieldCheck className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+        <ShieldAlert className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
         <h1 className="text-2xl font-bold mb-2">This claim link isn&apos;t valid</h1>
         <p className="text-muted-foreground mb-6">
-          Claim links are sent to a dealership&apos;s own contact address. If you believe your
+          The link may be incomplete — if you copied it from an email, make sure you got the whole
+          address. Claim links are sent to a dealership&apos;s own contact address. If you believe your
           inventory is listed on Axleyard, get in touch and we&apos;ll verify you and send a fresh link.
         </p>
-        <Button asChild>
-          <Link href="/contact?subject=other">Contact us</Link>
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          {/* subject=claim preselects "Claim my dealership's storefront" and pre-fills the message */}
+          <Button asChild size="lg">
+            <Link href="/contact?subject=claim">Request a new claim link</Link>
+          </Button>
+          <Button asChild size="lg" variant="outline">
+            <Link href="/for-business">Axleyard for dealers</Link>
+          </Button>
+        </div>
       </div>
     );
   }
@@ -58,7 +65,10 @@ export default async function ClaimPage({ searchParams }: PageProps) {
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
         <h1 className="text-2xl font-bold mb-2">Dealer not found</h1>
-        <p className="text-muted-foreground">This invitation no longer matches a dealer record.</p>
+        <p className="text-muted-foreground mb-6">This invitation no longer matches a dealer record.</p>
+        <Button asChild size="lg">
+          <Link href="/contact?subject=claim">Contact us</Link>
+        </Button>
       </div>
     );
   }

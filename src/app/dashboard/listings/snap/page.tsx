@@ -418,11 +418,11 @@ export default function SnapListPage() {
 
   if (step === 'capture') {
     return (
-      <div className="min-h-screen bg-muted/30">
+      <div className="-m-4 md:-m-6 lg:-m-8 min-h-[calc(100dvh-4rem)] bg-muted/30">
         {/* Header */}
-        <header className="bg-background border-b sticky top-0 z-10">
+        <header className="bg-background border-b sticky top-16 z-20">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Back">
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="flex-1">
@@ -565,7 +565,7 @@ export default function SnapListPage() {
       : 0;
 
     return (
-      <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center px-4">
+      <div className="-m-4 md:-m-6 lg:-m-8 min-h-[calc(100dvh-4rem)] bg-muted/30 flex flex-col items-center justify-center px-4">
         <div className="max-w-sm w-full text-center space-y-6">
           <div className="relative w-20 h-20 mx-auto">
             <Sparkles className="w-10 h-10 absolute inset-0 m-auto text-primary animate-pulse" />
@@ -609,10 +609,10 @@ export default function SnapListPage() {
   const successCount = photos.filter(p => p.uploadedUrl).length;
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <header className="bg-background border-b sticky top-0 z-10">
+    <div className="-m-4 md:-m-6 lg:-m-8 min-h-[calc(100dvh-4rem)] bg-muted/30">
+      <header className="bg-background border-b sticky top-16 z-20">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => setStep('capture')}>
+          <Button variant="ghost" size="icon" onClick={() => setStep('capture')} aria-label="Back to photos">
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1">

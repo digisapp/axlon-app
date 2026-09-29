@@ -26,6 +26,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Phone,
   Building2,
   Loader2,
@@ -44,6 +54,7 @@ import {
 import { DealerVoiceAgent } from '@/types';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { TONE, formatEnum } from '@/components/admin/tones';
 
 const VOICE_OPTIONS = [
   { value: 'Sal', label: 'Sal (Male)' },
@@ -81,6 +92,8 @@ export default function AdminVoiceAgentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<DealerWithAgent | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<DealerWithAgent | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -108,8 +121,8 @@ export default function AdminVoiceAgentsPage() {
       // The API defaults to 20 per page — ask for a real page size and paginate,
       // otherwise only the first 20 agents are ever visible.
       let url = `/api/admin/dealer-voice-agents?status=${statusFilter}&page=${page}&per_page=${PER_PAGE}`;
-      if (searchQuery) {
-        url += `&search=${encodeURIComponent(searchQuery)}`;
+      if (debouncedSearch) {
+        url += `&search=${encodeURIComponent(debouncedSearch)}`;
       }
       const response = await csrfFetch(url);
       if (response.ok) {
@@ -125,17 +138,26 @@ export default function AdminVoiceAgentsPage() {
           active: statusFilter === 'active' ? total : activeOnPage,
           inactive: statusFilter === 'inactive' ? total : total - activeOnPage,
         });
+      } else {
+        toast.error('Could not load voice agents');
       }
     } catch (error) {
       logger.error('Error fetching voice agents', { error });
+      toast.error('Could not load voice agents');
     }
     setIsLoading(false);
   };
 
+  // Query only after typing pauses — per-keystroke fetches raced each other
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchAgents flips isLoading synchronously before awaiting; standard fetch-on-change pattern
     fetchAgents();
-  }, [statusFilter, searchQuery, page]);
+  }, [statusFilter, debouncedSearch, page]);
 
   const openEditDialog = (agent: DealerWithAgent) => {
     setSelectedAgent(agent);
@@ -166,6 +188,7 @@ export default function AdminVoiceAgentsPage() {
       });
 
       if (response.ok) {
+        toast.success('Voice agent saved');
         setIsEditing(false);
         setSelectedAgent(null);
         fetchAgents();
@@ -180,17 +203,16 @@ export default function AdminVoiceAgentsPage() {
     setIsSubmitting(false);
   };
 
+  // Confirmed through the AlertDialog below (was a native confirm())
   const handleDelete = async (agent: DealerWithAgent) => {
-    if (!confirm(`Are you sure you want to delete the voice agent for ${agent.business_name || agent.dealer?.company_name}?`)) {
-      return;
-    }
-
+    setDeleteTarget(null);
     try {
       const response = await csrfFetch(`/api/admin/dealer-voice-agents/${agent.id}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
+        toast.success('Voice agent deleted');
         fetchAgents();
       } else {
         const data = await response.json().catch(() => ({}));
@@ -211,6 +233,7 @@ export default function AdminVoiceAgentsPage() {
       });
 
       if (response.ok) {
+        toast.success(agent.is_active ? 'Voice agent turned off' : 'Voice agent turned on');
         fetchAgents();
       } else {
         const data = await response.json().catch(() => ({}));
@@ -229,53 +252,38 @@ export default function AdminVoiceAgentsPage() {
         <p className="text-sm text-muted-foreground">Manage AI phone agents for businesses</p>
       </div>
 
-      {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-4">
-          <Card
-            className={`cursor-pointer transition-colors ${statusFilter === 'all' ? 'border-primary' : ''}`}
-            onClick={() => { setStatusFilter('all'); setPage(1); }}
+      {/* Stats Cards — double as the status filter */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-4" role="group" aria-label="Filter by status">
+        {([
+          { key: 'all', label: 'Total Agents', count: counts.total, icon: Phone, tone: TONE.blue },
+          { key: 'active', label: 'Active', count: counts.active, icon: CheckCircle, tone: TONE.green },
+          { key: 'inactive', label: 'Inactive', count: counts.inactive, icon: XCircle, tone: TONE.gray },
+        ] as const).map(({ key, label, count, icon: Icon, tone }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => { setStatusFilter(key); setPage(1); }}
+            aria-pressed={statusFilter === key}
+            className="rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Phone className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{counts.total}</p>
-                <p className="text-sm text-muted-foreground">Total Agents</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            className={`cursor-pointer transition-colors ${statusFilter === 'active' ? 'border-primary' : ''}`}
-            onClick={() => { setStatusFilter('active'); setPage(1); }}
-          >
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{counts.active}</p>
-                <p className="text-sm text-muted-foreground">Active</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card
-            className={`cursor-pointer transition-colors ${statusFilter === 'inactive' ? 'border-primary' : ''}`}
-            onClick={() => { setStatusFilter('inactive'); setPage(1); }}
-          >
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                <XCircle className="w-5 h-5 text-gray-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{counts.inactive}</p>
-                <p className="text-sm text-muted-foreground">Inactive</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            <Card
+              className={`h-full transition-colors hover:bg-muted/50 ${
+                statusFilter === key ? 'border-primary ring-1 ring-primary' : ''
+              }`}
+            >
+              <CardContent className="p-3 sm:p-4 flex items-center gap-4">
+                <div className={`hidden sm:block p-2 rounded-lg ${tone}`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{count}</p>
+                  <p className="text-sm text-muted-foreground">{label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </button>
+        ))}
+      </div>
 
         {/* Search */}
         <div>
@@ -283,6 +291,7 @@ export default function AdminVoiceAgentsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search by business name or phone..."
+              aria-label="Search voice agents"
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
               className="pl-10"
@@ -310,30 +319,30 @@ export default function AdminVoiceAgentsPage() {
                 {agents.map((agent) => (
                   <div
                     key={agent.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                    className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                   >
-                    <div className="flex items-center gap-4">
-                      <Avatar className="w-12 h-12">
-                        <AvatarFallback className={agent.is_active ? 'bg-green-100' : 'bg-gray-100'}>
-                          <Phone className={`w-5 h-5 ${agent.is_active ? 'text-green-600' : 'text-gray-400'}`} />
+                    <div className="flex items-center gap-4 min-w-0">
+                      <Avatar className="w-12 h-12 shrink-0">
+                        <AvatarFallback className={agent.is_active ? TONE.green : TONE.gray}>
+                          <Phone className="w-5 h-5" />
                         </AvatarFallback>
                       </Avatar>
-                      <div>
-                        <h3 className="font-semibold flex items-center gap-2">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold flex flex-wrap items-center gap-2">
                           {agent.business_name || agent.dealer?.company_name || 'Unnamed Agent'}
                           <Badge variant={agent.is_active ? 'default' : 'secondary'}>
                             {agent.is_active ? 'Active' : 'Inactive'}
                           </Badge>
-                          <Badge variant="outline">{agent.plan_tier}</Badge>
+                          {agent.plan_tier && <Badge variant="outline">{formatEnum(agent.plan_tier)}</Badge>}
                         </h3>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                           {agent.phone_number ? (
                             <span className="flex items-center gap-1">
                               <Phone className="w-3 h-3" />
                               {agent.phone_number}
                             </span>
                           ) : (
-                            <span className="text-amber-600">No phone assigned</span>
+                            <span className="text-amber-600 dark:text-amber-400">No phone assigned</span>
                           )}
                           <span className="flex items-center gap-1">
                             <Mic className="w-3 h-3" />
@@ -341,33 +350,39 @@ export default function AdminVoiceAgentsPage() {
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {agent.minutes_used || 0}/{agent.minutes_included} min
+                            {agent.plan_tier === 'unlimited'
+                              ? `${agent.minutes_used || 0} min used`
+                              : `${agent.minutes_used || 0}/${agent.minutes_included} min`}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Dealer: {agent.dealer?.email || 'Unknown'}
+                          Account: {agent.dealer?.email || 'Unknown'}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 sm:shrink-0">
                       <Switch
                         checked={agent.is_active}
                         onCheckedChange={() => toggleActive(agent)}
                         disabled={!agent.phone_number}
+                        aria-label={agent.is_active ? 'Turn agent off' : 'Turn agent on'}
+                        title={agent.phone_number ? undefined : 'Assign a phone number before activating'}
                       />
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => openEditDialog(agent)}
+                        aria-label="Edit agent"
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleDelete(agent)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
+                        onClick={() => setDeleteTarget(agent)}
+                        aria-label="Delete agent"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -381,7 +396,7 @@ export default function AdminVoiceAgentsPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
               Page {page} of {totalPages} — {counts.total.toLocaleString()} agents
             </p>
@@ -419,7 +434,7 @@ export default function AdminVoiceAgentsPage() {
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="phone_number">Phone Number (DID)</Label>
                 <Input
@@ -440,14 +455,14 @@ export default function AdminVoiceAgentsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="voice">Voice</Label>
                 <Select
                   value={editForm.voice}
                   onValueChange={(value) => setEditForm({ ...editForm, voice: value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="voice">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -472,7 +487,7 @@ export default function AdminVoiceAgentsPage() {
                     });
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="plan_tier">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -553,6 +568,28 @@ export default function AdminVoiceAgentsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this voice agent?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The phone agent for{' '}
+              <strong>{deleteTarget?.business_name || deleteTarget?.dealer?.company_name || 'this business'}</strong>{' '}
+              will stop answering calls. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={() => deleteTarget && handleDelete(deleteTarget)}
+            >
+              Delete agent
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

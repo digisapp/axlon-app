@@ -249,7 +249,7 @@ export default function ForBusinessPage() {
       </section>
 
       {/* Live demo + mock-ups + comparison (moved here from the homepage) */}
-      <div className="pt-16 md:pt-24 pb-6 px-4">
+      <div className="pt-16 md:pt-24 pb-6">
         <AiSalesTeamShowcase />
       </div>
 
@@ -355,7 +355,7 @@ export default function ForBusinessPage() {
                   <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
                     <MessageSquare className="w-4 h-4 text-primary" />
                   </div>
-                  <span className="font-semibold text-sm">Ask Axlon AI</span>
+                  <span className="font-semibold text-sm">Ask AXLON</span>
                 </div>
                 <div className="bg-slate-800 rounded-lg px-4 py-3 text-sm text-slate-400 mb-4 border border-slate-700">
                   &quot;Which trucks should I reprice this week?&quot;
@@ -400,7 +400,7 @@ export default function ForBusinessPage() {
       {/* Two Tracks */}
       <section className="py-16 md:py-24 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-3">Two ways to work with AXLON</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">Two ways to work with Axleyard</h2>
           <p className="text-muted-foreground text-lg mb-10 max-w-2xl mx-auto">
             Start with the marketplace for free, or apply for the full AI Transformation Program.
           </p>

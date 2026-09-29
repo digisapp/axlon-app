@@ -184,6 +184,7 @@ export function AudioPlayer({ src, title, onClose, className }: AudioPlayerProps
         </span>
         <Slider
           value={[currentTime]}
+          aria-label="Seek"
           max={duration || 100}
           step={1}
           onValueChange={handleSeek}
@@ -265,6 +266,7 @@ export function AudioPlayer({ src, title, onClose, className }: AudioPlayerProps
             </Button>
             <Slider
               value={[isMuted ? 0 : volume]}
+              aria-label="Volume"
               max={1}
               step={0.1}
               onValueChange={handleVolumeChange}
@@ -361,6 +363,7 @@ export function MiniAudioPlayer({ src, onClose }: { src: string; onClose?: () =>
 
       <Slider
         value={[currentTime]}
+        aria-label="Seek"
         max={duration || 100}
         step={1}
         onValueChange={handleSeek}

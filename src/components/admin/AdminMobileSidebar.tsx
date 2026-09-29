@@ -66,6 +66,8 @@ export function AdminMobileSidebar({ sections }: AdminMobileSidebarProps) {
                     <Link
                       key={item.href}
                       href={item.href}
+                      // Non-admin entries (e.g. "Transform Page ↗") are public pages — open them beside the admin
+                      target={item.href.startsWith('/admin') ? undefined : '_blank'}
                       onClick={() => setOpen(false)}
                       className={cn(
                         'flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm',
@@ -89,11 +91,11 @@ export function AdminMobileSidebar({ sections }: AdminMobileSidebarProps) {
           ))}
         </nav>
 
-        {/* Bottom - Back to Dealer Dashboard */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background">
+        {/* Bottom - Back to Business Dashboard (same label as the desktop sidebar) */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t bg-background">
           <Button variant="outline" size="sm" className="w-full" asChild>
             <Link href="/dashboard" onClick={() => setOpen(false)}>
-              Dealer Dashboard
+              Business Dashboard
             </Link>
           </Button>
         </div>

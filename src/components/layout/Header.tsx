@@ -38,6 +38,7 @@ import {
   Search,
   Truck,
   Building2,
+  TrendingDown,
   LayoutGrid,
   Store,
 } from 'lucide-react';
@@ -108,7 +109,7 @@ export function Header() {
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   ];
 
-  const isMarketplaceActive = pathname.startsWith('/search') || pathname.startsWith('/new-trailers') || pathname.startsWith('/dealers') || pathname.startsWith('/categories');
+  const isMarketplaceActive = pathname.startsWith('/search') || pathname.startsWith('/new-trailers') || pathname.startsWith('/dealers') || pathname.startsWith('/categories') || pathname.startsWith('/deals');
   const isForDealersActive = pathname === '/how-it-works' || pathname === '/voice' || pathname === '/for-business' || pathname === '/transform' || pathname === '/get-started';
 
   return (
@@ -175,6 +176,14 @@ export function Header() {
                       <LayoutGrid className="w-4 h-4 text-primary" />
                     </div>
                     Categories
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/deals" className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <TrendingDown className="w-4 h-4 text-primary" />
+                    </div>
+                    Below-Market Deals
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -266,16 +275,20 @@ export function Header() {
                 <ThemeToggle />
                 <NotificationBell />
 
-                <Link href="/dashboard/messages" className="relative">
-                  <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" asChild>
+                  <Link
+                    href="/dashboard/messages"
+                    className="relative"
+                    aria-label={unreadCount > 0 ? `Messages (${unreadCount} unread)` : 'Messages'}
+                  >
                     <MessageSquare className="w-5 h-5" />
                     {unreadCount > 0 && (
                       <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
                         {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
                     )}
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -322,7 +335,7 @@ export function Header() {
                   <Link href="/login">Sign In</Link>
                 </Button>
                 <Button size="sm" asChild>
-                  <Link href="/signup">Get Started</Link>
+                  <Link href="/signup">List Equipment Free</Link>
                 </Button>
               </>
             )}
@@ -432,6 +445,18 @@ export function Header() {
                       <LayoutGrid className="w-5 h-5" />
                       Categories
                     </Link>
+                    <Link
+                      href="/deals"
+                      onClick={() => setIsOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                        pathname.startsWith('/deals')
+                          ? 'bg-primary/10 text-primary'
+                          : 'hover:bg-muted'
+                      }`}
+                    >
+                      <TrendingDown className="w-5 h-5" />
+                      Below-Market Deals
+                    </Link>
                   </nav>
 
                   <div className="h-px bg-border" />
@@ -483,7 +508,11 @@ export function Header() {
                     <Link
                       href="/transform"
                       onClick={() => setIsOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors hover:bg-muted"
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
+                        pathname === '/transform'
+                          ? 'bg-primary/10 text-primary'
+                          : 'hover:bg-muted'
+                      }`}
                     >
                       <Store className="w-5 h-5" />
                       Done-For-You
@@ -523,7 +552,6 @@ export function Header() {
                   {/* User Links */}
                   {user && (
                     <>
-                      <div className="h-px bg-border" />
                       <nav className="flex flex-col gap-1">
                         {userLinks.map((link) => (
                           <Link
@@ -572,7 +600,7 @@ export function Header() {
                       <>
                         <Button asChild className="w-full">
                           <Link href="/signup" onClick={() => setIsOpen(false)}>
-                            Get Started
+                            List Equipment Free
                           </Link>
                         </Button>
                         <Button variant="outline" asChild className="w-full">

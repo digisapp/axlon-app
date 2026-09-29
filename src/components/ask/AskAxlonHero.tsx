@@ -6,7 +6,7 @@ import { Sparkles } from 'lucide-react';
 import { AISearchBar } from '@/components/search/AISearchBar';
 import { cn } from '@/lib/utils';
 
-export function AskAxlonHero() {
+export function AskAxlonHero({ initialQuery = '' }: { initialQuery?: string }) {
   const [isTyping, setIsTyping] = useState(false);
   // Autofocus only on devices with a real pointer — on phones it pops the
   // keyboard over the page before the visitor has read anything.
@@ -39,8 +39,11 @@ export function AskAxlonHero() {
       </div>
 
       <div className="flex flex-col items-center gap-3 text-center">
+        {/* The mascot is the visual headline; give screen readers and search
+            engines a real page heading too. */}
+        <h1 className="sr-only">Ask AXLON — AI for heavy haul</h1>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
-          <Sparkles className="h-3 w-3 text-primary" />
+          <Sparkles aria-hidden="true" className="h-3 w-3 text-primary" />
           AI for the heavy haul industry
         </span>
         <p className="max-w-md text-balance text-sm text-zinc-500 dark:text-zinc-400 md:text-base">
@@ -51,6 +54,7 @@ export function AskAxlonHero() {
 
       <AISearchBar
         size="large"
+        defaultValue={initialQuery}
         autoFocus={autoFocusEnabled}
         animatedPlaceholder
         showLanguageHint

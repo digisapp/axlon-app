@@ -438,7 +438,7 @@ export default async function MicrositeLandingPage({ params }: PageProps) {
                         href={`https://axleyard.com/listing/${listing.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-slate-500 hover:text-slate-800 hover:underline"
+                        className="-my-2 py-2 text-xs text-slate-500 hover:text-slate-800 hover:underline"
                       >
                         Full details
                       </a>

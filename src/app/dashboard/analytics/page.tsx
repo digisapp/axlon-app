@@ -10,7 +10,10 @@ import {
   ArrowDownRight,
   MousePointerClick,
 } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import { AnalyticsCharts } from '@/components/dashboard/AnalyticsCharts';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 
 export default async function AnalyticsPage() {
   const supabase = await createClient();
@@ -59,15 +62,13 @@ export default async function AnalyticsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold">Analytics</h1>
-        <p className="text-muted-foreground mt-1">
-          Track your listings performance and lead conversion
-        </p>
-      </div>
+      <PageHeader
+        title="Analytics"
+        description="See how your listings perform and how leads convert"
+      />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           title="Total Views"
           value={totalViews.toLocaleString()}
@@ -150,8 +151,13 @@ export default async function AnalyticsPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No listings yet. Create your first listing to start tracking performance.
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-4">
+                No listings yet. Create your first listing to start tracking performance.
+              </p>
+              <Button asChild>
+                <Link href="/dashboard/listings/new">Create Listing</Link>
+              </Button>
             </div>
           )}
         </CardContent>
@@ -186,14 +192,15 @@ function StatCard({
 }) {
   return (
     <Card>
-      <CardContent className="p-4 md:p-6">
-        <div className="flex items-center justify-between mb-3">
+      <CardContent className="p-3 md:p-6">
+        <div className="flex items-center justify-between mb-2 md:mb-3">
           <span className="text-muted-foreground">{icon}</span>
           {trend !== undefined && (
             <span
               className={`flex items-center text-xs font-medium ${
-                trend >= 0 ? 'text-green-600' : 'text-red-600'
+                trend >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
               }`}
+              title="vs. the previous 7 days"
             >
               {trend >= 0 ? (
                 <ArrowUpRight className="w-3 h-3 mr-0.5" />
@@ -204,7 +211,7 @@ function StatCard({
             </span>
           )}
         </div>
-        <p className="text-2xl md:text-3xl font-bold">{value}</p>
+        <p className="text-xl md:text-3xl font-bold">{value}</p>
         <p className="text-sm text-muted-foreground">{title}</p>
         <p className="text-xs text-muted-foreground mt-1">{description}</p>
       </CardContent>
@@ -285,7 +292,7 @@ async function LeadFunnel({ userId }: { userId: string }) {
         <div className="mt-4 pt-4 border-t">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Lost Leads</span>
-            <span className="text-red-600 font-medium">{statusCounts.lost}</span>
+            <span className="text-red-600 dark:text-red-400 font-medium">{statusCounts.lost}</span>
           </div>
         </div>
       )}

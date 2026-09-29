@@ -599,7 +599,7 @@ export function AISearchBar({
       {showLanguageHint && !showSuggestions && !showChat && (
         <div className="flex flex-wrap items-center justify-center gap-1.5 mt-3 px-2 text-xs text-zinc-400 dark:text-zinc-500">
           <Sparkles className="w-3 h-3" />
-          <span>Axlon speaks:</span>
+          <span>AXLON speaks:</span>
           <span className="font-medium text-zinc-500 dark:text-zinc-400">English</span>
           <span>·</span>
           <span className="font-medium text-zinc-500 dark:text-zinc-400">Español</span>

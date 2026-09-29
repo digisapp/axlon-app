@@ -23,8 +23,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { PageHeader } from '@/components/dashboard/PageHeader';
 import {
-  ArrowLeft,
   Loader2,
   Phone,
   PhoneIncoming,
@@ -98,6 +98,7 @@ export default function CallsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [expandedCall, setExpandedCall] = useState<string | null>(null);
   const [playingRecording, setPlayingRecording] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -125,6 +126,7 @@ export default function CallsPage() {
       }
 
       const response = await fetch(`/api/dealer/call-logs?${params}`);
+      setLoadError(!response.ok);
       if (response.ok) {
         const data = await response.json();
         setCalls(data.data || []);
@@ -137,6 +139,7 @@ export default function CallsPage() {
       }
     } catch (error) {
       logger.error('Error fetching calls', { error });
+      setLoadError(true);
     }
     setIsLoading(false);
   };
@@ -181,7 +184,7 @@ export default function CallsPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
-        return <PhoneIncoming className="w-4 h-4 text-green-600" />;
+        return <PhoneIncoming className="w-4 h-4 text-green-600 dark:text-green-400" />;
       case 'missed':
         return <PhoneMissed className="w-4 h-4 text-red-500" />;
       case 'in_progress':
@@ -194,39 +197,35 @@ export default function CallsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <Badge variant="default" className="bg-green-100 text-green-700">Completed</Badge>;
+        return <Badge variant="default" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Completed</Badge>;
       case 'missed':
         return <Badge variant="destructive">Missed</Badge>;
       case 'in_progress':
         return <Badge variant="secondary">In Progress</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline" className="capitalize">{status.replace(/_/g, ' ')}</Badge>;
     }
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-background border-b">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard/voice-agent" className="text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="w-4 h-4" />
+    <div className="max-w-6xl mx-auto space-y-6">
+      <PageHeader
+        title="Call Log"
+        description="Every call your AI voice agent answered, with summaries and transcripts"
+        actions={
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/voice-agent">
+              <Phone className="w-4 h-4 mr-2" />
+              Voice Agent Settings
             </Link>
-            <div>
-              <h1 className="text-xl font-bold">Call History</h1>
-              <p className="text-sm text-muted-foreground">
-                View all calls handled by your AI voice agent
-              </p>
-            </div>
-          </div>
-        </div>
-      </header>
+          </Button>
+        }
+      />
 
-      <main className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+      <div className="space-y-6">
         {/* Stats */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             <Card>
               <CardContent className="py-4">
                 <div className="flex items-center gap-3">
@@ -281,12 +280,13 @@ export default function CallsPage() {
               <div className="flex-1 flex gap-2">
                 <Input
                   placeholder="Search by phone or name..."
+                  aria-label="Search calls"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   className="max-w-sm"
                 />
-                <Button variant="outline" onClick={handleSearch}>
+                <Button variant="outline" onClick={handleSearch} aria-label="Search">
                   <Search className="w-4 h-4" />
                 </Button>
               </div>
@@ -294,7 +294,7 @@ export default function CallsPage() {
                 setStatusFilter(v);
                 setPagination(prev => ({ ...prev, page: 1 }));
               }}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full md:w-[180px]" aria-label="Filter by status">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -321,6 +321,13 @@ export default function CallsPage() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
               </div>
+            ) : loadError ? (
+              <div className="text-center py-12">
+                <PhoneOff className="w-12 h-12 mx-auto mb-4 text-destructive/60" />
+                <p className="text-lg font-medium">Couldn&apos;t load your calls</p>
+                <p className="text-sm text-muted-foreground mb-4">Something went wrong. Please try again.</p>
+                <Button variant="outline" onClick={() => fetchCalls()}>Retry</Button>
+              </div>
             ) : calls.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <Phone className="w-16 h-16 mx-auto mb-4 opacity-50" />
@@ -333,6 +340,93 @@ export default function CallsPage() {
               </div>
             ) : (
               <>
+                {/* Phones: stacked cards — an 8-column table is unusable at 393px */}
+                <ul className="md:hidden divide-y -mx-2">
+                  {calls.map((call) => {
+                    const expandable = !!(call.transcript || call.summary);
+                    const isOpen = expandedCall === call.id;
+                    return (
+                      <li key={call.id} className="px-2 py-3 space-y-2">
+                        <button
+                          type="button"
+                          className="w-full text-left flex items-start gap-3 disabled:cursor-default"
+                          onClick={() => setExpandedCall(isOpen ? null : call.id)}
+                          disabled={!expandable}
+                          aria-expanded={expandable ? isOpen : undefined}
+                        >
+                          <span className="mt-0.5 shrink-0">{getStatusIcon(call.status)}</span>
+                          <span className="flex-1 min-w-0">
+                            <span className="flex items-center justify-between gap-2">
+                              <span className="font-medium truncate">
+                                {call.caller_name || formatPhoneNumber(call.caller_phone)}
+                              </span>
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                {new Date(call.started_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                {' · '}
+                                {new Date(call.started_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                              </span>
+                            </span>
+                            {call.caller_name && (
+                              <span className="block text-xs text-muted-foreground">
+                                {formatPhoneNumber(call.caller_phone)}
+                              </span>
+                            )}
+                            {(call.summary || call.interest) ? (
+                              <span className={`block text-sm mt-1 text-muted-foreground ${isOpen ? '' : 'line-clamp-2'}`}>
+                                {call.summary || call.interest}
+                              </span>
+                            ) : call.transcript_status === 'processing' && (
+                              <span className="flex items-center gap-1 text-sm mt-1 text-muted-foreground">
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                Processing...
+                              </span>
+                            )}
+                            <span className="flex flex-wrap items-center gap-2 mt-2">
+                              {getStatusBadge(call.status)}
+                              {call.intent && (
+                                <Badge variant="outline" className="text-xs capitalize">
+                                  {call.intent}
+                                </Badge>
+                              )}
+                              <span className="text-xs text-muted-foreground font-mono">
+                                {formatDuration(call.duration_seconds)}
+                              </span>
+                              {call.lead_id && (
+                                <Badge variant="secondary">
+                                  <UserPlus className="w-3 h-3 mr-1" />
+                                  Lead captured
+                                </Badge>
+                              )}
+                              {expandable && (
+                                <span className="ml-auto text-xs text-primary flex items-center gap-0.5">
+                                  {isOpen ? 'Hide' : 'Transcript'}
+                                  {isOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                </span>
+                              )}
+                            </span>
+                          </span>
+                        </button>
+                        {call.recording_url && (
+                          playingRecording === call.id ? (
+                            <MiniAudioPlayer src={call.recording_url} onClose={() => setPlayingRecording(null)} />
+                          ) : (
+                            <Button variant="outline" size="sm" className="ml-7 gap-1.5" onClick={() => setPlayingRecording(call.id)}>
+                              <Headphones className="w-3.5 h-3.5" />
+                              Listen
+                            </Button>
+                          )
+                        )}
+                        {isOpen && call.transcript && (
+                          <div className="ml-7 text-sm text-muted-foreground bg-muted/50 p-3 rounded-md max-h-64 overflow-y-auto whitespace-pre-wrap">
+                            {call.transcript}
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                <div className="hidden md:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -507,6 +601,7 @@ export default function CallsPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
 
                 {/* Pagination */}
                 {pagination.totalPages > 1 && (
@@ -540,7 +635,7 @@ export default function CallsPage() {
             )}
           </CardContent>
         </Card>
-      </main>
+      </div>
     </div>
   );
 }

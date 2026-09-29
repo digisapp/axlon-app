@@ -115,12 +115,12 @@ export default async function OnboardingPage() {
       </div>
 
       {/* Info Card */}
-      <Card className="border-orange-200 bg-orange-50">
+      <Card className="border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/40">
         <CardContent className="p-4">
-          <p className="text-sm text-orange-800">
+          <p className="text-sm text-orange-800 dark:text-orange-300">
             <strong>What is this?</strong> These are placeholder profiles created when scraping listings from TruckPaper and other sources.
             Each profile represents a potential business that could be converted to an active account.
-            They have auto-generated emails like <code className="bg-orange-100 px-1 rounded">dealer@dealers.axlon.ai</code>.
+            They have auto-generated emails like <code className="bg-orange-100 dark:bg-orange-900/50 px-1 rounded">dealer@dealers.axlon.ai</code>.
           </p>
         </CardContent>
       </Card>
@@ -143,22 +143,22 @@ export default async function OnboardingPage() {
                 return (
                   <div
                     key={p.id}
-                    className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                    className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
                   >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
                         <p className="font-medium">
                           {p.company_name || emailPrefix}
                         </p>
                         {listingCount > 0 && (
                           <Badge variant="secondary" className="text-xs">
-                            {listingCount} listings
+                            {listingCount} listing{listingCount !== 1 ? 's' : ''}
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 mt-1">
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Mail className="w-3 h-3" />
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                        <p className="text-sm text-muted-foreground flex items-center gap-1 min-w-0 break-all">
+                          <Mail className="w-3 h-3 shrink-0" />
                           {p.email}
                         </p>
                         {p.city && p.state && (
@@ -168,7 +168,7 @@ export default async function OnboardingPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <span className="text-xs text-muted-foreground">
                         {new Date(p.created_at).toLocaleDateString()}
                       </span>

@@ -15,6 +15,7 @@ import {
   Zap,
   Globe,
   Headphones,
+  Store,
 } from 'lucide-react';
 
 export function HowItWorksContent() {
@@ -31,7 +32,7 @@ export function HowItWorksContent() {
             AI that runs your business —<br className="hidden sm:block" /> from lead to close
           </h1>
           <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-6 md:mb-8">
-            Replace your DMS, CRM, answering service, and BDC team with one AI platform. Built for equipment dealers, brokers, and service businesses.
+            AI lead response, voice agent, CRM, and marketplace in one AI platform. Built for equipment dealers, brokers, and service businesses.
           </p>
         </div>
       </section>
@@ -124,7 +125,7 @@ export function HowItWorksContent() {
             <Card className="h-full border-cyan-500/30 hover:border-cyan-500/60 hover:shadow-xl transition-all">
               <CardHeader className="pb-3">
                 <div className="w-10 h-10 rounded-xl bg-cyan-600/10 flex items-center justify-center mb-2">
-                  <Headphones className="w-5 h-5 text-cyan-600" />
+                  <Store className="w-5 h-5 text-cyan-600" />
                 </div>
                 <CardTitle className="text-lg">Axleyard</CardTitle>
                 <CardDescription className="text-sm">
@@ -164,7 +165,7 @@ export function HowItWorksContent() {
         <div id="platform-details" className="text-center mb-8 md:mb-10">
           <h2 className="text-xl md:text-3xl font-bold mb-2">Get started in 4 steps</h2>
           <p className="text-sm md:text-base text-muted-foreground max-w-lg mx-auto">
-            From signup to closing deals — here&apos;s how AXLON replaces your entire tech stack.
+            From signup to closing deals — here&apos;s how it works.
           </p>
         </div>
 
@@ -273,13 +274,13 @@ export function HowItWorksContent() {
             Start with a free 45-minute AI Opportunity Assessment. No obligation.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button size="lg" className="w-full sm:w-auto" asChild>
+            <Button size="lg" className="rounded-full w-full sm:w-auto" asChild>
               <Link href="/apply">
-                <Zap className="w-4 h-4 mr-2" />
+                <Zap className="w-4 h-4" />
                 Apply for Free Assessment
               </Link>
             </Button>
-            <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
+            <Button size="lg" variant="outline" className="rounded-full w-full sm:w-auto" asChild>
               <Link href="/transform">
                 See the Full Program
               </Link>
