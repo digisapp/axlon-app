@@ -5,12 +5,12 @@ import { AskAxlonHero } from '@/components/ask/AskAxlonHero';
 // from the root of axlon.ai by middleware — keep it self-contained (no Header/
 // Footer) and anonymous-friendly.
 export const metadata: Metadata = {
-  title: { absolute: 'AXLON — AI for Heavy Haul' },
+  title: { absolute: 'AXLON — Super Intelligence for Heavy Haul' },
   description:
     'Ask AXLON anything about heavy haul — lowboy trailers, semi trucks, parts, prices, and financing. AXLON searches the Axleyard marketplace and answers instantly.',
   alternates: { canonical: 'https://axlon.ai' },
   openGraph: {
-    title: 'AXLON — AI for Heavy Haul',
+    title: 'AXLON — Super Intelligence for Heavy Haul',
     description:
       'Ask AXLON anything about heavy haul — trailers, trucks, parts, and prices. Powered by the Axleyard marketplace.',
     url: 'https://axlon.ai',
@@ -47,7 +47,7 @@ export default async function AskAxlonPage({ searchParams }: PageProps) {
           Browse the full yard at axleyard.com →
         </a>
         <p className="text-xs text-zinc-400 dark:text-zinc-500">
-          AXLON is the AI assistant of Axleyard — the trucks, trailers &amp;
+          AXLON is the Super Intelligence assistant of Axleyard — the trucks, trailers &amp;
           heavy equipment marketplace.
         </p>
       </footer>

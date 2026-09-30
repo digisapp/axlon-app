@@ -93,7 +93,7 @@ export default function RiggingPage() {
               <span className="text-sm font-medium text-emerald-600">For Rigging & Heavy Lift</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              AI-Powered Tools Built for Rigging Companies
+              Super Intelligence Built for Rigging Companies
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
               Win more projects, capture leads around the clock, and let AI handle the inquiries while you&apos;re on the job site.

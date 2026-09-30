@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const alt = 'Axleyard - AI-Powered Truck & Equipment Marketplace';
+export const alt = 'Axleyard - Super Intelligence-Powered Truck & Equipment Marketplace';
 export const size = {
   width: 1200,
   height: 630,
@@ -94,7 +94,7 @@ export default async function Image() {
             lineHeight: '1.4',
           }}
         >
-          AI-Powered Truck & Equipment Marketplace
+          Super Intelligence-Powered Truck & Equipment Marketplace
         </div>
 
         {/* Feature badges */}

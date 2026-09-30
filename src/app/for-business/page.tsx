@@ -209,7 +209,7 @@ export default function ForBusinessPage() {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
               We build and run your{' '}
               <span className="bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">
-                AI operation
+                Super Intelligence operation
               </span>
             </h1>
 

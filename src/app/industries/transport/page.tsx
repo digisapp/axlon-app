@@ -93,7 +93,7 @@ export default function TransportPage() {
               <span className="text-sm font-medium text-blue-600">For Heavy Haul & Transport</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              AI-Powered Tools Built for Heavy Haul
+              Super Intelligence Built for Heavy Haul
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
               Capture more loads, sell equipment faster, and let AI handle the inquiries that come in while you&apos;re on the road.

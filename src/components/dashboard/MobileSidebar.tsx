@@ -54,12 +54,15 @@ export function MobileSidebar({
           <div className="flex items-center gap-2">
             <Image
               src="/images/axlonai-logo.png"
-              alt="AXLON AI"
+              alt="AXLON Super Intelligence"
               width={32}
               height={32}
               className="w-8 h-8"
             />
-            <SheetTitle className="font-bold text-lg font-[family-name:var(--font-gunship)] tracking-wider">AXLON <span className="text-primary">AI</span></SheetTitle>
+            <SheetTitle className="flex flex-col leading-none">
+              <span className="font-bold text-lg font-[family-name:var(--font-gunship)] tracking-wider">AXLON</span>
+              <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">Super Intelligence</span>
+            </SheetTitle>
           </div>
         </SheetHeader>
 

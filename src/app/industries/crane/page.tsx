@@ -94,7 +94,7 @@ export default function CranePage() {
               <span className="text-sm font-medium text-orange-600">For Crane Companies</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              AI-Powered Tools Built for Crane Companies
+              Super Intelligence Built for Crane Companies
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
               Stop missing leads after hours. Let AI handle customer inquiries, qualify prospects, and manage your equipment listings — so you can focus on lifting.

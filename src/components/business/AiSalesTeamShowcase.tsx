@@ -18,7 +18,7 @@ export function AiSalesTeamShowcase() {
           </div>
           <h2 className="text-2xl md:text-3xl font-bold mb-2">Your AI-powered sales team</h2>
           <p className="text-sm md:text-base text-muted-foreground dark:text-foreground/60 max-w-xl mx-auto">
-            AXLON, Axleyard&apos;s AI assistant, answers every call, chat, and lead for your
+            AXLON, Axleyard&apos;s Super Intelligence assistant, answers every call, chat, and lead for your
             dealership — day and night — and turns them into pipeline.
           </p>
         </div>

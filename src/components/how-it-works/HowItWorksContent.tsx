@@ -29,7 +29,7 @@ export function HowItWorksContent() {
             AI-Powered Business Tools
           </Badge>
           <h1 className="text-2xl md:text-5xl font-bold tracking-tight mb-3 md:mb-4">
-            AI that runs your business —<br className="hidden sm:block" /> from lead to close
+            Super Intelligence that runs your business —<br className="hidden sm:block" /> from lead to close
           </h1>
           <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-6 md:mb-8">
             AI lead response, voice agent, CRM, and marketplace in one AI platform. Built for equipment dealers, brokers, and service businesses.

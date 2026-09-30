@@ -241,7 +241,7 @@ export default function GetStartedPage() {
                 className="mb-6 w-12 h-auto"
               />
               <h1 className="text-3xl md:text-4xl font-bold mb-4">
-                Grow Your Business with AI
+                Grow Your Business with Super Intelligence
               </h1>
               <p className="text-lg text-muted-foreground">
                 The AI-powered platform for heavy equipment, crane, rigging, and transport companies.

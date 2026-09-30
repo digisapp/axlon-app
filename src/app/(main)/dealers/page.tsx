@@ -313,7 +313,7 @@ export default async function DealersPage({ searchParams }: PageProps) {
                 AI-Powered Platform
               </div>
               <h2 className="text-xl md:text-3xl font-bold text-white mb-2">
-                Run your business with AI
+                Run your business with Super Intelligence
               </h2>
               <p className="text-slate-400 max-w-lg text-sm md:text-base">
                 Join Axleyard and get an AI sales assistant, voice agent, CRM, and marketplace storefront — all in one platform.

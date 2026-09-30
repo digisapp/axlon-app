@@ -48,7 +48,7 @@ export function Footer() {
               />
             </Link>
             <p className="text-sm text-muted-foreground">
-              The AI platform for equipment businesses. Buy, sell, and manage with AI.
+              The Super Intelligence platform for equipment businesses. Buy, sell, and manage in one place.
             </p>
           </div>
 

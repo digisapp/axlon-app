@@ -46,13 +46,16 @@ export function Sidebar({ unreadMessages = 0, newLeads = 0, pendingAiInbox = 0, 
           <Link href="/" className="flex items-center gap-2">
             <Image
               src="/images/axlonai-logo.png"
-              alt="AXLON AI"
+              alt="AXLON Super Intelligence"
               width={32}
               height={32}
               className="w-8 h-8 flex-shrink-0"
             />
             {!collapsed && (
-              <span className="font-bold text-lg font-[family-name:var(--font-gunship)] tracking-wider">AXLON <span className="text-primary">AI</span></span>
+              <span className="flex flex-col leading-none">
+                <span className="font-bold text-lg font-[family-name:var(--font-gunship)] tracking-wider">AXLON</span>
+                <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">Super Intelligence</span>
+              </span>
             )}
           </Link>
         </div>

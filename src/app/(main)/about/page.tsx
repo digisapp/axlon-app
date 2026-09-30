@@ -96,7 +96,7 @@ export default function AboutPage() {
               </h1>
             </div>
             <p className="text-slate-400 text-base md:text-lg max-w-xl">
-              We&apos;re building the AI operating system for equipment businesses — so they can sell
+              We&apos;re building the Super Intelligence operating system for equipment businesses — so they can sell
               more, work less, and compete with anyone.
             </p>
           </div>
