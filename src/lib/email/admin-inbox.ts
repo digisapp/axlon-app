@@ -1,0 +1,845 @@
+/**
+ * Admin inbox service — the one place that reads and writes `email_threads`
+ * and `emails` for /admin/email, the Resend webhook and the AI auto-reply.
+ *
+ * Runs with the service role: callers (API routes behind withAdmin, the
+ * signed webhook) have already authenticated. The tables are also RLS'd to
+ * admins for anything that goes through a session client.
+ *
+ * Threading: every message we send carries Reply-To
+ * `support+<threadId>@<receiving domain>` (see inbound-address.ts) so the
+ * answer comes back tagged with its thread; In-Reply-To on our stored
+ * Message-IDs and a normalized subject + sender match are the fallbacks.
+ */
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { logger } from '@/lib/logger';
+import { sendEmail } from './resend';
+import { wrapInBrandedTemplate } from '@/lib/ai/email-classifier';
+import {
+  cleanMessageId,
+  getAdminFrom,
+  getAdminFromAddress,
+  getAdminFromName,
+  isValidEmail,
+  normalizeSubject,
+  replySubject,
+  threadReplyAddress,
+} from './inbound-address';
+
+// ─── Types ──────────────────────────────────────────────
+
+export type EmailDirection = 'inbound' | 'outbound';
+export type ThreadStatus = 'open' | 'received' | 'read' | 'replied' | 'archived' | 'trash';
+export type EmailStatus =
+  | 'queued' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained' | 'failed' | 'received' | 'replied';
+
+export interface EmailAttachmentMeta {
+  id: string;
+  filename: string;
+  contentType: string;
+  size?: number;
+}
+
+export interface EmailMetadata {
+  /** Set on the "Send me a test" row so the UI can label it. */
+  test?: boolean;
+  /** Set on AI auto-replies. */
+  auto_sent?: boolean;
+  cc?: string[];
+}
+
+export interface ThreadRow {
+  id: string;
+  subject: string;
+  owner_id: string;
+  last_message_at: string;
+  message_count: number;
+  outbound_count: number;
+  is_unread: boolean;
+  status: ThreadStatus;
+  participant_email: string;
+  participant_name: string | null;
+  listing_id: string | null;
+  lead_id: string | null;
+  is_starred: boolean;
+  is_spam: boolean;
+  last_preview: string | null;
+  last_direction: EmailDirection | null;
+  linked_profile_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmailRow {
+  id: string;
+  thread_id: string;
+  resend_id: string | null;
+  message_id: string | null;
+  direction: EmailDirection;
+  from_email: string;
+  from_name: string | null;
+  to_email: string;
+  to_name: string | null;
+  reply_to: string | null;
+  subject: string;
+  html_body: string | null;
+  text_body: string | null;
+  status: EmailStatus;
+  headers: Record<string, unknown> | null;
+  metadata: EmailMetadata | null;
+  attachments: EmailAttachmentMeta[] | null;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+  ai_category: string | null;
+  ai_confidence: number | null;
+  ai_summary: string | null;
+  ai_draft_html: string | null;
+  ai_draft_text: string | null;
+  ai_processed_at: string | null;
+  replied_at: string | null;
+}
+
+/** Thread row plus the bits of its newest inbound email the list shows. */
+export interface ThreadListItem extends ThreadRow {
+  ai_category: string | null;
+  ai_confidence: number | null;
+  has_attachments: boolean;
+  is_test: boolean;
+}
+
+// ─── Folders / actions / settings (whitelists) ──────────
+
+export const INBOX_FOLDERS = ['inbox', 'unread', 'starred', 'sent', 'spam'] as const;
+export type InboxFolder = (typeof INBOX_FOLDERS)[number];
+
+export function isInboxFolder(v: unknown): v is InboxFolder {
+  return typeof v === 'string' && (INBOX_FOLDERS as readonly string[]).includes(v);
+}
+
+export const BULK_ACTIONS = ['markRead', 'markUnread', 'star', 'unstar', 'spam', 'notSpam', 'delete'] as const;
+export type BulkAction = (typeof BULK_ACTIONS)[number];
+
+export function isBulkAction(v: unknown): v is BulkAction {
+  return typeof v === 'string' && (BULK_ACTIONS as readonly string[]).includes(v);
+}
+
+/** Only keys the inbox UI may read or write through /api/admin/inbox/settings. */
+export const INBOX_SETTING_KEYS = ['ai_auto_reply_enabled'] as const;
+export type InboxSettingKey = (typeof INBOX_SETTING_KEYS)[number];
+
+export function isInboxSettingKey(v: unknown): v is InboxSettingKey {
+  return typeof v === 'string' && (INBOX_SETTING_KEYS as readonly string[]).includes(v);
+}
+
+/** Statuses a thread has once it contains at least one inbound message. */
+const INBOUND_STATUSES: ThreadStatus[] = ['received', 'read', 'replied'];
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isUuid(v: unknown): v is string {
+  return typeof v === 'string' && UUID_RE.test(v);
+}
+
+/** Up to 200 UUIDs, or null when anything in the list is not one. */
+export function idList(v: unknown): string[] | null {
+  if (!Array.isArray(v) || v.length === 0 || v.length > 200) return null;
+  const ids = v.filter(isUuid);
+  return ids.length === v.length ? Array.from(new Set(ids)) : null;
+}
+
+// ─── Helpers ────────────────────────────────────────────
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/** Plain text typed in the compose box → paragraphs for the branded template. */
+export function textToHtml(text: string): string {
+  return text
+    .split(/\n{2,}/)
+    .map((para) => `<p style="margin:0 0 12px;">${escapeHtml(para).replace(/\n/g, '<br />')}</p>`)
+    .join('\n');
+}
+
+/** Readable plain text out of an HTML email body (for previews, quotes, AI drafts). */
+export function htmlToText(html: string | null | undefined): string {
+  if (!html) return '';
+  return html
+    .replace(/<(style|script|head|title)[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|tr|li|h[1-6]|blockquote)>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0?39;/gi, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+const QUOTE_MAX_CHARS = 3000;
+
+/**
+ * The message being answered, quoted under a reply. Always rebuilt from plain
+ * text and escaped: the original HTML is whatever a stranger sent us, and
+ * embedding it raw would put their markup inside a mail from our domain.
+ */
+export function buildQuote(original: {
+  from_email: string;
+  from_name: string | null;
+  created_at: string;
+  text_body: string | null;
+  html_body: string | null;
+} | null | undefined): { html: string; text: string } | null {
+  if (!original) return null;
+  const body = (original.text_body?.trim() || htmlToText(original.html_body)).slice(0, QUOTE_MAX_CHARS);
+  if (!body) return null;
+  const when = new Date(original.created_at);
+  const date = Number.isNaN(when.getTime())
+    ? ''
+    : when.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/New_York' });
+  const who = original.from_name ? `${original.from_name} <${original.from_email}>` : original.from_email;
+  const intro = date ? `On ${date} ET, ${who} wrote:` : `${who} wrote:`;
+  return {
+    html: `<p style="margin:0 0 8px;">${escapeHtml(intro)}</p><div style="white-space:pre-wrap;">${escapeHtml(body)}</div>`,
+    text: `${intro}\n${body.split('\n').map((line) => `> ${line}`).join('\n')}`,
+  };
+}
+
+/**
+ * Delivery events arrive out of order. A status only moves forward along
+ * sent → delivered → opened → clicked; failures always win.
+ */
+const PRIOR_STATUSES: Partial<Record<EmailStatus, EmailStatus[]>> = {
+  delivered: ['queued', 'sent'],
+  opened: ['queued', 'sent', 'delivered'],
+  clicked: ['queued', 'sent', 'delivered', 'opened'],
+};
+
+export function canAdvanceStatus(current: EmailStatus, next: EmailStatus): boolean {
+  const prior = PRIOR_STATUSES[next];
+  return prior ? prior.includes(current) : true;
+}
+
+/** Escape a user-typed search term for a PostgREST `or(...ilike...)` filter. */
+function searchPattern(q: string): string | null {
+  // Commas and parentheses structure the .or() string; %, _ and \ are LIKE
+  // metacharacters. Dropping them beats trying to quote them.
+  const cleaned = q.replace(/[%_\\,().*"]/g, ' ').replace(/\s+/g, ' ').trim();
+  return cleaned ? `%${cleaned}%` : null;
+}
+
+// The Supabase builder's generics get too deep for tsc when a filter chain is
+// built behind a generic helper, so the chain is applied on a loosely typed
+// handle and the caller's type is handed back unchanged.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LooseQuery = any;
+
+function applyFolder<Q>(query: Q, folder: InboxFolder): Q {
+  const q = query as LooseQuery;
+  switch (folder) {
+    case 'inbox':
+      return q.eq('is_spam', false).in('status', INBOUND_STATUSES);
+    case 'unread':
+      return q.eq('is_spam', false).in('status', INBOUND_STATUSES).eq('is_unread', true);
+    case 'starred':
+      return q.eq('is_spam', false).eq('is_starred', true);
+    case 'sent':
+      return q.eq('is_spam', false).gt('outbound_count', 0);
+    case 'spam':
+      return q.eq('is_spam', true);
+  }
+}
+
+function db(): SupabaseClient {
+  return createAdminClient();
+}
+
+// ─── Service ────────────────────────────────────────────
+
+export const AdminInboxService = {
+  async listThreads({
+    folder = 'inbox',
+    search,
+    page = 1,
+    limit = 25,
+  }: {
+    folder?: InboxFolder;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const supabase = db();
+    let query = supabase.from('email_threads').select('*', { count: 'exact' });
+    query = applyFolder(query, folder);
+
+    const pattern = search ? searchPattern(search) : null;
+    if (pattern) {
+      query = query.or(
+        `subject.ilike.${pattern},participant_email.ilike.${pattern},participant_name.ilike.${pattern},last_preview.ilike.${pattern}`,
+      );
+    }
+
+    const from = (page - 1) * limit;
+    const { data, error, count } = await query
+      .order('last_message_at', { ascending: false })
+      .range(from, from + limit - 1);
+    if (error) throw error;
+
+    const rows = (data ?? []) as ThreadRow[];
+    const total = count ?? 0;
+
+    // The newest inbound email per thread carries the AI category and any
+    // attachments; one extra query for the page, not one per row.
+    const extras = new Map<string, { ai_category: string | null; ai_confidence: number | null; has_attachments: boolean; is_test: boolean }>();
+    if (rows.length > 0) {
+      const { data: emails } = await supabase
+        .from('emails')
+        .select('thread_id, direction, ai_category, ai_confidence, attachments, metadata, created_at')
+        .in('thread_id', rows.map((r) => r.id))
+        .order('created_at', { ascending: false });
+      for (const e of (emails ?? []) as Array<Pick<EmailRow, 'thread_id' | 'direction' | 'ai_category' | 'ai_confidence' | 'attachments' | 'metadata'>>) {
+        const cur = extras.get(e.thread_id) ?? { ai_category: null, ai_confidence: null, has_attachments: false, is_test: false };
+        if (e.direction === 'inbound' && cur.ai_category === null && e.ai_category) {
+          cur.ai_category = e.ai_category;
+          cur.ai_confidence = e.ai_confidence;
+        }
+        if (Array.isArray(e.attachments) && e.attachments.length > 0) cur.has_attachments = true;
+        if (e.metadata?.test) cur.is_test = true;
+        extras.set(e.thread_id, cur);
+      }
+    }
+
+    const threads: ThreadListItem[] = rows.map((r) => ({
+      ...r,
+      ...(extras.get(r.id) ?? { ai_category: null, ai_confidence: null, has_attachments: false, is_test: false }),
+    }));
+
+    return { threads, total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) };
+  },
+
+  /** Badge numbers for the folder pills. */
+  async getFolderCounts() {
+    const supabase = db();
+    const [unread, starred, spam] = await Promise.all([
+      applyFolder(supabase.from('email_threads').select('id', { count: 'exact', head: true }), 'unread'),
+      applyFolder(supabase.from('email_threads').select('id', { count: 'exact', head: true }), 'starred'),
+      applyFolder(supabase.from('email_threads').select('id', { count: 'exact', head: true }), 'spam'),
+    ]);
+    return { unread: unread.count ?? 0, starred: starred.count ?? 0, spam: spam.count ?? 0 };
+  },
+
+  async getUnreadCount() {
+    const { count } = await applyFolder(
+      db().from('email_threads').select('id', { count: 'exact', head: true }),
+      'unread',
+    );
+    return count ?? 0;
+  },
+
+  async getThread(threadId: string): Promise<{ thread: ThreadRow; emails: EmailRow[] } | null> {
+    const supabase = db();
+    const { data: thread } = await supabase.from('email_threads').select('*').eq('id', threadId).maybeSingle();
+    if (!thread) return null;
+    const { data: emails, error } = await supabase
+      .from('emails')
+      .select('*')
+      .eq('thread_id', threadId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return { thread: thread as ThreadRow, emails: (emails ?? []) as EmailRow[] };
+  },
+
+  async getEmail(emailId: string): Promise<EmailRow | null> {
+    const { data } = await db().from('emails').select('*').eq('id', emailId).maybeSingle();
+    return (data as EmailRow | null) ?? null;
+  },
+
+  async markRead(threadId: string, isRead: boolean) {
+    await this.bulk(isRead ? 'markRead' : 'markUnread', [threadId]);
+  },
+
+  async setStar(threadId: string, isStarred: boolean) {
+    await this.bulk(isStarred ? 'star' : 'unstar', [threadId]);
+  },
+
+  async setSpam(threadId: string, isSpam: boolean) {
+    await this.bulk(isSpam ? 'spam' : 'notSpam', [threadId]);
+  },
+
+  async deleteThread(threadId: string) {
+    await this.bulk('delete', [threadId]);
+  },
+
+  async bulk(action: BulkAction, ids: string[]) {
+    if (ids.length === 0) return;
+    const supabase = db();
+    const now = new Date().toISOString();
+
+    switch (action) {
+      case 'markRead': {
+        const { error } = await supabase.from('email_threads').update({ is_unread: false, updated_at: now }).in('id', ids);
+        if (error) throw error;
+        // 'read' only replaces the initial 'received'; never clobber 'replied'.
+        await supabase.from('email_threads').update({ status: 'read' }).in('id', ids).eq('status', 'received');
+        await supabase.from('emails').update({ is_read: true, read_at: now }).in('thread_id', ids).eq('is_read', false);
+        return;
+      }
+      case 'markUnread': {
+        // Only threads that have inbound mail can be unread.
+        const { error } = await supabase
+          .from('email_threads')
+          .update({ is_unread: true, updated_at: now })
+          .in('id', ids)
+          .in('status', INBOUND_STATUSES);
+        if (error) throw error;
+        await supabase.from('email_threads').update({ status: 'received' }).in('id', ids).eq('status', 'read');
+        return;
+      }
+      case 'star': {
+        const { error } = await supabase.from('email_threads').update({ is_starred: true, updated_at: now }).in('id', ids);
+        if (error) throw error;
+        return;
+      }
+      case 'unstar': {
+        const { error } = await supabase.from('email_threads').update({ is_starred: false, updated_at: now }).in('id', ids);
+        if (error) throw error;
+        return;
+      }
+      case 'spam': {
+        const { error } = await supabase.from('email_threads').update({ is_spam: true, is_unread: false, updated_at: now }).in('id', ids);
+        if (error) throw error;
+        return;
+      }
+      case 'notSpam': {
+        const { error } = await supabase.from('email_threads').update({ is_spam: false, updated_at: now }).in('id', ids);
+        if (error) throw error;
+        return;
+      }
+      case 'delete': {
+        // emails cascade from email_threads (050).
+        const { error } = await supabase.from('email_threads').delete().in('id', ids);
+        if (error) throw error;
+        return;
+      }
+    }
+  },
+
+  /**
+   * Compose a new email or reply inside a thread. Goes out as the admin From
+   * with the per-thread Reply-To, wrapped in the branded template with the
+   * message being answered quoted underneath. The stored row keeps only what
+   * the admin wrote, so the thread view reads like a conversation.
+   */
+  async sendNewEmail({
+    to,
+    toName,
+    subject,
+    bodyText,
+    replyToThreadId,
+    userId,
+    test = false,
+    autoSent = false,
+    idempotencyKey,
+    ai,
+  }: {
+    to?: string;
+    toName?: string | null;
+    subject?: string;
+    bodyText: string;
+    replyToThreadId?: string | null;
+    /** Admin sending; owns a newly created thread. Not needed for a reply. */
+    userId?: string;
+    test?: boolean;
+    /** Sent by the AI auto-reply rather than a person. */
+    autoSent?: boolean;
+    /** Defaults to a fresh key per call; pass one where a retry must not send twice. */
+    idempotencyKey?: string;
+    /** AI fields recorded on the outbound row of an auto-reply. */
+    ai?: { category: string; confidence: number; summary: string };
+  }): Promise<
+    | { success: true; emailId: string | null; threadId: string; resendId: string | null }
+    | { success: false; error: string; status: 400 | 404 | 502 }
+  > {
+    const supabase = db();
+    const text = bodyText.trim();
+    if (!text) return { success: false, error: 'Message is required', status: 400 };
+    if (text.length > 50_000) return { success: false, error: 'Message is too long', status: 400 };
+
+    let thread: ThreadRow | null = null;
+    let createdThread = false;
+    const headers: Record<string, string> = {};
+    let quote: { html: string; text: string } | null = null;
+
+    if (replyToThreadId) {
+      const { data } = await supabase.from('email_threads').select('*').eq('id', replyToThreadId).maybeSingle();
+      if (!data) return { success: false, error: 'Conversation not found', status: 404 };
+      thread = data as ThreadRow;
+
+      // Threading headers need the RFC Message-ID the sender's client
+      // assigned (stored on inbound rows). Carry References forward so long
+      // threads keep grouping in their client.
+      const { data: lastInbound } = await supabase
+        .from('emails')
+        .select('message_id, headers, html_body, text_body, from_email, from_name, created_at')
+        .eq('thread_id', thread.id)
+        .eq('direction', 'inbound')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const messageId = cleanMessageId(lastInbound?.message_id);
+      if (messageId) {
+        const prior = String((lastInbound?.headers as Record<string, unknown> | null)?.references || '')
+          .split(/\s+/)
+          .map(cleanMessageId)
+          .filter((id) => id && id !== messageId)
+          .slice(-20);
+        headers['In-Reply-To'] = `<${messageId}>`;
+        headers['References'] = [...prior, messageId].map((id) => `<${id}>`).join(' ');
+      }
+      quote = buildQuote(lastInbound);
+    }
+
+    const recipient = (thread ? thread.participant_email : to || '').trim().toLowerCase();
+    if (!isValidEmail(recipient)) return { success: false, error: 'Enter a valid email address', status: 400 };
+
+    const cleanSubject = (thread ? (subject?.trim() || replySubject(thread.subject)) : subject || '').replace(/[\r\n]+/g, ' ').trim().slice(0, 300);
+    if (!cleanSubject) return { success: false, error: 'Subject is required', status: 400 };
+
+    if (!thread) {
+      if (!userId) return { success: false, error: 'Could not start the conversation', status: 400 };
+      const { data: created, error } = await supabase
+        .from('email_threads')
+        .insert({
+          subject: normalizeSubject(cleanSubject) || cleanSubject,
+          owner_id: userId,
+          participant_email: recipient,
+          participant_name: toName?.replace(/[\r\n<>"]+/g, ' ').trim().slice(0, 120) || null,
+          status: 'open',
+          is_unread: false,
+        })
+        .select('*')
+        .single();
+      if (error || !created) {
+        logger.error('Inbox: failed to create thread', { error });
+        return { success: false, error: 'Could not start the conversation', status: 502 };
+      }
+      thread = created as ThreadRow;
+      createdThread = true;
+    }
+
+    const innerHtml = textToHtml(text);
+    const html = wrapInBrandedTemplate(innerHtml, quote?.html);
+    const replyTo = threadReplyAddress(thread.id);
+
+    let resendId: string | null = null;
+    try {
+      const result = await sendEmail({
+        to: recipient,
+        subject: cleanSubject,
+        html,
+        text: quote ? `${text}\n\n${quote.text}` : text,
+        from: getAdminFrom(),
+        replyTo,
+        headers: Object.keys(headers).length > 0 ? headers : undefined,
+        category: 'conversation',
+        idempotencyKey: idempotencyKey || `admin-inbox/${thread.id}/${crypto.randomUUID()}`,
+      });
+      resendId = result?.id ?? null;
+    } catch (err) {
+      logger.error('Inbox: send failed', { error: err, threadId: thread.id });
+      if (createdThread) await supabase.from('email_threads').delete().eq('id', thread.id);
+      const message = err && typeof err === 'object' && 'message' in err && typeof err.message === 'string' ? err.message : 'Failed to send email';
+      return { success: false, error: message, status: 502 };
+    }
+
+    const metadata: EmailMetadata = {};
+    if (test) metadata.test = true;
+    if (autoSent) metadata.auto_sent = true;
+
+    const { data: stored, error: storeError } = await supabase
+      .from('emails')
+      .insert({
+        thread_id: thread.id,
+        resend_id: resendId,
+        direction: 'outbound',
+        from_email: getAdminFromAddress(),
+        from_name: getAdminFromName(),
+        to_email: recipient,
+        to_name: thread.participant_name,
+        reply_to: replyTo,
+        subject: cleanSubject,
+        html_body: innerHtml,
+        text_body: text,
+        status: 'sent',
+        is_read: true,
+        headers,
+        metadata,
+        ...(ai
+          ? {
+              ai_category: 'auto_reply',
+              ai_confidence: ai.confidence,
+              ai_summary: `Auto-reply (${ai.category}): ${ai.summary}`.slice(0, 500),
+              ai_processed_at: new Date().toISOString(),
+            }
+          : {}),
+      })
+      .select('id')
+      .single();
+    if (storeError) logger.error('Inbox: sent but failed to store outbound row', { error: storeError, threadId: thread.id });
+
+    if (replyToThreadId) {
+      const now = new Date().toISOString();
+      await supabase
+        .from('emails')
+        .update({ status: 'replied', replied_at: now })
+        .eq('thread_id', thread.id)
+        .eq('direction', 'inbound')
+        .neq('status', 'replied');
+      // A person answering has read the thread; an auto-reply has not read it for them.
+      if (!autoSent) {
+        await supabase.from('email_threads').update({ is_unread: false, updated_at: now }).eq('id', thread.id);
+      }
+    }
+
+    return { success: true, emailId: stored?.id ?? null, threadId: thread.id, resendId };
+  },
+
+  /**
+   * Store an inbound email from the webhook, finding or creating its thread.
+   * Returns null when the message was already stored (webhook retry).
+   */
+  async storeInboundEmail({
+    from,
+    fromName,
+    to,
+    subject,
+    text,
+    html,
+    messageId,
+    inReplyTo,
+    references,
+    threadIdHint,
+    resendEmailId,
+    cc,
+    attachments,
+    spam,
+    auth,
+  }: {
+    from: string;
+    fromName?: string | null;
+    to: string;
+    subject: string;
+    text?: string | null;
+    html?: string | null;
+    messageId?: string;
+    inReplyTo?: string;
+    references?: string;
+    /** Thread id parsed from our plus-addressed Reply-To (support+<id>@…). */
+    threadIdHint?: string | null;
+    /** Resend's received-email id (lets us fetch attachments later). */
+    resendEmailId?: string;
+    cc?: string[];
+    attachments?: EmailAttachmentMeta[];
+    spam?: boolean;
+    /** SPF / DKIM / DMARC verdicts from the receiving server, when it reported them. */
+    auth?: { spf: string | null; dkim: string | null; dmarc: string | null } | null;
+  }): Promise<{ email: EmailRow; thread: ThreadRow; isNewThread: boolean } | null> {
+    const supabase = db();
+
+    // Deduplicate: Resend retries webhooks.
+    if (resendEmailId) {
+      const { data: dup } = await supabase
+        .from('emails')
+        .select('id')
+        .eq('resend_id', resendEmailId)
+        .eq('direction', 'inbound')
+        .maybeSingle();
+      if (dup) return null;
+    }
+    if (messageId) {
+      const { data: dup } = await supabase.from('emails').select('id').eq('message_id', messageId).maybeSingle();
+      if (dup) return null;
+    }
+
+    let thread: ThreadRow | null = null;
+
+    // 1. Plus-address tag — set on every outbound Reply-To, so exact. Verify
+    //    the thread exists so a guessed or forged tag can't attach mail to
+    //    nothing.
+    if (threadIdHint && isUuid(threadIdHint)) {
+      const { data } = await supabase.from('email_threads').select('*').eq('id', threadIdHint).maybeSingle();
+      if (data) thread = data as ThreadRow;
+    }
+
+    // 2. In-Reply-To / References → a message we stored.
+    if (!thread) {
+      const candidates = Array.from(new Set([inReplyTo, ...(references || '').split(/\s+/)].map(cleanMessageId).filter(Boolean)));
+      if (candidates.length > 0) {
+        const { data: related } = await supabase
+          .from('emails')
+          .select('thread_id')
+          .in('message_id', candidates)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (related?.thread_id) {
+          const { data } = await supabase.from('email_threads').select('*').eq('id', related.thread_id).maybeSingle();
+          if (data) thread = data as ThreadRow;
+        }
+      }
+    }
+
+    // 3. Last resort: same sender, same normalized subject, within 90 days.
+    const normalized = normalizeSubject(subject);
+    if (!thread && normalized) {
+      const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+      const { data } = await supabase
+        .from('email_threads')
+        .select('*')
+        .eq('participant_email', from)
+        // Exact match: a pattern match would treat %, _ and * in a subject as wildcards.
+        .eq('subject', normalized)
+        .gte('last_message_at', since)
+        .order('last_message_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) thread = data as ThreadRow;
+    }
+
+    // Link the sender to a platform account when there is one.
+    const { data: profile } = await supabase.from('profiles').select('id').eq('email', from).limit(1).maybeSingle();
+    const linkedProfileId: string | null = profile?.id ?? null;
+
+    let isNewThread = false;
+    if (!thread) {
+      // A shared inbox still needs an owner_id (NOT NULL from 050): the
+      // longest-standing admin.
+      const { data: admin } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('is_admin', true)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (!admin) {
+        logger.error('Inbox: no admin profile to own inbound thread', { from });
+        throw new Error('No admin profile exists to own the inbound email');
+      }
+      const { data: created, error } = await supabase
+        .from('email_threads')
+        .insert({
+          subject: normalized || subject || '(no subject)',
+          owner_id: admin.id,
+          participant_email: from,
+          participant_name: fromName || null,
+          status: 'received',
+          is_unread: true,
+          is_spam: !!spam,
+          linked_profile_id: linkedProfileId,
+        })
+        .select('*')
+        .single();
+      if (error || !created) {
+        logger.error('Inbox: failed to create inbound thread', { error });
+        throw error ?? new Error('Failed to create thread');
+      }
+      thread = created as ThreadRow;
+      isNewThread = true;
+    } else {
+      const patch: Record<string, unknown> = {};
+      if (!thread.participant_name && fromName) patch.participant_name = fromName;
+      if (!thread.linked_profile_id && linkedProfileId) patch.linked_profile_id = linkedProfileId;
+      if (Object.keys(patch).length > 0) await supabase.from('email_threads').update(patch).eq('id', thread.id);
+    }
+
+    const headers: Record<string, unknown> = {};
+    if (messageId) headers.message_id = messageId;
+    if (inReplyTo) headers.in_reply_to = inReplyTo;
+    if (references) headers.references = references;
+    if (auth) headers.auth = auth;
+
+    const metadata: EmailMetadata = {};
+    if (cc?.length) metadata.cc = cc;
+
+    const { data: stored, error } = await supabase
+      .from('emails')
+      .insert({
+        thread_id: thread.id,
+        resend_id: resendEmailId || null,
+        message_id: messageId || null,
+        direction: 'inbound',
+        from_email: from,
+        from_name: fromName || null,
+        to_email: to,
+        subject: subject || '(no subject)',
+        html_body: html || null,
+        text_body: text || null,
+        status: 'received',
+        is_read: false,
+        headers,
+        metadata,
+        attachments: attachments ?? [],
+      })
+      .select('*')
+      .single();
+    if (error || !stored) {
+      logger.error('Inbox: failed to store inbound email', { error });
+      if (isNewThread) await supabase.from('email_threads').delete().eq('id', thread.id);
+      throw error ?? new Error('Failed to store email');
+    }
+
+    return { email: stored as EmailRow, thread, isNewThread };
+  },
+
+  /**
+   * Delivery events only touch outbound rows (inbound rows carry a Resend id
+   * too). Returns the recipients of the matching rows, updated or not.
+   */
+  async updateDeliveryStatus(resendId: string, status: EmailStatus): Promise<string[]> {
+    const supabase = db();
+    const { data: rows } = await supabase
+      .from('emails')
+      .select('id, to_email, status')
+      .eq('resend_id', resendId)
+      .eq('direction', 'outbound');
+    const matched = (rows ?? []) as Array<{ id: string; to_email: string; status: EmailStatus }>;
+    const advance = matched.filter((r) => canAdvanceStatus(r.status, status)).map((r) => r.id);
+    if (advance.length > 0) {
+      await supabase.from('emails').update({ status }).in('id', advance);
+    }
+    return matched.map((r) => r.to_email).filter(Boolean);
+  },
+
+  async updateAiFields(
+    emailId: string,
+    fields: { ai_category?: string; ai_confidence?: number; ai_summary?: string; ai_draft_html?: string | null; ai_draft_text?: string | null },
+  ) {
+    await db().from('emails').update({ ...fields, ai_processed_at: new Date().toISOString() }).eq('id', emailId);
+  },
+
+  async getSetting(key: InboxSettingKey): Promise<boolean | null> {
+    const { data } = await db().from('platform_settings').select('value').eq('key', key).maybeSingle();
+    if (!data) return null;
+    // JSONB: stored as true/false or the strings "true"/"false".
+    return data.value === true || data.value === 'true';
+  },
+
+  async setSetting(key: InboxSettingKey, value: boolean) {
+    const { error } = await db()
+      .from('platform_settings')
+      .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+    if (error) throw error;
+  },
+};

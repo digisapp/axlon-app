@@ -1,309 +1,134 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { after } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { getResend } from '@/lib/email/resend';
 import { suppressEmail } from '@/lib/email/suppression';
-import { classifyAndDraftReply, wrapInBrandedTemplate } from '@/lib/ai/email-classifier';
+import { classifyAndDraftReply } from '@/lib/ai/email-classifier';
+import { AdminInboxService, type EmailAttachmentMeta, type EmailStatus } from '@/lib/email/admin-inbox';
+import { sendAutoReply } from '@/lib/email/auto-reply';
+import { isLikelySpam, parseAuthResults } from '@/lib/email/spam';
+import {
+  cleanMessageId,
+  findOurRecipient,
+  isOurSender,
+  parseEmailAddress,
+  parseThreadIdFromAddresses,
+  senderDisplayName,
+} from '@/lib/email/inbound-address';
 import { logger } from '@/lib/logger';
 import { env } from '@/lib/env';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+// The AI step runs in after() and can take up to 30 s on its own.
+export const maxDuration = 60;
+
 /**
- * Resend Webhook — /api/webhooks/resend
+ * Resend webhook — /api/webhooks/resend
  *
- * Handles:
- * - email.received → inbound email processing + AI classification + auto-reply
- * - email.delivered / email.bounced / email.complained → delivery status updates
+ * Inbound: Resend receives mail for ANY address on a receiving domain and
+ * POSTs `email.received`. That event carries METADATA ONLY — ids, bare from,
+ * to[], subject, attachment names. The body and the headers are fetched from
+ * GET /emails/receiving/{email_id}. Replies to mail we sent arrive at
+ * support+<threadId>@<receiving domain> (see inbound-address.ts), which
+ * threads them exactly.
+ *
+ * Resend webhooks are ACCOUNT-wide, not domain-scoped, and this account is
+ * shared with several unrelated projects. Only mail with a recipient on our
+ * domains is stored; the rest is acknowledged and dropped before the body
+ * fetch, so the AI never answers another business's customers as Axleyard.
+ *
+ * Delivery: `email.delivered` / `bounced` / `complained` / `failed` /
+ * `opened` / `clicked` update the status of the outbound row with that Resend
+ * id. Bounces and complaints also go on the suppression list.
+ *
+ * Ops: the endpoint registered in Resend must be exactly
+ * `${NEXT_PUBLIC_APP_URL}/api/webhooks/resend` — www.axleyard.com 308s to the
+ * bare domain and Svix treats every 3xx as a failed delivery.
  */
 
-// ─── Types ──────────────────────────────────────────────
+type ReceivedEmail = NonNullable<Awaited<ReturnType<ReturnType<typeof getResend>['emails']['receiving']['get']>>['data']>;
 
 interface ResendWebhookEvent {
   type: string;
   created_at: string;
   data: {
-    email_id: string;
+    email_id?: string;
     from?: string;
-    to?: string[];
-    cc?: string[];
+    to?: string[] | string;
+    cc?: string[] | string;
+    bcc?: string[] | string;
+    received_for?: string[] | string;
     subject?: string;
     message_id?: string;
-    created_at?: string;
+    attachments?: Array<{ id: string; filename?: string | null; content_type?: string; size?: number }>;
   };
 }
 
-// ─── Helpers ────────────────────────────────────────────
-
-function parseEmailAddress(raw: string): { email: string; name: string | null } {
-  const match = raw.match(/^(.+?)\s*<(.+?)>$/);
-  if (match) {
-    return { name: match[1].trim().replace(/^["']|["']$/g, ''), email: match[2].trim() };
-  }
-  return { name: null, email: raw.trim() };
+function toList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string' && !!v);
+  return typeof value === 'string' && value ? [value] : [];
 }
 
-/**
- * Resend webhooks are ACCOUNT-wide, not domain-scoped, and this Resend account
- * is shared with several unrelated projects. Without this filter every inbound
- * email addressed to those other domains would be stored in the Axleyard inbox
- * and the AI auto-reply could answer another business's customers as Axleyard.
- */
-const INBOUND_DOMAINS = (process.env.INBOUND_EMAIL_DOMAINS || 'axlon.ai,axleyard.com')
-  .split(',')
-  .map((d) => d.trim().toLowerCase())
-  .filter(Boolean);
-
-function isOurRecipient(to: unknown): boolean {
-  const recipients = Array.isArray(to) ? to : typeof to === 'string' ? [to] : [];
-  return recipients.some((raw) => {
-    const address = parseEmailAddress(String(raw)).email.toLowerCase();
-    const at = address.lastIndexOf('@');
-    if (at === -1) return false;
-    const host = address.slice(at + 1);
-    // Match the domain itself and any subdomain (dealers.axlon.ai, send.axlon.ai).
-    return INBOUND_DOMAINS.some((domain) => host === domain || host.endsWith(`.${domain}`));
-  });
+function lowercaseKeys(h: Record<string, unknown> | null | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(h || {})) {
+    if (v == null) continue;
+    out[k.toLowerCase()] = Array.isArray(v) ? v.join(' ') : String(v);
+  }
+  return out;
 }
 
-// ─── Spam Filtering ─────────────────────────────────────
+// ─── Delivery status ────────────────────────────────────
 
-const SPAM_PATTERNS = [
-  /\b(viagra|cialis|lottery|winner|prince|inheritance)\b/i,
-  /\b(click here|act now|limited time|free money)\b/i,
-  /\bnoreply@/i,
-  /\bmailer-daemon@/i,
-  /\bpostmaster@/i,
-];
+const DELIVERY_STATUS: Record<string, EmailStatus> = {
+  'email.delivered': 'delivered',
+  'email.bounced': 'bounced',
+  'email.complained': 'complained',
+  'email.failed': 'failed',
+  'email.opened': 'opened',
+  'email.clicked': 'clicked',
+};
 
-const BLOCKED_DOMAINS = [
-  'spam.com', 'tempmail.com', 'throwaway.email', 'guerrillamail.com',
-  'mailinator.com', 'yopmail.com', 'sharklasers.com', 'trashmail.com',
-];
+async function handleDeliveryStatus(event: ResendWebhookEvent) {
+  const status = DELIVERY_STATUS[event.type];
+  const emailId = event.data.email_id;
+  if (!status || !emailId) return;
 
-function isSpam(from: string, subject: string): { isSpam: boolean; reason?: string } {
-  const senderEmail = parseEmailAddress(from).email.toLowerCase();
-  const senderDomain = senderEmail.split('@')[1];
-
-  if (BLOCKED_DOMAINS.includes(senderDomain)) {
-    return { isSpam: true, reason: `blocked domain: ${senderDomain}` };
-  }
-
-  let matches = 0;
-  for (const pattern of SPAM_PATTERNS) {
-    if (pattern.test(subject) || pattern.test(from)) matches++;
-  }
-  // 2+ pattern matches = spam
-  if (matches >= 2) {
-    return { isSpam: true, reason: `${matches} spam patterns matched` };
-  }
-
-  if (!subject || subject.trim().length === 0) {
-    return { isSpam: true, reason: 'empty subject' };
-  }
-
-  return { isSpam: false };
-}
-
-// ─── Delivery Status Handler ────────────────────────────
-
-/** Sent from one of our domains (same list as inbound). */
-function isOurSender(from: unknown): boolean {
-  if (typeof from !== 'string' || !from) return false;
-  const address = parseEmailAddress(from).email.toLowerCase();
-  const host = address.slice(address.lastIndexOf('@') + 1);
-  return INBOUND_DOMAINS.some((domain) => host === domain || host.endsWith(`.${domain}`));
-}
-
-async function handleDeliveryStatus(
-  type: string,
-  emailId: string,
-  recipients?: string[],
-  from?: string
-) {
-  const supabase = createAdminClient();
-
-  const statusMap: Record<string, string> = {
-    'email.delivered': 'delivered',
-    'email.bounced': 'bounced',
-    'email.complained': 'complained',
-    'email.opened': 'opened',
-    'email.clicked': 'clicked',
-  };
-
-  const newStatus = statusMap[type];
-  if (!newStatus) return;
-
-  const { data: updated } = await supabase
-    .from('emails')
-    .update({ status: newStatus })
-    .eq('resend_id', emailId)
-    .select('to_email');
+  const updatedRecipients = await AdminInboxService.updateDeliveryStatus(emailId, status);
 
   // A bounce or spam complaint must also stop future sends to that address —
   // continuing to mail it is what burns the sending domain's reputation.
-  if (type === 'email.bounced' || type === 'email.complained') {
-    const reason = type === 'email.bounced' ? 'bounced' : 'complained';
-    // Delivery webhooks are account-wide too: a bounce or complaint on another
-    // project's mail must not put that address on OUR suppression list. The
-    // payload's recipients count only when the message was ours (tracked in
-    // `emails`, or sent from one of our domains).
-    const ours = (updated?.length ?? 0) > 0 || isOurSender(from);
-    const addresses = new Set<string>(
-      [
-        ...(updated || []).map((row) => row.to_email as string | null),
-        ...(ours ? recipients || [] : []),
-      ].filter((addr): addr is string => Boolean(addr))
-    );
-
-    for (const address of addresses) {
-      await suppressEmail(address, reason);
-    }
+  // Delivery webhooks are account-wide too: a bounce on another project's
+  // mail must not put that address on OUR suppression list. The payload's
+  // recipients count only when the message was ours (tracked in `emails`, or
+  // sent from one of our domains).
+  if (event.type === 'email.bounced' || event.type === 'email.complained') {
+    const reason = event.type === 'email.bounced' ? 'bounced' : 'complained';
+    const ours = updatedRecipients.length > 0 || isOurSender(event.data.from);
+    const addresses = new Set<string>([
+      ...updatedRecipients,
+      ...(ours ? toList(event.data.to).map((a) => parseEmailAddress(a).email) : []),
+    ].filter(Boolean));
+    for (const address of addresses) await suppressEmail(address, reason);
   }
 
-  logger.info('Email delivery status updated', { emailId, status: newStatus });
+  logger.info('Email delivery status updated', { emailId, status, matched: updatedRecipients.length });
 }
 
-// ─── AI Classification + Auto-Reply ─────────────────────
-
-async function processWithAI(emailDbId: string, emailData: {
-  fromEmail: string;
-  fromName: string | null;
-  subject: string;
-  bodyText: string | null;
-  bodyHtml: string | null;
-  threadId: string;
-}) {
-  const supabase = createAdminClient();
-
-  try {
-    const classification = await classifyAndDraftReply({
-      fromEmail: emailData.fromEmail,
-      fromName: emailData.fromName,
-      subject: emailData.subject,
-      bodyText: emailData.bodyText,
-      bodyHtml: emailData.bodyHtml,
-    });
-
-    // Store AI results on the email
-    await supabase.from('emails').update({
-      ai_category: classification.category,
-      ai_confidence: classification.confidence,
-      ai_summary: classification.summary,
-      ai_draft_html: classification.draftHtml || null,
-      ai_draft_text: classification.draftText || null,
-      ai_processed_at: new Date().toISOString(),
-    }).eq('id', emailDbId);
-
-    logger.info('AI classification complete', {
-      emailId: emailDbId,
-      category: classification.category,
-      confidence: classification.confidence,
-      autoSendable: classification.autoSendable,
-    });
-
-    // Auto-reply if safe
-    if (classification.autoSendable && classification.draftHtml) {
-      // Check if auto-reply is enabled
-      const { data: setting } = await supabase
-        .from('platform_settings')
-        .select('value')
-        .eq('key', 'ai_auto_reply_enabled')
-        .single();
-
-      const autoReplyEnabled = setting?.value === true || setting?.value === 'true';
-
-      if (autoReplyEnabled) {
-        await sendAutoReply({
-          to: emailData.fromEmail,
-          subject: `Re: ${emailData.subject}`,
-          draftHtml: classification.draftHtml,
-          originalHtml: emailData.bodyHtml || emailData.bodyText || '',
-          threadId: emailData.threadId,
-          inboundEmailId: emailDbId,
-        });
-      }
-    }
-  } catch (aiError) {
-    logger.error('AI email processing failed', { error: aiError, emailId: emailDbId });
-    // Non-fatal — email is already stored
-  }
-}
-
-async function sendAutoReply(params: {
-  to: string;
-  subject: string;
-  draftHtml: string;
-  originalHtml: string;
-  threadId: string;
-  inboundEmailId: string;
-}) {
-  const supabase = createAdminClient();
-  const resend = getResend();
-
-  const brandedHtml = wrapInBrandedTemplate(params.draftHtml, params.originalHtml);
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'AXLON AI <noreply@axlon.ai>';
-
-  try {
-    const { data: sendResult, error: sendError } = await resend.emails.send(
-      {
-        from: fromEmail,
-        to: params.to,
-        subject: params.subject,
-        html: brandedHtml,
-      },
-      // At most one auto-reply per inbound message, even if this runs twice.
-      { idempotencyKey: `auto-reply/${params.inboundEmailId}` }
-    );
-
-    if (sendError) {
-      logger.error('Auto-reply send failed', { error: sendError });
-      return;
-    }
-
-    // Parse from address
-    const fromMatch = fromEmail.match(/^(.+?)\s*<(.+?)>$/);
-    const fromAddr = fromMatch ? fromMatch[2] : fromEmail;
-    const fromName = fromMatch ? fromMatch[1].trim() : null;
-
-    // Store outbound auto-reply
-    await supabase.from('emails').insert({
-      thread_id: params.threadId,
-      resend_id: sendResult?.id || null,
-      direction: 'outbound',
-      from_email: fromAddr,
-      from_name: fromName,
-      to_email: params.to,
-      subject: params.subject,
-      html_body: brandedHtml,
-      status: 'sent',
-      is_read: true,
-      ai_category: 'auto_reply',
-      metadata: { auto_sent: true },
-    });
-
-    // Mark inbound as replied
-    await supabase.from('emails').update({
-      status: 'replied',
-      replied_at: new Date().toISOString(),
-    }).eq('id', params.inboundEmailId);
-
-    // Update thread status
-    await supabase.from('email_threads').update({
-      status: 'replied',
-    }).eq('id', params.threadId);
-
-    logger.info('Auto-reply sent', { to: params.to, threadId: params.threadId });
-  } catch (error) {
-    logger.error('Auto-reply error', { error });
-  }
-}
-
-// ─── Main Handler ───────────────────────────────────────
+// ─── Handler ────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   try {
-    const payload = await request.text();
+    // Everything downstream trusts the sender field (admin inbox, LLM
+    // classification, auto-replies from our support address), so an
+    // unverified payload is an email-spoofing + outbound-spam vector.
+    if (!env.resendWebhookSecret) {
+      logger.error('Resend webhook: RESEND_WEBHOOK_SECRET is not set — rejecting');
+      return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+    }
 
-    // Verify webhook signature — required, not optional
+    // Signature is over the raw body — read text first, parse after verify.
+    const payload = await request.text();
     const resend = getResend();
     try {
       resend.webhooks.verify({
@@ -321,244 +146,142 @@ export async function POST(request: NextRequest) {
     }
 
     const event: ResendWebhookEvent = JSON.parse(payload);
+    const data = event.data ?? {};
 
-    // ─── Delivery Status Events ─────────────────────
-    if (['email.delivered', 'email.bounced', 'email.complained', 'email.opened', 'email.clicked'].includes(event.type)) {
-      await handleDeliveryStatus(event.type, event.data.email_id, event.data.to, event.data.from);
+    if (event.type in DELIVERY_STATUS) {
+      await handleDeliveryStatus(event);
       return NextResponse.json({ received: true });
     }
 
-    // ─── Inbound Email ──────────────────────────────
     if (event.type !== 'email.received') {
       return NextResponse.json({ received: true });
     }
 
-    const { data } = event;
-    const sender = parseEmailAddress(data.from || '');
+    // ─── Inbound ─────────────────────────────────────
+    const emailId = data.email_id;
 
-    // Not addressed to us: another project on this shared Resend account owns it.
-    if (!isOurRecipient(data.to)) {
-      logger.info('Inbound email ignored — recipient is not one of our domains', {
-        from: sender.email,
-      });
-      return NextResponse.json({ received: true, ignored: 'recipient_not_ours' });
+    // Cheap pre-filter on the event's own recipients: mail for another
+    // project's domain never needs the (rate-limited) body fetch.
+    const eventRecipients = [...toList(data.received_for), ...toList(data.to), ...toList(data.cc), ...toList(data.bcc)];
+    if (eventRecipients.length > 0 && !findOurRecipient(eventRecipients)) {
+      return NextResponse.json({ received: true, ignored: 'not our domain' });
     }
 
-    // Spam filter
-    const spamCheck = isSpam(data.from || '', data.subject || '');
-    if (spamCheck.isSpam) {
-      logger.info('Inbound email filtered as spam', { from: sender.email, reason: spamCheck.reason });
-      return NextResponse.json({ received: true, filtered: true });
-    }
-
-    // Fetch full email body via Resend API
-    let htmlBody: string | null = null;
-    let textBody: string | null = null;
-
-    const supabase = createAdminClient();
-
-    // Resend retries webhooks, and `emails.resend_id` is the inbound message's
-    // identity — re-processing would duplicate the email and re-run the AI
-    // classifier/auto-reply.
-    const { data: alreadyStored } = await supabase
-      .from('emails')
-      .select('id, thread_id')
-      .eq('resend_id', data.email_id)
-      .maybeSingle();
-
-    if (alreadyStored) {
-      logger.info('Inbound email already processed — skipping', { emailId: data.email_id });
-      return NextResponse.json({ received: true, duplicate: true, threadId: alreadyStored.thread_id });
-    }
-
-    try {
-      // Inbound mail bodies live behind the receiving API; emails.get() is the
-      // outbound-message endpoint and returns no html/text for inbound ids.
-      const emailDetail = resend.emails.receiving
-        ? await resend.emails.receiving.get(data.email_id)
-        : await resend.emails.get(data.email_id);
-      if (emailDetail.data) {
-        // GetEmailResponse doesn't declare html/text — read them via a record cast
-        const emailData = emailDetail.data as unknown as Record<string, unknown>;
-        htmlBody = typeof emailData.html === 'string' ? emailData.html : null;
-        textBody = typeof emailData.text === 'string' ? emailData.text : null;
+    // The webhook has no body/headers. Fetch the full message; without it
+    // there is nothing to read or classify, so a fetch failure is returned
+    // as 5xx so Svix retries (dedup in the service makes retries safe).
+    let full: ReceivedEmail | null = null;
+    if (emailId) {
+      const { data: fetched, error } = await resend.emails.receiving.get(emailId);
+      if (error || !fetched) {
+        logger.error('Resend webhook: failed to fetch received email', { emailId, error: error?.message });
+        return NextResponse.json({ error: 'Failed to fetch email content' }, { status: 502 });
       }
-    } catch (fetchErr) {
-      logger.warn('Could not fetch email body from Resend API', { emailId: data.email_id, error: fetchErr });
+      full = fetched;
     }
 
-    // ─── Thread Matching (3-tier) ─────────────────────
-
-    let threadId: string | null = null;
-
-    // 1. Match by message_id
-    if (data.message_id) {
-      const cleanId = data.message_id.replace(/[<>]/g, '');
-      const { data: existingEmail } = await supabase
-        .from('emails')
-        .select('thread_id')
-        .eq('resend_id', cleanId)
-        .limit(1)
-        .single();
-
-      if (existingEmail) {
-        threadId = existingEmail.thread_id;
-      }
+    const recipients = [
+      ...toList(data.received_for),
+      ...toList(full?.received_for),
+      ...toList(full?.to ?? data.to),
+      ...toList(full?.cc ?? data.cc),
+      ...toList(full?.bcc ?? data.bcc),
+    ];
+    const to = findOurRecipient(recipients);
+    if (!to) {
+      return NextResponse.json({ received: true, ignored: 'not our domain' });
     }
 
-    // 2. Match by sender email + normalized subject
-    if (!threadId) {
-      const normalizedSubject = (data.subject || '').replace(/^(Re|Fwd|Fw):\s*/gi, '').trim();
-      if (normalizedSubject) {
-        const { data: existingThread } = await supabase
-          .from('email_threads')
-          .select('id')
-          .eq('participant_email', sender.email)
-          .ilike('subject', `%${normalizedSubject}%`)
-          .order('last_message_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (existingThread) {
-          threadId = existingThread.id;
-        }
-      }
+    const headers = lowercaseKeys(full?.headers);
+    const { email: from } = parseEmailAddress(full?.from ?? data.from);
+    if (!from || !from.includes('@')) {
+      logger.warn('Resend webhook: ignoring email with no sender', { emailId });
+      return NextResponse.json({ received: true, ignored: 'no sender' });
     }
+    // Resend's `from` is the bare address; the display name only survives in
+    // the raw From header.
+    const fromName = senderDisplayName(headers['from'], full?.from ?? data.from);
+    const subject = (full?.subject || data.subject || '').trim() || '(no subject)';
+    const messageId = cleanMessageId(headers['message-id'] || full?.message_id || data.message_id);
+    const inReplyTo = cleanMessageId(headers['in-reply-to']);
+    const references = (headers['references'] || '').trim();
+    const threadIdHint = parseThreadIdFromAddresses(recipients);
+    const text = full?.text || null;
+    const html = full?.html || null;
+    const attachments: EmailAttachmentMeta[] = (full?.attachments ?? data.attachments ?? []).map((a) => ({
+      id: a.id,
+      filename: a.filename || 'attachment',
+      contentType: a.content_type || '',
+      size: typeof a.size === 'number' ? a.size : undefined,
+    }));
 
-    // 3. Match by sender email alone
-    if (!threadId) {
-      const { data: existingThread } = await supabase
-        .from('email_threads')
-        .select('id')
-        .eq('participant_email', sender.email)
-        .order('last_message_at', { ascending: false })
-        .limit(1)
-        .single();
+    const auth = parseAuthResults(headers['authentication-results']);
+    const spamCheck = isLikelySpam({ from, subject, text, headers });
 
-      if (existingThread) {
-        threadId = existingThread.id;
-      }
-    }
-
-    // ─── Determine Owner ──────────────────────────────
-
-    let ownerId: string | null = null;
-
-    if (threadId) {
-      const { data: thread } = await supabase
-        .from('email_threads')
-        .select('owner_id')
-        .eq('id', threadId)
-        .single();
-      ownerId = thread?.owner_id || null;
-    }
-
-    // Try to link sender to a user
-    if (!ownerId) {
-      const { data: userByEmail } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', sender.email)
-        .limit(1)
-        .single();
-
-      if (userByEmail) {
-        // Find an admin to own the thread
-        const { data: adminProfile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('is_admin', true)
-          .limit(1)
-          .single();
-        ownerId = adminProfile?.id || null;
-      }
-    }
-
-    if (!ownerId) {
-      const { data: adminProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('is_admin', true)
-        .limit(1)
-        .single();
-      ownerId = adminProfile?.id || null;
-    }
-
-    if (!ownerId) {
-      logger.error('No owner found for inbound email', { from: sender.email });
-      return NextResponse.json({ error: 'No owner found' }, { status: 422 });
-    }
-
-    // ─── Create or Update Thread ──────────────────────
-
-    if (!threadId) {
-      const { data: newThread, error: threadError } = await supabase
-        .from('email_threads')
-        .insert({
-          subject: (data.subject || '(no subject)').replace(/^(Re|Fwd|Fw):\s*/gi, '').trim(),
-          owner_id: ownerId,
-          participant_email: sender.email,
-          participant_name: sender.name,
-          is_unread: true,
-          status: 'received',
-        })
-        .select('id')
-        .single();
-
-      if (threadError) {
-        logger.error('Failed to create email thread', { error: threadError });
-        return NextResponse.json({ error: 'Failed to create thread' }, { status: 500 });
-      }
-      threadId = newThread.id;
-    } else {
-      await supabase
-        .from('email_threads')
-        .update({ is_unread: true, status: 'received' })
-        .eq('id', threadId);
-    }
-
-    // ─── Store Inbound Email ──────────────────────────
-
-    const { data: storedEmail, error: emailError } = await supabase.from('emails').insert({
-      thread_id: threadId,
-      resend_id: data.email_id,
-      direction: 'inbound',
-      from_email: sender.email,
-      from_name: sender.name,
-      to_email: data.to?.[0] || '',
-      subject: data.subject || '(no subject)',
-      html_body: htmlBody,
-      text_body: textBody,
-      status: 'received',
-      is_read: false,
-      headers: { message_id: data.message_id || null },
-    }).select('id').single();
-
-    if (emailError) {
-      logger.error('Failed to store inbound email', { error: emailError });
-      return NextResponse.json({ error: 'Failed to store email' }, { status: 500 });
-    }
-
-    // ─── Async AI Processing (survives after response is sent) ───────────
-    after(async () => {
-      try {
-        await processWithAI(storedEmail.id, {
-          fromEmail: sender.email,
-          fromName: sender.name,
-          subject: data.subject || '',
-          bodyText: textBody,
-          bodyHtml: htmlBody,
-          threadId: threadId!,
-        });
-      } catch (err) {
-        logger.error('Background AI processing failed', { error: err });
-      }
+    const stored = await AdminInboxService.storeInboundEmail({
+      from,
+      fromName,
+      to,
+      subject,
+      text,
+      html,
+      messageId: messageId || undefined,
+      inReplyTo: inReplyTo || undefined,
+      references: references || undefined,
+      threadIdHint,
+      resendEmailId: emailId,
+      cc: toList(full?.cc ?? data.cc).map((c) => parseEmailAddress(c).email),
+      attachments,
+      spam: spamCheck.spam,
+      auth,
     });
 
-    logger.info('Inbound email stored', { threadId, from: sender.email, hasBody: !!(htmlBody || textBody) });
-    return NextResponse.json({ success: true, threadId });
+    if (!stored) {
+      logger.info('Resend webhook: duplicate inbound email skipped', { emailId, messageId });
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+
+    logger.info('Inbound email stored', {
+      threadId: stored.thread.id, from, to, subject, spam: spamCheck.spam, reason: spamCheck.reason, hasBody: !!(html || text),
+    });
+
+    // AI classification + (optional) auto-reply run after the 200 is sent.
+    // after() keeps the function alive until they finish — a bare floating
+    // promise gets frozen once the response returns.
+    if (!stored.thread.is_spam && !spamCheck.spam && process.env.XAI_API_KEY) {
+      const { email, thread } = stored;
+      after(async () => {
+        try {
+          const classification = await classifyAndDraftReply({
+            fromEmail: from,
+            fromName,
+            subject,
+            bodyText: text,
+            bodyHtml: html,
+          });
+          await AdminInboxService.updateAiFields(email.id, {
+            ai_category: classification.category,
+            ai_confidence: classification.confidence,
+            ai_summary: classification.summary,
+            ai_draft_html: classification.draftHtml || null,
+            ai_draft_text: classification.draftText || null,
+          });
+          const auto = await sendAutoReply(email.id, classification, {
+            from,
+            subject,
+            threadId: thread.id,
+            headers,
+          });
+          if (!auto.sent) logger.info('No auto-reply', { emailId: email.id, reason: auto.reason });
+        } catch (err) {
+          logger.error('AI email processing failed', { error: err, emailId: email.id });
+        }
+      });
+    }
+
+    return NextResponse.json({ received: true, threadId: stored.thread.id, spam: spamCheck.spam });
   } catch (error) {
-    logger.error('Inbound webhook error', { error });
+    logger.error('Resend webhook error', { error });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

@@ -9,7 +9,9 @@ import { useRef, useEffect, useState } from 'react';
  * The iframe uses:
  * - sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
  *   (no scripts, no forms — but allows link clicks and parent DOM access for height measurement)
- * - srcdoc for inline content (no network requests from iframe)
+ * - srcdoc for inline content, with a CSP that allows only images, inline
+ *   styles and fonts: no scripts, forms, frames, objects or outbound requests
+ *   other than image/font loads, and no Referer on those
  * - Auto-resizes to fit content height
  */
 export function SandboxedEmail({ html, text }: { html?: string | null; text?: string | null }) {
@@ -29,7 +31,7 @@ export function SandboxedEmail({ html, text }: { html?: string | null; text?: st
       // Measure content height
       const body = iframe.contentDocument.body;
       const newHeight = Math.max(body.scrollHeight, body.offsetHeight, 60);
-      setHeight(Math.min(newHeight + 20, 800)); // cap at 800px
+      setHeight(Math.min(newHeight + 20, 2400)); // long mail scrolls inside the frame past this
     };
 
     const iframe = iframeRef.current;
@@ -50,6 +52,8 @@ export function SandboxedEmail({ html, text }: { html?: string | null; text?: st
     <html>
     <head>
       <meta charset="utf-8">
+      <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data: cid:; style-src 'unsafe-inline'; font-src https: data:;">
+      <meta name="referrer" content="no-referrer">
       <base target="_blank">
       <style>
         * { box-sizing: border-box; }
@@ -86,6 +90,7 @@ export function SandboxedEmail({ html, text }: { html?: string | null; text?: st
       ref={iframeRef}
       srcDoc={wrappedHtml}
       sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+      referrerPolicy="no-referrer"
       style={{
         width: '100%',
         height: `${height}px`,

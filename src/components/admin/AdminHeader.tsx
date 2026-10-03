@@ -32,13 +32,14 @@ interface AdminHeaderProps {
     pendingBusinesses: number;
     newLeads: number;
     pendingTradeIns: number;
+    unreadEmails: number;
   };
 }
 
 export function AdminHeader({ user, sections, badges }: AdminHeaderProps) {
   const displayName = user.email?.split('@')[0] || 'Admin';
   const initials = displayName.slice(0, 2).toUpperCase();
-  const totalNotifications = badges.pendingBusinesses + badges.newLeads + badges.pendingTradeIns;
+  const totalNotifications = badges.pendingBusinesses + badges.newLeads + badges.pendingTradeIns + badges.unreadEmails;
 
   return (
     <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30">
@@ -102,6 +103,16 @@ export function AdminHeader({ user, sections, badges }: AdminHeaderProps) {
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-amber-500 rounded-full" />
                       <span>{badges.pendingTradeIns} pending trade-in{badges.pendingTradeIns !== 1 ? 's' : ''}</span>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              {badges.unreadEmails > 0 && (
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/email" className="cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                      <span>{badges.unreadEmails} unread email{badges.unreadEmails !== 1 ? 's' : ''}</span>
                     </div>
                   </Link>
                 </DropdownMenuItem>

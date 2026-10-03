@@ -1,8 +1,8 @@
 import { Resend } from 'resend';
-import { SupabaseClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
 import { buildUnsubscribeQuery } from '@/lib/email/unsubscribe-token';
 import { isEmailSuppressed } from '@/lib/email/suppression';
+import { getInboundAddress } from '@/lib/email/inbound-address';
 
 let resendInstance: Resend | null = null;
 
@@ -16,18 +16,42 @@ export function getResend(): Resend {
   return resendInstance;
 }
 
+/** The Resend client, or null when RESEND_API_KEY is not set (read-only checks). */
+export function getResendOrNull(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null;
+  return getResend();
+}
+
+export function getDefaultFrom(): string {
+  // Trimmed: a value pasted into the host's env UI can carry a trailing newline.
+  return process.env.RESEND_FROM_EMAIL?.trim() || 'AXLON AI <noreply@axlon.ai>';
+}
+
 export interface EmailTemplate {
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
+  /** Plain-text alternative. Omitted → Resend derives one from the HTML. */
+  text?: string;
+  /** Overrides RESEND_FROM_EMAIL. Must be on a verified sending domain. */
+  from?: string;
+  /**
+   * Where a reply to this email goes. Defaults to the admin inbox address
+   * (see inbound-address.ts) so "just reply to this email" lands in
+   * /admin/email instead of the noreply mailbox. Pass `null` to send with no
+   * Reply-To at all.
+   */
+  replyTo?: string | string[] | null;
   headers?: Record<string, string>;
   /**
    * 'marketing' sends (drip sequences, digests, reports) are checked against the
    * suppression list and skipped for opted-out recipients. Transactional mail
-   * (password reset, confirmations, dealer lead alerts) always sends. Defaults
-   * to 'transactional' so existing callers are unaffected.
+   * (password reset, confirmations, dealer lead alerts) always sends.
+   * 'conversation' is one human writing to another from the admin inbox: no
+   * List-Unsubscribe headers, no footer rewriting — Gmail would otherwise show
+   * an "Unsubscribe" link on a support reply. Defaults to 'transactional'.
    */
-  category?: 'transactional' | 'marketing';
+  category?: 'transactional' | 'marketing' | 'conversation';
   /**
    * Resend idempotency key (honored for 24h). Set it wherever a retry could
    * send the same message twice, e.g. a cron row re-queued after a timeout.
@@ -36,50 +60,61 @@ export interface EmailTemplate {
 }
 
 /**
- * Send an email via Resend (existing behavior, no DB tracking).
- * Used for transactional emails like welcome, confirmation, alerts.
+ * Send an email via Resend. Used for transactional emails (welcome,
+ * confirmation, alerts) and, with `category: 'conversation'`, for admin inbox
+ * replies.
  */
 export async function sendEmail(template: EmailTemplate) {
+  const primaryRecipient = Array.isArray(template.to) ? template.to[0] : template.to;
+
   // Honor the opt-out list for marketing mail (CAN-SPAM).
-  if (template.category === 'marketing' && (await isEmailSuppressed(template.to))) {
-    logger.info('Skipping marketing email to suppressed recipient', { to: template.to });
+  if (template.category === 'marketing' && (await isEmailSuppressed(primaryRecipient))) {
+    logger.info('Skipping marketing email to suppressed recipient', { to: primaryRecipient });
     return null;
   }
 
   const resend = getResend();
-
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com';
-
-  // Per-recipient HMAC token so the unsubscribe endpoint can verify the
-  // request without CSRF/cookies (required for RFC 8058 one-click).
-  const unsubQuery = buildUnsubscribeQuery(template.to);
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL?.trim() || 'https://axleyard.com').replace(/\/+$/, '');
 
   let html = template.html;
   const unsubHeaders: Record<string, string> = {};
-  if (unsubQuery) {
-    // One-click clients (Gmail/Yahoo) POST "List-Unsubscribe=One-Click" to
-    // this URL; the API route reads email+token from the query string. Its
-    // GET handler redirects browsers to the /unsubscribe confirmation page.
-    unsubHeaders['List-Unsubscribe'] = `<${baseUrl}/api/unsubscribe?${unsubQuery}>`;
-    unsubHeaders['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
-    // Centrally rewrite tokenless unsubscribe links hard-coded in email
-    // template footers so the visible link also carries the token.
-    html = html.replace(
-      /href="https?:\/\/[^"]*\/unsubscribe"/g,
-      `href="${baseUrl}/unsubscribe?${unsubQuery}"`
-    );
-  } else {
-    // No signing secret configured: fall back to the plain page link and omit
-    // List-Unsubscribe-Post — the API would reject a tokenless one-click POST.
-    unsubHeaders['List-Unsubscribe'] = `<${baseUrl}/unsubscribe?email=${encodeURIComponent(template.to)}>`;
+
+  if (template.category !== 'conversation') {
+    // Per-recipient HMAC token so the unsubscribe endpoint can verify the
+    // request without CSRF/cookies (required for RFC 8058 one-click).
+    const unsubQuery = buildUnsubscribeQuery(primaryRecipient);
+    if (unsubQuery) {
+      // One-click clients (Gmail/Yahoo) POST "List-Unsubscribe=One-Click" to
+      // this URL; the API route reads email+token from the query string. Its
+      // GET handler redirects browsers to the /unsubscribe confirmation page.
+      unsubHeaders['List-Unsubscribe'] = `<${baseUrl}/api/unsubscribe?${unsubQuery}>`;
+      unsubHeaders['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+      // Centrally rewrite tokenless unsubscribe links hard-coded in email
+      // template footers so the visible link also carries the token.
+      html = html.replace(
+        /href="https?:\/\/[^"]*\/unsubscribe"/g,
+        `href="${baseUrl}/unsubscribe?${unsubQuery}"`
+      );
+    } else {
+      // No signing secret configured: fall back to the plain page link and omit
+      // List-Unsubscribe-Post — the API would reject a tokenless one-click POST.
+      unsubHeaders['List-Unsubscribe'] = `<${baseUrl}/unsubscribe?email=${encodeURIComponent(primaryRecipient)}>`;
+    }
   }
+
+  // undefined → the admin inbox; null → explicitly none.
+  const replyTo = template.replyTo === undefined ? getInboundAddress() : template.replyTo;
 
   const { data, error } = await resend.emails.send(
     {
-      from: process.env.RESEND_FROM_EMAIL || 'AXLON AI <noreply@axlon.ai>',
+      from: template.from || getDefaultFrom(),
       to: template.to,
       subject: template.subject,
       html,
+      ...(template.text ? { text: template.text } : {}),
+      // The SDK takes camelCase `replyTo` and maps it to the API's `reply_to`
+      // itself; a snake_case key here is silently dropped.
+      ...(replyTo ? { replyTo } : {}),
       headers: {
         ...unsubHeaders,
         ...template.headers,
@@ -94,52 +129,4 @@ export async function sendEmail(template: EmailTemplate) {
   }
 
   return data;
-}
-
-/**
- * Send an email via Resend AND track it in the emails table.
- * Used for inbox emails (compose, reply) where we want conversation threading.
- */
-export interface TrackedEmailOptions {
-  to: string;
-  subject: string;
-  html: string;
-  headers?: Record<string, string>;
-  threadId: string;
-  userId: string;
-  supabase: SupabaseClient;
-}
-
-export async function sendTrackedEmail(options: TrackedEmailOptions) {
-  const { to, subject, html, headers, threadId, userId, supabase } = options;
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'AXLON AI <noreply@axlon.ai>';
-
-  // Send via Resend
-  const resendData = await sendEmail({ to, subject, html, headers });
-
-  // Parse the from address for storage
-  const fromMatch = fromEmail.match(/^(.+?)\s*<(.+?)>$/);
-  const fromAddr = fromMatch ? fromMatch[2] : fromEmail;
-  const fromName = fromMatch ? fromMatch[1].trim() : null;
-
-  // Store in database
-  const { data: email, error } = await supabase.from('emails').insert({
-    thread_id: threadId,
-    resend_id: resendData?.id || null,
-    direction: 'outbound',
-    from_email: fromAddr,
-    from_name: fromName,
-    to_email: to,
-    subject,
-    html_body: html,
-    status: 'sent',
-    is_read: true,
-    headers: headers || {},
-  }).select('id').single();
-
-  if (error) {
-    logger.error('Failed to track sent email in DB', { error, threadId });
-  }
-
-  return { resendId: resendData?.id, emailId: email?.id };
 }

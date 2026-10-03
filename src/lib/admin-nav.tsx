@@ -107,7 +107,7 @@ export const adminNavSections: AdminNavSection[] = [
       },
       {
         href: '/admin/email',
-        label: 'Email',
+        label: 'Email inbox',
         icon: <Mail className="w-5 h-5" />,
       },
     ],

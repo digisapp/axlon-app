@@ -46,6 +46,8 @@ const ENV_VARS: EnvVar[] = [
   { key: 'UNSUBSCRIBE_SECRET', level: 'optional', description: 'HMAC secret for email unsubscribe tokens (falls back to INTERNAL_API_SECRET, then CRON_SECRET)' },
   { key: 'UPSTASH_REDIS_REST_URL', level: 'optional', description: 'Upstash Redis URL (caching/view batching disabled without this)' },
   { key: 'UPSTASH_REDIS_REST_TOKEN', level: 'optional', description: 'Upstash Redis token' },
+  { key: 'ADMIN_EMAIL_ADDRESS', level: 'optional', description: 'Admin inbox receiving address (default support@axleyard.com); its domain must receive in Resend' },
+  { key: 'ADMIN_EMAIL_FROM', level: 'optional', description: 'From header on admin inbox replies (default "Axleyard Support <support@axleyard.com>")' },
 ];
 
 function validateEnv(): void {

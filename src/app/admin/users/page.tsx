@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -72,10 +73,13 @@ interface User {
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  // Deep link from elsewhere in admin (the inbox's "Platform user" chip):
+  // /admin/users?search=<email>.
+  const searchParams = useSearchParams();
+  const [search, setSearch] = useState(() => (searchParams.get('search') ?? '').slice(0, 200));
   // The query only follows the box after typing pauses — firing per keystroke
   // raced responses and could leave an older result on screen.
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);

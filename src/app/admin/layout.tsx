@@ -43,6 +43,7 @@ export default async function AdminLayout({
     { count: pendingBusinesses },
     { count: newLeads },
     { count: pendingTradeIns },
+    { count: unreadEmails },
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -56,12 +57,20 @@ export default async function AdminLayout({
       .from('trade_in_requests')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'pending'),
+    // Unread, non-spam conversations in /admin/email (same rule as the inbox's Unread folder).
+    supabase
+      .from('email_threads')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_spam', false)
+      .eq('is_unread', true)
+      .in('status', ['received', 'read', 'replied']),
   ]);
 
   const badges: Record<string, number> = {};
   if (pendingBusinesses) badges['/admin/dealers'] = pendingBusinesses;
   if (newLeads) badges['/admin/leads'] = newLeads;
   if (pendingTradeIns) badges['/admin/trade-ins'] = pendingTradeIns;
+  if (unreadEmails) badges['/admin/email'] = unreadEmails;
 
   const sections = getAdminNavWithBadges(adminNavSections, badges);
 
@@ -82,6 +91,7 @@ export default async function AdminLayout({
             pendingBusinesses: pendingBusinesses || 0,
             newLeads: newLeads || 0,
             pendingTradeIns: pendingTradeIns || 0,
+            unreadEmails: unreadEmails || 0,
           }}
         />
         <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>

@@ -15,7 +15,12 @@ const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 export interface AuthContext {
   user: User;
   supabase: SupabaseClient;
+  /** Dynamic route params (`[id]`), as Next passes them: a promise. Empty for static routes. */
+  params: Promise<Record<string, string>>;
 }
+
+type RouteContext = { params?: Promise<Record<string, string>> };
+const NO_PARAMS: Promise<Record<string, string>> = Promise.resolve({});
 
 interface RateLimitOption {
   limit: number;
@@ -45,7 +50,7 @@ export function withAuth(
   handler: (request: NextRequest, ctx: AuthContext) => Promise<NextResponse>,
   options: WithAuthOptions = {}
 ) {
-  return async (request: NextRequest): Promise<NextResponse> => {
+  return async (request: NextRequest, routeCtx?: RouteContext): Promise<NextResponse> => {
     try {
       // Rate limiting
       if (options.rateLimit) {
@@ -70,7 +75,7 @@ export function withAuth(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
 
-      return await handler(request, { user, supabase });
+      return await handler(request, { user, supabase, params: routeCtx?.params ?? NO_PARAMS });
     } catch (error) {
       logger.error('API route error', { error, url: request.url });
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -91,7 +96,7 @@ export function withAdmin(
   handler: (request: NextRequest, ctx: AuthContext) => Promise<NextResponse>,
   options: WithAuthOptions = {}
 ) {
-  return async (request: NextRequest): Promise<NextResponse> => {
+  return async (request: NextRequest, routeCtx?: RouteContext): Promise<NextResponse> => {
     try {
       // Rate limiting
       if (options.rateLimit) {
@@ -127,7 +132,7 @@ export function withAdmin(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
       }
 
-      return await handler(request, { user, supabase });
+      return await handler(request, { user, supabase, params: routeCtx?.params ?? NO_PARAMS });
     } catch (error) {
       logger.error('Admin API route error', { error, url: request.url });
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
