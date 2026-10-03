@@ -39,6 +39,8 @@ export interface EmailAttachmentMeta {
   filename: string;
   contentType: string;
   size?: number;
+  /** Set on inline images: the `cid:` the HTML body refers to. */
+  contentId?: string;
 }
 
 export interface EmailMetadata {
@@ -232,12 +234,20 @@ export function canAdvanceStatus(current: EmailStatus, next: EmailStatus): boole
   return prior ? prior.includes(current) : true;
 }
 
-/** Escape a user-typed search term for a PostgREST `or(...ilike...)` filter. */
-function searchPattern(q: string): string | null {
-  // Commas and parentheses structure the .or() string; %, _ and \ are LIKE
-  // metacharacters. Dropping them beats trying to quote them.
-  const cleaned = q.replace(/[%_\\,().*"]/g, ' ').replace(/\s+/g, ' ').trim();
-  return cleaned ? `%${cleaned}%` : null;
+/**
+ * A user-typed search term as an `ilike` pattern for a PostgREST `or(...)`
+ * filter. Commas, parentheses and quotes structure that filter string and
+ * `%`, `*`, `\` are wildcards/escapes, so each becomes `_` (any one
+ * character). Dots and underscores stay, so an address or a domain matches.
+ */
+export function searchPattern(q: string): string | null {
+  const cleaned = q.replace(/[%\\,()*"]/g, '_').replace(/\s+/g, ' ').trim();
+  return cleaned.replace(/_/g, '').trim() ? `%${cleaned}%` : null;
+}
+
+/** Postgres text cannot hold NUL; a single one would fail the insert on every webhook retry. */
+function stripNul<T extends string | null | undefined>(value: T): T {
+  return (typeof value === 'string' ? value.replace(/\u0000/g, '') : value) as T;
 }
 
 // The Supabase builder's generics get too deep for tsc when a filter chain is
@@ -658,45 +668,66 @@ export const AdminInboxService = {
   }): Promise<{ email: EmailRow; thread: ThreadRow; isNewThread: boolean } | null> {
     const supabase = db();
 
-    // Deduplicate: Resend retries webhooks.
+    from = from.trim().toLowerCase();
+    subject = stripNul(subject);
+    text = stripNul(text);
+    html = stripNul(html);
+    fromName = stripNul(fromName);
+
+    // Deduplicate: Resend retries webhooks. (The unique index from 081 is the
+    // real guard under concurrent deliveries; these lookups just avoid the
+    // wasted work in the common case.)
     if (resendEmailId) {
       const { data: dup } = await supabase
         .from('emails')
         .select('id')
         .eq('resend_id', resendEmailId)
         .eq('direction', 'inbound')
-        .maybeSingle();
-      if (dup) return null;
+        .limit(1);
+      if (dup && dup.length > 0) return null;
     }
     if (messageId) {
-      const { data: dup } = await supabase.from('emails').select('id').eq('message_id', messageId).maybeSingle();
-      if (dup) return null;
+      // Same sender only: a Message-ID is whatever the sender says it is, and
+      // must not let one sender make another sender's mail look like a repeat.
+      const { data: dup } = await supabase
+        .from('emails')
+        .select('id')
+        .eq('message_id', messageId)
+        .eq('from_email', from)
+        .limit(1);
+      if (dup && dup.length > 0) return null;
     }
+
+    // A thread is a conversation with ONE address, and replies go to that
+    // address. So mail only joins a thread when it comes from the thread's
+    // participant, whichever way the thread was found. Otherwise anyone who
+    // can guess a tag or quote a Message-ID could pull a reply — manual or
+    // automatic — onto somebody else.
+    const sameParticipant = (t: ThreadRow | null): ThreadRow | null =>
+      t && t.participant_email.trim().toLowerCase() === from ? t : null;
 
     let thread: ThreadRow | null = null;
 
-    // 1. Plus-address tag — set on every outbound Reply-To, so exact. Verify
-    //    the thread exists so a guessed or forged tag can't attach mail to
-    //    nothing.
+    // 1. Plus-address tag — set on every outbound Reply-To, so exact.
     if (threadIdHint && isUuid(threadIdHint)) {
       const { data } = await supabase.from('email_threads').select('*').eq('id', threadIdHint).maybeSingle();
-      if (data) thread = data as ThreadRow;
+      thread = sameParticipant(data as ThreadRow | null);
     }
 
     // 2. In-Reply-To / References → a message we stored.
     if (!thread) {
-      const candidates = Array.from(new Set([inReplyTo, ...(references || '').split(/\s+/)].map(cleanMessageId).filter(Boolean)));
+      const candidates = Array.from(new Set([inReplyTo, ...(references || '').split(/\s+/)].map(cleanMessageId).filter(Boolean))).slice(0, 50);
       if (candidates.length > 0) {
         const { data: related } = await supabase
           .from('emails')
           .select('thread_id')
           .in('message_id', candidates)
           .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (related?.thread_id) {
-          const { data } = await supabase.from('email_threads').select('*').eq('id', related.thread_id).maybeSingle();
-          if (data) thread = data as ThreadRow;
+          .limit(1);
+        const relatedThreadId = related?.[0]?.thread_id;
+        if (relatedThreadId) {
+          const { data } = await supabase.from('email_threads').select('*').eq('id', relatedThreadId).maybeSingle();
+          thread = sameParticipant(data as ThreadRow | null);
         }
       }
     }
@@ -795,8 +826,11 @@ export const AdminInboxService = {
       .select('*')
       .single();
     if (error || !stored) {
-      logger.error('Inbox: failed to store inbound email', { error });
       if (isNewThread) await supabase.from('email_threads').delete().eq('id', thread.id);
+      // 23505 = unique violation on the inbound resend_id index: a concurrent
+      // delivery of the same message won the race. That is a duplicate, not a failure.
+      if (error?.code === '23505') return null;
+      logger.error('Inbox: failed to store inbound email', { error });
       throw error ?? new Error('Failed to store email');
     }
 

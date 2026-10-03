@@ -172,7 +172,10 @@ export async function POST(request: NextRequest) {
     // as 5xx so Svix retries (dedup in the service makes retries safe).
     let full: ReceivedEmail | null = null;
     if (emailId) {
-      const { data: fetched, error } = await resend.emails.receiving.get(emailId);
+      // 'cid' keeps inline images as references to attachments. The default
+      // inlines them as base64, which can put megabytes into html_body and
+      // push a thread past the response size limit.
+      const { data: fetched, error } = await resend.emails.receiving.get(emailId, { html_format: 'cid' });
       if (error || !fetched) {
         logger.error('Resend webhook: failed to fetch received email', { emailId, error: error?.message });
         return NextResponse.json({ error: 'Failed to fetch email content' }, { status: 502 });
@@ -213,6 +216,7 @@ export async function POST(request: NextRequest) {
       filename: a.filename || 'attachment',
       contentType: a.content_type || '',
       size: typeof a.size === 'number' ? a.size : undefined,
+      ...('content_id' in a && a.content_id ? { contentId: String(a.content_id).replace(/[<>]/g, '') } : {}),
     }));
 
     const auth = parseAuthResults(headers['authentication-results']);
@@ -270,6 +274,7 @@ export async function POST(request: NextRequest) {
             from,
             subject,
             threadId: thread.id,
+            resendEmailId: emailId,
             headers,
           });
           if (!auto.sent) logger.info('No auto-reply', { emailId: email.id, reason: auto.reason });

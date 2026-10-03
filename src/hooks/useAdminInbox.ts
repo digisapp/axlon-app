@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { csrfFetch } from '@/lib/csrf-fetch';
 import type {
@@ -31,6 +32,12 @@ async function readError(res: Response, fallback: string) {
 }
 
 export function useAdminInbox() {
+  const router = useRouter();
+  // Responses can land out of order (fast folder switch, two quick clicks).
+  // Each request takes a number; only the latest one may write state.
+  const listSeq = useRef(0);
+  const detailSeq = useRef(0);
+
   // ── List ──
   const [folder, setFolderState] = useState<InboxFolder>('inbox');
   const [threads, setThreads] = useState<ThreadListRow[]>([]);
@@ -79,6 +86,7 @@ export function useAdminInbox() {
   }, [search]);
 
   const fetchThreads = useCallback(async (opts: { silent?: boolean } = {}) => {
+    const seq = ++listSeq.current;
     if (!opts.silent) {
       setLoading(true);
       setError(null);
@@ -89,18 +97,31 @@ export function useAdminInbox() {
       const res = await fetch(`/api/admin/inbox?${params}`);
       if (!res.ok) throw new Error(await readError(res, 'Failed to load emails'));
       const data = await res.json();
+      if (seq !== listSeq.current) return;
+      const pages = data.totalPages ?? 1;
       setThreads(data.threads ?? []);
-      setTotalPages(data.totalPages ?? 1);
+      setTotalPages(pages);
       setTotal(data.total ?? 0);
       if (data.counts) setCounts(data.counts);
+      // The page emptied out (bulk delete, mail moved): step back to the last real one.
+      if (page > pages) setPage(pages);
     } catch (err) {
+      if (seq !== listSeq.current) return;
       if (!opts.silent) setError(err instanceof Error ? err.message : 'Failed to load emails');
     } finally {
-      if (!opts.silent) setLoading(false);
+      if (seq === listSeq.current && !opts.silent) setLoading(false);
     }
   }, [folder, page, debouncedSearch]);
 
   useEffect(() => { fetchThreads(); }, [fetchThreads]);
+
+  // The sidebar and bell badges are rendered by the admin layout on the
+  // server; refresh it whenever the unread number moves so they follow.
+  const lastUnread = useRef<number | null>(null);
+  useEffect(() => {
+    if (lastUnread.current !== null && lastUnread.current !== counts.unread) router.refresh();
+    lastUnread.current = counts.unread;
+  }, [counts.unread, router]);
 
   // New mail shows up without a manual refresh: poll while the tab is
   // visible and nothing is selected for a bulk action.
@@ -177,6 +198,7 @@ export function useAdminInbox() {
   }, []);
 
   const selectThread = useCallback(async (id: string) => {
+    const seq = ++detailSeq.current;
     setSelectedId(id);
     setDetailLoading(true);
     setDetailError(null);
@@ -184,6 +206,7 @@ export function useAdminInbox() {
       const res = await fetch(`/api/admin/inbox/${id}`);
       if (!res.ok) throw new Error(await readError(res, 'Failed to open conversation'));
       const data = await res.json();
+      if (seq !== detailSeq.current) return; // a newer click owns the pane
       const thread: Thread = data.thread;
       setSelectedThread(thread);
       setEmails(data.emails ?? []);
@@ -192,17 +215,20 @@ export function useAdminInbox() {
         await patchFlags(id, { isRead: true }).catch(() => {});
         const nextStatus = thread.status === 'received' ? 'read' : thread.status;
         applyLocal([id], { is_unread: false, status: nextStatus });
-        setEmails((prev) => prev.map((e) => e.is_read ? e : { ...e, is_read: true }));
-        setCounts((prev) => ({ ...prev, unread: Math.max(0, prev.unread - 1) }));
+        if (seq === detailSeq.current) setEmails((prev) => prev.map((e) => e.is_read ? e : { ...e, is_read: true }));
+        // Spam is never counted as unread on the server either.
+        if (!thread.is_spam) setCounts((prev) => ({ ...prev, unread: Math.max(0, prev.unread - 1) }));
       }
     } catch (err) {
-      setDetailError(err instanceof Error ? err.message : 'Failed to open conversation');
+      if (seq === detailSeq.current) setDetailError(err instanceof Error ? err.message : 'Failed to open conversation');
     } finally {
-      setDetailLoading(false);
+      if (seq === detailSeq.current) setDetailLoading(false);
     }
   }, [patchFlags, applyLocal]);
 
   const closeDetail = useCallback(() => {
+    detailSeq.current++; // drop any response still in flight
+    setDetailLoading(false);
     setSelectedId(null);
     setSelectedThread(null);
     setEmails([]);
@@ -226,13 +252,15 @@ export function useAdminInbox() {
   const markUnread = useCallback(async (id: string) => {
     try {
       await patchFlags(id, { isRead: false });
-      applyLocal([id], { is_unread: true, status: 'received' });
-      setCounts((prev) => ({ ...prev, unread: prev.unread + 1 }));
+      const current = threads.find((t) => t.id === id) ?? selectedThread;
+      // 'read' goes back to 'received'; an answered thread stays 'replied'.
+      applyLocal([id], { is_unread: true, ...(current?.status === 'read' ? { status: 'received' as const } : {}) });
+      if (!current?.is_spam) setCounts((prev) => ({ ...prev, unread: prev.unread + 1 }));
       closeDetail();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not mark unread');
     }
-  }, [patchFlags, applyLocal, closeDetail]);
+  }, [threads, selectedThread, patchFlags, applyLocal, closeDetail]);
 
   const setSpam = useCallback(async (id: string, isSpam: boolean) => {
     try {

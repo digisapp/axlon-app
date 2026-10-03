@@ -17,7 +17,7 @@ import {
 import { isLikelySpam, parseAuthResults, senderAuthenticated, senderFailedAuth } from '@/lib/email/spam';
 import { autoReplySuppressionReason } from '@/lib/email/auto-reply';
 import {
-  buildQuote, canAdvanceStatus, htmlToText, idList, isBulkAction, isInboxFolder, isInboxSettingKey, textToHtml,
+  buildQuote, canAdvanceStatus, htmlToText, idList, isBulkAction, isInboxFolder, isInboxSettingKey, searchPattern, textToHtml,
 } from '@/lib/email/admin-inbox';
 import { isResendInboundMx, registeredZone, zoneHost } from '@/lib/email/inbox-status';
 
@@ -117,11 +117,20 @@ describe('spam heuristics', () => {
 describe('sender authentication', () => {
   const SES = 'amazonses.com; spf=pass (spfCheck: domain of example.com designates 1.2.3.4 as permitted sender) smtp.mailfrom=example.com; dkim=pass header.i=@example.com; dmarc=pass header.from=example.com;';
 
-  it('reads SPF / DKIM / DMARC verdicts from Authentication-Results', () => {
+  it('reads SPF / DKIM / DMARC verdicts from the receiving server\'s Authentication-Results', () => {
     expect(parseAuthResults(SES)).toEqual({ spf: 'pass', dkim: 'pass', dmarc: 'pass' });
-    expect(parseAuthResults('mx.example; spf=pass smtp.mailfrom=a.com; dmarc=fail header.from=b.com')).toEqual({ spf: 'pass', dkim: null, dmarc: 'fail' });
-    expect(parseAuthResults('mx.example; none')).toBeNull();
+    expect(parseAuthResults('amazonses.com; spf=pass smtp.mailfrom=a.com; dmarc=fail header.from=b.com')).toEqual({ spf: 'pass', dkim: null, dmarc: 'fail' });
+    expect(parseAuthResults('amazonses.com; none')).toBeNull();
     expect(parseAuthResults(undefined)).toBeNull();
+  });
+
+  it('ignores an Authentication-Results header the sender could have written', () => {
+    // Not stamped by our receiving server.
+    expect(parseAuthResults('mx.attacker.test; spf=pass; dkim=pass; dmarc=pass')).toBeNull();
+    expect(parseAuthResults('dmarc=pass')).toBeNull();
+    // Two headers folded into one value: refuse rather than guess which is real.
+    expect(parseAuthResults(`${SES} amazonses.com; dmarc=fail`)).toBeNull();
+    expect(parseAuthResults(`amazonses.com; dmarc=pass x; dmarc=pass`)).toBeNull();
   });
 
   it('only an aligned DMARC pass proves the From address', () => {
@@ -154,8 +163,10 @@ describe('auto-reply guards', () => {
   it('never answers a sender whose From address is not proven', () => {
     // A reply to a forged From lands on a third party.
     expect(autoReplySuppressionReason({ from: 'buyer@example.com' })).toMatch(/not authenticated/);
-    expect(autoReplySuppressionReason({ from: 'buyer@example.com', headers: { 'Authentication-Results': 'mx; spf=pass smtp.mailfrom=evil.test; dmarc=none' } })).toMatch(/not authenticated/);
-    expect(autoReplySuppressionReason({ from: 'buyer@example.com', headers: { 'Authentication-Results': 'mx; spf=pass; dkim=pass; dmarc=fail' } })).toMatch(/not authenticated/);
+    expect(autoReplySuppressionReason({ from: 'buyer@example.com', headers: { 'Authentication-Results': 'amazonses.com; spf=pass smtp.mailfrom=evil.test; dmarc=none' } })).toMatch(/not authenticated/);
+    expect(autoReplySuppressionReason({ from: 'buyer@example.com', headers: { 'Authentication-Results': 'amazonses.com; spf=pass; dkim=pass; dmarc=fail' } })).toMatch(/not authenticated/);
+    // A pass the sender wrote themselves does not count.
+    expect(autoReplySuppressionReason({ from: 'buyer@example.com', headers: { 'Authentication-Results': 'mx.attacker.test; dmarc=pass' } })).toMatch(/not authenticated/);
   });
 
   it('never answers automated senders, our own domain, or list mail', () => {
@@ -223,6 +234,15 @@ describe('inbox whitelists', () => {
     expect(idList([])).toBeNull();
     expect(idList(new Array(201).fill(THREAD))).toBeNull();
     expect(idList('x')).toBeNull();
+  });
+
+  it('builds search patterns that match addresses and cannot break the filter', () => {
+    expect(searchPattern('john.doe@gmail.com')).toBe('%john.doe@gmail.com%');
+    expect(searchPattern('xl_specialized')).toBe('%xl_specialized%');
+    // Structural characters of the PostgREST or() string become one-char wildcards.
+    expect(searchPattern('a,b(c)"d"*e%f\\g')).toBe('%a_b_c__d__e_f_g%');
+    expect(searchPattern('   ')).toBeNull();
+    expect(searchPattern(',()')).toBeNull();
   });
 
   it('turns typed text into escaped paragraphs', () => {

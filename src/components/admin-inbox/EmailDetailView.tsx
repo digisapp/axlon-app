@@ -31,6 +31,20 @@ function Chip({ tone, children }: { tone: string; children: React.ReactNode }) {
   return <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', tone)}>{children}</span>;
 }
 
+/**
+ * Inline images are stored as `cid:` references to attachments (not inlined
+ * as base64). Point each one at the attachment route, which redirects to
+ * Resend's signed URL, so they still show in the body.
+ */
+function resolveInlineImages(html: string | null, threadId: string, msg: Email): string | null {
+  const inline = (msg.attachments ?? []).filter((a) => a.contentId);
+  if (!html || inline.length === 0) return html;
+  return html.replace(/(["'(])cid:([^"')\s>]+)/gi, (whole, lead: string, cid: string) => {
+    const match = inline.find((a) => a.contentId === cid);
+    return match ? `${lead}/api/admin/inbox/${threadId}/attachments/${encodeURIComponent(match.id)}?email=${msg.id}` : whole;
+  });
+}
+
 function Message({ msg, thread, isLast, sending, onUseAiDraft, onEditAiDraft }: {
   msg: Email;
   thread: Thread;
@@ -98,7 +112,7 @@ function Message({ msg, thread, isLast, sending, onUseAiDraft, onEditAiDraft }: 
       )}
 
       <div className="overflow-hidden rounded-xl border">
-        <SandboxedEmail html={msg.html_body} text={msg.text_body} />
+        <SandboxedEmail html={resolveInlineImages(msg.html_body, thread.id, msg)} text={msg.text_body} />
       </div>
 
       {attachments.length > 0 && (

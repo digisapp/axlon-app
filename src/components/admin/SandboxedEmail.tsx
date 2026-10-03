@@ -52,7 +52,7 @@ export function SandboxedEmail({ html, text }: { html?: string | null; text?: st
     <html>
     <head>
       <meta charset="utf-8">
-      <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data: cid:; style-src 'unsafe-inline'; font-src https: data:;">
+      <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' https: data:; style-src 'unsafe-inline'; font-src https: data:;">
       <meta name="referrer" content="no-referrer">
       <base target="_blank">
       <style>

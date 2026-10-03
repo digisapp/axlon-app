@@ -112,6 +112,11 @@ creating a new webhook rotates it).
 
 ## Folders and actions
 
+A conversation is with one address: mail only joins a thread when it comes
+from that thread's participant (by plus tag, References or subject). The same
+subject from someone else starts its own conversation, so a reply can never
+be steered to a third party.
+
 Inbox (conversations with inbound mail), Unread, Starred, Sent
 (conversations we have written in), Spam. Spam is filed, never dropped, so a
 false positive can be rescued with **Not spam**. Bulk: read / unread / star /
@@ -123,13 +128,17 @@ admins (it used to be filtered to the signed-in admin's own threads).
 ## AI auto-reply
 
 Off unless an admin turns it on (toggle on the page, with confirmation;
-`platform_settings.ai_auto_reply_enabled`). With it off the AI still
+`platform_settings.ai_auto_reply_enabled`). Migration 051 had seeded it
+`true` back when no mail could arrive; 081 turns that seed off once, and
+never touches the value again after the first inbound email exists. With it off the AI still
 summarises and drafts; nothing is sent without an admin. On, it auto-sends
 only for purchase / selling / financing / trade-in / transport / parts /
 appraisal / dealer-onboarding / general inquiries at ≥ 85 % confidence, never
 twice in 24 h per conversation, never to automated senders (no-reply,
 mailer-daemon, notifications, list mail, `Auto-Submitted`), never to our own
-domains, never to spam, and **only to senders that pass DMARC**. From is
+domains, never to spam, only when the sender is the conversation's own
+participant, and **only to senders that pass DMARC** (as reported by the
+receiving server's own `Authentication-Results`, not one the sender wrote). From is
 trivially forged and a reply to a forged From lands on a third party — the
 same trick bots used on `/api/contact`. A message that fails DMARC also shows
 a red "Sender not verified" chip in the thread.

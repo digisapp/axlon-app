@@ -54,8 +54,24 @@ UPDATE emails
 
 CREATE INDEX IF NOT EXISTS idx_emails_message_id ON emails(message_id) WHERE message_id IS NOT NULL;
 -- Inbound dedup on webhook retries is keyed by Resend's received-email id.
-CREATE INDEX IF NOT EXISTS idx_emails_inbound_resend_id
-  ON emails(resend_id) WHERE direction = 'inbound' AND resend_id IS NOT NULL;
+-- UNIQUE so two concurrent deliveries of one message cannot both be stored
+-- (the service treats the violation as "already have it"). Skipped, with a
+-- plain index instead, if a database somehow already holds duplicates.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_emails_inbound_resend_id') THEN
+    NULL;
+  ELSIF EXISTS (
+    SELECT 1 FROM emails
+     WHERE direction = 'inbound' AND resend_id IS NOT NULL
+     GROUP BY resend_id HAVING count(*) > 1
+  ) THEN
+    RAISE NOTICE 'duplicate inbound resend_id rows exist; creating a non-unique index';
+    CREATE INDEX idx_emails_inbound_resend_id ON emails(resend_id) WHERE direction = 'inbound' AND resend_id IS NOT NULL;
+  ELSE
+    CREATE UNIQUE INDEX idx_emails_inbound_resend_id ON emails(resend_id) WHERE direction = 'inbound' AND resend_id IS NOT NULL;
+  END IF;
+END $$;
 
 -- The status CHECK predates delivery failures reported by Resend; 'failed'
 -- was already allowed, 'complained' too. Nothing to change there.
@@ -80,7 +96,8 @@ RETURNS TEXT AS $$
 $$ LANGUAGE sql IMMUTABLE SET search_path = public;
 
 -- Extends the original 050 trigger: also records a preview, the direction of
--- the newest message and how many messages we sent. Same status rules as before.
+-- the newest message and how many messages we sent, and a reply now marks a
+-- thread 'replied' whether or not it had been opened first.
 CREATE OR REPLACE FUNCTION update_email_thread_on_insert()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -93,7 +110,8 @@ BEGIN
     is_unread = CASE WHEN NEW.direction = 'inbound' THEN true ELSE is_unread END,
     status = CASE
       WHEN NEW.direction = 'inbound' THEN 'received'
-      WHEN NEW.direction = 'outbound' AND status = 'received' THEN 'replied'
+      -- 'read' too: an admin opens a thread (received → read) before answering it.
+      WHEN NEW.direction = 'outbound' AND status IN ('received', 'read') THEN 'replied'
       ELSE status
     END,
     updated_at = now()
@@ -123,9 +141,17 @@ UPDATE email_threads t
 
 -- ─── platform_settings ─────────────────────────────────
 
--- The inbox reads/writes only its own keys through /api/admin/inbox/settings
--- (whitelisted in code). The row seeded by 051 is left as it is — turning
--- auto-reply on or off is an admin decision made in the UI, with confirmation.
+-- 051 seeded ai_auto_reply_enabled = true, back when no mail could arrive.
+-- The inbox now treats auto-reply as opt-in: an admin switches it on from the
+-- page, with a confirmation. So the old seed is turned off — but only while
+-- no inbound mail has ever been stored, i.e. before the feature has run and
+-- before any admin could have made that choice. Re-running this later never
+-- overrides a decision made in the UI.
+UPDATE platform_settings
+   SET value = 'false'::jsonb, updated_at = now()
+ WHERE key = 'ai_auto_reply_enabled'
+   AND value IN ('true'::jsonb, '"true"'::jsonb)
+   AND NOT EXISTS (SELECT 1 FROM emails WHERE direction = 'inbound');
 
 -- RLS: the admin-only policies from 050/051 cover the new columns. The
 -- webhook and the inbox service use the service role.

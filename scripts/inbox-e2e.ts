@@ -72,6 +72,8 @@ async function main() {
     check('thread is now received + unread, preview stripped of CSS/script markup', t?.thread.status === 'received' && t.thread.is_unread && t.thread.last_preview === 'Reply body & link alert(1)', t?.thread);
     const dup = await AdminInboxService.storeInboundEmail({ from: SINK, to: out1.reply_to!, subject: `Re: ${subject}`, text: 'again', messageId: mid1, resendEmailId: `${tag}-rx-1` });
     check('webhook retry of the same message is not stored twice', dup === null);
+    const { error: uniqueError } = await supabase.from('emails').insert({ thread_id: sent.threadId, resend_id: `${tag}-rx-1`, direction: 'inbound', from_email: SINK, to_email: 'support@axleyard.com', subject: 'dup', status: 'received' });
+    check('the database itself refuses a second inbound row for one Resend id', uniqueError?.code === '23505', uniqueError);
 
     list = await AdminInboxService.listThreads({ folder: 'unread', search: tag });
     const row = list.threads.find((x) => x.id === sent.threadId);
@@ -98,9 +100,10 @@ async function main() {
     check('spam moves it out of Inbox, Starred and Sent into Spam', !inboxL.threads.length && spamL.threads.length === 1 && !starL.threads.length && !sentL.threads.length);
     await AdminInboxService.bulk('notSpam', [sent.threadId]);
     await AdminInboxService.bulk('unstar', [sent.threadId]);
-    await AdminInboxService.bulk('markUnread', [sent.threadId]);
-    list = await AdminInboxService.listThreads({ folder: 'inbox', search: tag });
-    check('not spam brings it back to Inbox', list.threads.some((x) => x.id === sent.threadId));
+    list = await AdminInboxService.listThreads({ folder: 'inbox', search: SINK });
+    check('not spam brings it back to Inbox; search by full address works', list.threads.some((x) => x.id === sent.threadId));
+    // Leave it opened-and-read, the state a thread is in when an admin answers it.
+    await AdminInboxService.markRead(sent.threadId, true);
 
     // 5. Reply from the inbox
     const reply = await AdminInboxService.sendNewEmail({ bodyText: 'Thanks, here is the answer.', replyToThreadId: sent.threadId, userId });
@@ -110,7 +113,7 @@ async function main() {
     const h = (out2.headers || {}) as Record<string, string>;
     check('reply threads on the inbound Message-ID', h['In-Reply-To'] === `<${mid1}>` && h['References'] === `<${mid1}>`, h);
     check('reply without an explicit subject gets Re: + the thread subject', out2.subject === `Re: ${subject}`, out2.subject);
-    check('thread is replied + read; inbound marked replied', t?.thread.status === 'replied' && !t.thread.is_unread && t.emails.filter((e) => e.direction === 'inbound').every((e) => e.status === 'replied' && !!e.replied_at), t?.thread);
+    check('answering an opened (read) thread marks it replied; inbound marked replied', t?.thread.status === 'replied' && !t.thread.is_unread && t.emails.filter((e) => e.direction === 'inbound').every((e) => e.status === 'replied' && !!e.replied_at), t?.thread);
     check('thread counts: 3 messages, 2 outbound', t?.thread.message_count === 3 && t.thread.outbound_count === 2);
 
     // 6. Fallback threading: References, then sender + subject
@@ -118,9 +121,10 @@ async function main() {
     check('References header finds the thread without the plus address', in2?.thread.id === sent.threadId);
     const in3 = await AdminInboxService.storeInboundEmail({ from: SINK, to: 'support@axleyard.com', subject: `RE: Re: ${subject}`, text: 'via subject', messageId: `${tag}-3@mail.example`, resendEmailId: `${tag}-rx-3` });
     check('same sender + normalized subject finds the thread', in3?.thread.id === sent.threadId);
-    const in4 = await AdminInboxService.storeInboundEmail({ from: `stranger-${tag}@example.net`, fromName: 'Stranger', to: 'sales@axleyard.com', subject: `Re: ${subject}`, text: 'someone else, same subject', messageId: `${tag}-4@mail.example`, resendEmailId: `${tag}-rx-4`, spam: true, threadIdHint: '00000000-0000-4000-8000-000000000000' });
+    // The stranger uses the thread's REAL plus tag and quotes its Message-ID: still must not join.
+    const in4 = await AdminInboxService.storeInboundEmail({ from: `stranger-${tag}@example.net`, fromName: 'Stranger', to: out1.reply_to!, subject: `Re: ${subject}`, text: 'someone else, same subject', messageId: `${tag}-4@mail.example`, inReplyTo: mid1, references: `<${mid1}>`, resendEmailId: `${tag}-rx-4`, spam: true, threadIdHint: sent.threadId });
     if (in4) created.push(in4.thread.id);
-    check('a different sender never joins the thread, a bogus plus tag is ignored, spam is filed', !!in4 && in4.isNewThread && in4.thread.id !== sent.threadId && in4.thread.is_spam === true);
+    check('a different sender never joins the thread, even with its real plus tag and Message-ID; spam is filed', !!in4 && in4.isNewThread && in4.thread.id !== sent.threadId && in4.thread.is_spam === true);
     const countsSpam = await AdminInboxService.getFolderCounts();
     check('spam count went up by one; spam is not counted unread', countsSpam.spam === before.spam + 1 && countsSpam.unread === before.unread + 1, { before, countsSpam });
 

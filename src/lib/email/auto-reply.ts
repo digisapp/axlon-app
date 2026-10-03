@@ -65,6 +65,8 @@ export async function sendAutoReply(
     from: string;
     subject: string;
     threadId: string;
+    /** Resend's id of the inbound message: the idempotency key, so one message gets one reply. */
+    resendEmailId?: string | null;
     headers?: Record<string, string | string[] | undefined | null> | null;
   },
 ): Promise<{ sent: boolean; reason?: string; outboundId?: string | null }> {
@@ -73,8 +75,22 @@ export async function sendAutoReply(
   const suppression = autoReplySuppressionReason({ from: original.from, headers: original.headers });
   if (suppression) return { sent: false, reason: `auto-reply suppressed: ${suppression}` };
 
+  // The reply goes to the thread's participant, so the address that was just
+  // authenticated has to BE that participant.
+  const supabase = createAdminClient();
+  const { data: thread } = await supabase
+    .from('email_threads')
+    .select('participant_email, is_spam')
+    .eq('id', original.threadId)
+    .maybeSingle();
+  if (!thread) return { sent: false, reason: 'auto-reply suppressed: thread not found' };
+  if (thread.is_spam) return { sent: false, reason: 'auto-reply suppressed: thread is spam' };
+  if (String(thread.participant_email).trim().toLowerCase() !== original.from.trim().toLowerCase()) {
+    return { sent: false, reason: 'auto-reply suppressed: sender is not the thread participant' };
+  }
+
   const since = new Date(Date.now() - AUTO_REPLY_THREAD_COOLDOWN_MS).toISOString();
-  const { count: recentOutbound, error: cooldownError } = await createAdminClient()
+  const { count: recentOutbound, error: cooldownError } = await supabase
     .from('emails')
     .select('id', { count: 'exact', head: true })
     .eq('thread_id', original.threadId)
@@ -109,7 +125,7 @@ export async function sendAutoReply(
     bodyText: draft,
     replyToThreadId: original.threadId,
     autoSent: true,
-    idempotencyKey: `auto-reply/${inboundEmailId}`,
+    idempotencyKey: `auto-reply/${original.resendEmailId || inboundEmailId}`,
     ai: { category: classification.category, confidence: classification.confidence, summary: classification.summary },
   });
   if (!result.success) {
