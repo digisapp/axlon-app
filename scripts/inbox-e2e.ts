@@ -69,7 +69,7 @@ async function main() {
     });
     check('reply to the plus address lands in the same thread', in1?.thread.id === sent.threadId && in1.isNewThread === false);
     t = await AdminInboxService.getThread(sent.threadId);
-    check('thread is now received + unread, preview stripped of CSS/script markup', t?.thread.status === 'received' && t.thread.is_unread && t.thread.last_preview === 'Reply body & link alert(1)', t?.thread);
+    check('thread is now received + unread, preview stripped of CSS/script markup', t?.thread.status === 'received' && t.thread.is_unread && t.thread.last_preview === 'Reply body & link', t?.thread);
     const dup = await AdminInboxService.storeInboundEmail({ from: SINK, to: out1.reply_to!, subject: `Re: ${subject}`, text: 'again', messageId: mid1, resendEmailId: `${tag}-rx-1` });
     check('webhook retry of the same message is not stored twice', dup === null);
     const { error: uniqueError } = await supabase.from('emails').insert({ thread_id: sent.threadId, resend_id: `${tag}-rx-1`, direction: 'inbound', from_email: SINK, to_email: 'support@axleyard.com', subject: 'dup', status: 'received' });

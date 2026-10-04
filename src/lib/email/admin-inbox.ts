@@ -611,15 +611,20 @@ export const AdminInboxService = {
 
     if (replyToThreadId) {
       const now = new Date().toISOString();
-      await supabase
+      // The mail is already out, so a failure here is logged rather than
+      // returned — but it must be logged: a constraint that rejected
+      // 'replied' once went unnoticed because nothing read this error.
+      const { error: repliedError } = await supabase
         .from('emails')
         .update({ status: 'replied', replied_at: now })
         .eq('thread_id', thread.id)
         .eq('direction', 'inbound')
         .neq('status', 'replied');
+      if (repliedError) logger.error('Inbox: sent, but could not mark the inbound mail replied', { error: repliedError, threadId: thread.id });
       // A person answering has read the thread; an auto-reply has not read it for them.
       if (!autoSent) {
-        await supabase.from('email_threads').update({ is_unread: false, updated_at: now }).eq('id', thread.id);
+        const { error: readError } = await supabase.from('email_threads').update({ is_unread: false, updated_at: now }).eq('id', thread.id);
+        if (readError) logger.error('Inbox: sent, but could not mark the thread read', { error: readError, threadId: thread.id });
       }
     }
 
