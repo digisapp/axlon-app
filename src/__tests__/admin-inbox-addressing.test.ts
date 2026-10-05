@@ -257,6 +257,8 @@ describe('setup card DNS hosts', () => {
     expect(registeredZone('inbound.axleyard.com')).toBe('axleyard.com');
     expect(registeredZone('axleyard.com')).toBe('axleyard.com');
     expect(zoneHost('axleyard.com', 'axleyard.com')).toBe('@');
+    expect(zoneHost('', 'axleyard.com')).toBe('@');
+    expect(zoneHost('@', 'axleyard.com')).toBe('@');
     expect(zoneHost('inbound.axleyard.com', 'axleyard.com')).toBe('inbound');
     expect(zoneHost('resend._domainkey', 'axleyard.com')).toBe('resend._domainkey');
     expect(zoneHost('send.inbound.axleyard.com', 'axleyard.com')).toBe('send.inbound');

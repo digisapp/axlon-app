@@ -76,8 +76,9 @@ export function registeredZone(domain: string): string {
 
 /** Registrar host field for a record under the zone. */
 export function zoneHost(name: string, zone: string): string {
-  const n = name.toLowerCase().replace(/\.$/, '');
-  if (n === zone) return '@';
+  const n = name.trim().toLowerCase().replace(/\.$/, '');
+  // Resend names the apex record with an empty string once receiving is on.
+  if (!n || n === '@' || n === zone) return '@';
   if (n.endsWith(`.${zone}`)) return n.slice(0, -(zone.length + 1));
   // Resend already returns most names relative to the zone (`resend._domainkey`, `send`).
   return n;
