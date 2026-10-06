@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { csrfFetch } from '@/lib/csrf-fetch';
+import { HONEYPOT_FIELD } from '@/lib/leads/form-guard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -22,11 +23,15 @@ export function ContactSeller({ listingId, sellerId, listingTitle }: ContactSell
     email: '',
     phone: '',
     message: '',
+    // Honeypot: stays empty for a person, see the hidden input below.
+    website: '',
   });
   const [isSending, setIsSending] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [error, setError] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  // When the form was first shown: a submission seconds later is a bot.
+  const startedAt = useRef<number>(Date.now());
 
   const defaultMessage = `Hi, I'm interested in your listing: ${listingTitle}. Is it still available?`;
 
@@ -89,12 +94,14 @@ export function ContactSeller({ listingId, sellerId, listingTitle }: ContactSell
           buyer_email: formData.email.trim(),
           buyer_phone: formData.phone.trim() || null,
           message: formData.message.trim() || defaultMessage,
+          website: formData.website,
+          startedAt: startedAt.current,
         }),
       });
 
       if (response.ok) {
         setIsSent(true);
-        setFormData({ name: '', email: '', phone: '', message: '' });
+        setFormData({ name: '', email: '', phone: '', message: '', website: '' });
       } else {
         const data = await response.json();
         setError(data.error || 'Failed to send inquiry');
@@ -141,6 +148,19 @@ export function ContactSeller({ listingId, sellerId, listingTitle }: ContactSell
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Honeypot: hidden from people, filled in by bots. */}
+          <div aria-hidden="true" className="absolute -left-[9999px] top-0 h-0 w-0 overflow-hidden">
+            <label htmlFor="inquiry-website">Website</label>
+            <input
+              id="inquiry-website"
+              name={HONEYPOT_FIELD}
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+              value={formData.website}
+              onChange={handleChange}
+            />
+          </div>
           <div className="grid gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name *</Label>

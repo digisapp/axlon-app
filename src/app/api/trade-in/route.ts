@@ -8,6 +8,7 @@ import { logger } from '@/lib/logger';
 import { validateBody, ValidationError, tradeInRequestSchema } from '@/lib/validations/api';
 import { escapeHtml } from '@/lib/utils/html-escape';
 import { requireCsrf } from '@/lib/security/csrf';
+import { botSignals } from '@/lib/leads/form-guard';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'sales@axlon.ai';
 
@@ -41,6 +42,20 @@ export async function POST(request: NextRequest) {
         );
       }
       throw err;
+    }
+
+    // Same posture as the other public forms: a submission that looks
+    // automated is acknowledged and dropped — nothing stored, nobody emailed.
+    const signals = botSignals({
+      name: validatedData.contact_name,
+      message: validatedData.equipment_description,
+      email: validatedData.contact_email,
+      honeypot: validatedData.website,
+      startedAt: validatedData.startedAt,
+    });
+    if (signals.length > 0) {
+      logger.warn('Trade-in request dropped as automated', { signals });
+      return NextResponse.json({ success: true });
     }
 
     // Get current user if logged in

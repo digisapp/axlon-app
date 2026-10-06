@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { csrfFetch } from '@/lib/csrf-fetch';
 import { getSessionId, readAttribution } from '@/lib/microsites/attribution';
@@ -26,6 +26,8 @@ export function MicrositeLeadForm({
 }: Props) {
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [error, setError] = useState<string | null>(null);
+  // When the form was first shown: a submission seconds later is a bot.
+  const startedAt = useRef<number>(Date.now());
 
   // A visitor who clicked a specific unit in "Available now" arrives here with
   // ?unit=<title>. Naming the unit back to them is the whole point: the
@@ -82,6 +84,10 @@ export function MicrositeLeadForm({
           referrer: document.referrer || null,
           session_id: getSessionId(),
           ...readAttribution(window.location.search, document.referrer),
+          // The server runs the same honeypot and timing checks for callers
+          // that never rendered this form.
+          website: (data.get('company_website') as string) || '',
+          startedAt: startedAt.current,
         }),
       });
 

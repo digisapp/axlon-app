@@ -19,11 +19,14 @@ export const metadata = { title: 'Applications | Admin' };
 export default async function ApplicationsPage() {
   const supabase = await createClient();
 
-  // Applications come in as contact_submissions with plan='transformation'
+  // Applications come in as contact_submissions with plan='transformation'.
+  // Archived rows are the bot submissions set aside in October 2026 (and
+  // anything set aside since); they are not applications to review.
   const { data: applications } = await supabase
     .from('contact_submissions')
     .select('*')
     .eq('plan', 'transformation')
+    .neq('status', 'archived')
     .order('created_at', { ascending: false });
 
   const total = applications?.length || 0;

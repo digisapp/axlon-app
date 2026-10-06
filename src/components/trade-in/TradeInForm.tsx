@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { HONEYPOT_FIELD } from '@/lib/leads/form-guard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -65,7 +66,12 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
     interested_listing_id: interestedListingId || '',
     interested_category_id: interestedCategoryId || '',
     purchase_timeline: '',
+
+    // Honeypot: stays empty for a person, see the hidden input on the contact step.
+    website: '',
   });
+  // When the form was first shown: a submission seconds later is a bot.
+  const startedAt = useRef<number>(Date.now());
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -126,6 +132,7 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
           equipment_year: formData.equipment_year ? parseInt(formData.equipment_year) : null,
           equipment_mileage: formData.equipment_mileage ? parseInt(formData.equipment_mileage) : null,
           equipment_hours: formData.equipment_hours ? parseInt(formData.equipment_hours) : null,
+          startedAt: startedAt.current,
         }),
       });
 
@@ -376,6 +383,19 @@ export function TradeInForm({ interestedListingId, interestedCategoryId }: Trade
         {currentStep === 'contact' && (
           <div className="space-y-4">
             <h3 className="font-semibold">Contact Information</h3>
+            {/* Honeypot: hidden from people, filled in by bots. */}
+            <div aria-hidden="true" className="absolute -left-[9999px] top-0 h-0 w-0 overflow-hidden">
+              <label htmlFor="trade-in-website">Website</label>
+              <input
+                id="trade-in-website"
+                name={HONEYPOT_FIELD}
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={formData.website}
+                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="name">Name *</Label>
               <Input

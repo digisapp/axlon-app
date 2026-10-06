@@ -449,6 +449,10 @@ export const tradeInRequestSchema = z.object({
   interested_listing_id: optionalUuid,
   interested_category_id: optionalUuid,
   purchase_timeline: optionalText(100),
+  /** Honeypot: real people never see this field. */
+  website: z.string().max(200).optional().nullable(),
+  /** Date.now() when the form was first shown. */
+  startedAt: z.number().int().nonnegative().optional().nullable(),
 });
 
 // Admin voice agent create (includes dealer_id)

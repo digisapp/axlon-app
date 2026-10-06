@@ -12,6 +12,7 @@ import { recordLeadInInbox, redraftLatest } from '@/lib/email/lead-inbox';
 import { AdminInboxService } from '@/lib/email/admin-inbox';
 import { getInboundAddress, threadReplyAddress } from '@/lib/email/inbound-address';
 import { instantReplyBlockedReason } from '@/lib/leads/instant-reply-guard';
+import { botSignals } from '@/lib/leads/form-guard';
 
 // Trimmed: a value pasted into the host's env UI can carry a trailing newline.
 const AXLONAI_ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'sales@axlon.ai').trim();
@@ -29,6 +30,10 @@ const createLeadSchema = z.object({
   buyer_email: z.string().email('Invalid email format'),
   buyer_phone: z.string().max(20).optional().nullable(),
   message: z.string().max(2000, 'Message too long').optional().nullable(),
+  /** Honeypot: real people never see this field. */
+  website: z.string().max(200).optional().nullable(),
+  /** Date.now() when the form was first shown. */
+  startedAt: z.number().int().nonnegative().optional().nullable(),
 });
 
 export async function POST(request: NextRequest) {
@@ -76,6 +81,24 @@ export async function POST(request: NextRequest) {
       buyer_phone,
       message,
     } = parseResult.data;
+
+    // The contact-form bot moved here in October 2026 (random two-word name,
+    // random token for a message, a stranger's address) once the contact form
+    // stopped mailing strangers. This form can mail the buyer too — the
+    // instant reply — so a submission that looks automated is acknowledged
+    // and dropped: no lead, no dealer alert, no reply, and nothing for the
+    // bot to learn from.
+    const signals = botSignals({
+      name: buyer_name,
+      message,
+      email: buyer_email,
+      honeypot: parseResult.data.website,
+      startedAt: parseResult.data.startedAt,
+    });
+    if (signals.length > 0) {
+      logger.warn('Listing inquiry dropped as automated', { signals, listingId: listing_id ?? null });
+      return NextResponse.json({ success: true }, { status: 201 });
+    }
 
     // Get listing info for scoring
     let listingState: string | null = null;

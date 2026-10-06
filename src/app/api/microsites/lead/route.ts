@@ -7,6 +7,7 @@ import { requireCsrf } from '@/lib/security/csrf';
 import { escapeHtml } from '@/lib/utils/html-escape';
 import { getResend } from '@/lib/email/resend';
 import { logger } from '@/lib/logger';
+import { botSignals } from '@/lib/leads/form-guard';
 
 export const runtime = 'nodejs';
 
@@ -31,6 +32,10 @@ const leadSchema = z.object({
   utm_campaign: z.string().max(200).nullish(),
   utm_term: z.string().max(200).nullish(),
   utm_content: z.string().max(200).nullish(),
+  /** Honeypot: real people never see this field. */
+  website: z.string().max(200).nullish(),
+  /** Date.now() when the form was first shown. */
+  startedAt: z.number().int().nonnegative().nullish(),
 });
 
 export async function POST(request: NextRequest) {
@@ -53,6 +58,22 @@ export async function POST(request: NextRequest) {
       );
     }
     const input = parsed.data;
+
+    // The form's own honeypot only runs in a browser; a bot posting straight
+    // to this route skipped it. Same posture as the other public forms: a
+    // submission that looks automated is acknowledged and dropped, so no lead
+    // is saved and nobody is emailed about it.
+    const signals = botSignals({
+      name: input.buyer_name,
+      message: input.message,
+      email: input.buyer_email,
+      honeypot: input.website,
+      startedAt: input.startedAt,
+    });
+    if (signals.length > 0) {
+      logger.warn('Microsite lead dropped as automated', { signals, micrositeId: input.microsite_id });
+      return NextResponse.json({ success: true });
+    }
 
     // Service role: the submitter is anonymous, and the row belongs to whoever
     // the microsite routes leads to. Rate-limited, CSRF-checked and validated
