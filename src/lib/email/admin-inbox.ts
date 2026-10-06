@@ -54,6 +54,10 @@ export interface EmailMetadata {
   lead_id?: string;
   /** Where that lead came from (leads.source). */
   source?: string | null;
+  /** What the lead asked about, so a resubmit is only folded into the same inquiry. */
+  listing_id?: string | null;
+  microsite_id?: string | null;
+  product_interest?: string | null;
   /** Set on the "Send me a test" row so the UI can label it. */
   test?: boolean;
   /** Set on AI auto-replies. */

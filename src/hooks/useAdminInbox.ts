@@ -110,6 +110,8 @@ export function useAdminInbox() {
   const shownThreadIdRef = useRef<string | null>(null);
   // Whether the open conversation has a history entry of its own (phones).
   const pushedThread = useRef(false);
+  // A history.back() we asked for is still travelling; its popstate is ours.
+  const pendingBack = useRef(false);
 
   // ── List ──
   const [folder, setFolderState] = useState<InboxFolder>('inbox');
@@ -182,8 +184,9 @@ export function useAdminInbox() {
       if (seq !== listSeq.current) return;
       if (editsAtStart !== localEdits.current) {
         // Something changed on screen while this was in flight; ask again
-        // rather than paint the older state over it.
-        setTimeout(() => fetchThreadsRef.current({ silent: true }), 0);
+        // (keeping the spinner if there was one) rather than paint the
+        // older state over it.
+        setTimeout(() => fetchThreadsRef.current({ silent: opts.silent }), 0);
         return;
       }
       const pages = data.totalPages ?? 1;
@@ -197,7 +200,7 @@ export function useAdminInbox() {
       if (seq !== listSeq.current) return;
       if (!opts.silent) setError(err instanceof Error ? err.message : 'Failed to load emails');
     } finally {
-      if (seq === listSeq.current && !opts.silent) setLoading(false);
+      if (seq === listSeq.current && !opts.silent && editsAtStart === localEdits.current) setLoading(false);
     }
   }, [folder, page, debouncedSearch]);
 
@@ -349,6 +352,7 @@ export function useAdminInbox() {
     if (pushedThread.current) {
       // Step back off the entry we pushed, so history matches the screen.
       pushedThread.current = false;
+      pendingBack.current = true;
       window.history.back();
     } else {
       setThreadInUrl(null);
@@ -361,6 +365,14 @@ export function useAdminInbox() {
   // The system back / forward gesture moves between the list and a conversation.
   useEffect(() => {
     const onPop = () => {
+      if (pendingBack.current) {
+        // Our own back() landing. The pane was cleared already; if another
+        // conversation was opened in the meantime, keep the address on it.
+        pendingBack.current = false;
+        const cur = selectedIdRef.current;
+        if (cur) setThreadInUrl(cur, 'replace');
+        return;
+      }
       const id = threadIdFromUrl();
       if (!id) {
         pushedThread.current = false;
@@ -718,7 +730,12 @@ export function useAdminInbox() {
   }, [selectThread]);
 
   // Unread count in the browser tab, so new mail is visible from other tabs.
-  // Nothing is restored on leaving: the next page sets its own title.
+  // On leaving, the page's own title comes back only if ours is still
+  // showing (the next page may already have set its own).
+  useEffect(() => {
+    const previous = document.title;
+    return () => { if (document.title.endsWith('Email inbox · Admin')) document.title = previous; };
+  }, []);
   useEffect(() => {
     const base = 'Email inbox · Admin';
     const wanted = counts.unread > 0 ? `(${counts.unread}) ${base}` : base;

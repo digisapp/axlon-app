@@ -220,6 +220,12 @@ async function main() {
     const dupThread = dupLead ? await recordLeadInInbox(dupLead.id, { draft: false }) : null;
     if (dupThread && dupThread !== leadThreadId) created.push(dupThread);
     check('a resubmitted lead joins the existing conversation instead of a second one', !!dupThread && dupThread === leadThreadId, { dupThread, leadThreadId });
+    // The same words about a different unit are a different inquiry.
+    const { data: otherLead } = await supabase.from('leads').insert({ buyer_name: 'jim walker', buyer_email: buyer, message: `Is the lowboy still available? (${tag})`, product_interest: '53ft step deck', source: 'website', status: 'new' }).select('id').single();
+    if (otherLead) createdLeads.push(otherLead.id);
+    const otherThread = otherLead ? await recordLeadInInbox(otherLead.id, { draft: false }) : null;
+    if (otherThread && otherThread !== leadThreadId) created.push(otherThread);
+    check('the same words about something else start their own conversation', !!otherThread && otherThread !== leadThreadId, { otherThread, leadThreadId });
 
     // The chat widget stores a placeholder as the "message"; it is never shown as their words.
     const { data: chatLead } = await supabase.from('leads').insert({ buyer_name: 'Chat Person', buyer_email: `delivered+${tag}-chat@resend.dev`, message: 'Lead captured from AI chat widget', source: 'chat', status: 'new' }).select('id').single();

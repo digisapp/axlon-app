@@ -99,16 +99,24 @@ const QUOTE_SELECTOR = '.gmail_quote, blockquote[type="cite"], #divRplyFwdMsg, #
 /** Our own inline-image route (see EmailDetailView's cid: rewrite). */
 const ATTACHMENT_PATH = /^\/api\/admin\/inbox\/[0-9a-f-]{36}\/attachments\/[^/?#\s]+\?email=[0-9a-f-]{36}$/i;
 
-/** A resource an email may load: absolute https, data:, or our attachment route. */
-export function isAllowedResourceUrl(value: string, list = false): boolean {
+/**
+ * A resource an email may load: absolute https on another host, data:, or
+ * our attachment route. Our own host is refused (the frame shares the admin's
+ * origin and cookies), except that one route.
+ */
+export function isAllowedResourceUrl(value: string, list = false, ownHost: string = typeof location !== 'undefined' ? location.host : ''): boolean {
   const urls = list ? value.split(',').map((part) => part.trim().split(/\s+/)[0]).filter(Boolean) : [value.trim()];
-  return urls.length > 0 && urls.every((u) => /^https:\/\//i.test(u) || /^data:image\//i.test(u) || ATTACHMENT_PATH.test(u) || /^cid:/i.test(u));
+  const foreignHttps = (u: string) => {
+    if (!/^https:\/\//i.test(u)) return false;
+    try { return !ownHost || new URL(u).host.toLowerCase() !== ownHost.toLowerCase(); } catch { return false; }
+  };
+  return urls.length > 0 && urls.every((u) => foreignHttps(u) || /^data:image\//i.test(u) || ATTACHMENT_PATH.test(u) || /^cid:/i.test(u));
 }
 
 /** url(...) in CSS keeps only absolute https / data: targets. */
-export function safeCssUrls(css: string): string {
+export function safeCssUrls(css: string, ownHost: string = typeof location !== 'undefined' ? location.host : ''): string {
   return css.replace(/url\(\s*(['"]?)(.*?)\1\s*\)/gi, (whole, _q: string, target: string) =>
-    /^https:\/\//i.test(target) || /^data:image\//i.test(target) ? whole : 'none');
+    isAllowedResourceUrl(target, false, ownHost) && !ATTACHMENT_PATH.test(target) && !/^cid:/i.test(target) ? whole : 'none');
 }
 
 function isBlank(node: Node): boolean {

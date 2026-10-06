@@ -291,7 +291,18 @@ export async function recordLeadInInbox(leadId: string, opts: { draft?: boolean 
       .gte('created_at', since)
       .order('created_at', { ascending: false })
       .limit(5);
-    const repeat = (recent ?? []).find((r) => ((r.metadata as { message?: string | null } | null)?.message ?? null) === (lead.message?.slice(0, 4000) ?? null));
+    // Only a real repeat: the same words about the same listing / site /
+    // product. Two different inquiries from one person, or two forms with
+    // no message at all, each get their own conversation.
+    const ownMessage = lead.message?.slice(0, 4000) ?? null;
+    const same = (a: unknown, b: unknown) => (a ?? null) === (b ?? null);
+    const repeat = ownMessage
+      ? (recent ?? []).find((r) => {
+          const m = (r.metadata as EmailMetadata & { message?: string | null } | null) ?? {};
+          return m.message === ownMessage && same(m.listing_id, lead.listing_id) && same(m.microsite_id, lead.microsite_id)
+            && same(m.product_interest?.trim() || null, lead.product_interest?.trim() || null);
+        })
+      : undefined;
     if (repeat) return repeat.thread_id as string;
 
     const alert = buildLeadAlert({
@@ -344,6 +355,9 @@ export async function recordLeadInInbox(leadId: string, opts: { draft?: boolean 
       lead_id: lead.id,
       source: lead.source,
       message: lead.message?.slice(0, 4000) ?? null,
+      listing_id: lead.listing_id,
+      microsite_id: lead.microsite_id,
+      product_interest: lead.product_interest?.trim() || null,
     };
     const { data: row, error: emailError } = await supabase
       .from('emails')

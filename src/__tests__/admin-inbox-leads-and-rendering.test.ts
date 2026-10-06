@@ -75,6 +75,10 @@ describe('email rendering', () => {
     expect(isAllowedResourceUrl('data:image/png;base64,AAAA')).toBe(true);
     expect(isAllowedResourceUrl('data:text/html,<script>')).toBe(false);
     expect(isAllowedResourceUrl('//evil.test/x.png')).toBe(false);
+    // Our own host over https is still us: refused, except the attachment route.
+    expect(isAllowedResourceUrl('https://axleyard.com/api/admin/stats', false, 'axleyard.com')).toBe(false);
+    expect(isAllowedResourceUrl('https://cdn.example.com/a.png', false, 'axleyard.com')).toBe(true);
+    expect(safeCssUrls('a{background:url(https://axleyard.com/api/x)}', 'axleyard.com')).toBe('a{background:none}');
     expect(safeCssUrls('a{background:url(https://x.test/i.png)} b{background:url("/api/y")}')).toBe('a{background:url(https://x.test/i.png)} b{background:none}');
   });
 
