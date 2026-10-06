@@ -1,5 +1,14 @@
 import { escapeHtml, sanitizeUrl } from '@/lib/utils/html-escape';
 
+/**
+ * The site origin for links and images in email. Trimmed: the production
+ * value was saved with a trailing newline, which put a line break inside
+ * every image URL these templates built from it.
+ */
+function appUrl(): string {
+  return (process.env.NEXT_PUBLIC_APP_URL?.trim() || 'https://axleyard.com').replace(/\/+$/, '');
+}
+
 const baseStyles = `
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: #1a1a1a;
@@ -59,7 +68,7 @@ export function newMessageEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
+            <img src="${appUrl()}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
           </div>
 
           <h1 style="font-size: 24px; margin-bottom: 16px;">New Message</h1>
@@ -108,7 +117,7 @@ export function listingPublishedEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
+            <img src="${appUrl()}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
           </div>
 
           <h1 style="font-size: 24px; margin-bottom: 16px;">Your Listing is Live!</h1>
@@ -161,7 +170,7 @@ export function welcomeEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
+            <img src="${appUrl()}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
           </div>
 
           <h1 style="font-size: 24px; margin-bottom: 16px;">Welcome to AXLON AI!</h1>
@@ -216,7 +225,7 @@ export function inquiryReceivedEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
+            <img src="${appUrl()}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
           </div>
 
           <h1 style="font-size: 24px; margin-bottom: 16px;">New Inquiry Received!</h1>
@@ -270,7 +279,7 @@ export function newChatConversationEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
+            <img src="${appUrl()}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
           </div>
 
           <h1 style="font-size: 24px; margin-bottom: 16px;">New Chat on Your Storefront</h1>
@@ -326,7 +335,7 @@ export function chatLeadCapturedEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
+            <img src="${appUrl()}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
           </div>
 
           <div style="background-color: #10b981; color: white; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 24px;">
@@ -416,7 +425,7 @@ export function savedSearchAlertEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
+            <img src="${appUrl()}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
           </div>
 
           <h1 style="font-size: 24px; margin-bottom: 16px;">${newListingsCount} New Matches!</h1>
@@ -466,7 +475,7 @@ export function confirmEmailTemplate({
   companyName: string;
   confirmationUrl: string;
 }): { subject: string; html: string; text: string } {
-  const base = (process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com').replace(/\/$/, '');
+  const base = appUrl();
   // sanitizeUrl() returns '' for javascript:/data: links and otherwise an
   // attribute-escaped string (slashes become &#x2F;), which is right for an
   // href and wrong everywhere a person reads the URL. Keep the raw link for
@@ -736,7 +745,7 @@ export function newLeadEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
+            <img src="${appUrl()}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
           </div>
 
           <div style="background-color: #0066cc; color: white; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 24px;">
