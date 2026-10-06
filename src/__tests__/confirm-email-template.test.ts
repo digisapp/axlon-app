@@ -7,7 +7,7 @@ describe('confirmEmailTemplate', () => {
   const mail = confirmEmailTemplate({ companyName: 'Blyth Trailer Sales', confirmationUrl: url });
 
   it('carries the confirmation link in the button, the fallback line and the text version', () => {
-    expect(mail.subject).toBe('Confirm your AXLON AI account');
+    expect(mail.subject).toBe('Confirm your Axleyard account');
     // Button + pasteable fallback: the attribute-escaped URL is the href twice.
     expect(mail.html.match(new RegExp(`href="${sanitizeUrl(url).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'g'))).toHaveLength(2);
     // What a person reads is the real URL, not the entity-encoded one.
@@ -36,11 +36,19 @@ describe('confirmEmailTemplate', () => {
     expect(hostile.text).not.toContain('javascript:');
   });
 
-  it('says AXLON, not Axleyard, in the copy', () => {
+  it('is an Axleyard email that names AXLON only as the assistant', () => {
     // Strip link/image attributes and bare URLs; what is left is the copy.
     const copy = mail.html.replace(/(?:href|src)="[^"]*"/g, '').replace(/https?:\/\/\S+/g, '');
-    expect(copy).not.toMatch(/axleyard/i);
-    expect(copy).toContain('AXLON');
-    expect(mail.text.replace(/https?:\/\/\S+/g, '')).not.toMatch(/axleyard/i);
+    // The brand: wordmark, account, footer.
+    expect(copy).toContain('AXLE<span style="color: #12cbf5;">YARD</span>');
+    expect(copy).toContain('creating the Axleyard account for');
+    expect(copy).toContain('used to create an Axleyard account');
+    // AXLON appears once, describing what the assistant does, never as "AXLON AI account".
+    expect(copy.match(/AXLON/g)).toHaveLength(1);
+    expect(copy).toContain('AXLON answers buyers');
+    expect(copy).not.toMatch(/AXLON AI/);
+    expect(mail.text).toContain('the Axleyard account for Blyth Trailer Sales');
+    expect(mail.text.match(/AXLON/g)).toHaveLength(1);
+    expect(mail.text).not.toMatch(/AXLON AI/);
   });
 });

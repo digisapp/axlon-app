@@ -486,7 +486,7 @@ export function confirmEmailTemplate({
   const year = new Date().getFullYear();
   const font = "font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;";
 
-  const subject = 'Confirm your AXLON AI account';
+  const subject = 'Confirm your Axleyard account';
 
   const html = `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
@@ -500,7 +500,7 @@ export function confirmEmailTemplate({
 </head>
 <body style="margin: 0; padding: 0; background-color: #eef1f5; ${font}">
   <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all; font-size: 1px; line-height: 1px; color: #eef1f5;">
-    One click finishes setting up your AXLON AI account.&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
+    One click finishes setting up your Axleyard account.&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
   </div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #eef1f5;">
     <tr>
@@ -510,9 +510,9 @@ export function confirmEmailTemplate({
           <!-- Header -->
           <tr>
             <td align="center" style="background-color: #0b1220; border-radius: 14px 14px 0 0; padding: 32px 24px 28px;">
-              <img src="${base}/images/email/axlon-mark.png" width="62" height="72" alt="" style="display: block; width: 62px; height: 72px; border: 0; margin: 0 auto 14px;">
-              <div style="${font} font-size: 22px; font-weight: 800; letter-spacing: 0.22em; color: #ffffff; line-height: 1;">AXLON</div>
-              <div style="${font} font-size: 11px; font-weight: 600; letter-spacing: 0.18em; color: #7dd3fc; line-height: 1; margin-top: 8px;">AI FOR HEAVY EQUIPMENT DEALERS</div>
+              <img src="${base}/images/email/axlon-mark.png" width="52" height="60" alt="" style="display: block; width: 52px; height: 60px; border: 0; margin: 0 auto 14px;">
+              <div style="${font} font-size: 24px; font-weight: 800; letter-spacing: 0.18em; color: #ffffff; line-height: 1;">AXLE<span style="color: #12cbf5;">YARD</span></div>
+              <div style="${font} font-size: 11px; font-weight: 600; letter-spacing: 0.16em; color: #94a3b8; line-height: 1; margin-top: 10px;">TRUCKS &middot; TRAILERS &middot; HEAVY EQUIPMENT</div>
             </td>
           </tr>
 
@@ -521,7 +521,7 @@ export function confirmEmailTemplate({
             <td style="background-color: #ffffff; padding: 40px 40px 8px;">
               <h1 style="${font} margin: 0 0 14px; font-size: 26px; line-height: 1.25; font-weight: 700; color: #0b1220;">Confirm your email</h1>
               <p style="${font} margin: 0 0 28px; font-size: 16px; line-height: 1.6; color: #334155;">
-                You're almost in. Confirm this address to finish creating the AXLON AI account for <strong style="color: #0b1220;">${company}</strong>.
+                You're almost in. Confirm this address to finish creating the Axleyard account for <strong style="color: #0b1220;">${company}</strong>.
               </p>
 
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 20px;">
@@ -547,7 +547,7 @@ export function confirmEmailTemplate({
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td valign="top" width="28" style="${font} padding: 0 0 14px; font-size: 15px; line-height: 1.6; color: #009fe6; font-weight: 700;">1.</td>
-                  <td valign="top" style="${font} padding: 0 0 14px; font-size: 15px; line-height: 1.6; color: #334155;"><strong style="color: #0b1220;">List your inventory.</strong> Trucks, trailers and equipment, with photos and specs, live in minutes.</td>
+                  <td valign="top" style="${font} padding: 0 0 14px; font-size: 15px; line-height: 1.6; color: #334155;"><strong style="color: #0b1220;">List your inventory.</strong> Trucks, trailers and equipment on Axleyard, with photos and specs, live in minutes.</td>
                 </tr>
                 <tr>
                   <td valign="top" width="28" style="${font} padding: 0 0 14px; font-size: 15px; line-height: 1.6; color: #009fe6; font-weight: 700;">2.</td>
@@ -580,8 +580,8 @@ export function confirmEmailTemplate({
           <!-- Footer -->
           <tr>
             <td align="center" style="${font} padding: 24px 16px 0; font-size: 12px; line-height: 1.6; color: #94a3b8;">
-              &copy; ${year} AXLON AI<br>
-              You received this because this address was used to create an AXLON AI account.
+              &copy; ${year} Axleyard &middot; <a href="${base}" style="color: #94a3b8; text-decoration: underline;">axleyard.com</a><br>
+              You received this because this address was used to create an Axleyard account.
             </td>
           </tr>
 
@@ -595,20 +595,20 @@ export function confirmEmailTemplate({
   const text = [
     'Confirm your email',
     '',
-    `You're almost in. Confirm this address to finish creating the AXLON AI account for ${companyName.trim()}.`,
+    `You're almost in. Confirm this address to finish creating the Axleyard account for ${companyName.trim()}.`,
     '',
     `Confirm: ${link}`,
     '',
     "This link works once. If it has expired, sign up again and we'll send a fresh one.",
     '',
     "Once you're in:",
-    '1. List your inventory. Trucks, trailers and equipment, with photos and specs, live in minutes.',
+    '1. List your inventory. Trucks, trailers and equipment on Axleyard, with photos and specs, live in minutes.',
     "2. Capture leads around the clock. AXLON answers buyers' questions day and night and hands you the lead.",
     "3. See what's working. Views, inquiries and sales in one dashboard.",
     '',
     "Didn't create an account? Someone may have typed your address by mistake. Ignore this email and nothing will happen.",
     '',
-    `(c) ${year} AXLON AI`,
+    `(c) ${year} Axleyard - ${base}`,
   ].join('\n');
 
   return { subject, html, text };
