@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
-  EMAIL_FRAME_CSP, buildEmailSrcdoc, emailFrameContent, pickEmailTheme, plainTextToEmailHtml, prepareEmailHtml,
+  EMAIL_FRAME_CSP, buildEmailSrcdoc, emailFrameContent, isAllowedResourceUrl, isDarkTextColor, pickEmailTheme,
+  plainTextToEmailHtml, prepareEmailHtml, safeCssUrls,
 } from '@/components/admin-inbox/email-srcdoc';
 import {
   MAX_ATTACHMENTS, base64Bytes, checkOutgoingAttachments, cleanFilename, firstNameOf, INBOX_SIGNOFF, isLeadStatus, replyScaffold,
 } from '@/lib/email/compose';
-import { buildLeadAlert, leadSourceLabel } from '@/lib/email/lead-inbox';
+import { buildLeadAlert, leadSourceLabel, ownWords } from '@/lib/email/lead-inbox';
 import { exactIlike, sameAddress } from '@/lib/email/lead-link';
 import { draftContextBlock } from '@/lib/ai/email-classifier';
 import { htmlToText } from '@/lib/email/admin-inbox';
@@ -46,6 +47,39 @@ describe('email rendering', () => {
     const out = prepareEmailHtml(html);
     expect(out).toMatch(/Yes, Friday works\.<\/div><details class="quoted"><summary[^>]*>•••<\/summary><div class="gmail_quote">/);
     expect(out).toMatch(/<\/details><div>-- Jim/);
+  });
+
+  it('recognises dark text however it is written', () => {
+    for (const c of ['black', 'navy', '#000 !important', 'rgb(0 0 0)', 'rgba(0, 0, 0, .8)', '#0b5394', 'windowtext']) expect(isDarkTextColor(c)).toBe(true);
+    for (const c of ['white', '#ffffff', 'rgb(240 240 240)', '#7cb7ff', 'inherit']) expect(isDarkTextColor(c)).toBe(false);
+    expect(pickEmailTheme('<font color="#0b5394">Outlook blue</font>')).toBe('paper');
+    expect(pickEmailTheme('<p style="color:#000 !important">x</p>')).toBe('paper');
+    expect(pickEmailTheme('<font color="#ffffff">x</font>')).toBe('plain');
+  });
+
+  it('picks the look from the new message, not the quote folded under it', () => {
+    const reply = '<div>Thanks, Thursday works.</div><div class="gmail_quote"><div>On Mon, Oct 5 Jim wrote:</div><blockquote><table bgcolor="#eeeeee"><tr><td>designed</td></tr></table></blockquote></div>';
+    expect(emailFrameContent(reply, null)?.theme).toBe('plain');
+    expect(emailFrameContent('<table bgcolor="#eee"><tr><td>x</td></tr></table>', null)?.theme).toBe('paper');
+  });
+
+  it('never lets an email request our own URLs with the admin\'s session', () => {
+    const out = prepareEmailHtml(`<p>x</p><img src="/api/seed"><img src="https://cdn.example.com/a.png"><img src="http://plain.example.com/b.png">
+      <img srcset="/api/x 1x, https://cdn.example.com/c.png 2x"><img src="/api/admin/inbox/11111111-1111-4111-8111-111111111111/attachments/att1?email=22222222-2222-4222-8222-222222222222">
+      <div style="background-image:url('/api/seed');color:red">y</div><table background="/api/z"><tr><td>t</td></tr></table>`);
+    expect(out).not.toMatch(/\/api\/seed|\/api\/x|\/api\/z|http:\/\/plain/);
+    expect(out).toContain('src="https://cdn.example.com/a.png"');
+    expect(out).toContain('/attachments/att1?email=');
+    expect(out).toMatch(/background-image:\s*none/);
+    expect((out.match(/loading="lazy"/g) || []).length).toBeGreaterThanOrEqual(2);
+    expect(isAllowedResourceUrl('data:image/png;base64,AAAA')).toBe(true);
+    expect(isAllowedResourceUrl('data:text/html,<script>')).toBe(false);
+    expect(isAllowedResourceUrl('//evil.test/x.png')).toBe(false);
+    expect(safeCssUrls('a{background:url(https://x.test/i.png)} b{background:url("/api/y")}')).toBe('a{background:url(https://x.test/i.png)} b{background:none}');
+  });
+
+  it('measures the whole message (no margin escaping the root)', () => {
+    expect(buildEmailSrcdoc('<p>x</p>', { theme: 'plain', dark: false })).toContain('display: flow-root');
   });
 
   it('does not fold a message that is only a quote', () => {
@@ -149,6 +183,12 @@ describe('leads in the inbox', () => {
     const generic = buildLeadAlert({ ...base, productInterest: null, site: null });
     expect(generic.subject).toBe('Your Axleyard inquiry');
     expect(generic.text.startsWith('(No message')).toBe(true);
+  });
+
+  it('never treats a placeholder as the person\'s own words', () => {
+    expect(ownWords('Lead captured from AI chat widget')).toBeNull();
+    expect(ownWords('  ')).toBeNull();
+    expect(ownWords('Is it still available?')).toBe('Is it still available?');
   });
 
   it('labels lead sources and matches addresses literally', () => {

@@ -28,7 +28,9 @@ export function ComposeDialog({ compose, from, sending, onField, onSend, onClose
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const isReply = !!compose.replyToThreadId;
-  const typed = !!compose.bodyText.trim() && compose.bodyText.trim() !== compose.scaffold?.trim();
+  // Whitespace doesn't count: an extra Enter is not a message.
+  const squash = (v: string | undefined) => (v ?? '').replace(/\s+/g, ' ').trim();
+  const typed = !!squash(compose.bodyText) && squash(compose.bodyText) !== squash(compose.scaffold);
   const canSend = typed && (isReply || !!(compose.to.trim() && compose.subject.trim())) && !sending;
 
   // A reply opens as "Hi <name>, … Best, The Axleyard Team": put the caret
@@ -107,6 +109,9 @@ export function ComposeDialog({ compose, from, sending, onField, onSend, onClose
               autoFocus={isReply}
               className="min-h-[160px] resize-y leading-relaxed"
             />
+            {isReply && !typed && (
+              <p className="text-xs text-muted-foreground">Write your message between the greeting and the sign-off.</p>
+            )}
           </div>
 
           <div>
@@ -131,7 +136,7 @@ export function ComposeDialog({ compose, from, sending, onField, onSend, onClose
                     <button
                       type="button"
                       onClick={() => onRemoveFile(i)}
-                      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground sm:h-7 sm:w-7"
                       aria-label={`Remove ${a.filename}`}
                     >
                       <X className="h-3.5 w-3.5" />
@@ -149,7 +154,7 @@ export function ComposeDialog({ compose, from, sending, onField, onSend, onClose
             >
               <Paperclip className="h-3.5 w-3.5" /> Attach files
             </Button>
-            <span className="ml-2 text-xs text-muted-foreground">PDFs, photos, Office files · up to {MAX_ATTACHMENTS} files, 3 MB</span>
+            <span className="mt-1.5 block text-xs text-muted-foreground sm:ml-2 sm:mt-0 sm:inline">PDFs, photos, Office files · up to {MAX_ATTACHMENTS} files, 3 MB</span>
           </div>
 
           {compose.quotedText && (

@@ -48,13 +48,44 @@ function threadIdFromUrl(): string | null {
   return id && /^[0-9a-f-]{36}$/i.test(id) ? id : null;
 }
 
-function setThreadInUrl(id: string | null) {
-  if (typeof window === 'undefined') return;
+/** Marks the history entry we pushed for an open conversation. */
+const THREAD_HISTORY_KEY = '__inboxThread';
+
+function threadUrl(id: string | null): string {
   const url = new URL(window.location.href);
   if (id) url.searchParams.set('thread', id);
   else url.searchParams.delete('thread');
-  window.history.replaceState(window.history.state, '', url.toString());
+  return url.toString();
 }
+
+/**
+ * Keep ?thread= in step with the open conversation. On a phone, opening one
+ * pushes a history entry, so the system back gesture returns to the list
+ * instead of leaving the inbox; elsewhere the address just updates in place.
+ */
+function setThreadInUrl(id: string | null, mode: 'push' | 'replace' = 'replace') {
+  if (typeof window === 'undefined') return;
+  if (mode === 'push') window.history.pushState({ ...(window.history.state ?? {}), [THREAD_HISTORY_KEY]: id }, '', threadUrl(id));
+  else window.history.replaceState(window.history.state, '', threadUrl(id));
+}
+
+function isPhoneLayout(): boolean {
+  return typeof window !== 'undefined' && !window.matchMedia('(min-width: 1024px)').matches;
+}
+
+/** Same text once whitespace is ignored (an untouched greeting + sign-off). */
+function sameText(a: string | null | undefined, b: string | null | undefined): boolean {
+  return (a ?? '').replace(/\s+/g, ' ').trim() === (b ?? '').replace(/\s+/g, ' ').trim();
+}
+
+/** A type for files the OS left untyped (e.g. .docx on a PC without Office). */
+const EXTENSION_TYPES: Record<string, string> = {
+  pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp',
+  heic: 'image/heic', heif: 'image/heif', txt: 'text/plain', csv: 'text/csv', doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+};
 const SEARCH_DEBOUNCE_MS = 300;
 const POLL_MS = 45_000;
 const PAGE_SIZE = 25;
@@ -71,6 +102,14 @@ export function useAdminInbox() {
   // Each request takes a number; only the latest one may write state.
   const listSeq = useRef(0);
   const detailSeq = useRef(0);
+  // Bumped by every local change to the list (read, star, spam, status…): a
+  // list response requested before it would undo that change on screen.
+  const localEdits = useRef(0);
+  // Which conversation is open / on screen right now, for async callbacks.
+  const selectedIdRef = useRef<string | null>(null);
+  const shownThreadIdRef = useRef<string | null>(null);
+  // Whether the open conversation has a history entry of its own (phones).
+  const pushedThread = useRef(false);
 
   // ── List ──
   const [folder, setFolderState] = useState<InboxFolder>('inbox');
@@ -89,8 +128,10 @@ export function useAdminInbox() {
   const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
   const [emails, setEmails] = useState<Email[]>([]);
   const [lead, setLead] = useState<LeadContext | null>(null);
-  const [leadSaving, setLeadSaving] = useState(false);
-  const [redrafting, setRedrafting] = useState(false);
+  // Busy flags carry the conversation they belong to, so opening another one
+  // never shows it as "Writing…" or disables its buttons.
+  const [leadSavingId, setLeadSavingId] = useState<string | null>(null);
+  const [redraftingId, setRedraftingId] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
@@ -113,6 +154,9 @@ export function useAdminInbox() {
   const [sendingTest, setSendingTest] = useState(false);
   const [enablingReceiving, setEnablingReceiving] = useState(false);
 
+  // Always the latest fetchThreads, for timers and callbacks.
+  const fetchThreadsRef = useRef<(opts?: { silent?: boolean }) => Promise<void>>(async () => {});
+
   // Search debounce → page 1
   useEffect(() => {
     const t = setTimeout(() => {
@@ -124,6 +168,7 @@ export function useAdminInbox() {
 
   const fetchThreads = useCallback(async (opts: { silent?: boolean } = {}) => {
     const seq = ++listSeq.current;
+    const editsAtStart = localEdits.current;
     if (!opts.silent) {
       setLoading(true);
       setError(null);
@@ -135,6 +180,12 @@ export function useAdminInbox() {
       if (!res.ok) throw new Error(await readError(res, 'Failed to load emails'));
       const data = await res.json();
       if (seq !== listSeq.current) return;
+      if (editsAtStart !== localEdits.current) {
+        // Something changed on screen while this was in flight; ask again
+        // rather than paint the older state over it.
+        setTimeout(() => fetchThreadsRef.current({ silent: true }), 0);
+        return;
+      }
       const pages = data.totalPages ?? 1;
       setThreads(data.threads ?? []);
       setTotalPages(pages);
@@ -162,7 +213,6 @@ export function useAdminInbox() {
 
   // New mail shows up without a manual refresh: poll while the tab is
   // visible and nothing is selected for a bulk action.
-  const fetchThreadsRef = useRef(fetchThreads);
   fetchThreadsRef.current = fetchThreads;
   const selectionSize = selectedIds.size;
   useEffect(() => {
@@ -228,15 +278,30 @@ export function useAdminInbox() {
   }, []);
 
   const applyLocal = useCallback((ids: string[], patch: Partial<ThreadListRow>, removeFromFolder = false) => {
+    localEdits.current++;
     setThreads((prev) => removeFromFolder
       ? prev.filter((t) => !ids.includes(t.id))
       : prev.map((t) => ids.includes(t.id) ? { ...t, ...patch } : t));
     setSelectedThread((prev) => prev && ids.includes(prev.id) ? { ...prev, ...(patch as Partial<Thread>) } : prev);
   }, []);
 
-  const selectThread = useCallback(async (id: string) => {
+  const selectThread = useCallback(async (id: string, opts: { push?: boolean } = {}) => {
     const seq = ++detailSeq.current;
+    const switching = shownThreadIdRef.current !== id;
+    selectedIdRef.current = id;
     setSelectedId(id);
+    if (switching) {
+      // Never leave the previous conversation (and its Send / Reply / lead
+      // controls) on screen while another one loads, or after it fails.
+      shownThreadIdRef.current = null;
+      setSelectedThread(null);
+      setEmails([]);
+      setLead(null);
+    }
+    if (opts.push && isPhoneLayout() && !pushedThread.current) {
+      setThreadInUrl(id, 'push');
+      pushedThread.current = true;
+    }
     setDetailLoading(true);
     setDetailError(null);
     try {
@@ -245,6 +310,7 @@ export function useAdminInbox() {
       const data = await res.json();
       if (seq !== detailSeq.current) return; // a newer click owns the pane
       const thread: Thread = data.thread;
+      shownThreadIdRef.current = id;
       setSelectedThread(thread);
       setEmails(data.emails ?? []);
       setLead(data.lead ?? null);
@@ -265,16 +331,48 @@ export function useAdminInbox() {
     }
   }, [patchFlags, applyLocal]);
 
-  const closeDetail = useCallback(() => {
+  /** Forget the open conversation (state only, no address change). */
+  const clearDetail = useCallback(() => {
     detailSeq.current++; // drop any response still in flight
+    selectedIdRef.current = null;
+    shownThreadIdRef.current = null;
     setDetailLoading(false);
     setSelectedId(null);
     setSelectedThread(null);
     setEmails([]);
     setLead(null);
     setDetailError(null);
-    setThreadInUrl(null);
   }, []);
+
+  const closeDetail = useCallback(() => {
+    clearDetail();
+    if (pushedThread.current) {
+      // Step back off the entry we pushed, so history matches the screen.
+      pushedThread.current = false;
+      window.history.back();
+    } else {
+      setThreadInUrl(null);
+    }
+  }, [clearDetail]);
+
+  /** Open a conversation from the list (a history entry of its own on phones). */
+  const openThread = useCallback((id: string) => selectThread(id, { push: true }), [selectThread]);
+
+  // The system back / forward gesture moves between the list and a conversation.
+  useEffect(() => {
+    const onPop = () => {
+      const id = threadIdFromUrl();
+      if (!id) {
+        pushedThread.current = false;
+        clearDetail();
+      } else if (id !== selectedIdRef.current) {
+        pushedThread.current = !!(window.history.state as Record<string, unknown> | null)?.[THREAD_HISTORY_KEY];
+        void selectThread(id);
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [clearDetail, selectThread]);
 
   const toggleStar = useCallback(async (id: string) => {
     const current = threads.find((t) => t.id === id)?.is_starred ?? selectedThread?.is_starred ?? false;
@@ -382,7 +480,13 @@ export function useAdminInbox() {
       const last = latestInbound(replyEmails) ?? replyEmails[replyEmails.length - 1] ?? null;
       // "Hi <name>, … Best, The Axleyard Team" with the caret in between.
       const scaffold = replyScaffold(replyTo.participant_name);
-      setCompose({
+      setCompose((prev) => {
+        // "Close" keeps what was typed: reopen an unsent reply to the same
+        // conversation instead of starting over.
+        const unsent = prev.replyToThreadId === replyTo.id
+          && (!sameText(prev.bodyText, prev.scaffold) || prev.attachments.length > 0);
+        if (unsent) return { ...prev, open: true, caret: undefined };
+        return {
         open: true,
         to: replyTo.participant_email,
         toName: replyTo.participant_name || '',
@@ -393,6 +497,7 @@ export function useAdminInbox() {
         replyToThreadId: replyTo.id,
         quotedText: last ? quoteText(last) || undefined : undefined,
         attachments: [],
+        };
       });
     } else {
       // Reopen a half-written new email rather than wiping it.
@@ -411,7 +516,14 @@ export function useAdminInbox() {
     const picked = Array.from(files);
     const next: OutgoingAttachment[] = [];
     for (const file of picked) {
-      const contentType = file.type || 'application/octet-stream';
+      // Size first: reading a 100 MB file into memory just to refuse it
+      // would stall a phone.
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        toast.error(`${file.name} is over 3 MB`);
+        continue;
+      }
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+      const contentType = file.type || EXTENSION_TYPES[ext] || 'application/octet-stream';
       if (!isAllowedAttachmentType(contentType)) {
         toast.error(`${file.name}: only PDFs, images, text and Office files can be attached`);
         continue;
@@ -448,7 +560,7 @@ export function useAdminInbox() {
     const to = compose.to.trim();
     const subject = compose.subject.trim();
     const body = compose.bodyText.trim();
-    if (!body || body === compose.scaffold?.trim() || (!compose.replyToThreadId && (!to || !subject))) return;
+    if (!body || sameText(body, compose.scaffold) || (!compose.replyToThreadId && (!to || !subject))) return;
     setSending(true);
     try {
       // The server quotes the message being answered under a reply; only
@@ -465,8 +577,11 @@ export function useAdminInbox() {
       setCompose(EMPTY_COMPOSE);
       toast.success(wasReply ? 'Reply sent' : 'Email sent');
       if (wasReply) {
-        applyLocal([wasReply], { status: 'replied', is_unread: false, ...(lead?.status === 'new' ? { lead_status: 'contacted' } : {}) });
-        if (selectedId) selectThread(selectedId);
+        const contacted = lead?.status === 'new';
+        applyLocal([wasReply], { status: 'replied', is_unread: false, ...(contacted ? { lead_status: 'contacted' } : {}) });
+        if (selectedIdRef.current === wasReply) void selectThread(wasReply);
+        // The admin layout's Leads badge counts new leads.
+        if (contacted) router.refresh();
       }
       fetchThreads({ silent: true });
     } catch (err) {
@@ -474,7 +589,7 @@ export function useAdminInbox() {
     } finally {
       setSending(false);
     }
-  }, [compose, selectedId, lead, applyLocal, selectThread, fetchThreads]);
+  }, [compose, lead, applyLocal, selectThread, fetchThreads, router]);
 
   // ── AI draft ──
   const sendAiDraft = useCallback(async (threadId: string, emailId: string) => {
@@ -484,16 +599,19 @@ export function useAdminInbox() {
         method: 'PATCH', headers: JSON_HEADERS, body: JSON.stringify({ useAiDraft: true, emailId }),
       });
       if (!res.ok) throw new Error(await readError(res, 'Failed to send draft'));
-      toast.success('AI draft sent');
+      toast.success('Suggested reply sent');
       applyLocal([threadId], { status: 'replied', is_unread: false });
-      await selectThread(threadId);
+      // Refresh it only if it is still the one open: never pull someone back
+      // to a conversation they have left while this was sending.
+      if (selectedIdRef.current === threadId) await selectThread(threadId);
       fetchThreads({ silent: true });
+      router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to send draft');
     } finally {
       setSending(false);
     }
-  }, [selectThread, fetchThreads, applyLocal]);
+  }, [selectThread, fetchThreads, applyLocal, router]);
 
   const editAiDraft = useCallback((thread: Thread, email: Email) => {
     const draft = email.ai_draft_text || email.ai_draft_html?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || '';
@@ -512,24 +630,24 @@ export function useAdminInbox() {
 
   /** Ask the AI for a fresh suggested reply to the newest message. */
   const regenerateDraft = useCallback(async (threadId: string) => {
-    setRedrafting(true);
+    setRedraftingId(threadId);
     try {
       const res = await csrfFetch(`/api/admin/inbox/${threadId}/draft`, { method: 'POST', headers: JSON_HEADERS });
       if (!res.ok) throw new Error(await readError(res, 'Could not write a new draft'));
       const data: { email: Email } = await res.json();
       setEmails((prev) => prev.map((e) => (e.id === data.email.id ? data.email : e)));
-      toast.success('New draft ready');
+      if (selectedIdRef.current === threadId) toast.success('New draft ready');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not write a new draft');
     } finally {
-      setRedrafting(false);
+      setRedraftingId((cur) => (cur === threadId ? null : cur));
     }
   }, []);
 
   // ── Lead ──
   const setLeadStatus = useCallback(async (threadId: string, status: LeadStatus) => {
     const seq = detailSeq.current;
-    setLeadSaving(true);
+    setLeadSavingId(threadId);
     try {
       const res = await csrfFetch(`/api/admin/inbox/${threadId}`, {
         method: 'PATCH', headers: JSON_HEADERS, body: JSON.stringify({ leadStatus: status }),
@@ -541,13 +659,15 @@ export function useAdminInbox() {
       applyLocal([threadId], { lead_status: status });
       // Moving a lead past "new" clears its "new lead" alert from Unread.
       fetchThreads({ silent: true });
-      toast.success(`Lead marked ${status}`);
+      // The admin layout's Leads badge counts new leads.
+      router.refresh();
+      toast.success(`Lead moved to ${status.charAt(0).toUpperCase()}${status.slice(1)}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not update the lead');
     } finally {
-      setLeadSaving(false);
+      setLeadSavingId((cur) => (cur === threadId ? null : cur));
     }
-  }, [applyLocal, fetchThreads]);
+  }, [applyLocal, fetchThreads, router]);
 
   // ── Test email ──
   const sendTest = useCallback(async () => {
@@ -598,25 +718,30 @@ export function useAdminInbox() {
   }, [selectThread]);
 
   // Unread count in the browser tab, so new mail is visible from other tabs.
-  // The page's own title comes back when you leave the inbox. (This effect
-  // must stay above the next one: it captures the title before it changes.)
-  useEffect(() => {
-    const previous = document.title;
-    return () => { document.title = previous; };
-  }, []);
+  // Nothing is restored on leaving: the next page sets its own title.
   useEffect(() => {
     const base = 'Email inbox · Admin';
-    document.title = counts.unread > 0 ? `(${counts.unread}) ${base}` : base;
+    const wanted = counts.unread > 0 ? `(${counts.unread}) ${base}` : base;
+    const apply = () => { if (document.title !== wanted) document.title = wanted; };
+    apply();
+    // Next.js writes the page's metadata title after hydration (and on
+    // navigation), which would quietly replace this one; put it back.
+    const observer = new MutationObserver(apply);
+    observer.observe(document.head, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
   }, [counts.unread]);
 
   return {
     folder, setFolder, threads, loading, error, search, setSearch, page, setPage, totalPages, total, counts,
     refresh: () => fetchThreads(),
-    selectedId, selectedThread, emails, detailLoading, detailError, selectThread, closeDetail,
+    selectedId, selectedThread, emails, detailLoading, detailError, selectThread, openThread, closeDetail,
     toggleStar, markUnread, setSpam, requestDelete, cancelDelete, confirmDelete, pendingDelete,
     selectedIds, toggleSelect, selectAllOnPage, clearSelection, bulk, bulkActing,
-    sendAiDraft, editAiDraft, regenerateDraft, redrafting,
-    lead, leadSaving, setLeadStatus,
+    sendAiDraft, editAiDraft, regenerateDraft,
+    redrafting: !!redraftingId && redraftingId === selectedId,
+    lead,
+    leadSaving: !!leadSavingId && leadSavingId === selectedId,
+    setLeadStatus,
     addAttachments, removeAttachment,
     autoReplyEnabled, autoReplyLoading, setAutoReply,
     compose, setComposeField, openCompose, closeCompose, discardCompose, sending, handleSend,

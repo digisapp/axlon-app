@@ -571,8 +571,15 @@ export const AdminInboxService = {
       // A lead alert is our own summary of a web form; quote only what the
       // person wrote on it, never the details block around it.
       const alert = (lastInbound?.metadata as EmailMetadata & { message?: string | null } | null) ?? null;
+      // Whoever filled in the form need not own the address, so their typed
+      // name and any links are not repeated in mail from our domain.
       quote = alert?.kind === 'lead_alert'
-        ? buildQuote(lastInbound ? { ...lastInbound, text_body: alert.message || null, html_body: null } : null)
+        ? buildQuote(lastInbound ? {
+            ...lastInbound,
+            from_name: null,
+            text_body: alert.message ? alert.message.replace(/\b(?:https?:\/\/|www\.)\S+/gi, '[link removed]') : null,
+            html_body: null,
+          } : null)
         : buildQuote(lastInbound);
     }
 
@@ -993,8 +1000,10 @@ export const AdminInboxService = {
     await db().from('emails').update({ ...fields, ai_processed_at: new Date().toISOString() }).eq('id', emailId);
   },
 
+  /** null when the setting has never been saved; throws when it can't be read. */
   async getSetting(key: InboxSettingKey): Promise<boolean | null> {
-    const { data } = await db().from('platform_settings').select('value').eq('key', key).maybeSingle();
+    const { data, error } = await db().from('platform_settings').select('value').eq('key', key).maybeSingle();
+    if (error) throw error;
     if (!data) return null;
     // JSONB: stored as true/false or the strings "true"/"false".
     return data.value === true || data.value === 'true';

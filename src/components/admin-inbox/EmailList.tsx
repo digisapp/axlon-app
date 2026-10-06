@@ -51,7 +51,8 @@ export function EmailList({ threads, folder, selectedId, onSelect, onToggleStar,
         const who = counterpart(thread);
         const cat = thread.ai_category ? AI_CATEGORY_LABELS[thread.ai_category] : null;
         const st = STATUS_LABELS[thread.status];
-        const showStatus = thread.status === 'replied' || thread.status === 'received';
+        // A lead chip already says the conversation is new; "Replied" still adds something.
+        const showStatus = thread.status === 'replied' || (thread.status === 'received' && !thread.lead_status && !thread.is_lead_alert);
         const sentOnly = thread.outbound_count > 0 && !['received', 'read', 'replied'].includes(thread.status);
 
         return (
@@ -84,8 +85,9 @@ export function EmailList({ threads, folder, selectedId, onSelect, onToggleStar,
                 {thread.subject || '(no subject)'}
                 {thread.message_count > 1 && <span className="ml-1.5 text-xs font-normal text-muted-foreground">{thread.message_count}</span>}
               </p>
-              <div className="mt-0.5 flex items-center gap-1.5 pl-4">
-                <p className="flex-1 truncate text-xs text-muted-foreground">
+              {/* Wraps on a phone: chips go to a second line instead of under the star. */}
+              <div className="mt-0.5 flex flex-wrap items-center gap-1.5 pl-4">
+                <p className="min-w-0 flex-1 basis-40 truncate text-xs text-muted-foreground">
                   {thread.last_direction === 'outbound' && <span className="text-muted-foreground/70">You: </span>}
                   {thread.last_preview || ''}
                 </p>
@@ -93,7 +95,7 @@ export function EmailList({ threads, folder, selectedId, onSelect, onToggleStar,
                 {thread.is_test && <Chip tone="bg-muted text-muted-foreground">Test</Chip>}
                 {thread.lead_status ? (
                   <Chip tone={LEAD_STATUS_TONES[thread.lead_status] ?? LEAD_STATUS_TONES.new}>
-                    {thread.is_lead_alert && thread.lead_status === 'new' ? 'New lead' : `Lead · ${thread.lead_status}`}
+                    {thread.is_lead_alert && thread.lead_status === 'new' ? 'New lead' : `Lead · ${thread.lead_status.charAt(0).toUpperCase()}${thread.lead_status.slice(1)}`}
                   </Chip>
                 ) : thread.is_lead_alert ? (
                   <Chip tone="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Lead</Chip>

@@ -12,7 +12,13 @@ import { recordLeadInInbox, redraftLatest } from '@/lib/email/lead-inbox';
 import { AdminInboxService } from '@/lib/email/admin-inbox';
 import { getInboundAddress, threadReplyAddress } from '@/lib/email/inbound-address';
 
-const AXLONAI_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'sales@axlon.ai';
+// Trimmed: a value pasted into the host's env UI can carry a trailing newline.
+const AXLONAI_ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'sales@axlon.ai').trim();
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL?.trim() || 'https://axleyard.com').replace(/\/+$/, '');
+
+// Scoring, the instant reply and (after the response) the inbox draft are
+// three model calls; give them room.
+export const maxDuration = 90;
 
 // Validation schema for lead creation
 const createLeadSchema = z.object({
@@ -226,9 +232,11 @@ export async function POST(request: NextRequest) {
 
     // Send dealer notification + AI buyer auto-reply in parallel
     if (process.env.RESEND_API_KEY) {
-      const dashboardUrl = isAxlonAILead
-        ? `${process.env.NEXT_PUBLIC_APP_URL}/admin/leads`
-        : `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/leads`;
+      // Platform leads are worked in the admin inbox: link straight to the
+      // conversation. Dealer leads go to the dealer's dashboard as before.
+      const dashboardUrl = platformLead
+        ? (inboxThreadId ? `${APP_URL}/admin/email?thread=${inboxThreadId}` : `${APP_URL}/admin/leads`)
+        : `${APP_URL}/dashboard/leads`;
 
       const dealerNotificationHtml = `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -250,13 +258,13 @@ export async function POST(request: NextRequest) {
           ` : ''}
 
           <p style="background: #e8f5e9; padding: 12px 16px; border-radius: 6px; color: #2e7d32; font-size: 14px;">
-            ✓ AI drafted a response — review it in your AI Inbox
+            ${platformLead ? '✓ It is in the admin inbox with a suggested reply' : '✓ AI drafted a response — review it in your AI Inbox'}
           </p>
 
           <p>
             <a href="${dashboardUrl}"
                style="display: inline-block; background: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
-              View in ${isAxlonAILead ? 'Admin Panel' : 'Dashboard'}
+              ${platformLead ? 'Answer it in the inbox' : 'View in Dashboard'}
             </a>
           </p>
         </div>
@@ -303,8 +311,11 @@ export async function POST(request: NextRequest) {
             leadPriority: priority,
           });
 
-          // Always save to AI inbox for full audit trail
-          await supabase.from('ai_inbox_items').insert({
+          // Dealer leads: save to the dealer's AI inbox for the audit trail
+          // and approval. Axleyard's own listings are worked in the admin
+          // inbox instead; a pending item here would let the same buyer be
+          // answered a second time, with a Reply-To that receives nothing.
+          if (!sellerIsAdmin) await supabase.from('ai_inbox_items').insert({
             dealer_id: sellerId,
             lead_id: lead.id,
             channel: 'form',
@@ -384,7 +395,8 @@ export async function POST(request: NextRequest) {
     // reply already answered them).
     if (inboxThreadId && !instantReplySent) {
       after(async () => {
-        await redraftLatest(inboxThreadId).catch((err) => logger.error('Lead inbox draft failed', { error: err, leadId: lead.id }));
+        const drafted = await redraftLatest(inboxThreadId).catch((err) => ({ ok: false as const, error: String(err), status: 503 as const }));
+        if (!drafted.ok) logger.warn('Lead inbox draft not written', { leadId: lead.id, reason: drafted.error });
       });
     }
 

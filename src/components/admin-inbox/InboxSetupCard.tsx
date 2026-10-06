@@ -56,9 +56,12 @@ export function InboxSetupCard({ status, loading, onRecheck, onSendTest, sending
   if (status.ready) {
     return (
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 dark:border-green-900 dark:bg-green-950/40">
-        <p className="flex items-center gap-2 text-sm text-green-800 dark:text-green-300">
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
-          Receiving is on for <span className="font-mono">{status.inboundDomain}</span>. Replies go out as {status.from}.
+        <p className="flex min-w-0 items-start gap-2 text-sm text-green-800 dark:text-green-300">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+          {/* One inline run of text, so it wraps as a sentence on a phone. */}
+          <span className="min-w-0 break-words">
+            Receiving is on for <span className="font-mono">{status.inboundDomain}</span>. Replies go out as {status.from}.
+          </span>
         </p>
         <Button size="sm" variant="outline" onClick={onSendTest} disabled={sendingTest}>
           {sendingTest ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}

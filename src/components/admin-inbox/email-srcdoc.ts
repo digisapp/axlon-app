@@ -22,17 +22,25 @@ export type EmailTheme = 'plain' | 'paper';
 
 const NEUTRAL_BACKGROUND = /^(transparent|none|inherit|initial|unset|white|#fff|#ffffff|rgba?\(\s*255\s*,\s*255\s*,\s*255\s*(,\s*[\d.]+\s*)?\)|rgba\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0\s*\))$/;
 
+/** Named colours dark enough to vanish on a dark surface. */
+const DARK_NAMED = new Set([
+  'black', 'windowtext', 'navy', 'darkblue', 'midnightblue', 'maroon', 'darkred', 'darkgreen', 'darkslategray',
+  'darkslategrey', 'dimgray', 'dimgrey', 'indigo', 'purple', 'darkmagenta', 'darkolivegreen', 'saddlebrown', 'brown',
+  'teal', 'darkcyan', 'green', 'olive', 'blue', 'mediumblue', 'darkviolet', 'firebrick', 'sienna',
+]);
+
 /** A text colour too dark to read on a dark surface. */
-function isDarkTextColor(value: string): boolean {
-  const v = value.trim().toLowerCase();
-  if (v === 'black' || v === 'windowtext') return true;
+export function isDarkTextColor(value: string): boolean {
+  const v = value.replace(/!important/gi, '').trim().toLowerCase();
+  if (DARK_NAMED.has(v)) return true;
   const hex = v.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
   if (hex) {
     const h = hex[1].length === 3 ? hex[1].split('').map((c) => c + c).join('') : hex[1];
     const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
     return 0.299 * r + 0.587 * g + 0.114 * b < 110;
   }
-  const rgb = v.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  // rgb(0,0,0), rgb(0 0 0), rgba(0, 0, 0, .8)
+  const rgb = v.match(/^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/);
   if (rgb) return 0.299 * +rgb[1] + 0.587 * +rgb[2] + 0.114 * +rgb[3] < 110;
   return false;
 }
@@ -50,7 +58,9 @@ export function pickEmailTheme(html: string): EmailTheme {
   for (const m of h.matchAll(/(?<![-\w])color\s*:\s*([^;"']+)/g)) {
     if (isDarkTextColor(m[1])) return 'paper';
   }
-  if (/<font\b[^>]*\scolor\s*=\s*["']?(black|#000)/.test(h)) return 'paper';
+  for (const m of h.matchAll(/<font\b[^>]*\scolor\s*=\s*["']?([^"'\s>]+)/g)) {
+    if (isDarkTextColor(m[1])) return 'paper';
+  }
   return 'plain';
 }
 
@@ -85,6 +95,21 @@ export function plainTextToEmailHtml(text: string): string {
 /** Elements that have no business in a rendered email, removed with their content. */
 const DROP_SELECTOR = 'script, noscript, iframe, frame, frameset, object, embed, applet, meta, base, link, form, input, button, select, textarea, svg script';
 const QUOTE_SELECTOR = '.gmail_quote, blockquote[type="cite"], #divRplyFwdMsg, #appendonsend, .yahoo_quoted, blockquote';
+
+/** Our own inline-image route (see EmailDetailView's cid: rewrite). */
+const ATTACHMENT_PATH = /^\/api\/admin\/inbox\/[0-9a-f-]{36}\/attachments\/[^/?#\s]+\?email=[0-9a-f-]{36}$/i;
+
+/** A resource an email may load: absolute https, data:, or our attachment route. */
+export function isAllowedResourceUrl(value: string, list = false): boolean {
+  const urls = list ? value.split(',').map((part) => part.trim().split(/\s+/)[0]).filter(Boolean) : [value.trim()];
+  return urls.length > 0 && urls.every((u) => /^https:\/\//i.test(u) || /^data:image\//i.test(u) || ATTACHMENT_PATH.test(u) || /^cid:/i.test(u));
+}
+
+/** url(...) in CSS keeps only absolute https / data: targets. */
+export function safeCssUrls(css: string): string {
+  return css.replace(/url\(\s*(['"]?)(.*?)\1\s*\)/gi, (whole, _q: string, target: string) =>
+    /^https:\/\//i.test(target) || /^data:image\//i.test(target) ? whole : 'none');
+}
 
 function isBlank(node: Node): boolean {
   if (node.nodeType === 3) return !(node.textContent || '').trim();
@@ -192,8 +217,24 @@ export function prepareEmailHtml(html: string): string {
     el.setAttribute('target', '_blank');
     el.setAttribute('rel', 'noopener noreferrer');
   });
+  // Resources: only absolute https (or data:) URLs, plus our own attachment
+  // route for inline images. The frame shares the admin's origin, so a
+  // relative src would be a request to the admin API with the admin's
+  // cookies. Images load lazily so a dead image host can't hold the frame
+  // at its initial height.
+  for (const el of Array.from(root.querySelectorAll('[src], [srcset], [background], [poster]'))) {
+    for (const name of ['src', 'srcset', 'background', 'poster']) {
+      const value = el.getAttribute(name);
+      if (value !== null && !isAllowedResourceUrl(value, name === 'srcset')) el.removeAttribute(name);
+    }
+  }
+  root.querySelectorAll('img').forEach((img) => img.setAttribute('loading', 'lazy'));
+  root.querySelectorAll('[style]').forEach((el) => el.setAttribute('style', safeCssUrls(el.getAttribute('style') || '')));
   // Styles the email ships in <head> are kept: designed mail depends on them.
-  const headStyles = Array.from(doc.head.querySelectorAll('style')).map((s) => s.outerHTML).join('');
+  const headStyles = Array.from(doc.head.querySelectorAll('style'))
+    .map((st) => `<style>${safeCssUrls(st.textContent || '')}</style>`)
+    .join('');
+  root.querySelectorAll('style').forEach((st) => { st.textContent = safeCssUrls(st.textContent || ''); });
   try { foldQuoted(doc, root); } catch { /* render unfolded */ }
   try { trimTrailingBlank(root); } catch { /* render untrimmed */ }
   return headStyles + root.innerHTML;
@@ -211,7 +252,9 @@ const BASE_CSS = `
     word-wrap: break-word;
     overflow-wrap: anywhere;
   }
-  #email-root { max-width: 760px; }
+  /* flow-root: the last element's bottom margin and any floats stay inside
+     the box, so the measured height is the whole message. */
+  #email-root { max-width: 760px; display: flow-root; }
   #email-root > :first-child { margin-top: 0; }
   img { max-width: 100%; height: auto; }
   img[width="1"], img[height="1"], img[width="0"], img[height="0"] { display: none !important; }
@@ -311,7 +354,15 @@ export function buildEmailSrcdoc(innerHtml: string, opts: { theme: EmailTheme; d
 export function emailFrameContent(html: string | null | undefined, text: string | null | undefined): { inner: string; theme: EmailTheme } | null {
   if (html && html.trim()) {
     const inner = prepareEmailHtml(html);
-    return { inner, theme: pickEmailTheme(inner) };
+    // The look follows the new message, not the folded quote under it (a
+    // quoted Outlook mail would otherwise turn a typed reply into "paper").
+    let own = inner;
+    if (typeof DOMParser !== 'undefined') {
+      const d = new DOMParser().parseFromString(`<body>${inner}</body>`, 'text/html');
+      d.querySelectorAll('details.quoted').forEach((el) => el.remove());
+      own = d.body.innerHTML;
+    }
+    return { inner, theme: pickEmailTheme(own) };
   }
   if (text && text.trim()) return { inner: plainTextToEmailHtml(text), theme: 'plain' };
   return null;

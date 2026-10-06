@@ -82,7 +82,8 @@ export function LeadCard({ lead, saving, onSetStatus }: LeadCardProps) {
             disabled={saving}
             onChange={(e) => onSetStatus(e.target.value as LeadStatus)}
             className={cn(
-              'h-8 rounded-md border-0 px-2 text-xs font-medium capitalize focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60',
+              // 16px and 40px tall on phones: iOS zooms into smaller fields.
+              'h-10 rounded-md border-0 px-2 text-base font-medium capitalize focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60 sm:h-8 sm:text-xs',
               LEAD_STATUS_TONES[lead.status] ?? LEAD_STATUS_TONES.new,
             )}
             aria-label="Lead status"
@@ -106,7 +107,7 @@ export function LeadCard({ lead, saving, onSetStatus }: LeadCardProps) {
           </a>
         </div>
       ) : (
-        <p className="mt-2 text-xs text-muted-foreground">No phone number on file. The suggested reply asks for one.</p>
+        <p className="mt-2 text-xs text-muted-foreground">No phone number on file. Ask for one when you reply.</p>
       )}
     </section>
   );

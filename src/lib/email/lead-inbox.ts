@@ -14,7 +14,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { logger } from '@/lib/logger';
 import { classifyAndDraftReply, type DraftContext } from '@/lib/ai/email-classifier';
 import { AdminInboxService, type EmailMetadata, type EmailRow } from './admin-inbox';
-import { getInboundAddress, isValidEmail } from './inbound-address';
+import { getInboundAddress, isOurInboundAddress, isValidEmail } from './inbound-address';
 import { exactIlike, isPlatformLeadOwner, sameAddress } from './lead-link';
 import { isLikelySpam } from './spam';
 
@@ -94,14 +94,34 @@ function location(l: Pick<ListingRow, 'city' | 'state'> | null): string | null {
   return l ? [l.city, l.state].filter(Boolean).join(', ') || null : null;
 }
 
-async function loadLead(leadId: string): Promise<{ lead: LeadRow; listing: ListingRow | null; site: { name: string; domain: string } | null } | null> {
+/**
+ * Text some lead routes store in `message` when the person typed nothing
+ * (the chat widget). It is not their words, so it is never shown or quoted
+ * as if they wrote it.
+ */
+const PLACEHOLDER_MESSAGES = new Set(['lead captured from ai chat widget']);
+
+export function ownWords(message: string | null | undefined): string | null {
+  const m = message?.trim();
+  return m && !PLACEHOLDER_MESSAGES.has(m.toLowerCase()) ? m : null;
+}
+
+type SiteRow = { name: string; domain: string; lead_recipient_email: string | null };
+type LoadedLead = { lead: LeadRow; listing: ListingRow | null; site: SiteRow | null };
+
+async function loadLead(leadId: string): Promise<LoadedLead | null> {
   const supabase = createAdminClient();
-  const { data: lead } = await supabase
+  const { data: lead, error } = await supabase
     .from('leads')
     .select('id, user_id, listing_id, microsite_id, buyer_name, buyer_email, buyer_phone, message, status, source, product_interest, created_at')
     .eq('id', leadId)
     .maybeSingle();
+  if (error) {
+    logger.error('Inbox: could not load lead', { error, leadId });
+    return null;
+  }
   if (!lead) return null;
+  lead.message = ownWords(lead.message as string | null);
   const [{ data: listing }, { data: site }] = await Promise.all([
     lead.listing_id
       ? supabase
@@ -111,16 +131,31 @@ async function loadLead(leadId: string): Promise<{ lead: LeadRow; listing: Listi
           .maybeSingle()
       : Promise.resolve({ data: null }),
     lead.microsite_id
-      ? supabase.from('microsites').select('name, domain').eq('id', lead.microsite_id).maybeSingle()
+      ? supabase.from('microsites').select('name, domain, lead_recipient_email').eq('id', lead.microsite_id).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
-  return { lead: lead as LeadRow, listing: (listing as ListingRow | null) ?? null, site: (site as { name: string; domain: string } | null) ?? null };
+  return { lead: lead as LeadRow, listing: (listing as ListingRow | null) ?? null, site: (site as SiteRow | null) ?? null };
+}
+
+/**
+ * Whether a lead is worked in the admin inbox: a platform lead (see
+ * lead-link.ts), and not a microsite lead whose site forwards its leads to
+ * someone else's mailbox (they answer it; two replies would be one too many).
+ */
+async function belongsInInbox(loaded: LoadedLead): Promise<boolean> {
+  if (!(await isPlatformLeadOwner(loaded.lead.user_id))) return false;
+  const recipient = loaded.site?.lead_recipient_email?.trim().toLowerCase();
+  if (recipient) {
+    const admin = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+    if (recipient !== admin && !isOurInboundAddress(recipient)) return false;
+  }
+  return true;
 }
 
 /** The lead card's data, or null when the lead is gone or is a dealer's. */
 export async function loadLeadContext(leadId: string): Promise<LeadContext | null> {
   const loaded = await loadLead(leadId);
-  if (!loaded || !(await isPlatformLeadOwner(loaded.lead.user_id))) return null;
+  if (!loaded || !(await belongsInInbox(loaded))) return null;
   const { lead, listing, site } = loaded;
   return {
     id: lead.id,
@@ -152,7 +187,7 @@ export async function loadLeadContext(leadId: string): Promise<LeadContext | nul
 export async function draftContextFor(leadId: string | null | undefined): Promise<DraftContext | null> {
   if (!leadId) return null;
   const loaded = await loadLead(leadId).catch(() => null);
-  if (!loaded || !(await isPlatformLeadOwner(loaded.lead.user_id))) return null;
+  if (!loaded || !(await belongsInInbox(loaded))) return null;
   const { lead, listing, site } = loaded;
   return {
     lead: {
@@ -234,7 +269,7 @@ export async function recordLeadInInbox(leadId: string, opts: { draft?: boolean 
     const { lead, listing, site } = loaded;
     const email = (lead.buyer_email || '').trim().toLowerCase();
     if (!isValidEmail(email)) return null;
-    if (!(await isPlatformLeadOwner(lead.user_id))) return null;
+    if (!(await belongsInInbox(loaded))) return null;
 
     const { data: existing } = await supabase
       .from('emails')
@@ -242,6 +277,22 @@ export async function recordLeadInInbox(leadId: string, opts: { draft?: boolean 
       .contains('metadata', { kind: 'lead_alert', lead_id: lead.id })
       .limit(1);
     if (existing && existing.length > 0) return existing[0].thread_id as string;
+
+    // A resubmit (double tap, a retry, the form and the chat sending the same
+    // thing) is the same person saying the same thing within minutes: keep
+    // the conversation that is already there instead of a second one.
+    const since = new Date(new Date(lead.created_at).getTime() - 10 * 60 * 1000).toISOString();
+    const { data: recent } = await supabase
+      .from('emails')
+      .select('thread_id, metadata')
+      .eq('from_email', email)
+      .eq('direction', 'inbound')
+      .contains('metadata', { kind: 'lead_alert' })
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(5);
+    const repeat = (recent ?? []).find((r) => ((r.metadata as { message?: string | null } | null)?.message ?? null) === (lead.message?.slice(0, 4000) ?? null));
+    if (repeat) return repeat.thread_id as string;
 
     const alert = buildLeadAlert({
       name: lead.buyer_name,
@@ -318,7 +369,10 @@ export async function recordLeadInInbox(leadId: string, opts: { draft?: boolean 
       return null;
     }
 
-    if (opts.draft !== false && !spam && process.env.XAI_API_KEY) {
+    // A lead with nothing to answer (a chat widget capture: no message, no
+    // listing) gets a draft only when someone asks for one.
+    const worthDrafting = !!lead.message || !!listing;
+    if (opts.draft !== false && worthDrafting && !spam && process.env.XAI_API_KEY) {
       try {
         const context = await draftContextFor(lead.id);
         const result = await classifyAndDraftReply(

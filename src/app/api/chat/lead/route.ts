@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse, after } from 'next/server';
 import { recordLeadInInbox } from '@/lib/email/lead-inbox';
+
+// Writing the lead into the admin inbox runs after the response.
+export const maxDuration = 60;
 import { timingSafeEqual } from 'crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email/resend';

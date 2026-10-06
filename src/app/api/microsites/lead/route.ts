@@ -10,7 +10,10 @@ import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
-const FALLBACK_LEAD_EMAIL = process.env.ADMIN_EMAIL || 'sales@axlon.ai';
+const FALLBACK_LEAD_EMAIL = (process.env.ADMIN_EMAIL || 'sales@axlon.ai').trim();
+
+// The inbox draft runs after the response (one model call).
+export const maxDuration = 60;
 
 const leadSchema = z.object({
   microsite_id: z.string().uuid(),

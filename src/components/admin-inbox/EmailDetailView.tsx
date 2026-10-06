@@ -52,9 +52,11 @@ function resolveInlineImages(html: string | null, threadId: string, msg: Email):
   });
 }
 
-function Message({ msg, thread, isLast, isLatestInbound, sending, redrafting, onUseAiDraft, onEditAiDraft, onRegenerateDraft }: {
+function Message({ msg, thread, hasLeadCard, isLast, isLatestInbound, sending, redrafting, onUseAiDraft, onEditAiDraft, onRegenerateDraft }: {
   msg: Email;
   thread: Thread;
+  /** The lead card above already shows the form's details. */
+  hasLeadCard: boolean;
   isLast: boolean;
   /** The newest message from the other person: the one a draft answers. */
   isLatestInbound: boolean;
@@ -94,8 +96,8 @@ function Message({ msg, thread, isLast, isLatestInbound, sending, redrafting, on
               {msg.metadata?.auto_sent && <Chip tone="bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300"><Zap className="mr-1 h-3 w-3" />Auto-sent</Chip>}
               {msg.metadata?.test && <Chip tone="bg-muted text-muted-foreground">Test</Chip>}
               {leadAlert && (
-                <span title="Written into the inbox when they filled in a form. Replying emails them.">
-                  <Chip tone="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"><UserPlus className="mr-1 h-3 w-3" />New lead</Chip>
+                <span title="Written into the inbox when they filled in a form on the site. Replying emails them.">
+                  <Chip tone="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"><UserPlus className="mr-1 h-3 w-3" />Web form</Chip>
                 </span>
               )}
               {forged && (
@@ -113,10 +115,12 @@ function Message({ msg, thread, isLast, isLatestInbound, sending, redrafting, on
                 </a>
               )}
             </div>
-            <p className="truncate text-xs text-muted-foreground">
-              {leadAlert ? 'From a form on the site' : <>To: {msg.to_name ? `${msg.to_name} <${msg.to_email}>` : msg.to_email}</>}
-              {cc.length > 0 && ` · Cc: ${cc.join(', ')}`}
-            </p>
+            {!leadAlert && (
+              <p className="truncate text-xs text-muted-foreground">
+                To: {msg.to_name ? `${msg.to_name} <${msg.to_email}>` : msg.to_email}
+                {cc.length > 0 && ` · Cc: ${cc.join(', ')}`}
+              </p>
+            )}
           </div>
         </div>
         <time dateTime={msg.created_at} className="shrink-0 text-xs text-muted-foreground">{formatFullDate(msg.created_at)}</time>
@@ -130,7 +134,15 @@ function Message({ msg, thread, isLast, isLatestInbound, sending, redrafting, on
       )}
 
       <div className="overflow-hidden rounded-xl border">
-        <SandboxedEmail html={resolveInlineImages(msg.html_body, thread.id, msg)} text={msg.text_body} />
+        <SandboxedEmail
+          html={resolveInlineImages(msg.html_body, thread.id, msg)}
+          // With the lead card showing name, phone and listing, a lead alert
+          // only needs what the person wrote; without it (lead deleted) the
+          // stored details are all there is.
+          text={leadAlert && hasLeadCard
+            ? ((msg.metadata as { message?: string | null } | null)?.message || 'They left only their contact details.')
+            : msg.text_body}
+        />
       </div>
 
       {attachments.length > 0 && (
@@ -171,7 +183,7 @@ function Message({ msg, thread, isLast, isLatestInbound, sending, redrafting, on
             <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-200">
               <Bot className="h-3.5 w-3.5" /> Suggested reply
             </span>
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               <Button
                 size="sm"
                 variant="ghost"
@@ -191,7 +203,8 @@ function Message({ msg, thread, isLast, isLatestInbound, sending, redrafting, on
             </div>
           </div>
           {msg.ai_draft_text ? (
-            <p className="line-clamp-6 whitespace-pre-wrap text-sm leading-relaxed">{msg.ai_draft_text}</p>
+            // Shown in full: "Send as is" must never send text nobody saw.
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.ai_draft_text}</p>
           ) : (
             <div className="rounded-lg bg-background p-2"><SandboxedEmail html={msg.ai_draft_html} /></div>
           )}
@@ -284,6 +297,7 @@ export function EmailDetailView({
             key={msg.id}
             msg={msg}
             thread={thread}
+            hasLeadCard={!!lead}
             isLast={i === emails.length - 1}
             isLatestInbound={msg.id === latestInboundId}
             sending={sending}

@@ -160,7 +160,9 @@ async function main() {
     const leadThreadId = platformLead ? await recordLeadInInbox(platformLead.id, { draft: false }) : null;
     if (leadThreadId) created.push(leadThreadId);
     check('a platform lead becomes a conversation', !!leadThreadId);
-    check('recording it again is a no-op (same conversation)', !!leadThreadId && (await recordLeadInInbox(platformLead!.id, { draft: false })) === leadThreadId);
+    const again = platformLead ? await recordLeadInInbox(platformLead.id, { draft: false }) : null;
+    if (again && again !== leadThreadId) created.push(again);
+    check('recording it again is a no-op (same conversation)', !!leadThreadId && again === leadThreadId);
     let lt = leadThreadId ? await AdminInboxService.getThread(leadThreadId) : null;
     const alert = lt?.emails[0];
     check('it is unread, linked to the lead, from the buyer, flagged as a lead alert', !!lt && lt.thread.is_unread && lt.thread.lead_id === platformLead?.id && lt.thread.participant_email === buyer && alert?.metadata?.kind === 'lead_alert', lt?.thread);
@@ -212,26 +214,58 @@ async function main() {
     if (annMail) created.push(annMail.thread.id);
     check('an email from someone who filled in a form is linked to their lead (case-insensitive)', annMail?.thread.lead_id === lead2?.id, annMail?.thread.lead_id);
 
+    // A double submit (same person, same words, minutes apart) keeps one conversation.
+    const { data: dupLead } = await supabase.from('leads').insert({ buyer_name: 'jim walker', buyer_email: buyer, message: `Is the lowboy still available? (${tag})`, source: 'website', status: 'new' }).select('id').single();
+    if (dupLead) createdLeads.push(dupLead.id);
+    const dupThread = dupLead ? await recordLeadInInbox(dupLead.id, { draft: false }) : null;
+    if (dupThread && dupThread !== leadThreadId) created.push(dupThread);
+    check('a resubmitted lead joins the existing conversation instead of a second one', !!dupThread && dupThread === leadThreadId, { dupThread, leadThreadId });
+
+    // The chat widget stores a placeholder as the "message"; it is never shown as their words.
+    const { data: chatLead } = await supabase.from('leads').insert({ buyer_name: 'Chat Person', buyer_email: `delivered+${tag}-chat@resend.dev`, message: 'Lead captured from AI chat widget', source: 'chat', status: 'new' }).select('id').single();
+    if (chatLead) createdLeads.push(chatLead.id);
+    const chatThread = chatLead ? await recordLeadInInbox(chatLead.id) : null;
+    if (chatThread) created.push(chatThread);
+    const chatData = chatThread ? await AdminInboxService.getThread(chatThread) : null;
+    const chatAlert = chatData?.emails[0];
+    check('a chat lead shows no placeholder as their words, and gets no automatic draft', !!chatAlert && !/Lead captured from AI chat widget/.test(chatAlert.text_body || '') && ((chatAlert.metadata as { message?: string | null })?.message ?? null) === null && !chatAlert.ai_draft_text, { text: chatAlert?.text_body?.slice(0, 60), draft: chatAlert?.ai_draft_text });
+
     // A dealer's lead never comes into the admin inbox.
     const { data: dealer } = await supabase.from('profiles').select('id').eq('is_admin', false).not('id', 'is', null).limit(1).single();
     const { data: dealerLead } = dealer
       ? await supabase.from('leads').insert({ user_id: dealer.id, buyer_name: 'Dealer Buyer', buyer_email: `delivered+${tag}-dealer@resend.dev`, source: 'contact_form', status: 'new' }).select('id').single()
       : { data: null };
     if (dealerLead) createdLeads.push(dealerLead.id);
-    check("a dealer's lead is not written into the admin inbox", !!dealerLead && (await recordLeadInInbox(dealerLead.id, { draft: false })) === null);
+    const dealerThread = dealerLead ? await recordLeadInInbox(dealerLead.id, { draft: false }) : null;
+    if (dealerThread) created.push(dealerThread);
+    check("a dealer's lead is not written into the admin inbox", !!dealerLead && dealerThread === null);
     check("and its details are not shown on a lead card", !!dealerLead && (await loadLeadContext(dealerLead.id)) === null);
   } finally {
-    // 10. Clean up everything this run created
-    if (createdLeads.length) {
-      await supabase.from('leads').delete().in('id', createdLeads);
-      const { count: lc } = await supabase.from('leads').select('id', { count: 'exact', head: true }).in('id', createdLeads);
-      check('cleanup removed the test leads', (lc ?? 0) === 0, { lc });
+    // 10. Clean up everything this run created. Each step on its own, so a
+    // failure in one never leaves the other's rows behind; anything tagged
+    // with this run's id is swept as well, in case a check bailed early.
+    try {
+      const { data: tagged } = await supabase.from('email_threads').select('id').ilike('participant_email', `%${tag}%`);
+      for (const t of tagged ?? []) if (!created.includes(t.id as string)) created.push(t.id as string);
+      if (created.length) {
+        await AdminInboxService.bulk('delete', created);
+        const { count } = await supabase.from('emails').select('id', { count: 'exact', head: true }).in('thread_id', created);
+        const { count: tc } = await supabase.from('email_threads').select('id', { count: 'exact', head: true }).in('id', created);
+        check('cleanup removed the test threads and their emails', (count ?? 0) === 0 && (tc ?? 0) === 0, { count, tc });
+      }
+    } catch (err) {
+      check('cleanup of test threads', false, String(err));
     }
-    if (created.length) {
-      await AdminInboxService.bulk('delete', created);
-      const { count } = await supabase.from('emails').select('id', { count: 'exact', head: true }).in('thread_id', created);
-      const { count: tc } = await supabase.from('email_threads').select('id', { count: 'exact', head: true }).in('id', created);
-      check('cleanup removed the test threads and their emails', (count ?? 0) === 0 && (tc ?? 0) === 0, { count, tc });
+    try {
+      const { data: taggedLeads } = await supabase.from('leads').select('id').ilike('buyer_email', `%${tag}%`);
+      for (const l of taggedLeads ?? []) if (!createdLeads.includes(l.id as string)) createdLeads.push(l.id as string);
+      if (createdLeads.length) {
+        await supabase.from('leads').delete().in('id', createdLeads);
+        const { count: lc } = await supabase.from('leads').select('id', { count: 'exact', head: true }).in('id', createdLeads);
+        check('cleanup removed the test leads', (lc ?? 0) === 0, { lc });
+      }
+    } catch (err) {
+      check('cleanup of test leads', false, String(err));
     }
   }
   console.log(failures === 0 ? '\nALL CHECKS PASSED' : `\n${failures} CHECK(S) FAILED`);

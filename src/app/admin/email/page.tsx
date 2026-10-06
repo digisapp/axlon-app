@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Bot, ChevronLeft, ChevronRight, Info, Inbox as InboxIcon, Loader2, Mail, MailOpen, Plus, RefreshCw, Search,
   ShieldAlert, ShieldCheck, Star, StarOff, Trash2, X,
@@ -22,6 +22,19 @@ import { EmailList, EmailDetailView, ComposeDialog, InboxSetupCard, FOLDERS } fr
 
 export default function AdminEmailPage() {
   const d = useAdminInbox();
+  // On a phone the open conversation replaces the list below the header,
+  // banner, folders and search; bring it into view instead of leaving it
+  // a screen further down.
+  const paneRef = useRef<HTMLDivElement>(null);
+  // Runs again once the conversation (and the setup banner above it) has
+  // loaded, since both push the pane down after the first scroll.
+  const openThreadId = d.selectedThread?.id ?? null;
+  const statusLoaded = !!d.status;
+  useEffect(() => {
+    if (!d.selectedId || !paneRef.current) return;
+    if (window.matchMedia('(min-width: 1024px)').matches) return;
+    paneRef.current.scrollIntoView({ block: 'start' });
+  }, [d.selectedId, openThreadId, statusLoaded]);
   const [showAutoReplyInfo, setShowAutoReplyInfo] = useState(false);
   const [confirmEnable, setConfirmEnable] = useState(false);
 
@@ -135,7 +148,7 @@ export default function AdminEmailPage() {
         </div>
       )}
 
-      <Card className="overflow-hidden p-0">
+      <Card ref={paneRef} className="scroll-mt-20 overflow-hidden p-0">
         <div className="flex lg:h-[calc(100vh-21rem)] lg:min-h-[520px]">
           {/* List pane */}
           <div className={cn('w-full shrink-0 lg:w-[400px] lg:overflow-y-auto lg:border-r', d.selectedId ? 'hidden lg:block' : '')}>
@@ -179,7 +192,7 @@ export default function AdminEmailPage() {
                   threads={d.threads}
                   folder={d.folder}
                   selectedId={d.selectedId}
-                  onSelect={d.selectThread}
+                  onSelect={d.openThread}
                   onToggleStar={d.toggleStar}
                   selectedIds={d.selectedIds}
                   onToggleSelect={d.toggleSelect}

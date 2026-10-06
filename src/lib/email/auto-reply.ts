@@ -67,6 +67,8 @@ export async function sendAutoReply(
     threadId: string;
     /** Resend's id of the inbound message: the idempotency key, so one message gets one reply. */
     resendEmailId?: string | null;
+    /** The draft was written with lead/listing context: never sent unreviewed. */
+    draftUsedContext?: boolean;
     headers?: Record<string, string | string[] | undefined | null> | null;
   },
 ): Promise<{ sent: boolean; reason?: string; outboundId?: string | null }> {
@@ -101,6 +103,8 @@ export async function sendAutoReply(
   if ((recentOutbound ?? 0) > 0) {
     return { sent: false, reason: 'auto-reply suppressed: we already replied on this thread in the last 24h' };
   }
+
+  if (original.draftUsedContext) return { sent: false, reason: 'auto-reply suppressed: draft was written with lead context' };
 
   // 1. Platform toggle (off unless an admin turned it on, with confirmation).
   const enabled = await AdminInboxService.getSetting('ai_auto_reply_enabled');

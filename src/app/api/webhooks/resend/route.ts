@@ -263,9 +263,10 @@ export async function POST(request: NextRequest) {
           // else's address, and a draft that may go out unreviewed must not
           // carry what they typed. "New draft" adds the context on demand.
           const autoReplyOn = await AdminInboxService.getSetting('ai_auto_reply_enabled').catch(() => true);
+          const context = autoReplyOn ? null : await draftContextFor(thread.lead_id).catch(() => null);
           const classification = await classifyAndDraftReply(
             { fromEmail: from, fromName, subject, bodyText: text, bodyHtml: html },
-            autoReplyOn ? null : await draftContextFor(thread.lead_id).catch(() => null),
+            context,
           );
           await AdminInboxService.updateAiFields(email.id, {
             ai_category: classification.category,
@@ -280,6 +281,9 @@ export async function POST(request: NextRequest) {
             threadId: thread.id,
             resendEmailId: emailId,
             headers,
+            // If auto-reply was switched on after this draft was written, the
+            // draft may carry lead context: it waits for a person instead.
+            draftUsedContext: !!context,
           });
           if (!auto.sent) logger.info('No auto-reply', { emailId: email.id, reason: auto.reason });
         } catch (err) {
