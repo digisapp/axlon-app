@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
     const signals = botSignals({
       name: validatedData.name,
       message: validatedData.message,
+      email: validatedData.email,
       honeypot: validatedData.website,
       startedAt: validatedData.startedAt,
     });

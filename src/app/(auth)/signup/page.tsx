@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { HONEYPOT_FIELD } from '@/lib/leads/form-guard';
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
@@ -34,9 +35,12 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  // When the form was first shown: a submission seconds later is a bot.
+  const startedAt = useRef<number>(Date.now());
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    const honeypot = (new FormData(e.currentTarget as HTMLFormElement).get(HONEYPOT_FIELD) as string) || '';
     setIsLoading(true);
     setError('');
 
@@ -60,6 +64,8 @@ export default function SignupPage() {
           email: formData.email,
           password: formData.password,
           companyName: formData.companyName,
+          website: honeypot,
+          startedAt: startedAt.current,
           ...(redirect && { redirect }),
         }),
       });
@@ -171,6 +177,11 @@ export default function SignupPage() {
           </div>
 
           <form onSubmit={handleSignup} className="space-y-4">
+            {/* Honeypot: hidden from people, filled in by bots. */}
+            <div aria-hidden="true" className="absolute -left-[9999px] top-0 h-0 w-0 overflow-hidden">
+              <label htmlFor="signup-website">Website</label>
+              <input id="signup-website" name={HONEYPOT_FIELD} type="text" tabIndex={-1} autoComplete="off" defaultValue="" />
+            </div>
             {error && (
               <div role="alert" className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
                 {error}

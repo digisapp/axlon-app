@@ -4,6 +4,7 @@ import { confirmEmailTemplate } from '@/lib/email/templates';
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
+import { botSignals } from '@/lib/leads/form-guard';
 import { z } from 'zod';
 
 const signupSchema = z.object({
@@ -17,6 +18,10 @@ const signupSchema = z.object({
     .max(500)
     .regex(/^\/(?![\/\\])/, 'Redirect must be a same-site path')
     .optional(),
+  /** Honeypot: real people never see this field. */
+  website: z.string().max(200).optional().or(z.literal('')),
+  /** Date.now() when the form was first shown. */
+  startedAt: z.number().int().nonnegative().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -35,6 +40,24 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, password, companyName, redirect } = parsed.data;
+
+    // Since September, bots have been signing up with a random company name
+    // and a stranger's address so that "Confirm your AXLON AI account" lands
+    // on that person (26 of the 27 signups in the 60 days to 2026-10-06). A
+    // submission that looks like that is acknowledged and dropped: no account,
+    // no email, and the bot learns nothing. Same posture as the contact form.
+    const signals = botSignals({
+      name: null,
+      message: null,
+      company: companyName,
+      email,
+      honeypot: parsed.data.website,
+      startedAt: parsed.data.startedAt,
+    });
+    if (signals.length > 0) {
+      logger.warn('Signup dropped as automated', { signals, emailDomain: email.split('@')[1] ?? null });
+      return NextResponse.json({ success: true });
+    }
 
     const supabase = createAdminClient();
 
