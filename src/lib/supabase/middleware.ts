@@ -13,6 +13,19 @@ function applySecurityHeaders(response: NextResponse) {
   return response;
 }
 
+/**
+ * The sign-in page, told where to come back to: the whole destination, path
+ * and query (e.g. /admin/email?thread=<id> from a link), not just the path.
+ * The login page only follows same-site relative paths.
+ */
+function loginRedirect(request: NextRequest): URL {
+  const url = request.nextUrl.clone();
+  url.pathname = '/login';
+  url.search = '';
+  url.searchParams.set('redirect', `${request.nextUrl.pathname}${request.nextUrl.search}`);
+  return url;
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -41,10 +54,7 @@ export async function updateSession(request: NextRequest) {
 
   if (!hasAuthCookie) {
     if (isProtectedRoute) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/login';
-      url.searchParams.set('redirect', request.nextUrl.pathname);
-      return NextResponse.redirect(url);
+      return NextResponse.redirect(loginRedirect(request));
     }
     return applySecurityHeaders(supabaseResponse);
   }
@@ -78,10 +88,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (isProtectedRoute && !user) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    url.searchParams.set('redirect', request.nextUrl.pathname);
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(loginRedirect(request));
   }
 
   // Admin routes - require admin role
