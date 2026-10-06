@@ -421,6 +421,10 @@ export const contactFormSchema = z.object({
   subject: z.string().max(100).optional().or(z.literal('')),
   message: z.string().min(1, 'Message is required').max(5000, 'Message too long'),
   plan: z.string().max(50).optional().or(z.literal('')),
+  /** Honeypot: real people never see this field. */
+  website: z.string().max(200).optional().or(z.literal('')),
+  /** Date.now() when the form was first shown. */
+  startedAt: z.number().int().nonnegative().optional(),
 });
 
 // Trade-in request validation

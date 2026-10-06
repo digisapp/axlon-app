@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { HONEYPOT_FIELD } from '@/lib/leads/form-guard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
@@ -15,6 +16,8 @@ interface ContactFormProps {
 export function ContactForm({ defaultSubject, defaultPlan, defaultMessage }: ContactFormProps) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  // When the form was first shown: a submission seconds later is a bot.
+  const startedAt = useRef<number>(Date.now());
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -32,6 +35,8 @@ export function ContactForm({ defaultSubject, defaultPlan, defaultMessage }: Con
       subject: formData.get('subject') as string,
       message: formData.get('message') as string,
       plan: defaultPlan || '',
+      website: (formData.get(HONEYPOT_FIELD) as string) || '',
+      startedAt: startedAt.current,
     };
 
     try {
@@ -88,6 +93,11 @@ export function ContactForm({ defaultSubject, defaultPlan, defaultMessage }: Con
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Honeypot: hidden from people, filled in by bots. */}
+      <div aria-hidden="true" className="absolute -left-[9999px] top-0 h-0 w-0 overflow-hidden">
+        <label htmlFor="contact-website">Website</label>
+        <input id="contact-website" name={HONEYPOT_FIELD} type="text" tabIndex={-1} autoComplete="off" defaultValue="" />
+      </div>
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
           <label htmlFor="name" className="block text-sm font-medium mb-1.5">

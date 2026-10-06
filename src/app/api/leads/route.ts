@@ -11,6 +11,7 @@ import { logger } from '@/lib/logger';
 import { recordLeadInInbox, redraftLatest } from '@/lib/email/lead-inbox';
 import { AdminInboxService } from '@/lib/email/admin-inbox';
 import { getInboundAddress, threadReplyAddress } from '@/lib/email/inbound-address';
+import { instantReplyBlockedReason } from '@/lib/leads/instant-reply-guard';
 
 // Trimmed: a value pasted into the host's env UI can carry a trailing newline.
 const AXLONAI_ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'sales@axlon.ai').trim();
@@ -331,7 +332,15 @@ export async function POST(request: NextRequest) {
             status: autoReply.autoSend ? 'approved' : 'pending',
           });
 
-          if (autoReply.autoSend) {
+          // The reply goes to whatever address the form carried, so nobody
+          // may be made to receive it on demand: one per address per day,
+          // never an automated or SMS-gateway address, never with a link.
+          const blocked = autoReply.autoSend
+            ? await instantReplyBlockedReason({ to: buyer_email, message: message || null, excludeLeadId: lead.id })
+            : null;
+          if (blocked) logger.info('Instant reply withheld', { leadId: lead.id, reason: blocked });
+
+          if (autoReply.autoSend && !blocked) {
             // High confidence — send immediately
             emailTasks.push({
               kind: 'buyer_auto_reply',

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { HONEYPOT_FIELD } from '@/lib/leads/form-guard';
 import Link from 'next/link';
 import { SUPPORT_EMAIL } from '@/lib/contact';
 import { Button } from '@/components/ui/button';
@@ -70,6 +71,9 @@ const initialForm: FormData = {
 export default function ApplyPage() {
   const [form, setForm] = useState<FormData>(initialForm);
   const [submitting, setSubmitting] = useState(false);
+  // When the form was first shown: a submission seconds later is a bot.
+  const startedAt = useRef<number>(Date.now());
+  const [website, setWebsite] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
 
@@ -125,6 +129,8 @@ Phone: ${form.phone || 'Not provided'}
           subject: 'AI Transformation Application',
           message,
           plan: 'transformation',
+          website,
+          startedAt: startedAt.current,
         }),
       });
 
@@ -201,6 +207,11 @@ Phone: ${form.phone || 'Not provided'}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Honeypot: hidden from people, filled in by bots. */}
+            <div aria-hidden="true" className="absolute -left-[9999px] top-0 h-0 w-0 overflow-hidden">
+              <label htmlFor="apply-website">Website</label>
+              <input id="apply-website" name={HONEYPOT_FIELD} type="text" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+            </div>
             {/* Contact Info */}
             <div className="bg-card border rounded-xl p-5 md:p-6 space-y-4">
               <h2 className="font-semibold text-base">Your Information</h2>
