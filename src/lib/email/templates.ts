@@ -59,7 +59,7 @@ export function newMessageEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/axlonai-logo.png" alt="AXLON AI" height="40" style="height: 40px;">
+            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
           </div>
 
           <h1 style="font-size: 24px; margin-bottom: 16px;">New Message</h1>
@@ -108,7 +108,7 @@ export function listingPublishedEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/axlonai-logo.png" alt="AXLON AI" height="40" style="height: 40px;">
+            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
           </div>
 
           <h1 style="font-size: 24px; margin-bottom: 16px;">Your Listing is Live!</h1>
@@ -161,7 +161,7 @@ export function welcomeEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/axlonai-logo.png" alt="AXLON AI" height="40" style="height: 40px;">
+            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
           </div>
 
           <h1 style="font-size: 24px; margin-bottom: 16px;">Welcome to AXLON AI!</h1>
@@ -216,7 +216,7 @@ export function inquiryReceivedEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/axlonai-logo.png" alt="AXLON AI" height="40" style="height: 40px;">
+            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
           </div>
 
           <h1 style="font-size: 24px; margin-bottom: 16px;">New Inquiry Received!</h1>
@@ -270,7 +270,7 @@ export function newChatConversationEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/axlonai-logo.png" alt="AXLON AI" height="40" style="height: 40px;">
+            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
           </div>
 
           <h1 style="font-size: 24px; margin-bottom: 16px;">New Chat on Your Storefront</h1>
@@ -326,7 +326,7 @@ export function chatLeadCapturedEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/axlonai-logo.png" alt="AXLON AI" height="40" style="height: 40px;">
+            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
           </div>
 
           <div style="background-color: #10b981; color: white; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 24px;">
@@ -416,7 +416,7 @@ export function savedSearchAlertEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/axlonai-logo.png" alt="AXLON AI" height="40" style="height: 40px;">
+            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
           </div>
 
           <h1 style="font-size: 24px; margin-bottom: 16px;">${newListingsCount} New Matches!</h1>
@@ -451,57 +451,158 @@ export function savedSearchAlertEmail({
   `;
 }
 
+/**
+ * The signup confirmation. Returns subject, HTML and a plain-text alternative;
+ * the caller passes all three to sendEmail.
+ *
+ * Built as nested tables with inline styles so it renders the same in
+ * Outlook, Gmail and Apple Mail; dark header band so the chrome emblem reads;
+ * the small email copy of the mark (80 KB) rather than the 2.8 MB site logo.
+ */
 export function confirmEmailTemplate({
   companyName,
   confirmationUrl,
 }: {
   companyName: string;
   confirmationUrl: string;
-}) {
-  return `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      </head>
-      <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
-        <div style="${containerStyles} background-color: white; border-radius: 12px;">
-          <div style="${headerStyles}">
-            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/axlonai-logo.png" alt="AXLON AI" height="40" style="height: 40px;">
-          </div>
+}): { subject: string; html: string; text: string } {
+  const base = (process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com').replace(/\/$/, '');
+  // sanitizeUrl() returns '' for javascript:/data: links and otherwise an
+  // attribute-escaped string (slashes become &#x2F;), which is right for an
+  // href and wrong everywhere a person reads the URL. Keep the raw link for
+  // the visible fallback and the plain-text version, only if it passed.
+  const href = sanitizeUrl(confirmationUrl);
+  const link = href ? confirmationUrl.trim() : '';
+  const company = escapeHtml(companyName.trim());
+  const year = new Date().getFullYear();
+  const font = "font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;";
 
-          <h1 style="font-size: 24px; margin-bottom: 16px;">Confirm Your Email</h1>
+  const subject = 'Confirm your AXLON AI account';
 
-          <p>Hi ${escapeHtml(companyName)},</p>
+  const html = `<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="x-apple-disable-message-reformat">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>${subject}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #eef1f5; ${font}">
+  <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all; font-size: 1px; line-height: 1px; color: #eef1f5;">
+    One click finishes setting up your AXLON AI account.&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
+  </div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #eef1f5;">
+    <tr>
+      <td align="center" style="padding: 32px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 560px; margin: 0 auto;">
 
-          <p>Thanks for creating your account on AXLON AI. Please confirm your email address to get started:</p>
+          <!-- Header -->
+          <tr>
+            <td align="center" style="background-color: #0b1220; border-radius: 14px 14px 0 0; padding: 32px 24px 28px;">
+              <img src="${base}/images/email/axlon-mark.png" width="62" height="72" alt="" style="display: block; width: 62px; height: 72px; border: 0; margin: 0 auto 14px;">
+              <div style="${font} font-size: 22px; font-weight: 800; letter-spacing: 0.22em; color: #ffffff; line-height: 1;">AXLON</div>
+              <div style="${font} font-size: 11px; font-weight: 600; letter-spacing: 0.18em; color: #7dd3fc; line-height: 1; margin-top: 8px;">AI FOR HEAVY EQUIPMENT DEALERS</div>
+            </td>
+          </tr>
 
-          <p style="text-align: center; margin: 32px 0;">
-            <a href="${sanitizeUrl(confirmationUrl)}" style="${buttonStyles}">
-              Confirm Email Address
-            </a>
-          </p>
+          <!-- Body -->
+          <tr>
+            <td style="background-color: #ffffff; padding: 40px 40px 8px;">
+              <h1 style="${font} margin: 0 0 14px; font-size: 26px; line-height: 1.25; font-weight: 700; color: #0b1220;">Confirm your email</h1>
+              <p style="${font} margin: 0 0 28px; font-size: 16px; line-height: 1.6; color: #334155;">
+                You're almost in. Confirm this address to finish creating the AXLON AI account for <strong style="color: #0b1220;">${company}</strong>.
+              </p>
 
-          <h3>What you can do on AXLON AI:</h3>
-          <ul style="color: #666;">
-            <li>List your trucks, trailers, and equipment</li>
-            <li>Get AI-powered leads from interested buyers</li>
-            <li>Track views, inquiries, and sales analytics</li>
-            <li>Set up your branded storefront with AI chat</li>
-          </ul>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 20px;">
+                <tr>
+                  <td align="center" style="background-color: #009fe6; border-radius: 10px; mso-padding-alt: 16px 36px;">
+                    <a href="${href}" target="_blank" style="${font} display: inline-block; padding: 16px 36px; font-size: 16px; font-weight: 700; line-height: 1; color: #ffffff; text-decoration: none; border-radius: 10px;">
+                      Confirm email
+                    </a>
+                  </td>
+                </tr>
+              </table>
 
-          <p style="color: #666; font-size: 14px;">
-            If you didn't create this account, you can safely ignore this email.
-          </p>
+              <p style="${font} margin: 0 0 32px; font-size: 13px; line-height: 1.6; color: #64748b;">
+                This link works once. If it has expired, sign up again and we'll send a fresh one.
+              </p>
 
-          <div style="${footerStyles}">
-            <p>&copy; ${new Date().getFullYear()} AXLON AI. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr><td style="border-top: 1px solid #e2e8f0; font-size: 0; line-height: 0;">&nbsp;</td></tr>
+              </table>
+
+              <p style="${font} margin: 28px 0 14px; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #64748b;">Once you're in</p>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td valign="top" width="28" style="${font} padding: 0 0 14px; font-size: 15px; line-height: 1.6; color: #009fe6; font-weight: 700;">1.</td>
+                  <td valign="top" style="${font} padding: 0 0 14px; font-size: 15px; line-height: 1.6; color: #334155;"><strong style="color: #0b1220;">List your inventory.</strong> Trucks, trailers and equipment, with photos and specs, live in minutes.</td>
+                </tr>
+                <tr>
+                  <td valign="top" width="28" style="${font} padding: 0 0 14px; font-size: 15px; line-height: 1.6; color: #009fe6; font-weight: 700;">2.</td>
+                  <td valign="top" style="${font} padding: 0 0 14px; font-size: 15px; line-height: 1.6; color: #334155;"><strong style="color: #0b1220;">Capture leads around the clock.</strong> AXLON answers buyers' questions day and night and hands you the lead.</td>
+                </tr>
+                <tr>
+                  <td valign="top" width="28" style="${font} padding: 0 0 8px; font-size: 15px; line-height: 1.6; color: #009fe6; font-weight: 700;">3.</td>
+                  <td valign="top" style="${font} padding: 0 0 8px; font-size: 15px; line-height: 1.6; color: #334155;"><strong style="color: #0b1220;">See what's working.</strong> Views, inquiries and sales in one dashboard.</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Fallback link + safety note -->
+          <tr>
+            <td style="background-color: #ffffff; border-radius: 0 0 14px 14px; padding: 20px 40px 36px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr><td style="border-top: 1px solid #e2e8f0; font-size: 0; line-height: 0;">&nbsp;</td></tr>
+              </table>
+              <p style="${font} margin: 24px 0 6px; font-size: 13px; line-height: 1.6; color: #64748b;">Button not working? Paste this link into your browser:</p>
+              <p style="margin: 0 0 24px; font-family: Menlo, Consolas, 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #475569; word-break: break-all;">
+                <a href="${href}" target="_blank" style="color: #009fe6; text-decoration: underline;">${escapeHtml(link)}</a>
+              </p>
+              <p style="${font} margin: 0; font-size: 13px; line-height: 1.6; color: #64748b;">
+                Didn't create an account? Someone may have typed your address by mistake. Ignore this email and nothing will happen.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="${font} padding: 24px 16px 0; font-size: 12px; line-height: 1.6; color: #94a3b8;">
+              &copy; ${year} AXLON AI<br>
+              You received this because this address was used to create an AXLON AI account.
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const text = [
+    'Confirm your email',
+    '',
+    `You're almost in. Confirm this address to finish creating the AXLON AI account for ${companyName.trim()}.`,
+    '',
+    `Confirm: ${link}`,
+    '',
+    "This link works once. If it has expired, sign up again and we'll send a fresh one.",
+    '',
+    "Once you're in:",
+    '1. List your inventory. Trucks, trailers and equipment, with photos and specs, live in minutes.',
+    "2. Capture leads around the clock. AXLON answers buyers' questions day and night and hands you the lead.",
+    "3. See what's working. Views, inquiries and sales in one dashboard.",
+    '',
+    "Didn't create an account? Someone may have typed your address by mistake. Ignore this email and nothing will happen.",
+    '',
+    `(c) ${year} AXLON AI`,
+  ].join('\n');
+
+  return { subject, html, text };
 }
 
 export function scraOutreachEmail({
@@ -537,7 +638,7 @@ export function scraOutreachEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="https://axleyard.com/images/axlonai-logo.png" alt="AXLON AI" height="40" style="height: 40px;">
+            <img src="https://axleyard.com/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
           </div>
 
           <h1 style="font-size: 22px; margin-bottom: 16px; color: #1a1a1a;">
@@ -635,7 +736,7 @@ export function newLeadEmail({
       <body style="${baseStyles} background-color: #f5f5f5; margin: 0; padding: 20px;">
         <div style="${containerStyles} background-color: white; border-radius: 12px;">
           <div style="${headerStyles}">
-            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/axlonai-logo.png" alt="AXLON AI" height="40" style="height: 40px;">
+            <img src="${process.env.NEXT_PUBLIC_APP_URL}/images/email/axlon-mark.png" alt="AXLON AI" width="34" height="40" style="width: 34px; height: 40px;">
           </div>
 
           <div style="background-color: #0066cc; color: white; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 24px;">

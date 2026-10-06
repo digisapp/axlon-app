@@ -93,11 +93,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Send branded confirmation email via Resend
-    await sendEmail({
-      to: email,
-      subject: 'Confirm your AXLON AI account',
-      html: confirmEmailTemplate({ companyName, confirmationUrl }),
-    });
+    const { subject, html, text } = confirmEmailTemplate({ companyName, confirmationUrl });
+    await sendEmail({ to: email, subject, html, text });
 
     return NextResponse.json({ success: true });
   } catch (err) {
