@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { SUPPORT_EMAIL } from '@/lib/contact';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, CheckCircle, Loader2, MailX } from 'lucide-react';
@@ -68,8 +69,8 @@ function UnsubscribeContent() {
           <p className="text-center text-sm text-muted-foreground">
             This unsubscribe link is missing or has an invalid token. Please use
             the unsubscribe link from a recent Axleyard email, or contact{' '}
-            <a href="mailto:sales@axlon.ai" className="underline hover:text-foreground">
-              sales@axlon.ai
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="underline hover:text-foreground">
+              {SUPPORT_EMAIL}
             </a>{' '}
             and we&apos;ll remove you manually.
           </p>
@@ -90,7 +91,7 @@ function UnsubscribeContent() {
             {status === 'error' && (
               <p role="alert" className="text-sm text-destructive text-center">
                 Something went wrong. Please try again or email{' '}
-                <a href="mailto:sales@axlon.ai" className="underline">sales@axlon.ai</a>.
+                <a href={`mailto:${SUPPORT_EMAIL}`} className="underline">{SUPPORT_EMAIL}</a>.
               </p>
             )}
           </div>

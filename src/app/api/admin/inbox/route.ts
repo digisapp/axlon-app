@@ -3,13 +3,14 @@ import { withAdmin, AuthContext } from '@/lib/auth/with-auth';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { logAdminAction } from '@/lib/admin/check-admin';
 import { AdminInboxService, idList, isBulkAction, isInboxFolder } from '@/lib/email/admin-inbox';
+import { checkOutgoingAttachments } from '@/lib/email/compose';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
  * GET    /api/admin/inbox?folder=inbox|unread|starred|sent|spam&search=&page=&limit=
- * POST   /api/admin/inbox   — compose { to, toName?, subject, bodyText } or reply { replyToThreadId, bodyText }
+ * POST   /api/admin/inbox   — compose { to, toName?, subject, bodyText, attachments? } or reply { replyToThreadId, bodyText, attachments? }
  * PUT    /api/admin/inbox   — bulk { ids, action }
  * DELETE /api/admin/inbox   — bulk delete { ids }
  */
@@ -48,6 +49,8 @@ export const POST = withAdmin(
     if (!replyToThreadId && (!to.trim() || !subject.trim())) {
       return NextResponse.json({ error: 'To, subject and message are required' }, { status: 400 });
     }
+    const files = checkOutgoingAttachments(body.attachments);
+    if (!files.ok) return NextResponse.json({ error: files.error }, { status: 400 });
 
     const result = await AdminInboxService.sendNewEmail({
       to,
@@ -56,6 +59,7 @@ export const POST = withAdmin(
       bodyText,
       replyToThreadId,
       userId: user.id,
+      attachments: files.files,
     });
 
     if (!result.success) {
@@ -66,6 +70,7 @@ export const POST = withAdmin(
       emailId: result.emailId,
       to: to.trim().toLowerCase() || undefined,
       subject: subject.trim().slice(0, 200) || undefined,
+      attachments: files.files.map((f) => f.filename),
     }).catch(() => { /* audit is best-effort */ });
 
     return NextResponse.json({ success: true, emailId: result.emailId, threadId: result.threadId });

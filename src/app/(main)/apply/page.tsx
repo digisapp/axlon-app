@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { SUPPORT_EMAIL } from '@/lib/contact';
 import { Button } from '@/components/ui/button';
 import { csrfFetch } from '@/lib/csrf-fetch';
 import {
@@ -130,7 +131,7 @@ Phone: ${form.phone || 'Not provided'}
       if (!res.ok) throw new Error('Submission failed');
       setSubmitted(true);
     } catch {
-      setError('Something went wrong. Please email us directly at sales@axlon.ai');
+      setError(`Something went wrong. Please email us directly at ${SUPPORT_EMAIL}`);
     } finally {
       setSubmitting(false);
     }
@@ -485,10 +486,10 @@ Phone: ${form.phone || 'Not provided'}
               <p className="text-sm text-muted-foreground mb-3">
                 Reach us directly at{' '}
                 <a
-                  href="mailto:sales@axlon.ai"
+                  href={`mailto:${SUPPORT_EMAIL}`}
                   className="text-primary hover:underline"
                 >
-                  sales@axlon.ai
+                  {SUPPORT_EMAIL}
                 </a>
               </p>
               <Button variant="outline" size="sm" className="w-full rounded-full" asChild>

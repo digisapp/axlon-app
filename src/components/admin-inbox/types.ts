@@ -4,7 +4,21 @@ import type {
 } from '@/lib/email/admin-inbox';
 import { TONE } from '@/components/admin/tones';
 
-export type { InboxStatus, BulkAction, InboxFolder, EmailAttachmentMeta };
+import type { LeadContext } from '@/lib/email/lead-inbox';
+import type { LeadStatus } from '@/lib/email/compose';
+
+export type { InboxStatus, BulkAction, InboxFolder, EmailAttachmentMeta, LeadContext, LeadStatus };
+export { LEAD_STATUSES } from '@/lib/email/compose';
+
+/** Lead status chips, same colours as /admin/leads. */
+export const LEAD_STATUS_TONES: Record<string, string> = {
+  new: TONE.blue,
+  contacted: TONE.yellow,
+  qualified: TONE.green,
+  negotiating: TONE.purple,
+  won: TONE.emerald,
+  lost: TONE.gray,
+};
 export type Thread = ThreadRow;
 export type ThreadListRow = ThreadListItem;
 export type Email = EmailRow;
@@ -100,7 +114,12 @@ export function latestInbound(emails: Email[]): Email | null {
 
 /** Plain-text form of an email body for quoting under a reply. */
 export function quoteText(email: Email): string {
-  const text = email.text_body || email.html_body?.replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || '';
+  // A lead alert is our summary of a web form: quote only what they wrote.
+  const alert = email.metadata?.kind === 'lead_alert';
+  const own = alert ? ((email.metadata as { message?: string | null } | null)?.message ?? '') : null;
+  const text = alert
+    ? own || ''
+    : email.text_body || email.html_body?.replace(/<!--[\s\S]*?-->/g, '').replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || '';
   if (!text) return '';
   const who = email.from_name || email.from_email;
   return `--- On ${formatFullDate(email.created_at)}, ${who} wrote: ---\n${text.slice(0, 4000)}`;

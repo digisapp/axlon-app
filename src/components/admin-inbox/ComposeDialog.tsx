@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { ChevronDown, ChevronUp, Loader2, Send, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronDown, ChevronUp, Loader2, Paperclip, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { ComposeState } from '@/hooks/useAdminInbox';
+import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS, base64Bytes } from '@/lib/email/compose';
+import { formatBytes } from './types';
 
 interface ComposeDialogProps {
   compose: ComposeState;
@@ -17,12 +19,30 @@ interface ComposeDialogProps {
   onSend: () => void;
   onClose: () => void;
   onDiscard: () => void;
+  onAddFiles: (_files: FileList) => void;
+  onRemoveFile: (_index: number) => void;
 }
 
-export function ComposeDialog({ compose, from, sending, onField, onSend, onClose, onDiscard }: ComposeDialogProps) {
+export function ComposeDialog({ compose, from, sending, onField, onSend, onClose, onDiscard, onAddFiles, onRemoveFile }: ComposeDialogProps) {
   const [showQuoted, setShowQuoted] = useState(false);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const isReply = !!compose.replyToThreadId;
-  const canSend = !!compose.bodyText.trim() && (isReply || !!(compose.to.trim() && compose.subject.trim())) && !sending;
+  const typed = !!compose.bodyText.trim() && compose.bodyText.trim() !== compose.scaffold?.trim();
+  const canSend = typed && (isReply || !!(compose.to.trim() && compose.subject.trim())) && !sending;
+
+  // A reply opens as "Hi <name>, … Best, The Axleyard Team": put the caret
+  // on the empty line between, ready to type.
+  useEffect(() => {
+    if (!compose.open || compose.caret == null) return;
+    const frame = requestAnimationFrame(() => {
+      const el = bodyRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(compose.caret!, compose.caret!);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [compose.open, compose.caret, compose.replyToThreadId]);
 
   return (
     <Dialog open={compose.open} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -78,6 +98,7 @@ export function ComposeDialog({ compose, from, sending, onField, onSend, onClose
           <div className="space-y-1.5">
             <Label htmlFor="compose-body">Message</Label>
             <Textarea
+              ref={bodyRef}
               id="compose-body"
               value={compose.bodyText}
               onChange={(e) => onField('bodyText', e.target.value)}
@@ -86,6 +107,49 @@ export function ComposeDialog({ compose, from, sending, onField, onSend, onClose
               autoFocus={isReply}
               className="min-h-[160px] resize-y leading-relaxed"
             />
+          </div>
+
+          <div>
+            <input
+              ref={fileRef}
+              type="file"
+              multiple
+              accept={ATTACHMENT_ACCEPT}
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.length) onAddFiles(e.target.files);
+                e.target.value = '';
+              }}
+            />
+            {compose.attachments.length > 0 && (
+              <ul className="mb-2 flex flex-wrap gap-2">
+                {compose.attachments.map((a, i) => (
+                  <li key={`${a.filename}-${i}`} className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/40 py-1 pl-2.5 pr-1 text-xs">
+                    <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="max-w-[200px] truncate">{a.filename}</span>
+                    <span className="text-muted-foreground">{formatBytes(base64Bytes(a.content))}</span>
+                    <button
+                      type="button"
+                      onClick={() => onRemoveFile(i)}
+                      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      aria-label={`Remove ${a.filename}`}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileRef.current?.click()}
+              disabled={compose.attachments.length >= MAX_ATTACHMENTS}
+            >
+              <Paperclip className="h-3.5 w-3.5" /> Attach files
+            </Button>
+            <span className="ml-2 text-xs text-muted-foreground">PDFs, photos, Office files · up to {MAX_ATTACHMENTS} files, 3 MB</span>
           </div>
 
           {compose.quotedText && (

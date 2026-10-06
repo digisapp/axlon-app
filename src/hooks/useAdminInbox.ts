@@ -5,9 +5,13 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { csrfFetch } from '@/lib/csrf-fetch';
 import type {
-  BulkAction, Email, FolderCounts, InboxFolder, InboxStatus, Thread, ThreadListRow,
+  BulkAction, Email, FolderCounts, InboxFolder, InboxStatus, LeadContext, LeadStatus, Thread, ThreadListRow,
 } from '@/components/admin-inbox/types';
 import { latestInbound, quoteText } from '@/components/admin-inbox/types';
+import {
+  MAX_ATTACHMENT_BYTES, MAX_ATTACHMENTS, base64Bytes, cleanFilename, isAllowedAttachmentType, replyScaffold,
+  type OutgoingAttachment,
+} from '@/lib/email/compose';
 
 export interface ComposeState {
   open: boolean;
@@ -18,9 +22,39 @@ export interface ComposeState {
   /** Set when replying inside a conversation. */
   replyToThreadId?: string;
   quotedText?: string;
+  /** Where the caret starts in the message box (after the greeting). */
+  caret?: number;
+  /** The greeting + sign-off it started with: sending that alone is blocked. */
+  scaffold?: string;
+  attachments: OutgoingAttachment[];
 }
 
-const EMPTY_COMPOSE: ComposeState = { open: false, to: '', toName: '', subject: '', bodyText: '' };
+const EMPTY_COMPOSE: ComposeState = { open: false, to: '', toName: '', subject: '', bodyText: '', attachments: [] };
+
+/** A File as base64 (no data: prefix). */
+function readAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).replace(/^data:[^,]*,/, ''));
+    reader.onerror = () => reject(reader.error ?? new Error('Could not read the file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+/** The conversation id in the address bar (/admin/email?thread=<id>). */
+function threadIdFromUrl(): string | null {
+  if (typeof window === 'undefined') return null;
+  const id = new URLSearchParams(window.location.search).get('thread');
+  return id && /^[0-9a-f-]{36}$/i.test(id) ? id : null;
+}
+
+function setThreadInUrl(id: string | null) {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  if (id) url.searchParams.set('thread', id);
+  else url.searchParams.delete('thread');
+  window.history.replaceState(window.history.state, '', url.toString());
+}
 const SEARCH_DEBOUNCE_MS = 300;
 const POLL_MS = 45_000;
 const PAGE_SIZE = 25;
@@ -54,6 +88,9 @@ export function useAdminInbox() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedThread, setSelectedThread] = useState<Thread | null>(null);
   const [emails, setEmails] = useState<Email[]>([]);
+  const [lead, setLead] = useState<LeadContext | null>(null);
+  const [leadSaving, setLeadSaving] = useState(false);
+  const [redrafting, setRedrafting] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
@@ -210,6 +247,8 @@ export function useAdminInbox() {
       const thread: Thread = data.thread;
       setSelectedThread(thread);
       setEmails(data.emails ?? []);
+      setLead(data.lead ?? null);
+      setThreadInUrl(id);
 
       if (thread.is_unread) {
         await patchFlags(id, { isRead: true }).catch(() => {});
@@ -232,7 +271,9 @@ export function useAdminInbox() {
     setSelectedId(null);
     setSelectedThread(null);
     setEmails([]);
+    setLead(null);
     setDetailError(null);
+    setThreadInUrl(null);
   }, []);
 
   const toggleStar = useCallback(async (id: string) => {
@@ -339,14 +380,19 @@ export function useAdminInbox() {
   const openCompose = useCallback((replyTo?: Thread | null, replyEmails: Email[] = []) => {
     if (replyTo) {
       const last = latestInbound(replyEmails) ?? replyEmails[replyEmails.length - 1] ?? null;
+      // "Hi <name>, … Best, The Axleyard Team" with the caret in between.
+      const scaffold = replyScaffold(replyTo.participant_name);
       setCompose({
         open: true,
         to: replyTo.participant_email,
         toName: replyTo.participant_name || '',
         subject: /^re:/i.test(replyTo.subject) ? replyTo.subject : `Re: ${replyTo.subject}`,
-        bodyText: '',
+        bodyText: scaffold.text,
+        caret: scaffold.caret,
+        scaffold: scaffold.text,
         replyToThreadId: replyTo.id,
         quotedText: last ? quoteText(last) || undefined : undefined,
+        attachments: [],
       });
     } else {
       // Reopen a half-written new email rather than wiping it.
@@ -360,6 +406,40 @@ export function useAdminInbox() {
     setCompose((prev) => ({ ...prev, [field]: value }));
   }, []);
 
+  /** Add picked files, enforcing the same limits the server does. */
+  const addAttachments = useCallback(async (files: FileList | File[]) => {
+    const picked = Array.from(files);
+    const next: OutgoingAttachment[] = [];
+    for (const file of picked) {
+      const contentType = file.type || 'application/octet-stream';
+      if (!isAllowedAttachmentType(contentType)) {
+        toast.error(`${file.name}: only PDFs, images, text and Office files can be attached`);
+        continue;
+      }
+      try {
+        next.push({ filename: cleanFilename(file.name), contentType, content: await readAsBase64(file) });
+      } catch {
+        toast.error(`Could not read ${file.name}`);
+      }
+    }
+    setCompose((prev) => {
+      const merged = [...prev.attachments, ...next];
+      if (merged.length > MAX_ATTACHMENTS) {
+        toast.error(`Attach at most ${MAX_ATTACHMENTS} files`);
+        return prev;
+      }
+      if (merged.reduce((sum, a) => sum + base64Bytes(a.content), 0) > MAX_ATTACHMENT_BYTES) {
+        toast.error('Attachments are over 3 MB in total');
+        return prev;
+      }
+      return { ...prev, attachments: merged };
+    });
+  }, []);
+
+  const removeAttachment = useCallback((index: number) => {
+    setCompose((prev) => ({ ...prev, attachments: prev.attachments.filter((_, i) => i !== index) }));
+  }, []);
+
   /** Hide the window but keep what was typed. */
   const closeCompose = useCallback(() => setCompose((prev) => ({ ...prev, open: false })), []);
   const discardCompose = useCallback(() => setCompose(EMPTY_COMPOSE), []);
@@ -368,7 +448,7 @@ export function useAdminInbox() {
     const to = compose.to.trim();
     const subject = compose.subject.trim();
     const body = compose.bodyText.trim();
-    if (!body || (!compose.replyToThreadId && (!to || !subject))) return;
+    if (!body || body === compose.scaffold?.trim() || (!compose.replyToThreadId && (!to || !subject))) return;
     setSending(true);
     try {
       // The server quotes the message being answered under a reply; only
@@ -377,6 +457,7 @@ export function useAdminInbox() {
         method: 'POST', headers: JSON_HEADERS,
         body: JSON.stringify({
           to, toName: compose.toName.trim() || undefined, subject, bodyText: body, replyToThreadId: compose.replyToThreadId,
+          attachments: compose.attachments.length > 0 ? compose.attachments : undefined,
         }),
       });
       if (!res.ok) throw new Error(await readError(res, 'Failed to send'));
@@ -384,7 +465,7 @@ export function useAdminInbox() {
       setCompose(EMPTY_COMPOSE);
       toast.success(wasReply ? 'Reply sent' : 'Email sent');
       if (wasReply) {
-        applyLocal([wasReply], { status: 'replied', is_unread: false });
+        applyLocal([wasReply], { status: 'replied', is_unread: false, ...(lead?.status === 'new' ? { lead_status: 'contacted' } : {}) });
         if (selectedId) selectThread(selectedId);
       }
       fetchThreads({ silent: true });
@@ -393,7 +474,7 @@ export function useAdminInbox() {
     } finally {
       setSending(false);
     }
-  }, [compose, selectedId, applyLocal, selectThread, fetchThreads]);
+  }, [compose, selectedId, lead, applyLocal, selectThread, fetchThreads]);
 
   // ── AI draft ──
   const sendAiDraft = useCallback(async (threadId: string, emailId: string) => {
@@ -425,8 +506,48 @@ export function useAdminInbox() {
       bodyText: draft,
       replyToThreadId: thread.id,
       quotedText: quoteText(email) || undefined,
+      attachments: [],
     });
   }, []);
+
+  /** Ask the AI for a fresh suggested reply to the newest message. */
+  const regenerateDraft = useCallback(async (threadId: string) => {
+    setRedrafting(true);
+    try {
+      const res = await csrfFetch(`/api/admin/inbox/${threadId}/draft`, { method: 'POST', headers: JSON_HEADERS });
+      if (!res.ok) throw new Error(await readError(res, 'Could not write a new draft'));
+      const data: { email: Email } = await res.json();
+      setEmails((prev) => prev.map((e) => (e.id === data.email.id ? data.email : e)));
+      toast.success('New draft ready');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not write a new draft');
+    } finally {
+      setRedrafting(false);
+    }
+  }, []);
+
+  // ── Lead ──
+  const setLeadStatus = useCallback(async (threadId: string, status: LeadStatus) => {
+    const seq = detailSeq.current;
+    setLeadSaving(true);
+    try {
+      const res = await csrfFetch(`/api/admin/inbox/${threadId}`, {
+        method: 'PATCH', headers: JSON_HEADERS, body: JSON.stringify({ leadStatus: status }),
+      });
+      if (!res.ok) throw new Error(await readError(res, 'Could not update the lead'));
+      const data: { lead: LeadContext | null } = await res.json();
+      // Another conversation may have been opened meanwhile.
+      if (seq === detailSeq.current) setLead(data.lead);
+      applyLocal([threadId], { lead_status: status });
+      // Moving a lead past "new" clears its "new lead" alert from Unread.
+      fetchThreads({ silent: true });
+      toast.success(`Lead marked ${status}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not update the lead');
+    } finally {
+      setLeadSaving(false);
+    }
+  }, [applyLocal, fetchThreads]);
 
   // ── Test email ──
   const sendTest = useCallback(async () => {
@@ -467,13 +588,36 @@ export function useAdminInbox() {
     closeDetail();
   }, [closeDetail]);
 
+  // Open the conversation named in the address bar (?thread=<id>) once.
+  const openedFromUrl = useRef(false);
+  useEffect(() => {
+    if (openedFromUrl.current) return;
+    openedFromUrl.current = true;
+    const id = threadIdFromUrl();
+    if (id) void selectThread(id);
+  }, [selectThread]);
+
+  // Unread count in the browser tab, so new mail is visible from other tabs.
+  // The page's own title comes back when you leave the inbox. (This effect
+  // must stay above the next one: it captures the title before it changes.)
+  useEffect(() => {
+    const previous = document.title;
+    return () => { document.title = previous; };
+  }, []);
+  useEffect(() => {
+    const base = 'Email inbox · Admin';
+    document.title = counts.unread > 0 ? `(${counts.unread}) ${base}` : base;
+  }, [counts.unread]);
+
   return {
     folder, setFolder, threads, loading, error, search, setSearch, page, setPage, totalPages, total, counts,
     refresh: () => fetchThreads(),
     selectedId, selectedThread, emails, detailLoading, detailError, selectThread, closeDetail,
     toggleStar, markUnread, setSpam, requestDelete, cancelDelete, confirmDelete, pendingDelete,
     selectedIds, toggleSelect, selectAllOnPage, clearSelection, bulk, bulkActing,
-    sendAiDraft, editAiDraft,
+    sendAiDraft, editAiDraft, regenerateDraft, redrafting,
+    lead, leadSaving, setLeadStatus,
+    addAttachments, removeAttachment,
     autoReplyEnabled, autoReplyLoading, setAutoReply,
     compose, setComposeField, openCompose, closeCompose, discardCompose, sending, handleSend,
     status, statusLoading, refreshStatus: () => fetchStatus(true), sendTest, sendingTest,

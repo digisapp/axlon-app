@@ -4,7 +4,7 @@ import { Star, Paperclip, Inbox as InboxIcon, MailOpen, Send, ShieldAlert } from
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import type { InboxFolder, ThreadListRow } from './types';
-import { AI_CATEGORY_LABELS, STATUS_LABELS, counterpart, formatListDate } from './types';
+import { AI_CATEGORY_LABELS, LEAD_STATUS_TONES, STATUS_LABELS, counterpart, formatListDate } from './types';
 
 interface EmailListProps {
   threads: ThreadListRow[];
@@ -91,6 +91,13 @@ export function EmailList({ threads, folder, selectedId, onSelect, onToggleStar,
                 </p>
                 {thread.has_attachments && <Paperclip className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Has attachments" />}
                 {thread.is_test && <Chip tone="bg-muted text-muted-foreground">Test</Chip>}
+                {thread.lead_status ? (
+                  <Chip tone={LEAD_STATUS_TONES[thread.lead_status] ?? LEAD_STATUS_TONES.new}>
+                    {thread.is_lead_alert && thread.lead_status === 'new' ? 'New lead' : `Lead · ${thread.lead_status}`}
+                  </Chip>
+                ) : thread.is_lead_alert ? (
+                  <Chip tone="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Lead</Chip>
+                ) : null}
                 {cat && <Chip tone={cat.tone}>{cat.label}</Chip>}
                 {showStatus && st && <Chip tone={st.tone}>{st.label}</Chip>}
                 {thread.linked_profile_id && <Chip tone="bg-foreground text-background">User</Chip>}

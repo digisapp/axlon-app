@@ -15,7 +15,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logger } from '@/lib/logger';
 import { sendEmail } from './resend';
-import { wrapInBrandedTemplate } from '@/lib/ai/email-classifier';
+import { buildPlainEmail } from './plain-shell';
+import type { OutgoingAttachment } from './compose';
+import { findPlatformLeadIdByEmail, markLeadContacted } from './lead-link';
 import {
   cleanMessageId,
   getAdminFrom,
@@ -41,9 +43,17 @@ export interface EmailAttachmentMeta {
   size?: number;
   /** Set on inline images: the `cid:` the HTML body refers to. */
   contentId?: string;
+  /** A file we sent (outbound). Resend keeps no copy we can serve back. */
+  sent?: boolean;
 }
 
 export interface EmailMetadata {
+  /** A "new lead" alert written into the inbox by recordLeadInInbox(). */
+  kind?: 'lead_alert';
+  /** The lead a lead alert announces. */
+  lead_id?: string;
+  /** Where that lead came from (leads.source). */
+  source?: string | null;
   /** Set on the "Send me a test" row so the UI can label it. */
   test?: boolean;
   /** Set on AI auto-replies. */
@@ -109,6 +119,10 @@ export interface ThreadListItem extends ThreadRow {
   ai_confidence: number | null;
   has_attachments: boolean;
   is_test: boolean;
+  /** The conversation started as a "new lead" alert. */
+  is_lead_alert: boolean;
+  /** Status of the linked lead, when there is one. */
+  lead_status: string | null;
 }
 
 // ─── Folders / actions / settings (whitelists) ──────────
@@ -174,6 +188,9 @@ export function textToHtml(text: string): string {
 export function htmlToText(html: string | null | undefined): string {
   if (!html) return '';
   return html
+    // HTML comments are never message text: Outlook's <!--[if mso]> blocks
+    // otherwise leak values like a PixelsPerInch "96" into previews.
+    .replace(/<!--[\s\S]*?-->/g, ' ')
     .replace(/<(style|script|head|title)[\s\S]*?<\/\1>/gi, ' ')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/(p|div|tr|li|h[1-6]|blockquote)>/gi, '\n')
@@ -279,6 +296,21 @@ function db(): SupabaseClient {
 // ─── Service ────────────────────────────────────────────
 
 export const AdminInboxService = {
+  /**
+   * A shared inbox still needs an owner_id on each thread (NOT NULL since
+   * 050): the longest-standing admin.
+   */
+  async inboxOwnerId(): Promise<string | null> {
+    const { data } = await db()
+      .from('profiles')
+      .select('id')
+      .eq('is_admin', true)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    return (data?.id as string | undefined) ?? null;
+  },
+
   async listThreads({
     folder = 'inbox',
     search,
@@ -311,30 +343,44 @@ export const AdminInboxService = {
     const total = count ?? 0;
 
     // The newest inbound email per thread carries the AI category and any
-    // attachments; one extra query for the page, not one per row.
-    const extras = new Map<string, { ai_category: string | null; ai_confidence: number | null; has_attachments: boolean; is_test: boolean }>();
+    // attachments, and the first one says whether it began as a lead alert;
+    // two extra queries for the page, not one per row.
+    type Extras = Pick<ThreadListItem, 'ai_category' | 'ai_confidence' | 'has_attachments' | 'is_test' | 'is_lead_alert' | 'lead_status'>;
+    const blank = (): Extras => ({ ai_category: null, ai_confidence: null, has_attachments: false, is_test: false, is_lead_alert: false, lead_status: null });
+    const extras = new Map<string, Extras>();
     if (rows.length > 0) {
-      const { data: emails } = await supabase
-        .from('emails')
-        .select('thread_id, direction, ai_category, ai_confidence, attachments, metadata, created_at')
-        .in('thread_id', rows.map((r) => r.id))
-        .order('created_at', { ascending: false });
+      const leadIds = Array.from(new Set(rows.map((r) => r.lead_id).filter((id): id is string => !!id)));
+      const [{ data: emails }, { data: leads }] = await Promise.all([
+        supabase
+          .from('emails')
+          .select('thread_id, direction, ai_category, ai_confidence, attachments, metadata, created_at')
+          .in('thread_id', rows.map((r) => r.id))
+          .order('created_at', { ascending: false }),
+        leadIds.length > 0
+          ? supabase.from('leads').select('id, status').in('id', leadIds)
+          : Promise.resolve({ data: [] as Array<{ id: string; status: string }> }),
+      ]);
+      const leadStatus = new Map((leads ?? []).map((l) => [l.id as string, l.status as string]));
       for (const e of (emails ?? []) as Array<Pick<EmailRow, 'thread_id' | 'direction' | 'ai_category' | 'ai_confidence' | 'attachments' | 'metadata'>>) {
-        const cur = extras.get(e.thread_id) ?? { ai_category: null, ai_confidence: null, has_attachments: false, is_test: false };
+        const cur = extras.get(e.thread_id) ?? blank();
         if (e.direction === 'inbound' && cur.ai_category === null && e.ai_category) {
           cur.ai_category = e.ai_category;
           cur.ai_confidence = e.ai_confidence;
         }
-        if (Array.isArray(e.attachments) && e.attachments.length > 0) cur.has_attachments = true;
+        if (Array.isArray(e.attachments) && e.attachments.some((a) => !a.sent)) cur.has_attachments = true;
         if (e.metadata?.test) cur.is_test = true;
+        if (e.metadata?.kind === 'lead_alert') cur.is_lead_alert = true;
         extras.set(e.thread_id, cur);
+      }
+      for (const r of rows) {
+        if (!r.lead_id) continue;
+        const cur = extras.get(r.id) ?? blank();
+        cur.lead_status = leadStatus.get(r.lead_id) ?? null;
+        extras.set(r.id, cur);
       }
     }
 
-    const threads: ThreadListItem[] = rows.map((r) => ({
-      ...r,
-      ...(extras.get(r.id) ?? { ai_category: null, ai_confidence: null, has_attachments: false, is_test: false }),
-    }));
+    const threads: ThreadListItem[] = rows.map((r) => ({ ...r, ...(extras.get(r.id) ?? blank()) }));
 
     return { threads, total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) };
   },
@@ -448,9 +494,10 @@ export const AdminInboxService = {
 
   /**
    * Compose a new email or reply inside a thread. Goes out as the admin From
-   * with the per-thread Reply-To, wrapped in the branded template with the
-   * message being answered quoted underneath. The stored row keeps only what
-   * the admin wrote, so the thread view reads like a conversation.
+   * with the per-thread Reply-To, in the plain shell with the message being
+   * answered quoted underneath. The stored row keeps only what the admin
+   * wrote, so the thread view reads like a conversation. A conversation with
+   * a lead marks that lead contacted.
    */
   async sendNewEmail({
     to,
@@ -463,6 +510,7 @@ export const AdminInboxService = {
     autoSent = false,
     idempotencyKey,
     ai,
+    attachments = [],
   }: {
     to?: string;
     toName?: string | null;
@@ -478,6 +526,8 @@ export const AdminInboxService = {
     idempotencyKey?: string;
     /** AI fields recorded on the outbound row of an auto-reply. */
     ai?: { category: string; confidence: number; summary: string };
+    /** Already validated with checkOutgoingAttachments(). */
+    attachments?: OutgoingAttachment[];
   }): Promise<
     | { success: true; emailId: string | null; threadId: string; resendId: string | null }
     | { success: false; error: string; status: 400 | 404 | 502 }
@@ -502,7 +552,7 @@ export const AdminInboxService = {
       // threads keep grouping in their client.
       const { data: lastInbound } = await supabase
         .from('emails')
-        .select('message_id, headers, html_body, text_body, from_email, from_name, created_at')
+        .select('message_id, headers, html_body, text_body, from_email, from_name, created_at, metadata')
         .eq('thread_id', thread.id)
         .eq('direction', 'inbound')
         .order('created_at', { ascending: false })
@@ -518,7 +568,12 @@ export const AdminInboxService = {
         headers['In-Reply-To'] = `<${messageId}>`;
         headers['References'] = [...prior, messageId].map((id) => `<${id}>`).join(' ');
       }
-      quote = buildQuote(lastInbound);
+      // A lead alert is our own summary of a web form; quote only what the
+      // person wrote on it, never the details block around it.
+      const alert = (lastInbound?.metadata as EmailMetadata & { message?: string | null } | null) ?? null;
+      quote = alert?.kind === 'lead_alert'
+        ? buildQuote(lastInbound ? { ...lastInbound, text_body: alert.message || null, html_body: null } : null)
+        : buildQuote(lastInbound);
     }
 
     const recipient = (thread ? thread.participant_email : to || '').trim().toLowerCase();
@@ -529,6 +584,7 @@ export const AdminInboxService = {
 
     if (!thread) {
       if (!userId) return { success: false, error: 'Could not start the conversation', status: 400 };
+      const leadId = test ? null : await findPlatformLeadIdByEmail(recipient).catch(() => null);
       const { data: created, error } = await supabase
         .from('email_threads')
         .insert({
@@ -538,6 +594,7 @@ export const AdminInboxService = {
           participant_name: toName?.replace(/[\r\n<>"]+/g, ' ').trim().slice(0, 120) || null,
           status: 'open',
           is_unread: false,
+          lead_id: leadId,
         })
         .select('*')
         .single();
@@ -550,7 +607,7 @@ export const AdminInboxService = {
     }
 
     const innerHtml = textToHtml(text);
-    const html = wrapInBrandedTemplate(innerHtml, quote?.html);
+    const html = buildPlainEmail(innerHtml, quote?.html);
     const replyTo = threadReplyAddress(thread.id);
 
     let resendId: string | null = null;
@@ -565,6 +622,7 @@ export const AdminInboxService = {
         headers: Object.keys(headers).length > 0 ? headers : undefined,
         category: 'conversation',
         idempotencyKey: idempotencyKey || `admin-inbox/${thread.id}/${crypto.randomUUID()}`,
+        attachments: attachments.map((a) => ({ filename: a.filename, content: a.content, contentType: a.contentType })),
       });
       resendId = result?.id ?? null;
     } catch (err) {
@@ -596,6 +654,13 @@ export const AdminInboxService = {
         is_read: true,
         headers,
         metadata,
+        attachments: attachments.map((a, i) => ({
+          id: `sent-${i + 1}`,
+          filename: a.filename,
+          contentType: a.contentType,
+          size: Math.floor((a.content.length * 3) / 4),
+          sent: true,
+        })),
         ...(ai
           ? {
               ai_category: 'auto_reply',
@@ -627,6 +692,9 @@ export const AdminInboxService = {
         if (readError) logger.error('Inbox: sent, but could not mark the thread read', { error: readError, threadId: thread.id });
       }
     }
+
+    // Only a person answering moves the lead; an AI auto-reply does not.
+    if (thread.lead_id && !test && !autoSent) await markLeadContacted(thread.lead_id).catch(() => {});
 
     return { success: true, emailId: stored?.id ?? null, threadId: thread.id, resendId };
   },
@@ -754,22 +822,17 @@ export const AdminInboxService = {
       if (data) thread = data as ThreadRow;
     }
 
-    // Link the sender to a platform account when there is one.
-    const { data: profile } = await supabase.from('profiles').select('id').eq('email', from).limit(1).maybeSingle();
+    // Link the sender to a platform account, and to their lead, when there is one.
+    const [{ data: profile }, leadId] = await Promise.all([
+      supabase.from('profiles').select('id').eq('email', from).limit(1).maybeSingle(),
+      thread?.lead_id ? Promise.resolve(thread.lead_id) : findPlatformLeadIdByEmail(from).catch(() => null),
+    ]);
     const linkedProfileId: string | null = profile?.id ?? null;
 
     let isNewThread = false;
     if (!thread) {
-      // A shared inbox still needs an owner_id (NOT NULL from 050): the
-      // longest-standing admin.
-      const { data: admin } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('is_admin', true)
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (!admin) {
+      const ownerId = await this.inboxOwnerId();
+      if (!ownerId) {
         logger.error('Inbox: no admin profile to own inbound thread', { from });
         throw new Error('No admin profile exists to own the inbound email');
       }
@@ -777,13 +840,14 @@ export const AdminInboxService = {
         .from('email_threads')
         .insert({
           subject: normalized || subject || '(no subject)',
-          owner_id: admin.id,
+          owner_id: ownerId,
           participant_email: from,
           participant_name: fromName || null,
           status: 'received',
           is_unread: true,
           is_spam: !!spam,
           linked_profile_id: linkedProfileId,
+          lead_id: leadId,
         })
         .select('*')
         .single();
@@ -797,7 +861,11 @@ export const AdminInboxService = {
       const patch: Record<string, unknown> = {};
       if (!thread.participant_name && fromName) patch.participant_name = fromName;
       if (!thread.linked_profile_id && linkedProfileId) patch.linked_profile_id = linkedProfileId;
-      if (Object.keys(patch).length > 0) await supabase.from('email_threads').update(patch).eq('id', thread.id);
+      if (!thread.lead_id && leadId) patch.lead_id = leadId;
+      if (Object.keys(patch).length > 0) {
+        await supabase.from('email_threads').update(patch).eq('id', thread.id);
+        thread = { ...thread, ...patch } as ThreadRow;
+      }
     }
 
     const headers: Record<string, unknown> = {};
@@ -859,6 +927,63 @@ export const AdminInboxService = {
       await supabase.from('emails').update({ status }).in('id', advance);
     }
     return matched.map((r) => r.to_email).filter(Boolean);
+  },
+
+  /**
+   * Record, in a conversation, a reply that was sent by another part of the
+   * platform (the instant AI reply on a listing inquiry), so the thread shows
+   * it and nobody answers the same message twice.
+   */
+  async recordSentReply({
+    threadId,
+    to,
+    subject,
+    text,
+    html,
+    resendId,
+    fromName,
+    fromAddress,
+    replyTo,
+  }: {
+    threadId: string;
+    to: string;
+    subject: string;
+    text: string | null;
+    html: string | null;
+    resendId: string | null;
+    fromName: string;
+    fromAddress: string;
+    replyTo: string;
+  }) {
+    const supabase = db();
+    const now = new Date().toISOString();
+    const { error } = await supabase.from('emails').insert({
+      thread_id: threadId,
+      resend_id: resendId,
+      direction: 'outbound',
+      from_email: fromAddress,
+      from_name: fromName,
+      to_email: to,
+      reply_to: replyTo,
+      subject: subject.slice(0, 300),
+      html_body: html,
+      text_body: text,
+      status: 'sent',
+      is_read: true,
+      headers: {},
+      metadata: { auto_sent: true },
+      ai_category: 'auto_reply',
+    });
+    if (error) {
+      logger.error('Inbox: could not record a reply sent elsewhere', { error, threadId });
+      return;
+    }
+    await supabase
+      .from('emails')
+      .update({ status: 'replied', replied_at: now })
+      .eq('thread_id', threadId)
+      .eq('direction', 'inbound')
+      .neq('status', 'replied');
   },
 
   async updateAiFields(

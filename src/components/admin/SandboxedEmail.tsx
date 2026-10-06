@@ -1,113 +1,115 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useTheme } from 'next-themes';
+import { buildEmailSrcdoc, emailFrameContent } from '@/components/admin-inbox/email-srcdoc';
+
+/** Taller than this and the message scrolls inside its own frame. */
+const MAX_HEIGHT = 1600;
+const MIN_HEIGHT = 48;
 
 /**
- * Renders HTML email content inside a sandboxed iframe.
- * Prevents XSS, script execution, and style leakage from untrusted email HTML.
+ * Renders email content inside a sandboxed iframe.
  *
- * The iframe uses:
- * - sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
- *   (no scripts, no forms — but allows link clicks and parent DOM access for height measurement)
- * - srcdoc for inline content, with a CSP that allows only images, inline
- *   styles and fonts: no scripts, forms, frames, objects or outbound requests
- *   other than image/font loads, and no Referer on those
- * - Auto-resizes to fit content height
+ * - sandbox without allow-scripts, plus a CSP in the document that allows
+ *   only images, inline styles and fonts: nothing in an email can run, submit
+ *   a form or navigate the page. allow-same-origin is there only so this
+ *   component can read the content's height.
+ * - The look follows the message (designed mail on white, typed replies in
+ *   the admin's own light or dark colours) and quoted history is folded
+ *   behind a "•••" toggle; see email-srcdoc.ts.
  */
 export function SandboxedEmail({ html, text }: { html?: string | null; text?: string | null }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [height, setHeight] = useState(100);
+  const [height, setHeight] = useState(72);
+  // Messages only render after the inbox has fetched them on the client, so
+  // next-themes already knows the resolved theme here (no SSR mismatch).
+  const { resolvedTheme } = useTheme();
+  const dark = resolvedTheme === 'dark';
 
-  const content = html || (text ? `<pre style="white-space:pre-wrap;font-family:inherit;margin:0">${escapeHtml(text)}</pre>` : null);
+  const content = useMemo(() => emailFrameContent(html, text), [html, text]);
+  const srcdoc = useMemo(
+    () => (content ? buildEmailSrcdoc(content.inner, { theme: content.theme, dark }) : null),
+    [content, dark],
+  );
 
-  useEffect(() => {
-    if (!iframeRef.current || !content) return;
+  const measure = useCallback(() => {
+    const doc = iframeRef.current?.contentDocument;
+    const root = doc?.getElementById('email-root');
+    if (!doc || !root) return;
+    // Measured on the content root, never on the document: the document is at
+    // least as tall as the frame, so measuring it only ever grows the frame.
+    const style = doc.defaultView?.getComputedStyle(doc.body);
+    const pad = style ? parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) : 0;
+    const next = Math.ceil(root.getBoundingClientRect().height + pad);
+    setHeight(Math.min(Math.max(next, MIN_HEIGHT), MAX_HEIGHT));
+  }, []);
 
-    // Resize iframe to fit content
-    const handleLoad = () => {
-      const iframe = iframeRef.current;
-      if (!iframe?.contentDocument?.body) return;
+  // A layout effect runs right after React sets the new srcdoc and before the
+  // browser can finish loading it, so the load listener is always in place
+  // and only ever sees the current document.
+  useLayoutEffect(() => {
+    const frame = iframeRef.current;
+    if (!frame || !srcdoc) return;
+    let observer: ResizeObserver | null = null;
+    const cleanups: Array<() => void> = [];
 
-      // Measure content height
-      const body = iframe.contentDocument.body;
-      const newHeight = Math.max(body.scrollHeight, body.offsetHeight, 60);
-      setHeight(Math.min(newHeight + 20, 2400)); // long mail scrolls inside the frame past this
+    const onLoad = () => {
+      observer?.disconnect();
+      cleanups.splice(0).forEach((fn) => fn());
+      measure();
+      const doc = frame.contentDocument;
+      const root = doc?.getElementById('email-root');
+      if (!doc || !root) return;
+      // Opening or closing the quoted history, and late-loading images,
+      // change the height.
+      const onToggle = () => measure();
+      doc.addEventListener('toggle', onToggle, true);
+      cleanups.push(() => doc.removeEventListener('toggle', onToggle, true));
+      for (const img of Array.from(doc.images)) {
+        img.addEventListener('load', onToggle);
+        img.addEventListener('error', onToggle);
+        cleanups.push(() => {
+          img.removeEventListener('load', onToggle);
+          img.removeEventListener('error', onToggle);
+        });
+      }
+      if (typeof ResizeObserver !== 'undefined') {
+        observer = new ResizeObserver(() => measure());
+        observer.observe(root);
+      }
     };
 
-    const iframe = iframeRef.current;
-    iframe.addEventListener('load', handleLoad);
-
+    frame.addEventListener('load', onLoad);
+    window.addEventListener('resize', measure);
     return () => {
-      iframe.removeEventListener('load', handleLoad);
+      frame.removeEventListener('load', onLoad);
+      window.removeEventListener('resize', measure);
+      observer?.disconnect();
+      cleanups.forEach((fn) => fn());
     };
-  }, [content]);
+  }, [srcdoc, measure]);
 
-  if (!content) {
-    return <p className="text-sm text-muted-foreground italic">No content</p>;
+  if (!content || !srcdoc) {
+    return <p className="px-4 py-3 text-sm italic text-muted-foreground">No content</p>;
   }
 
-  // Wrap content with base styles and target="_blank" for links
-  const wrappedHtml = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' https: data:; style-src 'unsafe-inline'; font-src https: data:;">
-      <meta name="referrer" content="no-referrer">
-      <base target="_blank">
-      <style>
-        * { box-sizing: border-box; }
-        /* Email HTML is authored for a white page; the iframe is transparent by
-           default, which left dark text on the admin's dark-mode card. */
-        html { background: #ffffff; }
-        body {
-          margin: 0;
-          padding: 12px;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          font-size: 14px;
-          line-height: 1.5;
-          color: #1a1a1a;
-          word-wrap: break-word;
-          overflow-wrap: break-word;
-        }
-        img { max-width: 100%; height: auto; }
-        a { color: #2563eb; }
-        pre { white-space: pre-wrap; }
-        blockquote {
-          border-left: 2px solid #ccc;
-          margin: 8px 0;
-          padding-left: 12px;
-          color: #555;
-        }
-      </style>
-    </head>
-    <body>${content}</body>
-    </html>
-  `;
-
+  const paper = content.theme === 'paper';
   return (
     <iframe
       ref={iframeRef}
-      srcDoc={wrappedHtml}
+      srcDoc={srcdoc}
       sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
       referrerPolicy="no-referrer"
-      style={{
-        width: '100%',
-        height: `${height}px`,
-        border: 'none',
-        borderRadius: '6px',
-        overflow: 'hidden',
-      }}
       title="Email content"
+      className="block w-full border-0"
+      // colorScheme must match the document inside: a mismatch makes the
+      // browser paint an opaque canvas behind a transparent frame.
+      style={{
+        height: `${height}px`,
+        background: paper ? '#ffffff' : 'transparent',
+        colorScheme: paper || !dark ? 'light' : 'dark',
+      }}
     />
   );
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
 }

@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { calculateLeadScoreWithAI } from '@/lib/leads/scoring';
 import { generateLeadAutoReply } from '@/lib/ai/lead-auto-reply';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
@@ -8,6 +8,9 @@ import { escapeHtml } from '@/lib/utils/html-escape';
 import { getResend } from '@/lib/email/resend';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { recordLeadInInbox, redraftLatest } from '@/lib/email/lead-inbox';
+import { AdminInboxService } from '@/lib/email/admin-inbox';
+import { getInboundAddress, threadReplyAddress } from '@/lib/email/inbound-address';
 
 const AXLONAI_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'sales@axlon.ai';
 
@@ -175,6 +178,10 @@ export async function POST(request: NextRequest) {
     let sellerCity: string | null = null;
     let sellerState: string | null = null;
     let sellerSpecialties: string[] = [];
+    // Axleyard's own listings are owned by an admin account, whose login
+    // address (admin@axlon.ai) receives no mail. Those leads are worked in the
+    // admin inbox like AXLON AI leads.
+    let sellerIsAdmin = false;
 
     if (isAxlonAILead) {
       notificationEmail = AXLONAI_ADMIN_EMAIL;
@@ -183,13 +190,14 @@ export async function POST(request: NextRequest) {
     } else if (sellerId) {
       const { data: seller } = await supabase
         .from('profiles')
-        .select('email, company_name, phone, city, state')
+        .select('email, company_name, phone, city, state, is_admin')
         .eq('id', sellerId)
         .single();
       if (seller) {
-        notificationEmail = seller.email || null;
+        sellerIsAdmin = seller.is_admin === true;
+        notificationEmail = sellerIsAdmin ? AXLONAI_ADMIN_EMAIL : seller.email || null;
         sellerEmail = seller.email || null;
-        sellerCompanyName = seller.company_name || null;
+        sellerCompanyName = sellerIsAdmin ? 'Axleyard' : seller.company_name || null;
         sellerPhone = seller.phone || null;
         sellerCity = seller.city || null;
         sellerState = seller.state || null;
@@ -205,6 +213,16 @@ export async function POST(request: NextRequest) {
         sellerSpecialties = aiSettings.specialties;
       }
     }
+
+    // A platform lead becomes a conversation in /admin/email before anything
+    // is sent, so the instant reply below can carry that conversation's
+    // Reply-To and the person's answer lands in the same thread.
+    const platformLead = isAxlonAILead || sellerIsAdmin;
+    const inboxThreadId = platformLead ? await recordLeadInInbox(lead.id, { draft: false }) : null;
+    const buyerReplyTo = sellerIsAdmin
+      ? (inboxThreadId ? threadReplyAddress(inboxThreadId) : getInboundAddress())
+      : sellerEmail;
+    let instantReplySent = false;
 
     // Send dealer notification + AI buyer auto-reply in parallel
     if (process.env.RESEND_API_KEY) {
@@ -276,7 +294,9 @@ export async function POST(request: NextRequest) {
             listingTitle: listingTitle || null,
             businessName: sellerCompanyName,
             businessPhone: sellerPhone,
-            businessEmail: sellerEmail,
+            // Printed in the reply body: the plain inbox address for our own
+            // listings (the per-conversation address goes in Reply-To only).
+            businessEmail: sellerIsAdmin ? getInboundAddress() : sellerEmail,
             businessSpecialties: sellerSpecialties,
             businessCity: sellerCity,
             businessState: sellerState,
@@ -308,9 +328,27 @@ export async function POST(request: NextRequest) {
               promise: getResend().emails.send({
                 from: `${sellerCompanyName} via AXLON <leads@axlon.ai>`,
                 to: buyer_email,
-                replyTo: sellerEmail,
+                replyTo: buyerReplyTo || sellerEmail,
                 subject: autoReply.subject,
                 html: autoReply.html,
+              }).then(async (res) => {
+                // Show the instant reply in the admin conversation, so nobody
+                // answers the same inquiry a second time.
+                if (!res.error && inboxThreadId) {
+                  instantReplySent = true;
+                  await AdminInboxService.recordSentReply({
+                    threadId: inboxThreadId,
+                    to: buyer_email,
+                    subject: autoReply.subject,
+                    text: autoReply.plainText || null,
+                    html: autoReply.html || null,
+                    resendId: res.data?.id ?? null,
+                    fromName: `${sellerCompanyName} via AXLON`,
+                    fromAddress: 'leads@axlon.ai',
+                    replyTo: buyerReplyTo || getInboundAddress(),
+                  });
+                }
+                return res;
               }),
             });
           }
@@ -339,6 +377,15 @@ export async function POST(request: NextRequest) {
       } catch (emailError) {
         logger.error('Failed to send lead emails', { error: emailError, leadId: lead.id });
       }
+    }
+
+    // A suggested reply for the admin conversation, written after the
+    // response so the buyer isn't kept waiting (skipped when the instant
+    // reply already answered them).
+    if (inboxThreadId && !instantReplySent) {
+      after(async () => {
+        await redraftLatest(inboxThreadId).catch((err) => logger.error('Lead inbox draft failed', { error: err, leadId: lead.id }));
+      });
     }
 
     // Anonymous buyer response: return only the id — the full row carries the

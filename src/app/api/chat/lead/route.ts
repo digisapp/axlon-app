@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
+import { recordLeadInInbox } from '@/lib/email/lead-inbox';
 import { timingSafeEqual } from 'crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email/resend';
@@ -128,6 +129,13 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // A chat lead on one of Axleyard's own pages also becomes a conversation
+    // in /admin/email (dealer leads are skipped inside), after the response.
+    const newLeadId = lead.id as string;
+    after(async () => {
+      await recordLeadInInbox(newLeadId);
+    });
 
     // Link lead to conversation if both exist and the conversation is owned
     if (lead && ownedConversationId) {

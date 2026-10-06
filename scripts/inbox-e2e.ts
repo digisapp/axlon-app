@@ -1,5 +1,6 @@
 // End-to-end check of the admin inbox service against the real database and
-// Resend, without needing inbound DNS. Run with:
+// Resend, including leads (written into the inbox, linked, contacted on
+// reply), without needing inbound DNS. Run with:
 //   npx tsx scripts/inbox-e2e.ts
 //
 // Sends two real emails to Resend's sink address (delivered@resend.dev),
@@ -27,6 +28,7 @@ async function main() {
   const { createAdminClient } = await import('../src/lib/supabase/admin');
   const supabase = createAdminClient();
   const created: string[] = [];
+  const createdLeads: string[] = [];
   const tag = `inbox-e2e-${Date.now().toString(36)}`;
   const subject = `[${tag}] 50% off_road (test)`;
 
@@ -143,8 +145,88 @@ async function main() {
     const setting = await AdminInboxService.getSetting('ai_auto_reply_enabled');
     check('auto-reply setting reads as a boolean', typeof setting === 'boolean', setting);
     console.log(`       (ai_auto_reply_enabled is currently ${setting})`);
+
+    // 9. Leads: a platform lead becomes a conversation; replying contacts it
+    const { recordLeadInInbox, loadLeadContext } = await import('../src/lib/email/lead-inbox');
+    const { setLeadStatus } = await import('../src/lib/email/lead-link');
+    const buyer = `delivered+${tag}@resend.dev`;
+    const { data: platformLead, error: leadErr } = await supabase
+      .from('leads')
+      .insert({ buyer_name: 'jim walker', buyer_email: buyer, buyer_phone: '469-555-0142', message: `Is the lowboy still available? (${tag})`, source: 'website', status: 'new', priority: 'medium' })
+      .select('id')
+      .single();
+    check('test lead created', !leadErr && !!platformLead, leadErr);
+    if (platformLead) createdLeads.push(platformLead.id);
+    const leadThreadId = platformLead ? await recordLeadInInbox(platformLead.id, { draft: false }) : null;
+    if (leadThreadId) created.push(leadThreadId);
+    check('a platform lead becomes a conversation', !!leadThreadId);
+    check('recording it again is a no-op (same conversation)', !!leadThreadId && (await recordLeadInInbox(platformLead!.id, { draft: false })) === leadThreadId);
+    let lt = leadThreadId ? await AdminInboxService.getThread(leadThreadId) : null;
+    const alert = lt?.emails[0];
+    check('it is unread, linked to the lead, from the buyer, flagged as a lead alert', !!lt && lt.thread.is_unread && lt.thread.lead_id === platformLead?.id && lt.thread.participant_email === buyer && alert?.metadata?.kind === 'lead_alert', lt?.thread);
+    check('the preview leads with their own words', lt?.thread.last_preview?.startsWith('Is the lowboy still available?') === true, lt?.thread.last_preview);
+    list = await AdminInboxService.listThreads({ folder: 'unread', search: tag });
+    const leadRow = list.threads.find((x) => x.id === leadThreadId);
+    check('Unread lists it as a new lead', !!leadRow && leadRow.is_lead_alert && leadRow.lead_status === 'new', leadRow);
+    const ctx = platformLead ? await loadLeadContext(platformLead.id) : null;
+    check('the lead card has their name, phone, status and source', ctx?.name === 'jim walker' && ctx.phone === '469-555-0142' && ctx.status === 'new' && ctx.sourceLabel === 'Website', ctx);
+
+    const pdf = { filename: 'spec-sheet.txt', contentType: 'text/plain', content: Buffer.from(`Spec sheet ${tag}`).toString('base64') };
+    const leadReply = leadThreadId
+      ? await AdminInboxService.sendNewEmail({ bodyText: 'Hi Jim,\n\nYes, it is. When can you come and see it?\n\nBest,\nThe Axleyard Team', replyToThreadId: leadThreadId, userId, attachments: [pdf] })
+      : null;
+    check('replying to the lead sends, with an attachment', !!leadReply?.success, leadReply);
+    lt = leadThreadId ? await AdminInboxService.getThread(leadThreadId) : null;
+    const sentRow = lt?.emails[lt.emails.length - 1];
+    check('the sent row records the attachment as sent, and the reply subject reads "Re: <their inquiry>"', sentRow?.attachments?.[0]?.filename === 'spec-sheet.txt' && sentRow.attachments[0].sent === true && /^Re: /.test(sentRow.subject), { attachments: sentRow?.attachments, subject: sentRow?.subject });
+    const afterReply = platformLead ? await loadLeadContext(platformLead.id) : null;
+    check('replying moved the lead from new to contacted', afterReply?.status === 'contacted', afterReply?.status);
+    check('and the conversation is read', lt?.thread.is_unread === false);
+    if (leadReply?.success && leadReply.resendId) {
+      const { Resend } = await import('resend');
+      const resendClient = new Resend(process.env.RESEND_API_KEY);
+      let sentHtml = '';
+      for (let i = 0; i < 6 && !sentHtml; i++) {
+        const got = await resendClient.emails.get(leadReply.resendId);
+        sentHtml = (got.data as { html?: string } | null)?.html || '';
+        if (!sentHtml) await new Promise((r) => setTimeout(r, 1500));
+      }
+      check('the mail quotes what they wrote, not our details block, as plain cite text', sentHtml.includes('blockquote type="cite"') && sentHtml.includes('Is the lowboy still available?') && !sentHtml.includes('Phone: 469') && !/<h1|unsubscribe/i.test(sentHtml), sentHtml.slice(0, 300));
+    }
+
+    // Their answer to the plus address joins the same conversation, still linked.
+    const leadIn = leadThreadId
+      ? await AdminInboxService.storeInboundEmail({ from: buyer, fromName: 'Jim Walker', to: threadReplyAddress(leadThreadId), subject: `Re: ${lt!.thread.subject}`, text: 'Thursday at 2?', messageId: `${tag}-lead@mail.example`, threadIdHint: leadThreadId, resendEmailId: `${tag}-rx-lead` })
+      : null;
+    check('their reply lands in the same conversation, still linked to the lead', leadIn?.thread.id === leadThreadId && leadIn.thread.lead_id === platformLead?.id);
+    const moved = platformLead ? await setLeadStatus(platformLead.id, 'qualified') : false;
+    list = await AdminInboxService.listThreads({ folder: 'inbox', search: tag });
+    check('the lead card can move the status; the list shows it', moved && list.threads.find((x) => x.id === leadThreadId)?.lead_status === 'qualified');
+    lt = leadThreadId ? await AdminInboxService.getThread(leadThreadId) : null;
+    check('a real reply stays unread even after the lead moves past new', lt?.thread.is_unread === true);
+
+    // A brand-new address that already filled in a form is linked on first email.
+    const { data: lead2 } = await supabase.from('leads').insert({ buyer_name: 'Ann', buyer_email: `delivered+${tag}-ann@resend.dev`, source: 'microsite', status: 'new' }).select('id').single();
+    if (lead2) createdLeads.push(lead2.id);
+    const annMail = await AdminInboxService.storeInboundEmail({ from: `DELIVERED+${tag}-ANN@resend.dev`, to: 'support@axleyard.com', subject: 'Question', text: 'Hi', messageId: `${tag}-ann@mail.example`, resendEmailId: `${tag}-rx-ann` });
+    if (annMail) created.push(annMail.thread.id);
+    check('an email from someone who filled in a form is linked to their lead (case-insensitive)', annMail?.thread.lead_id === lead2?.id, annMail?.thread.lead_id);
+
+    // A dealer's lead never comes into the admin inbox.
+    const { data: dealer } = await supabase.from('profiles').select('id').eq('is_admin', false).not('id', 'is', null).limit(1).single();
+    const { data: dealerLead } = dealer
+      ? await supabase.from('leads').insert({ user_id: dealer.id, buyer_name: 'Dealer Buyer', buyer_email: `delivered+${tag}-dealer@resend.dev`, source: 'contact_form', status: 'new' }).select('id').single()
+      : { data: null };
+    if (dealerLead) createdLeads.push(dealerLead.id);
+    check("a dealer's lead is not written into the admin inbox", !!dealerLead && (await recordLeadInInbox(dealerLead.id, { draft: false })) === null);
+    check("and its details are not shown on a lead card", !!dealerLead && (await loadLeadContext(dealerLead.id)) === null);
   } finally {
-    // 9. Clean up everything this run created
+    // 10. Clean up everything this run created
+    if (createdLeads.length) {
+      await supabase.from('leads').delete().in('id', createdLeads);
+      const { count: lc } = await supabase.from('leads').select('id', { count: 'exact', head: true }).in('id', createdLeads);
+      check('cleanup removed the test leads', (lc ?? 0) === 0, { lc });
+    }
     if (created.length) {
       await AdminInboxService.bulk('delete', created);
       const { count } = await supabase.from('emails').select('id', { count: 'exact', head: true }).in('thread_id', created);

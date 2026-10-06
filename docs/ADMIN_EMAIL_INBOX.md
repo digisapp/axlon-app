@@ -28,8 +28,11 @@ addressing helpers, unit tested), `inbox-status.ts` (readiness check),
 `auto-reply.ts` (guards + send), `spam.ts`, `src/lib/ai/email-classifier.ts`
 (Grok), `src/app/api/webhooks/resend/route.ts` (webhook),
 `src/app/api/admin/inbox/*` (admin API), `src/hooks/useAdminInbox.ts` +
-`src/components/admin-inbox/*` (UI). Tables: `email_threads`, `emails`
-(migrations 050, 051, 081).
+`src/components/admin-inbox/*` (UI), `lead-inbox.ts` + `lead-link.ts`
+(leads), `compose.ts` (attachments, greeting, sign-off), `plain-shell.ts`
+(the reply email), `src/components/admin-inbox/email-srcdoc.ts` (how a
+message is rendered). Tables: `email_threads`, `emails` (migrations 050,
+051, 081, 082, 083), linked to `leads`.
 
 ## Environment (Vercel → Production)
 
@@ -125,6 +128,53 @@ unstar / spam / not spam / delete (confirm first). Attachments open through
 download URL — bytes never touch our storage. The inbox is shared between all
 admins (it used to be filtered to the signed-in admin's own threads).
 
+## Leads
+
+The inbox is where platform leads are worked. A lead is the platform's when
+nobody owns it (AXLON AI inquiries, microsite forms with no assigned dealer)
+or an admin account owns it (Axleyard's own listings). Dealer leads stay in
+the dealer's dashboard and never appear here.
+
+- **New lead alerts.** Every new platform lead (`/api/leads`,
+  `/api/microsites/lead`, `/api/chat/lead`) becomes a conversation with the
+  person, marked **New lead**, with a suggested reply. Its subject is what
+  they asked about, so answering it reads "Re: 2021 Fontaine Magnitude…" to
+  them. The email notification to `ADMIN_EMAIL` still goes out as before.
+  (Leads on Axleyard's own listings used to notify admin@axlon.ai, which
+  receives no mail.)
+- **Lead card** above each conversation with a lead: what they asked about
+  (listing, price, location, microsite), Call and Text buttons, and the
+  status. Replying moves a **new** lead to **contacted** by itself; once a
+  lead is past new, its alert stops counting as unread, unless they have
+  written since.
+- **Linking.** Any conversation with someone who filled in a form is linked
+  to their newest platform lead, whichever side wrote first.
+- **Instant replies.** On Axleyard's own listings the existing instant AI
+  reply to the buyer still goes out (24/7 response is the point). Its
+  Reply-To is that lead's conversation, and the reply is shown in the thread
+  as **Auto-sent**, so nobody answers twice.
+
+## Writing replies
+
+- Replies open as "Hi <first name>, … Best, The Axleyard Team" with the caret
+  in between. The email itself is plain: white, system font, no logo or
+  footer, so it reads like a person wrote it. The message being answered is
+  quoted underneath as a cite block, which mail apps fold.
+- **Suggested replies** know the lead's own form answers and the facts of the
+  listing they asked about, and may state only those facts (no guessed
+  prices, no "available" for a sold unit, a request for a phone number when
+  none is on file). **New draft** writes a fresh one; **Suggest a reply**
+  appears when there is none yet.
+- **Attachments:** up to 5 files, 3 MB in total (PDFs, photos, text, Office
+  files), checked on both sides. They show on the sent message; Resend keeps
+  no copy we can serve back.
+- Messages render in the admin's light or dark theme when typed, on white
+  when designed. Quoted history folds behind **•••**. Nothing in an email can
+  run: no scripts, forms, frames or redirects survive, and the frame allows
+  no script at all.
+- `/admin/email?thread=<id>` opens a conversation directly; the browser tab
+  shows the unread count.
+
 ## AI auto-reply
 
 Off unless an admin turns it on (toggle on the page, with confirmation;
@@ -144,8 +194,10 @@ same trick bots used on `/api/contact`. A message that fails DMARC also shows
 a red "Sender not verified" chip in the thread.
 
 What gets mailed is never HTML from the inbound email or from the model:
-replies (typed, AI draft, auto-reply) are rebuilt from plain text into our
-own template, and the quoted original underneath is escaped text.
+replies (typed, AI draft, auto-reply) are rebuilt from plain text into the
+plain shell, and the quoted original underneath is escaped text. Lead alerts
+are never auto-answered: a web form proves nothing about who typed the
+address.
 
 ## Related
 
@@ -154,5 +206,11 @@ own template, and the quoted original underneath is escaped text.
   welcome / lead mails lands here once receiving is on. Pass `replyTo: null`
   to send without one. `category: 'conversation'` skips the List-Unsubscribe
   headers that would otherwise show an "Unsubscribe" link on a support reply.
-- `/api/contact` and the lead forms are separate inbound channels; they are
-  not routed through this inbox.
+- `/api/contact` (the demo / consulting form) is not routed through this
+  inbox: its submissions have been bots.
+- Public pages (Contact, Apply, Unsubscribe, Billing, site metadata) now
+  give `support@axleyard.com` (`SUPPORT_EMAIL` in `src/lib/contact.ts`), so
+  mail people write lands here. They used to say sales@axlon.ai, which has no
+  MX record.
+- `npx tsx scripts/inbox-e2e.ts` exercises all of it against the real
+  database and Resend's sink addresses, and cleans up after itself.

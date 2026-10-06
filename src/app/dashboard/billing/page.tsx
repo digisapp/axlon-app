@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { SUPPORT_EMAIL } from '@/lib/contact';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -398,9 +399,9 @@ export default async function BillingPage({
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button variant="outline" asChild>
-              <a href="mailto:sales@axlon.ai">
+              <a href={`mailto:${SUPPORT_EMAIL}`}>
                 <Mail className="w-4 h-4 mr-2" />
-                sales@axlon.ai
+                {SUPPORT_EMAIL}
               </a>
             </Button>
             <Button variant="outline" asChild>

@@ -4,13 +4,16 @@ import { RATE_LIMITS } from '@/lib/security/rate-limit';
 import { logAdminAction } from '@/lib/admin/check-admin';
 import { AdminInboxService, htmlToText, isUuid } from '@/lib/email/admin-inbox';
 import { replySubject } from '@/lib/email/inbound-address';
+import { loadLeadContext } from '@/lib/email/lead-inbox';
+import { isLeadStatus, setLeadStatus } from '@/lib/email/lead-link';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * GET    /api/admin/inbox/[id]  — one conversation with all its emails
- * PATCH  /api/admin/inbox/[id]  — { isRead | isStarred | isSpam } flags, or
+ * GET    /api/admin/inbox/[id]  — one conversation with all its emails, and its lead
+ * PATCH  /api/admin/inbox/[id]  — { isRead | isStarred | isSpam } flags,
+ *                                 { leadStatus } to move the conversation's lead, or
  *                                 { useAiDraft: true, emailId } to send the AI draft
  * DELETE /api/admin/inbox/[id]
  */
@@ -21,7 +24,8 @@ export const GET = withAdmin(
     if (!isUuid(id)) return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     const data = await AdminInboxService.getThread(id);
     if (!data) return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
-    return NextResponse.json(data);
+    const lead = data.thread.lead_id ? await loadLeadContext(data.thread.lead_id).catch(() => null) : null;
+    return NextResponse.json({ ...data, lead });
   },
   { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:admin:inbox:thread' } }
 );
@@ -51,6 +55,16 @@ export const PATCH = withAdmin(
 
       logAdminAction(user.id, 'inbox_send_ai_draft', 'email_thread', id, { emailId: result.emailId, inReplyTo: email.id }).catch(() => {});
       return NextResponse.json({ success: true, sent: true, emailId: result.emailId });
+    }
+
+    if (body.leadStatus !== undefined) {
+      if (!isLeadStatus(body.leadStatus)) return NextResponse.json({ error: 'Unknown lead status' }, { status: 400 });
+      const data = await AdminInboxService.getThread(id);
+      if (!data?.thread.lead_id) return NextResponse.json({ error: 'This conversation has no lead' }, { status: 404 });
+      const ok = await setLeadStatus(data.thread.lead_id, body.leadStatus);
+      if (!ok) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+      logAdminAction(user.id, 'inbox_lead_status', 'lead', data.thread.lead_id, { status: body.leadStatus, threadId: id }).catch(() => {});
+      return NextResponse.json({ success: true, lead: await loadLeadContext(data.thread.lead_id) });
     }
 
     const flags: Array<[string, (_v: boolean) => Promise<void>]> = [

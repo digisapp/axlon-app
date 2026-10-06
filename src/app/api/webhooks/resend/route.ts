@@ -5,6 +5,7 @@ import { suppressEmail } from '@/lib/email/suppression';
 import { classifyAndDraftReply } from '@/lib/ai/email-classifier';
 import { AdminInboxService, type EmailAttachmentMeta, type EmailStatus } from '@/lib/email/admin-inbox';
 import { sendAutoReply } from '@/lib/email/auto-reply';
+import { draftContextFor } from '@/lib/email/lead-inbox';
 import { isLikelySpam, parseAuthResults } from '@/lib/email/spam';
 import {
   cleanMessageId,
@@ -256,13 +257,16 @@ export async function POST(request: NextRequest) {
       const { email, thread } = stored;
       after(async () => {
         try {
-          const classification = await classifyAndDraftReply({
-            fromEmail: from,
-            fromName,
-            subject,
-            bodyText: text,
-            bodyHtml: html,
-          });
+          // The draft may use the lead's form answers and the listing's real
+          // facts when this conversation is with a platform lead — but not
+          // when auto-reply is on: anyone can fill in a form with someone
+          // else's address, and a draft that may go out unreviewed must not
+          // carry what they typed. "New draft" adds the context on demand.
+          const autoReplyOn = await AdminInboxService.getSetting('ai_auto_reply_enabled').catch(() => true);
+          const classification = await classifyAndDraftReply(
+            { fromEmail: from, fromName, subject, bodyText: text, bodyHtml: html },
+            autoReplyOn ? null : await draftContextFor(thread.lead_id).catch(() => null),
+          );
           await AdminInboxService.updateAiFields(email.id, {
             ai_category: classification.category,
             ai_confidence: classification.confidence,

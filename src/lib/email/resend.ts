@@ -57,6 +57,8 @@ export interface EmailTemplate {
    * send the same message twice, e.g. a cron row re-queued after a timeout.
    */
   idempotencyKey?: string;
+  /** Files to attach: base64 content (no data: prefix). */
+  attachments?: Array<{ filename: string; content: string; contentType?: string }>;
 }
 
 /**
@@ -115,6 +117,7 @@ export async function sendEmail(template: EmailTemplate) {
       // The SDK takes camelCase `replyTo` and maps it to the API's `reply_to`
       // itself; a snake_case key here is silently dropped.
       ...(replyTo ? { replyTo } : {}),
+      ...(template.attachments?.length ? { attachments: template.attachments } : {}),
       headers: {
         ...unsubHeaders,
         ...template.headers,

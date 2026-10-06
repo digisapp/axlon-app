@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { MICROSITE_HOST_HEADER } from "@/lib/microsites/config";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 import { Geist, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import { ThemeProvider } from "next-themes";
@@ -34,7 +35,7 @@ function OrganizationJsonLd({ nonce }: { nonce?: string }) {
       '@type': 'ContactPoint',
       contactType: 'sales',
       telephone: '+1-469-421-3536',
-      email: 'sales@axlon.ai',
+      email: SUPPORT_EMAIL,
       availableLanguage: 'English',
     },
     // No sameAs until Axleyard has verified social profiles — the old

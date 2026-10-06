@@ -218,6 +218,11 @@ export default function AdminEmailPage() {
                 onDelete={(id) => d.requestDelete([id])}
                 onUseAiDraft={d.sendAiDraft}
                 onEditAiDraft={d.editAiDraft}
+                lead={d.lead}
+                leadSaving={d.leadSaving}
+                onSetLeadStatus={d.setLeadStatus}
+                redrafting={d.redrafting}
+                onRegenerateDraft={d.regenerateDraft}
               />
             ) : (
               <div className="flex flex-1 flex-col items-center justify-center p-8 text-center text-muted-foreground">
@@ -238,6 +243,8 @@ export default function AdminEmailPage() {
         onSend={d.handleSend}
         onClose={d.closeCompose}
         onDiscard={d.discardCompose}
+        onAddFiles={d.addAttachments}
+        onRemoveFile={d.removeAttachment}
       />
 
       {/* Delete confirmation */}

@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
+import { recordLeadInInbox } from '@/lib/email/lead-inbox';
 import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
@@ -115,6 +116,13 @@ export async function POST(request: NextRequest) {
       logger.error('Microsite lead insert failed', { error, micrositeId: site.id });
       return NextResponse.json({ error: 'Could not submit your request. Please try again.' }, { status: 500 });
     }
+
+    // A microsite lead with no assigned dealer is ours: it also becomes a
+    // conversation in /admin/email (with a suggested reply), after the response.
+    const newLeadId = lead.id as string;
+    after(async () => {
+      await recordLeadInInbox(newLeadId);
+    });
 
     // Notify. A failed email must not fail the submission — the lead is
     // already saved and visible in /admin/leads.

@@ -2,13 +2,15 @@
 
 import {
   ArrowLeft, Reply, Star, Trash2, ShieldAlert, ShieldCheck, MailOpen, Bot, Send, PenLine, Paperclip, ExternalLink, Loader2, Zap, Sparkles,
+  RefreshCw, UserPlus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { SandboxedEmail } from '@/components/admin/SandboxedEmail';
 import { cn } from '@/lib/utils';
-import type { Email, Thread } from './types';
+import type { Email, LeadContext, LeadStatus, Thread } from './types';
 import { AI_CATEGORY_LABELS, STATUS_LABELS, formatBytes, formatFullDate } from './types';
+import { LeadCard } from './LeadCard';
 
 interface EmailDetailViewProps {
   thread: Thread | null;
@@ -25,6 +27,11 @@ interface EmailDetailViewProps {
   onDelete: (_id: string) => void;
   onUseAiDraft: (_threadId: string, _emailId: string) => void;
   onEditAiDraft: (_thread: Thread, _email: Email) => void;
+  lead: LeadContext | null;
+  leadSaving: boolean;
+  onSetLeadStatus: (_threadId: string, _status: LeadStatus) => void;
+  redrafting: boolean;
+  onRegenerateDraft: (_threadId: string) => void;
 }
 
 function Chip({ tone, children }: { tone: string; children: React.ReactNode }) {
@@ -45,13 +52,17 @@ function resolveInlineImages(html: string | null, threadId: string, msg: Email):
   });
 }
 
-function Message({ msg, thread, isLast, sending, onUseAiDraft, onEditAiDraft }: {
+function Message({ msg, thread, isLast, isLatestInbound, sending, redrafting, onUseAiDraft, onEditAiDraft, onRegenerateDraft }: {
   msg: Email;
   thread: Thread;
   isLast: boolean;
+  /** The newest message from the other person: the one a draft answers. */
+  isLatestInbound: boolean;
   sending: boolean;
+  redrafting: boolean;
   onUseAiDraft: (_threadId: string, _emailId: string) => void;
   onEditAiDraft: (_thread: Thread, _email: Email) => void;
+  onRegenerateDraft: (_threadId: string) => void;
 }) {
   const outbound = msg.direction === 'outbound';
   const st = STATUS_LABELS[msg.status];
@@ -62,7 +73,9 @@ function Message({ msg, thread, isLast, sending, onUseAiDraft, onEditAiDraft }: 
   const auth = (msg.headers as { auth?: { dmarc?: string | null } } | null)?.auth;
   const forged = !outbound && auth?.dmarc === 'fail';
   const hasDraft = !!(msg.ai_draft_html || msg.ai_draft_text);
-  const canUseDraft = !outbound && hasDraft && msg.status !== 'replied' && !thread.is_spam;
+  const answerable = !outbound && isLatestInbound && msg.status !== 'replied' && !thread.is_spam;
+  const canUseDraft = answerable && hasDraft;
+  const leadAlert = msg.metadata?.kind === 'lead_alert';
 
   return (
     <article className={cn('px-4 py-4 sm:px-5', !isLast && 'border-b')}>
@@ -80,6 +93,11 @@ function Message({ msg, thread, isLast, sending, onUseAiDraft, onEditAiDraft }: 
               {outbound && st && <Chip tone={st.tone}>{st.label}</Chip>}
               {msg.metadata?.auto_sent && <Chip tone="bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300"><Zap className="mr-1 h-3 w-3" />Auto-sent</Chip>}
               {msg.metadata?.test && <Chip tone="bg-muted text-muted-foreground">Test</Chip>}
+              {leadAlert && (
+                <span title="Written into the inbox when they filled in a form. Replying emails them.">
+                  <Chip tone="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"><UserPlus className="mr-1 h-3 w-3" />New lead</Chip>
+                </span>
+              )}
               {forged && (
                 <span title="This message failed DMARC: the sender address may be forged. Be careful replying or opening links.">
                   <Chip tone="bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400"><ShieldAlert className="mr-1 h-3 w-3" />Sender not verified</Chip>
@@ -96,7 +114,7 @@ function Message({ msg, thread, isLast, sending, onUseAiDraft, onEditAiDraft }: 
               )}
             </div>
             <p className="truncate text-xs text-muted-foreground">
-              To: {msg.to_name ? `${msg.to_name} <${msg.to_email}>` : msg.to_email}
+              {leadAlert ? 'From a form on the site' : <>To: {msg.to_name ? `${msg.to_name} <${msg.to_email}>` : msg.to_email}</>}
               {cc.length > 0 && ` · Cc: ${cc.join(', ')}`}
             </p>
           </div>
@@ -117,20 +135,33 @@ function Message({ msg, thread, isLast, sending, onUseAiDraft, onEditAiDraft }: 
 
       {attachments.length > 0 && (
         <ul className="mt-3 flex flex-wrap gap-2">
-          {attachments.map((a) => (
-            <li key={a.id}>
-              <a
-                href={`/api/admin/inbox/${thread.id}/attachments/${a.id}?email=${msg.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-2.5 py-1.5 text-xs transition-colors hover:bg-muted"
-              >
+          {attachments.map((a) => {
+            const label = (
+              <>
                 <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="max-w-[220px] truncate">{a.filename}</span>
                 {a.size ? <span className="text-muted-foreground">{formatBytes(a.size)}</span> : null}
-              </a>
-            </li>
-          ))}
+              </>
+            );
+            const chip = 'inline-flex items-center gap-1.5 rounded-lg border bg-background px-2.5 py-1.5 text-xs';
+            return (
+              <li key={a.id}>
+                {a.sent ? (
+                  // Files we sent: Resend keeps no copy we can serve back.
+                  <span className={chip} title="Sent with this email">{label}</span>
+                ) : (
+                  <a
+                    href={`/api/admin/inbox/${thread.id}/attachments/${encodeURIComponent(a.id)}?email=${msg.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(chip, 'transition-colors hover:bg-muted')}
+                  >
+                    {label}
+                  </a>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -141,10 +172,19 @@ function Message({ msg, thread, isLast, sending, onUseAiDraft, onEditAiDraft }: 
               <Bot className="h-3.5 w-3.5" /> Suggested reply
             </span>
             <div className="flex items-center gap-1.5">
-              <Button size="sm" variant="outline" onClick={() => onEditAiDraft(thread, msg)} disabled={sending}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onRegenerateDraft(thread.id)}
+                disabled={sending || redrafting}
+                title="Write a fresh suggested reply"
+              >
+                <RefreshCw className={cn('h-3.5 w-3.5', redrafting && 'animate-spin')} /> {redrafting ? 'Writing…' : 'New draft'}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => onEditAiDraft(thread, msg)} disabled={sending || redrafting}>
                 <PenLine className="h-3.5 w-3.5" /> Edit
               </Button>
-              <Button size="sm" onClick={() => onUseAiDraft(thread.id, msg.id)} disabled={sending}>
+              <Button size="sm" onClick={() => onUseAiDraft(thread.id, msg.id)} disabled={sending || redrafting}>
                 {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                 {sending ? 'Sending…' : 'Send as is'}
               </Button>
@@ -157,6 +197,15 @@ function Message({ msg, thread, isLast, sending, onUseAiDraft, onEditAiDraft }: 
           )}
         </div>
       )}
+
+      {answerable && !hasDraft && (
+        <div className="mt-3">
+          <Button size="sm" variant="outline" onClick={() => onRegenerateDraft(thread.id)} disabled={redrafting}>
+            {redrafting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Bot className="h-3.5 w-3.5" />}
+            {redrafting ? 'Writing…' : 'Suggest a reply'}
+          </Button>
+        </div>
+      )}
     </article>
   );
 }
@@ -164,6 +213,7 @@ function Message({ msg, thread, isLast, sending, onUseAiDraft, onEditAiDraft }: 
 export function EmailDetailView({
   thread, emails, loading, error, sending,
   onBack, onRetry, onReply, onToggleStar, onMarkUnread, onSetSpam, onDelete, onUseAiDraft, onEditAiDraft,
+  lead, leadSaving, onSetLeadStatus, redrafting, onRegenerateDraft,
 }: EmailDetailViewProps) {
   if (loading && !thread) {
     return <div className="flex flex-1 items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
@@ -182,10 +232,11 @@ export function EmailDetailView({
   if (!thread) return null;
 
   const hasInbound = emails.some((e) => e.direction === 'inbound');
+  const latestInboundId = [...emails].reverse().find((e) => e.direction === 'inbound')?.id ?? null;
   const st = STATUS_LABELS[thread.status];
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col">
+    <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
       {/* Toolbar */}
       <div className="flex items-center gap-2 border-b px-3 py-2.5 sm:px-4">
         <Button variant="ghost" size="icon-sm" onClick={onBack} className="lg:hidden" aria-label="Back to list">
@@ -226,16 +277,20 @@ export function EmailDetailView({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+        {lead && <LeadCard lead={lead} saving={leadSaving} onSetStatus={(status) => onSetLeadStatus(thread.id, status)} />}
         {emails.map((msg, i) => (
           <Message
             key={msg.id}
             msg={msg}
             thread={thread}
             isLast={i === emails.length - 1}
+            isLatestInbound={msg.id === latestInboundId}
             sending={sending}
+            redrafting={redrafting}
             onUseAiDraft={onUseAiDraft}
             onEditAiDraft={onEditAiDraft}
+            onRegenerateDraft={onRegenerateDraft}
           />
         ))}
         {emails.length === 0 && !loading && (

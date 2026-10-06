@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { SUPPORT_EMAIL } from '@/lib/contact';
 import { Badge } from '@/components/ui/badge';
 import { ContactForm } from '@/components/contact/ContactForm';
 import {
@@ -131,10 +132,10 @@ export default async function ContactPage({ searchParams }: PageProps) {
                 <div>
                   <p className="text-sm font-medium">Email</p>
                   <a
-                    href="mailto:sales@axlon.ai"
+                    href={`mailto:${SUPPORT_EMAIL}`}
                     className="inline-block py-2.5 -my-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    sales@axlon.ai
+                    {SUPPORT_EMAIL}
                   </a>
                 </div>
               </div>
