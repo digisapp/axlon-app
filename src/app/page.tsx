@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Zap, ArrowRight, Search, Phone } from 'lucide-react';
+import { Zap, ArrowRight, Search } from 'lucide-react';
 import {
   LowboyTrailerIcon,
   FlatbedTrailerIcon,
@@ -130,8 +130,10 @@ export default async function HomePage() {
         {/* Hero: Logo + Search */}
         <HomeSearchSection />
 
-        {/* CTAs */}
-        <div className="flex flex-col sm:flex-row justify-center gap-3 mb-6 md:mb-10 w-full max-w-sm sm:max-w-none sm:w-auto px-2">
+        {/* One hero CTA. The phone number lives in the corner call button,
+            the Meet AXLON band, and the footer; a second button here only
+            split the first click. */}
+        <div className="flex justify-center mb-6 md:mb-10 w-full max-w-sm sm:max-w-none sm:w-auto px-2">
           <Button
             size="lg"
             className="gap-2 rounded-full shadow-lg shadow-primary/20 group w-full sm:w-auto"
@@ -142,17 +144,6 @@ export default async function HomePage() {
               Browse Equipment
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
-          </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            className="gap-2 rounded-full glass-button !bg-white/80 dark:!bg-white/10 w-full sm:w-auto"
-            asChild
-          >
-            <a href={`tel:${SALES_PHONE_E164}`}>
-              <Phone className="w-4 h-4" />
-              Call {SALES_PHONE_DISPLAY}
-            </a>
           </Button>
         </div>
 
