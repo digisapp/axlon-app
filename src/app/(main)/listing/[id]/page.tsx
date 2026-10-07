@@ -39,7 +39,7 @@ import { FinancingCalculator } from '@/components/listings/FinancingCalculator';
 import { VideoPlayer } from '@/components/listings/VideoPlayer';
 import { TranslatableTitle, TranslatableDescription } from '@/components/listings/TranslatableContent';
 import { SimilarListingCard } from '@/components/listings/SimilarListingCard';
-import { DealerAIChat } from '@/components/listings/DealerAIChat';
+import { AskAxlonAboutListing } from '@/components/listings/AskAxlonAboutListing';
 import { MobileContactCTA } from '@/components/listings/MobileContactCTA';
 import { BackToResultsLink } from '@/components/listings/BackToResultsLink';
 import { jsonLdString } from '@/lib/seo/json-ld';
@@ -633,6 +633,15 @@ export default async function ListingPage({ params }: PageProps) {
               />
             </div>
 
+            {/* Opens the one AXLON chat with this listing as its subject */}
+            <AskAxlonAboutListing
+              listingId={id}
+              title={listing.title}
+              sellerId={seller?.id || null}
+              sellerName={seller?.company_name || null}
+              price={listing.price ?? null}
+            />
+
             {/* Claim CTA for the dealer whose inventory this is */}
             {unclaimedSourceName && (
               <Card className="py-0 border-dashed">
@@ -654,16 +663,6 @@ export default async function ListingPage({ params }: PageProps) {
                   </div>
                 </CardContent>
               </Card>
-            )}
-
-            {/* AI Chat Widget */}
-            {seller?.id && seller?.is_business && (
-              <DealerAIChat
-                dealerId={seller.id}
-                dealerName={seller.company_name || 'Dealer'}
-                listingId={id}
-                listingTitle={listing.title}
-              />
             )}
 
             {/* Quick Stats */}

@@ -9,7 +9,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { NotificationProvider } from "@/components/notifications/NotificationProvider";
 import { CompareProvider } from "@/context/CompareContext";
 import { CompareBar } from "@/components/listings/CompareBar";
-import { FloatingCallButton } from "@/components/FloatingCallButton";
+import { AxlonLauncher } from "@/components/AxlonLauncher";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { MobileChrome } from "@/lib/mobile-chrome";
@@ -223,7 +223,7 @@ export default async function RootLayout({
                     {children}
                     {isMarketplaceHost && <MobileBottomNav />}
                     {isMarketplaceHost && <CompareBar />}
-                    {isMarketplaceHost && <FloatingCallButton />}
+                    {isMarketplaceHost && <AxlonLauncher />}
                     <KeyboardShortcuts />
                     <MobileChrome />
                     <PWACleanup />

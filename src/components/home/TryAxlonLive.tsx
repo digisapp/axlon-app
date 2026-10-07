@@ -1,30 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import dynamic from 'next/dynamic';
-import { optionalImport, Nothing } from '@/lib/lazy';
-import { createPortal } from 'react-dom';
 import { Phone, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SALES_PHONE_E164 as PHONE_NUMBER, SALES_PHONE_DISPLAY as DISPLAY_NUMBER } from '@/lib/contact';
-
-const TrailerFinderChat = dynamic(
-  optionalImport(
-    () => import('@/components/agents/TrailerFinderChat').then((mod) => mod.TrailerFinderChat),
-    Nothing
-  ),
-  { ssr: false, loading: () => null }
-);
-
+import { openAxlonChat } from '@/lib/axlon-chat';
 
 // The transcripts beside this are static — this lets visitors talk to the
-// real AI, which no competitor in the space offers from their homepage.
+// real AI, which no competitor in the space offers from their homepage. "Ask
+// AXLON" opens the site's one corner chat (AxlonLauncher).
 export function TryAxlonLive() {
-  const [chatOpen, setChatOpen] = useState(false);
-  // Closing collapses the panel to its FAB but keeps it mounted; bumping
-  // openRequest lets a second click reopen it (with the conversation intact).
-  const [openRequest, setOpenRequest] = useState(0);
-
   return (
     <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 md:p-5 text-center">
       <p className="text-sm font-semibold mb-1">
@@ -41,23 +25,17 @@ export function TryAxlonLive() {
         >
           <a href={`tel:${PHONE_NUMBER}`}>
             <Phone className="w-4 h-4" />
-            Call our AI: {DISPLAY_NUMBER}
+            Call AXLON {DISPLAY_NUMBER}
           </a>
         </Button>
         <Button
           className="rounded-full gap-2 w-full sm:w-auto"
-          onClick={() => {
-            setChatOpen(true);
-            setOpenRequest((n) => n + 1);
-          }}
+          onClick={() => openAxlonChat()}
         >
           <MessageSquare className="w-4 h-4" />
-          Chat with AXLON AI
+          Ask AXLON
         </Button>
       </div>
-      {/* Portalled to <body>: rendered in place, the panel inherits the page's
-          z-10 stacking context and the mobile bottom nav (z-40) covers its input. */}
-      {chatOpen && createPortal(<TrailerFinderChat variant="floating" initialOpen openRequest={openRequest} />, document.body)}
     </div>
   );
 }

@@ -61,6 +61,8 @@ export async function searchListings(params: {
   condition?: string;
   state?: string;
   minCapacity?: number;
+  /** Only this seller's units (profiles.id) — "what else do they have". */
+  sellerId?: string;
   limit?: number;
 }): Promise<{
   listings: Array<{
@@ -89,6 +91,7 @@ export async function searchListings(params: {
     .eq('status', 'active')
     .is('deleted_at', null);
 
+  if (params.sellerId) query = query.eq('user_id', params.sellerId);
   if (params.make) query = query.ilike('make', `%${sanitizeSearchFilter(params.make)}%`);
   if (params.model) query = query.ilike('model', `%${sanitizeSearchFilter(params.model)}%`);
   if (params.minPrice) query = query.gte('price', params.minPrice);

@@ -1,6 +1,5 @@
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { TrailerFinderChatLazy } from '@/components/agents/TrailerFinderChatLazy';
 
 export default function MainLayout({
   children,
@@ -12,7 +11,7 @@ export default function MainLayout({
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />
-      <TrailerFinderChatLazy variant="floating" />
+      {/* The AXLON launcher lives in the root layout, on every marketplace page. */}
     </div>
   );
 }

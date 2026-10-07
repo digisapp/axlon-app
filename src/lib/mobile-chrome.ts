@@ -6,10 +6,9 @@ import { useCallback, useEffect, useState } from 'react';
  * Coordination for the fixed "chrome" at the bottom of the mobile viewport.
  *
  * Bottom bars (MobileBottomNav, the listing and storefront contact bars) publish
- * their rendered height as --bottom-bar-h, the CompareBar as --compare-bar-h and
- * the floating call button its slot as --fab-call-slot. Floating buttons are
- * positioned with the `bottom-fab` / `bottom-fab-2` utilities (globals.css), so
- * they always stack above whatever is on screen instead of guessing offsets.
+ * their rendered height as --bottom-bar-h and the CompareBar as --compare-bar-h.
+ * Floating buttons are positioned with the `bottom-fab` utility (globals.css),
+ * so they always sit above whatever is on screen instead of guessing offsets.
  *
  * Visibility is driven by data attributes on <html>, styled in globals.css:
  *   data-overlay-open   a chat panel or photo viewer is open → floating buttons
@@ -22,7 +21,7 @@ import { useCallback, useEffect, useState } from 'react';
  * Mark elements with data-fab (floating buttons) or data-bottom-bar (bars).
  */
 
-type ChromeVar = '--bottom-bar-h' | '--compare-bar-h' | '--fab-call-slot';
+type ChromeVar = '--bottom-bar-h' | '--compare-bar-h';
 
 /**
  * Callback ref that publishes the element's rendered height (plus `gap` when

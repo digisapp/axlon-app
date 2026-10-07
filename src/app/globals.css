@@ -452,15 +452,11 @@
 }
 
 /* ── Mobile bottom chrome (see src/lib/mobile-chrome.ts) ──────────────────
-   Bars publish their height as --bottom-bar-h / --compare-bar-h, the call
-   button its slot as --fab-call-slot. Floating buttons stack above them.
-   A bar's measured height already includes the home-indicator inset; with no
-   bar showing, the inset itself is the floor. */
+   Bars publish their height as --bottom-bar-h / --compare-bar-h. Floating
+   buttons sit above them. A bar's measured height already includes the
+   home-indicator inset; with no bar showing, the inset itself is the floor. */
 @utility bottom-fab {
   bottom: calc(max(var(--bottom-bar-h, 0px), env(safe-area-inset-bottom)) + var(--compare-bar-h, 0px) + 1rem);
-}
-@utility bottom-fab-2 {
-  bottom: calc(max(var(--bottom-bar-h, 0px), env(safe-area-inset-bottom)) + var(--compare-bar-h, 0px) + var(--fab-call-slot, 0px) + 1rem);
 }
 /* Bars that stack on top of another bottom bar (the compare bar) */
 @utility bottom-above-bar {

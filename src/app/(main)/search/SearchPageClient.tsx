@@ -4,7 +4,9 @@ import { useState, useMemo, Suspense, useCallback, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { optionalImport } from '@/lib/lazy';
+import { openAxlonChat } from '@/lib/axlon-chat';
 import { AISearchBar } from '@/components/search/AISearchBar';
 import { useListingTranslations } from '@/hooks/useListingTranslations';
 import { useSearchListings } from '@/hooks/useSearchListings';
@@ -555,11 +557,9 @@ function SearchPageContent() {
               <Button asChild variant="outline">
                 <Link href="/search">Browse All Listings</Link>
               </Button>
-              <Button asChild>
-                <Link href="/">
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Ask Axlon
-                </Link>
+              <Button onClick={() => openAxlonChat({ message: query ? `Help me find ${query}` : undefined })}>
+                <Image src="/images/axlonai-logo-eyes.png" alt="" width={20} height={23} className="h-5 w-auto mr-2" />
+                Ask AXLON
               </Button>
             </div>
           </div>

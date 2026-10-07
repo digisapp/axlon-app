@@ -1,22 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { optionalImport, Nothing } from '@/lib/lazy';
-import { createPortal } from 'react-dom';
 import { Phone, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { SALES_PHONE_E164, SALES_PHONE_DISPLAY } from '@/lib/contact';
-
-const TrailerFinderChat = dynamic(
-  optionalImport(
-    () => import('@/components/agents/TrailerFinderChat').then((mod) => mod.TrailerFinderChat),
-    Nothing
-  ),
-  { ssr: false, loading: () => null }
-);
+import { openAxlonChat, useAxlonChat } from '@/lib/axlon-chat';
 
 /**
  * Where the homepage introduces AXLON by face and name. The header and footer
@@ -29,11 +18,9 @@ const TrailerFinderChat = dynamic(
  * lives on /for-business.
  */
 export function HomeHelpBand() {
-  const [chatOpen, setChatOpen] = useState(false);
-  // Closing the panel collapses it to its own FAB but leaves it mounted, so
-  // a second "Chat with AXLON" would be a no-op; bumping openRequest reopens
-  // it without remounting (a new key wiped the conversation, even mid-chat).
-  const [openRequest, setOpenRequest] = useState(0);
+  // "Ask AXLON" opens the site's one corner chat (AxlonLauncher) rather than
+  // a second panel of its own; the face here lights up while it's open.
+  const { open: chatOpen } = useAxlonChat();
 
   return (
     <section id="meet-axlon" className="w-full max-w-3xl mx-auto mb-10 md:mb-14 px-4 scroll-mt-24">
@@ -79,21 +66,15 @@ export function HomeHelpBand() {
                 size="lg"
                 variant="outline"
                 className="rounded-full gap-2 glass-button !bg-white/80 dark:!bg-white/10 w-full sm:w-auto"
-                onClick={() => {
-                  setChatOpen(true);
-                  setOpenRequest((n) => n + 1);
-                }}
+                onClick={() => openAxlonChat()}
               >
                 <MessageSquare className="w-4 h-4" />
-                Chat with AXLON
+                Ask AXLON
               </Button>
             </div>
           </div>
         </div>
       </div>
-      {/* Portalled to <body>: rendered in place, the panel inherits the page's
-          z-10 stacking context and the mobile bottom nav (z-40) covers its input. */}
-      {chatOpen && createPortal(<TrailerFinderChat variant="floating" initialOpen openRequest={openRequest} />, document.body)}
     </section>
   );
 }
