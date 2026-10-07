@@ -8,6 +8,7 @@ import { optionalImport } from '@/lib/lazy';
 import { AISearchBar } from '@/components/search/AISearchBar';
 import { useListingTranslations } from '@/hooks/useListingTranslations';
 import { useSearchListings } from '@/hooks/useSearchListings';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useCategories } from '@/hooks/useCategories';
 
 // Dynamically import MapView to avoid SSR issues with Leaflet
@@ -235,6 +236,17 @@ function SearchPageContent() {
     [listings]
   );
   const displayMode = viewMode === 'map' && !mapAvailable && !isLoading ? 'grid' : viewMode;
+
+  // Keep loading the next page as the user nears the bottom. The Load More
+  // button stays as the fallback for anyone the observer doesn't fire for.
+  const hasMorePages = page < totalPages;
+  const { loadMoreRef } = useInfiniteScroll({
+    enabled: displayMode !== 'map' && !isLoading && listings.length > 0,
+    hasMore: hasMorePages,
+    isLoading: isLoadingMore,
+    onLoadMore: handleLoadMore,
+    threshold: 600,
+  });
 
   // One header, the filters, and a pinned footer. Filters apply live, so
   // "Show N results" just closes the sheet.
@@ -568,6 +580,10 @@ function SearchPageContent() {
             })}
           </div>
         )}
+
+        {/* Infinite-scroll sentinel: when this scrolls into view the next
+            page is appended below the grid. */}
+        {displayMode !== 'map' && <div ref={loadMoreRef} aria-hidden="true" className="h-px" />}
 
         {/* Pagination / Load More */}
         {totalPages > 1 && displayMode !== 'map' && (

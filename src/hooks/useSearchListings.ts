@@ -119,6 +119,11 @@ export function useSearchListings(
   // subsequent pages query the same result set as page 1
   const aiFiltersRef = useRef<AISearchResult['filters'] | null>(null);
   const detectedCategoryRef = useRef<string | undefined>(undefined);
+  // Highest page currently appended to `listings`. Infinite scroll can call
+  // handleLoadMore again before the replaceState'd `page` prop has flowed
+  // back in, so the next page is computed from this ref, not from the prop.
+  const loadedPageRef = useRef(page);
+  const loadingMoreRef = useRef(false);
 
   // Main fetch effect
   useEffect(() => {
@@ -198,6 +203,7 @@ export function useSearchListings(
           const fallbackData = await fallbackResponse.json();
 
           if (currentFetchId === fetchIdRef.current) {
+            loadedPageRef.current = page;
             if (fallbackData.total > 0) {
               setListings(fallbackData.data || []);
               setTotalCount(fallbackData.total || 0);
@@ -212,6 +218,7 @@ export function useSearchListings(
           }
         } else {
           if (currentFetchId === fetchIdRef.current) {
+            loadedPageRef.current = page;
             setListings(data.data || []);
             setTotalCount(data.total || 0);
             setTotalPages(data.total_pages || 1);
@@ -237,12 +244,16 @@ export function useSearchListings(
 
   // Load more for infinite scroll
   const handleLoadMore = useCallback(async () => {
-    if (isLoadingMore || page >= totalPages) return;
+    // Guard with a ref as well as state: the scroll sentinel can fire again
+    // in the same tick, before React has re-rendered with isLoadingMore=true.
+    if (loadingMoreRef.current || isLoadingMore) return;
+    if (loadedPageRef.current >= totalPages) return;
 
+    loadingMoreRef.current = true;
     setIsLoadingMore(true);
 
     try {
-      const nextPage = page + 1;
+      const nextPage = loadedPageRef.current + 1;
       // Use the same query/AI filters as the main fetch so the next page comes
       // from the same result set
       const params = buildSearchParams({
@@ -262,7 +273,15 @@ export function useSearchListings(
       const data = await response.json();
 
       if (data.data?.length > 0) {
-        setListings((prev) => [...prev, ...data.data]);
+        loadedPageRef.current = nextPage;
+        // Drop anything already on screen — a listing that moved between
+        // pages (new import, sort tie) would otherwise render twice and
+        // collide on its React key.
+        setListings((prev) => {
+          const seen = new Set(prev.map((l) => l.id));
+          const fresh = (data.data as Listing[]).filter((l) => !seen.has(l.id));
+          return fresh.length > 0 ? [...prev, ...fresh] : prev;
+        });
         // Pre-commit the dedupe key for the new page so the URL update below
         // (which flows back in as the `page` prop) doesn't trigger a full
         // refetch that would replace the appended list
@@ -274,9 +293,10 @@ export function useSearchListings(
     } catch (error) {
       logger.error('Load more error', { error });
     } finally {
+      loadingMoreRef.current = false;
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, page, totalPages, sortBy, category, advancedFilters, query, searchParamsString]);
+  }, [isLoadingMore, totalPages, sortBy, category, advancedFilters, query, searchParamsString]);
 
   return {
     listings,
