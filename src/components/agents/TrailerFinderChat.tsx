@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { csrfFetch } from '@/lib/csrf-fetch';
 import { LinkifiedText } from '@/components/ui/linkified-text';
 import { canAutofocus, useOverlayOpen, useVisibleViewport } from '@/lib/mobile-chrome';
 import {
-  Search, Send, Loader2, Bot, User,
+  Send, Loader2, User,
   Wrench, X, Maximize2, Minimize2,
 } from 'lucide-react';
 
@@ -162,10 +163,19 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
       <button
         onClick={() => setIsOpen(true)}
         data-fab
-        className="fixed bottom-fab-2 right-4 md:bottom-[calc(var(--compare-bar-h,0px)+6rem)] md:right-6 z-50 bg-primary text-primary-foreground rounded-full p-3 md:p-4 shadow-lg hover:shadow-xl transition-all hover:scale-105"
-        aria-label="Open Trailer Finder"
+        className="fixed bottom-fab-2 right-4 md:bottom-[calc(var(--compare-bar-h,0px)+6rem)] md:right-6 z-50 group flex size-12 items-center justify-center gap-2 rounded-full bg-white text-foreground shadow-lg ring-2 ring-primary/50 transition-all hover:scale-105 hover:shadow-xl hover:ring-primary dark:bg-zinc-900 md:size-auto md:h-14 md:px-3"
+        aria-label="Chat with AXLON"
       >
-        <Search className="w-6 h-6" />
+        {/* The site's face is the launcher, so the mascot and "chat" stay
+            linked on every page; the label only fits on desktop */}
+        <Image
+          src="/images/axlonai-logo-eyes.png"
+          alt=""
+          width={40}
+          height={47}
+          className="h-8 w-auto md:h-10 dark:brightness-110"
+        />
+        <span className="hidden md:block pr-1 text-sm font-semibold whitespace-nowrap">Ask AXLON</span>
       </button>
     );
   }
@@ -187,12 +197,12 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-            <Bot className="w-4 h-4 text-primary" />
+          <div className="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center">
+            <Image src="/images/axlonai-logo-eyes.png" alt="" width={24} height={28} className="h-6 w-auto dark:brightness-110" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm">Trailer Finder</h3>
-            <p className="text-xs text-muted-foreground">AI-powered equipment search</p>
+            <h3 className="font-semibold text-sm">AXLON</h3>
+            <p className="text-xs text-muted-foreground">Axleyard&apos;s AI &middot; searches live inventory</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -223,9 +233,9 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
       <div ref={listRef} role="log" aria-live="polite" aria-label="Conversation" className={`overflow-y-auto overscroll-contain px-4 py-3 space-y-4 ${variant === 'floating' ? 'flex-1 min-h-0' : 'h-[500px]'}`}>
         {messages.length === 0 && (
           <div className="text-center py-8">
-            <Bot className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+            <Image src="/images/axlonai-logo-eyes.png" alt="" width={56} height={65} className="h-14 w-auto mx-auto mb-3 dark:brightness-110" />
             <p className="text-sm text-muted-foreground mb-4">
-              Tell me what you need to haul and I&apos;ll find the right trailer.
+              I&apos;m AXLON. Tell me what you need to haul and I&apos;ll find the right trailer.
             </p>
             <div className="space-y-2">
               {EXAMPLE_QUERIES.map((q, i) => (
@@ -245,7 +255,7 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
           <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
             {msg.role === 'assistant' && (
               <div className="w-7 h-7 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Bot className="w-3.5 h-3.5 text-primary" />
+                <Image src="/images/axlonai-logo-eyes.png" alt="" width={16} height={19} className="h-4 w-auto dark:brightness-110" />
               </div>
             )}
             <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'} rounded-lg px-3 py-2`}>
@@ -279,7 +289,7 @@ export function TrailerFinderChat({ variant = 'inline', className = '', initialO
         {isLoading && (
           <div className="flex gap-3">
             <div className="w-7 h-7 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-              <Bot className="w-3.5 h-3.5 text-primary" />
+              <Image src="/images/axlonai-logo-eyes.png" alt="" width={16} height={19} className="h-4 w-auto dark:brightness-110" />
             </div>
             <div className="bg-muted rounded-lg px-3 py-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { optionalImport, Nothing } from '@/lib/lazy';
 import { createPortal } from 'react-dom';
 import { Phone, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { SALES_PHONE_E164, SALES_PHONE_DISPLAY } from '@/lib/contact';
 
 const TrailerFinderChat = dynamic(
@@ -17,45 +19,76 @@ const TrailerFinderChat = dynamic(
 );
 
 /**
- * The buyer's way to a person-like answer: the phone line (answered 24/7 by
- * the voice agent, which searches live inventory) or the same help in chat.
- * Buyer wording on purpose; the dealer pitch for this AI lives on
- * /for-business.
+ * Where the homepage introduces AXLON by face and name. The header and footer
+ * show the same face as the site mark, so without this band visitors read it
+ * as a logo rather than the character who answers the phone line (24/7, via
+ * the voice agent, which searches live inventory) and the chat.
+ *
+ * Axleyard stays the brand and AXLON is its AI, presented as the one who
+ * runs the yard. Buyer wording on purpose; the dealer pitch for this AI
+ * lives on /for-business.
  */
 export function HomeHelpBand() {
   const [chatOpen, setChatOpen] = useState(false);
   // Closing the panel collapses it to its own FAB but leaves it mounted, so
-  // a second "Chat now" would be a no-op; bumping openRequest reopens it
-  // without remounting (a new key wiped the conversation, even mid-chat).
+  // a second "Chat with AXLON" would be a no-op; bumping openRequest reopens
+  // it without remounting (a new key wiped the conversation, even mid-chat).
   const [openRequest, setOpenRequest] = useState(0);
 
   return (
-    <section className="w-full max-w-3xl mx-auto mb-10 md:mb-14 px-4">
-      <div className="rounded-2xl border bg-white/80 dark:bg-white/[0.06] p-5 md:p-7 text-center">
-        <h2 className="text-lg md:text-xl font-bold mb-1.5">Looking for something specific?</h2>
-        <p className="text-sm text-muted-foreground dark:text-foreground/60 max-w-md mx-auto mb-5">
-          Call or chat any time, day or night. We&apos;ll search live inventory,
-          answer questions about a unit, and put you in touch with the seller.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Button size="lg" className="rounded-full gap-2 w-full sm:w-auto" asChild>
-            <a href={`tel:${SALES_PHONE_E164}`}>
-              <Phone className="w-4 h-4" />
-              Call {SALES_PHONE_DISPLAY}
-            </a>
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="rounded-full gap-2 glass-button !bg-white/80 dark:!bg-white/10 w-full sm:w-auto"
-            onClick={() => {
-              setChatOpen(true);
-              setOpenRequest((n) => n + 1);
-            }}
+    <section id="meet-axlon" className="w-full max-w-3xl mx-auto mb-10 md:mb-14 px-4 scroll-mt-24">
+      <div className="rounded-2xl border bg-white/80 dark:bg-white/[0.06] p-5 md:p-7">
+        <div className="flex flex-col items-center gap-5 text-center md:flex-row md:items-center md:gap-7 md:text-left">
+          {/* The face lights up (same treatment as /ask) while the chat is open */}
+          <div
+            className={cn(
+              'shrink-0 transition-transform duration-500',
+              chatOpen && 'logo-glow scale-105'
+            )}
           >
-            <MessageSquare className="w-4 h-4" />
-            Chat now
-          </Button>
+            <Image
+              src="/images/axlonai-logo-eyes.png"
+              alt="AXLON"
+              width={120}
+              height={140}
+              sizes="(min-width: 768px) 112px, 88px"
+              className="w-[88px] md:w-28 h-auto dark:brightness-110"
+            />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] uppercase tracking-widest font-medium text-primary mb-1">
+              Meet AXLON
+            </p>
+            <h2 className="text-lg md:text-xl font-bold mb-1.5">
+              The AI that runs the yard
+            </h2>
+            <p className="text-sm text-muted-foreground dark:text-foreground/60 max-w-md mx-auto md:mx-0 mb-4">
+              AXLON answers our phone line and chat 24/7. He searches live
+              inventory, answers questions about any unit, and puts you in
+              touch with the seller.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3">
+              <Button size="lg" className="rounded-full gap-2 w-full sm:w-auto" asChild>
+                <a href={`tel:${SALES_PHONE_E164}`}>
+                  <Phone className="w-4 h-4" />
+                  Call AXLON {SALES_PHONE_DISPLAY}
+                </a>
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="rounded-full gap-2 glass-button !bg-white/80 dark:!bg-white/10 w-full sm:w-auto"
+                onClick={() => {
+                  setChatOpen(true);
+                  setOpenRequest((n) => n + 1);
+                }}
+              >
+                <MessageSquare className="w-4 h-4" />
+                Chat with AXLON
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
       {/* Portalled to <body>: rendered in place, the panel inherits the page's
