@@ -1,6 +1,7 @@
 'use client';
 
 import { Phone } from 'lucide-react';
+import Image from 'next/image';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { RESERVED_SLUGS } from '@/lib/reserved-slugs';
@@ -39,13 +40,25 @@ export function FloatingCallButton() {
       href={`tel:${PHONE_NUMBER}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="fixed bottom-fab right-4 md:bottom-[calc(var(--compare-bar-h,0px)+1.5rem)] md:right-6 z-50 flex items-center gap-2 bg-primary text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group"
+      className="fixed bottom-fab right-4 md:bottom-[calc(var(--compare-bar-h,0px)+1.5rem)] md:right-6 z-50 flex h-12 md:h-14 items-center rounded-full bg-primary text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group"
       aria-label="Call AXLON AI"
     >
+      {/* AXLON's face on a white disc, so the button reads as "call him",
+          matching the chat launcher's face */}
+      <span className="ml-1 md:ml-1.5 flex size-10 md:size-11 shrink-0 items-center justify-center rounded-full bg-white">
+        <Image
+          src="/images/axlonai-logo-eyes.png"
+          alt=""
+          width={32}
+          height={37}
+          className="h-7 md:h-8 w-auto"
+        />
+      </span>
+
       {/* Expanded state with number — desktop only */}
       <div
         className={`overflow-hidden transition-all duration-300 hidden md:block ${
-          isHovered ? 'max-w-[200px] pl-4' : 'max-w-0 pl-0'
+          isHovered ? 'max-w-[200px] pl-3' : 'max-w-0 pl-0'
         }`}
       >
         <div className="whitespace-nowrap">
@@ -54,8 +67,8 @@ export function FloatingCallButton() {
         </div>
       </div>
 
-      {/* Phone icon button — smaller on mobile */}
-      <div className="p-3 md:p-4 flex items-center justify-center">
+      {/* Phone icon */}
+      <div className="pl-2 pr-3 md:pl-2.5 md:pr-4 flex items-center justify-center">
         <Phone className="w-5 h-5 md:w-6 md:h-6" />
       </div>
 
