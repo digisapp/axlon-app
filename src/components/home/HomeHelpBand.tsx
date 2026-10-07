@@ -64,9 +64,9 @@ export function HomeHelpBand() {
               The AI that runs the yard
             </h2>
             <p className="text-sm text-muted-foreground dark:text-foreground/60 max-w-md mx-auto md:mx-0 mb-4">
-              AXLON answers our phone line and chat 24/7. He searches live
-              inventory, answers questions about any unit, and puts you in
-              touch with the seller.
+              AXLON is available 24/7 by phone or chat. He searches live
+              inventory, answers questions about any unit, and connects you
+              directly with the seller when you&apos;re ready.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3">
               <Button size="lg" className="rounded-full gap-2 w-full sm:w-auto" asChild>
