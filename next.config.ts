@@ -47,6 +47,18 @@ const nextConfig: NextConfig = {
         source: '/:path*',
         headers: securityHeaders,
       },
+      {
+        // The game's hashed bundle never changes under the same name.
+        source: '/play/assets/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
+    ];
+  },
+  async rewrites() {
+    return [
+      // HEAVY HAUL RUSH, built into public/play by HEAVY-HAUL/web/scripts/publish.sh.
+      { source: '/play', destination: '/play/index.html' },
+      { source: '/play/', destination: '/play/index.html' },
     ];
   },
   images: {

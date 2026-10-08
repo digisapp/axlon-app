@@ -109,7 +109,9 @@ export const config = {
      * - public folder assets
      * - API routes (they handle their own auth; skipping middleware
      *   avoids an extra supabase.auth.getUser() round-trip per request)
+     * - /play, the HEAVY HAUL game: plain built files under public/play whose
+     *   scripts carry no nonce, so the per-request CSP would block them
      */
-    '/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/|play$|play/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
