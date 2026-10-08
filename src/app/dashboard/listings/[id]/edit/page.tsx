@@ -590,7 +590,6 @@ export default function EditListingPage({ params }: PageProps) {
             </CardHeader>
             <CardContent>
               <ImageUpload
-                listingId={id}
                 images={images}
                 onChange={setImages}
                 onAIDetection={handleAIDetection}

@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Dialog,
   DialogContent,
@@ -37,12 +37,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   Phone,
-  Building2,
   Loader2,
   Edit,
   Trash2,
-  Plus,
-  PhoneCall,
   Clock,
   CheckCircle,
   XCircle,
@@ -115,7 +112,7 @@ export default function AdminVoiceAgentsPage() {
     is_active: false,
   });
 
-  async function fetchAgents() {
+  const fetchAgents = useCallback(async () => {
     setIsLoading(true);
     try {
       // The API defaults to 20 per page — ask for a real page size and paginate,
@@ -146,7 +143,7 @@ export default function AdminVoiceAgentsPage() {
       toast.error('Could not load voice agents');
     }
     setIsLoading(false);
-  };
+  }, [statusFilter, debouncedSearch, page]);
 
   // Query only after typing pauses — per-keystroke fetches raced each other
   useEffect(() => {
@@ -157,7 +154,7 @@ export default function AdminVoiceAgentsPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchAgents flips isLoading synchronously before awaiting; standard fetch-on-change pattern
     fetchAgents();
-  }, [statusFilter, debouncedSearch, page]);
+  }, [fetchAgents]);
 
   const openEditDialog = (agent: DealerWithAgent) => {
     setSelectedAgent(agent);

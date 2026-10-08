@@ -17,7 +17,6 @@ export async function GET(request: NextRequest) {
     const supabase = createAdminClient();
 
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
 
     // Get all active floor plans with upcoming curtailments
     const { data: floorPlans, error: fpError } = await supabase

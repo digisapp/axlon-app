@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Download, Loader2, FileSpreadsheet } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 
 interface BulkExportProps {

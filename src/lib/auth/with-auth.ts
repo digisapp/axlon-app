@@ -4,7 +4,6 @@ import { SupabaseClient, User } from '@supabase/supabase-js';
 import {
   checkRateLimit,
   getClientIdentifier,
-  RATE_LIMITS,
   rateLimitResponse,
 } from '@/lib/security/rate-limit';
 import { requireCsrf } from '@/lib/security/csrf';

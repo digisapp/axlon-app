@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import { compressImage, formatFileSize } from '@/lib/upload-utils';
+import { compressImage } from '@/lib/upload-utils';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { toast } from 'sonner';
 
@@ -31,7 +31,6 @@ import {
   MapPin,
   Sparkles,
   Check,
-  RotateCcw,
   Video,
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
@@ -94,6 +93,7 @@ export default function SnapListPage() {
     if (step === 'details' && !city && !state) {
       detectLocation();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- detect once on entering the details step; re-running when the user clears a field would re-prompt for location
   }, [step]);
 
   // Fill in location when detected
@@ -103,6 +103,7 @@ export default function SnapListPage() {
       if (!state) setState(location.state);
       if (!zipCode) setZipCode(location.zip);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fill empty fields when a detection lands, never when the user edits them
   }, [location]);
 
   // Auto-generate title from AI detection
@@ -115,6 +116,7 @@ export default function SnapListPage() {
         setTitle(aiType);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- suggest a title from detection; `title` is a guard, not a trigger (clearing it must not regenerate)
   }, [step, aiMake, aiModel, aiType, year]);
 
   // ─── Photo Capture ──────────────────────────────

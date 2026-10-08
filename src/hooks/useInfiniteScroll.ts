@@ -58,14 +58,11 @@ interface UseLoadMoreOptions<T> {
   initialData?: T[];
   /** Function to fetch more data */
   fetchMore: (page: number) => Promise<{ data: T[]; hasMore: boolean }>;
-  /** Items per page */
-  pageSize?: number;
 }
 
 export function useLoadMore<T>({
   initialData = [],
   fetchMore,
-  pageSize = 20,
 }: UseLoadMoreOptions<T>) {
   const [items, setItems] = useState<T[]>(initialData);
   const [page, setPage] = useState(1);

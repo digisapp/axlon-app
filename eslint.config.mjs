@@ -14,6 +14,22 @@ const eslintConfig = [
   },
   ...nextConfig,
   ...tsConfig,
+  {
+    rules: {
+      // `const { id: _id, ...rest } = row` is how we strip columns before an
+      // insert; the underscore names exist only to be left out.
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          ignoreRestSiblings: true,
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ];
 
 export default eslintConfig;

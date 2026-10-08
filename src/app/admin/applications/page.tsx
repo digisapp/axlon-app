@@ -7,7 +7,6 @@ import {
   ClipboardList,
   Mail,
   Phone,
-  Building2,
   ArrowRight,
   Calendar,
   ExternalLink,

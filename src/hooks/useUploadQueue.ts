@@ -87,7 +87,6 @@ export function useUploadQueue(options: UseUploadQueueOptions = {}) {
       const ext = compressed.type === 'image/webp' ? 'webp' : compressed.name.split('.').pop() || 'jpg';
       const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
 
-      const projectRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace('https://', '').split('.')[0];
       const uploadUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/${bucket}/${fileName}`;
 
       const url = await new Promise<string>((resolve, reject) => {

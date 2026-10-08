@@ -25,7 +25,6 @@ import {
   User,
   CreditCard,
   HelpCircle,
-  Search,
   Clock,
 } from 'lucide-react';
 

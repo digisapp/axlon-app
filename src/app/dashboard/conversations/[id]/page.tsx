@@ -17,7 +17,6 @@ import {
   Send,
   Mail,
   Phone,
-  Clock,
   CheckCircle,
   XCircle,
   UserCheck,

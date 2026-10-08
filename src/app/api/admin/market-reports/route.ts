@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { checkIsAdmin } from '@/lib/admin/check-admin';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const { isAdmin } = await checkIsAdmin();
   if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
 

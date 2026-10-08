@@ -1,6 +1,5 @@
 import { createXai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
-import { logger } from '@/lib/logger';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { escapeHtml } from '@/lib/utils/html-escape';
 

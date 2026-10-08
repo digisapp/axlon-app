@@ -17,7 +17,6 @@ import {
   FileUp,
   CheckCircle,
   AlertCircle,
-  XCircle,
   ArrowRight,
   RotateCcw,
 } from 'lucide-react';
@@ -50,6 +49,100 @@ interface ValidationError {
 
 type Step = 'upload' | 'preview' | 'importing' | 'complete';
 
+// Spreadsheet exports quote numbers with thousands separators ("85,000",
+// "$85,000"). parseFloat stops at the first comma, so a $85,000 trailer was
+// validated as fine and imported at $85. Strip currency symbols, commas and
+// spaces before parsing.
+const parseNum = (v: string | undefined): number => parseFloat((v || '').replace(/[$,\s]/g, ''));
+
+const parseCSV = (text: string): ParsedRow[] => {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+
+  const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
+  const rows: ParsedRow[] = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseCSVLine(lines[i]);
+    const row: ParsedRow = {
+      title: '',
+      category: '',
+      price: '',
+      condition: '',
+    };
+
+    headers.forEach((header, index) => {
+      row[header] = values[index]?.trim() || '';
+    });
+
+    rows.push(row);
+  }
+
+  return rows;
+};
+
+const parseCSVLine = (line: string): string[] => {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  result.push(current);
+  return result;
+};
+
+const validateData = (data: ParsedRow[]): ValidationError[] => {
+  const validationErrors: ValidationError[] = [];
+
+  data.forEach((row, index) => {
+    if (!row.title) {
+      validationErrors.push({
+        row: index + 2,
+        field: 'title',
+        message: 'Title is required',
+      });
+    }
+    if (!row.category) {
+      validationErrors.push({
+        row: index + 2,
+        field: 'category',
+        message: 'Category is required',
+      });
+    }
+    if (!row.price || isNaN(parseNum(row.price))) {
+      validationErrors.push({
+        row: index + 2,
+        field: 'price',
+        message: 'Valid price is required',
+      });
+    }
+    if (
+      !row.condition ||
+      !['new', 'used', 'certified', 'salvage'].includes(row.condition.toLowerCase())
+    ) {
+      validationErrors.push({
+        row: index + 2,
+        field: 'condition',
+        message: 'Condition must be new, used, certified, or salvage',
+      });
+    }
+  });
+
+  return validationErrors;
+};
+
 export function BulkImportWizard() {
   const [step, setStep] = useState<Step>('upload');
   const [file, setFile] = useState<File | null>(null);
@@ -60,100 +153,6 @@ export function BulkImportWizard() {
     success: number;
     failed: number;
   } | null>(null);
-
-  // Spreadsheet exports quote numbers with thousands separators ("85,000",
-  // "$85,000"). parseFloat stops at the first comma, so a $85,000 trailer was
-  // validated as fine and imported at $85. Strip currency symbols, commas and
-  // spaces before parsing.
-  const parseNum = (v: string | undefined): number => parseFloat((v || '').replace(/[$,\s]/g, ''));
-
-  const parseCSV = (text: string): ParsedRow[] => {
-    const lines = text.trim().split('\n');
-    if (lines.length < 2) return [];
-
-    const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
-    const rows: ParsedRow[] = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const values = parseCSVLine(lines[i]);
-      const row: ParsedRow = {
-        title: '',
-        category: '',
-        price: '',
-        condition: '',
-      };
-
-      headers.forEach((header, index) => {
-        row[header] = values[index]?.trim() || '';
-      });
-
-      rows.push(row);
-    }
-
-    return rows;
-  };
-
-  const parseCSVLine = (line: string): string[] => {
-    const result: string[] = [];
-    let current = '';
-    let inQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-
-      if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        result.push(current);
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-
-    result.push(current);
-    return result;
-  };
-
-  const validateData = (data: ParsedRow[]): ValidationError[] => {
-    const validationErrors: ValidationError[] = [];
-
-    data.forEach((row, index) => {
-      if (!row.title) {
-        validationErrors.push({
-          row: index + 2,
-          field: 'title',
-          message: 'Title is required',
-        });
-      }
-      if (!row.category) {
-        validationErrors.push({
-          row: index + 2,
-          field: 'category',
-          message: 'Category is required',
-        });
-      }
-      if (!row.price || isNaN(parseNum(row.price))) {
-        validationErrors.push({
-          row: index + 2,
-          field: 'price',
-          message: 'Valid price is required',
-        });
-      }
-      if (
-        !row.condition ||
-        !['new', 'used', 'certified', 'salvage'].includes(row.condition.toLowerCase())
-      ) {
-        validationErrors.push({
-          row: index + 2,
-          field: 'condition',
-          message: 'Condition must be new, used, certified, or salvage',
-        });
-      }
-    });
-
-    return validationErrors;
-  };
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -213,7 +212,7 @@ export function BulkImportWizard() {
         } else {
           failedCount++;
         }
-      } catch (error) {
+      } catch {
         failedCount++;
       }
 

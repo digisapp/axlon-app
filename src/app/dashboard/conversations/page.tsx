@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -15,10 +15,8 @@ import {
   ArrowRight,
   Loader2,
   Inbox,
-  CheckCircle,
   UserCheck,
   Bot,
-  AlertCircle,
 } from 'lucide-react';
 import { PageHeader } from '@/components/dashboard/PageHeader';
 import { formatDistanceToNow } from 'date-fns';

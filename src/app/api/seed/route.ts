@@ -532,7 +532,7 @@ export async function GET() {
       listingsCount: count || 0,
       sampleDataAvailable: sampleListings.length,
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to check status' }, { status: 500 });
   }
 }

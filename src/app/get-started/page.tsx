@@ -15,7 +15,6 @@ import {
   Building2,
   Phone,
   MapPin,
-  Check,
   Package,
   TrendingUp,
   MessageSquare,
@@ -84,7 +83,6 @@ export default function GetStartedPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isAlreadyBusiness, setIsAlreadyBusiness] = useState(false);
 
   const [formData, setFormData] = useState({
     company_name: '',
@@ -122,7 +120,7 @@ export default function GetStartedPage() {
     };
 
     checkAuth();
-  }, []);
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,32 +173,6 @@ export default function GetStartedPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (isAlreadyBusiness) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-muted/30">
-        <Card className="w-full max-w-md text-center">
-          <CardHeader>
-            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8 text-green-600" />
-            </div>
-            <CardTitle>You&apos;re Already Verified!</CardTitle>
-            <CardDescription>
-              Your business account is set up. You can start listing equipment right away.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button asChild className="w-full">
-              <Link href="/dashboard">Go to Dashboard</Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/dashboard/listings/new">Create a Listing</Link>
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     );
   }

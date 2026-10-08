@@ -36,7 +36,6 @@ const navLinks = [
 
 export function HomeHeader() {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -57,10 +56,9 @@ export function HomeHeader() {
             setUser(profile);
           }
         }
-      } catch (error) {
+      } catch {
         // silently handle auth fetch errors
       }
-      setIsLoading(false);
     };
 
     fetchUser();

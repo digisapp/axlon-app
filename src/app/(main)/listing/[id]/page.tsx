@@ -9,7 +9,6 @@ import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import Link from 'next/link';
 import { Metadata } from 'next';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {

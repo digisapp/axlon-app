@@ -178,6 +178,7 @@ export function ListingWizard({ onComplete, onCancel }: ListingWizardProps) {
             <div className="grid grid-cols-2 gap-3 mb-6">
               {imageUrls.map((url, i) => (
                 <div key={i} className="relative group aspect-video bg-muted rounded-lg overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- URLs are pasted by the user from any host; next/image only allows configured hosts */}
                   <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
                   {/* Visible on touch screens (no hover there); hover-revealed with a mouse */}
                   <button
@@ -302,6 +303,7 @@ export function ListingWizard({ onComplete, onCancel }: ListingWizardProps) {
           {/* Image Preview */}
           <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
             {draft.image_urls.map((url, i) => (
+              // eslint-disable-next-line @next/next/no-img-element -- same user-pasted URLs as the preview grid above
               <img key={i} src={url} alt={`Photo ${i + 1}`} className="w-24 h-24 object-cover rounded-lg flex-shrink-0" />
             ))}
           </div>

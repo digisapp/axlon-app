@@ -85,7 +85,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const hasHashedPin = !!staff.pin_hash;
 
     // Don't expose PIN or hash to frontend
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { voice_pin: _pin, pin_hash: _hash, ...safeStaff } = staff;
 
     return NextResponse.json({
@@ -235,7 +234,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     // Don't expose PIN - destructure to remove sensitive fields
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { voice_pin: _pin, pin_hash: _hash, ...safeStaff } = staff;
 
     return NextResponse.json({ data: safeStaff });

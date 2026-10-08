@@ -1,18 +1,15 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Warehouse,
   Package,
   DollarSign,
-  Clock,
   AlertTriangle,
   Plus,
-  Filter,
   Download,
-  ArrowUpRight,
   Landmark,
 } from 'lucide-react';
 import Link from 'next/link';

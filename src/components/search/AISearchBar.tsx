@@ -194,6 +194,10 @@ export function AISearchBar({
     };
   }, []);
 
+  // handleSearch is declared later and recreated every render; the voice
+  // handler reaches it through a ref so it can stay memoized.
+  const handleSearchRef = useRef<(q?: string) => void>(() => {});
+
   // Voice input handler
   const startVoiceInput = useCallback(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -229,7 +233,7 @@ export function AISearchBar({
         setIsListening(false);
         // Small delay to let user see the transcription
         setTimeout(() => {
-          handleSearch(finalTranscript);
+          handleSearchRef.current(finalTranscript);
         }, 500);
       }
     };
@@ -374,6 +378,10 @@ export function AISearchBar({
     setIsLoading(false);
     router.push(`/search?q=${encodeURIComponent(q.trim())}`);
   };
+
+  useEffect(() => {
+    handleSearchRef.current = handleSearch;
+  });
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {

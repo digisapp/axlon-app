@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import {
   Eye,
   Users,
-  TrendingUp,
   Package,
   ArrowUpRight,
   ArrowDownRight,
@@ -261,7 +260,7 @@ async function LeadFunnel({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-3">
-      {funnelSteps.map((step, index) => {
+      {funnelSteps.map((step) => {
         const percentage = total > 0 ? (step.count / total) * 100 : 0;
         const width = Math.max(percentage, 10); // Minimum 10% width for visibility
 
@@ -330,7 +329,7 @@ async function getAnalyticsData(supabase: Awaited<ReturnType<typeof createClient
     if (viewStats?.[0]) {
       viewsTrend = viewStats[0].trend_percentage || 0;
     }
-  } catch (e) {
+  } catch {
     // RPC not available yet - use empty data
     viewsData = generateEmptyDates(days, 'views') as unknown as { date: string; views: number }[];
   }
@@ -376,7 +375,7 @@ async function getAnalyticsData(supabase: Awaited<ReturnType<typeof createClient
     if (previousWeekLeads && previousWeekLeads > 0) {
       leadsTrend = Math.round(((currentWeekLeads || 0) - previousWeekLeads) / previousWeekLeads * 100);
     }
-  } catch (e) {
+  } catch {
     leadsData = generateEmptyDates(days, 'leads') as unknown as { date: string; leads: number }[];
   }
 

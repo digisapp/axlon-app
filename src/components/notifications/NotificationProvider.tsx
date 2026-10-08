@@ -1,8 +1,8 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode, useMemo } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { toast } from 'sonner';
-import { MessageSquare, Heart, Bell, DollarSign } from 'lucide-react';
+import { MessageSquare, Heart } from 'lucide-react';
 import { logger } from '@/lib/logger';
 
 interface Notification {

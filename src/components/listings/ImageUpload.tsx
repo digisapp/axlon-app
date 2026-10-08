@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { compressImage, formatFileSize } from '@/lib/upload-utils';
+import { compressImage } from '@/lib/upload-utils';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -55,7 +55,6 @@ export interface UploadedImage {
 }
 
 interface ImageUploadProps {
-  listingId?: string;
   images: UploadedImage[];
   onChange: (images: UploadedImage[]) => void;
   onAIDetection?: (data: { make?: string; model?: string; type?: string; tags?: string[] }) => void;
@@ -65,7 +64,6 @@ interface ImageUploadProps {
 const MAX_CONCURRENT = 3;
 
 export function ImageUpload({
-  listingId,
   images,
   onChange,
   onAIDetection,

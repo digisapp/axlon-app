@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { toast } from 'sonner';
@@ -115,7 +115,7 @@ export default function AdminManufacturersPage() {
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  async function fetchManufacturers() {
+  const fetchManufacturers = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -135,7 +135,7 @@ export default function AdminManufacturersPage() {
       toast.error('Could not load manufacturers');
     }
     setIsLoading(false);
-  };
+  }, [statusFilter, debouncedSearch]);
 
   // Query only after typing pauses — per-keystroke fetches raced each other
   useEffect(() => {
@@ -146,7 +146,7 @@ export default function AdminManufacturersPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchManufacturers flips isLoading synchronously before awaiting; standard fetch-on-change pattern
     fetchManufacturers();
-  }, [statusFilter, debouncedSearch]);
+  }, [fetchManufacturers]);
 
   const openAddDialog = () => {
     setFormData(emptyManufacturer);

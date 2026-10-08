@@ -32,6 +32,16 @@ import {
 import { logger } from '@/lib/logger';
 import { isReservedSlug } from '@/lib/reserved-slugs';
 
+const DEFAULT_BUSINESS_HOURS = {
+  monday: { open: '09:00', close: '17:00', closed: false },
+  tuesday: { open: '09:00', close: '17:00', closed: false },
+  wednesday: { open: '09:00', close: '17:00', closed: false },
+  thursday: { open: '09:00', close: '17:00', closed: false },
+  friday: { open: '09:00', close: '17:00', closed: false },
+  saturday: { open: '10:00', close: '14:00', closed: false },
+  sunday: { open: '', close: '', closed: true },
+};
+
 export default function StorefrontSettingsPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -65,15 +75,7 @@ export default function StorefrontSettingsPage() {
     collect_lead_after: 3,
     social_facebook: '',
     social_instagram: '',
-    business_hours: {
-      monday: { open: '09:00', close: '17:00', closed: false },
-      tuesday: { open: '09:00', close: '17:00', closed: false },
-      wednesday: { open: '09:00', close: '17:00', closed: false },
-      thursday: { open: '09:00', close: '17:00', closed: false },
-      friday: { open: '09:00', close: '17:00', closed: false },
-      saturday: { open: '10:00', close: '14:00', closed: false },
-      sunday: { open: '', close: '', closed: true },
-    },
+    business_hours: DEFAULT_BUSINESS_HOURS,
     notify_new_chat: true,
     notify_new_lead: true,
     notify_new_message: true,
@@ -99,10 +101,10 @@ export default function StorefrontSettingsPage() {
         const chatSettings = profile.chat_settings || {};
         // The column default is '{}' (truthy), which would render an Hours editor
         // with zero rows and no way to add a day — treat empty as "use defaults".
-        const savedHours = profile.business_hours as typeof formData.business_hours | null;
+        const savedHours = profile.business_hours as typeof DEFAULT_BUSINESS_HOURS | null;
         const businessHours = savedHours && Object.keys(savedHours).length > 0
           ? savedHours
-          : formData.business_hours;
+          : DEFAULT_BUSINESS_HOURS;
         const loadedNotifications: Record<string, unknown> = profile.notification_settings || {};
         setNotificationSettings(loadedNotifications);
 

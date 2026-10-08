@@ -645,7 +645,6 @@ export default async function DealerStorefrontPage({ params, searchParams }: Pag
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
             {filteredListings.map((listing) => {
               const primaryImage = listing.images?.find((img: { is_primary: boolean }) => img.is_primary) || listing.images?.[0];
-              const cat = Array.isArray(listing.category) ? listing.category[0] : listing.category;
 
               return (
                 <Link key={listing.id} href={`/listing/${listing.id}`} className="group block">
