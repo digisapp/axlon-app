@@ -14,7 +14,6 @@ import {
   Phone,
   Package,
   Bot,
-  BarChart3,
   Crown,
   PhoneCall,
   Store,

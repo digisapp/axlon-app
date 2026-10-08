@@ -8,7 +8,6 @@ import {
   MessageSquare,
   Package,
   Phone,
-  ArrowRight,
   Clock,
 } from 'lucide-react';
 
@@ -66,7 +65,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
 
   return (
     <div className="space-y-1">
-      {activities.map((activity, idx) => {
+      {activities.map((activity) => {
         const config = typeConfig[activity.type];
         const Icon = config.icon;
 

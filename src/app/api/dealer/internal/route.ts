@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         break;
 
       case 'stats':
-        result = await queryStats(supabase, dealer_id, staff);
+        result = await queryStats(supabase, dealer_id);
         break;
 
       default:
@@ -376,8 +376,7 @@ async function queryPricing(
 // Query dealer stats
 async function queryStats(
   supabase: ReturnType<typeof createAdminClient>,
-  dealerId: string,
-  staff: Record<string, unknown>
+  dealerId: string
 ) {
   // Get listing counts
   const { count: totalListings } = await supabase

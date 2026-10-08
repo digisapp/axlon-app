@@ -66,7 +66,7 @@ export function VINDecoder({ onDecode, defaultValue = '' }: VINDecoderProps) {
       } else {
         toast.error(data.error || 'Failed to decode VIN');
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to decode VIN');
     } finally {
       setIsLoading(false);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -91,7 +91,7 @@ export default function AdminUsersPage() {
   const [suspendReason, setSuspendReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function fetchUsers() {
+  const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams({
@@ -114,7 +114,7 @@ export default function AdminUsersPage() {
       toast.error('Could not load users');
     }
     setIsLoading(false);
-  };
+  }, [page, debouncedSearch, typeFilter, statusFilter]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
@@ -124,7 +124,7 @@ export default function AdminUsersPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchUsers flips isLoading synchronously before awaiting; standard fetch-on-change pattern
     fetchUsers();
-  }, [debouncedSearch, typeFilter, statusFilter, page]);
+  }, [fetchUsers]);
 
   const handleAction = async () => {
     if (!selectedUser || !actionType) return;

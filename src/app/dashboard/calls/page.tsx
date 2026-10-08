@@ -31,7 +31,6 @@ import {
   PhoneMissed,
   PhoneOff,
   Search,
-  Play,
   Download,
   UserPlus,
   Clock,

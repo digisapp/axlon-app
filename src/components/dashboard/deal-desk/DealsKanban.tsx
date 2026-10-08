@@ -62,7 +62,7 @@ export function DealsKanban({ initialDeals, onDealClick }: DealsKanbanProps) {
       }
 
       toast.success(`Deal moved to ${columns.find((c) => c.id === newStatus)?.label || newStatus}`);
-    } catch (error) {
+    } catch {
       // Roll back only this deal: setDeals(initialDeals) would also undo every
       // earlier move that did succeed.
       setDeals((prev) => {

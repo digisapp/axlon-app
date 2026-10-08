@@ -74,7 +74,7 @@ export function TradeInActions({
       } else {
         toast.error('Failed to update status');
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to update status');
     } finally {
       setIsUpdating(false);
@@ -111,7 +111,7 @@ export function TradeInActions({
       } else {
         toast.error('Failed to send offer');
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to send offer');
     } finally {
       setIsSendingOffer(false);

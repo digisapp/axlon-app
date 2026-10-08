@@ -13,12 +13,6 @@ interface TranslatableContentProps {
   className?: string;
 }
 
-interface TranslationResult {
-  title: string;
-  description: string;
-  fromCache: boolean;
-}
-
 export function TranslatableTitle({
   listingId,
   originalTitle,

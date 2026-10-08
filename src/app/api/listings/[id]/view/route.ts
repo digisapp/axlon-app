@@ -8,7 +8,7 @@ import { checkRateLimit, getClientIdentifier } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 
 // Generate a simple session ID for anonymous tracking
-async function getSessionId(req: NextRequest): Promise<string> {
+async function getSessionId(): Promise<string> {
   const cookieStore = await cookies();
   let sessionId = cookieStore.get('view_session')?.value;
 
@@ -47,7 +47,7 @@ export async function POST(
     const { data: { user } } = await supabase.auth.getUser();
 
     // Get session ID for deduplication
-    const sessionId = await getSessionId(request);
+    const sessionId = await getSessionId();
 
     // Get IP hash for additional deduplication
     const forwardedFor = request.headers.get('x-forwarded-for');

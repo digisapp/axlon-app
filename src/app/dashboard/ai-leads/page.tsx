@@ -1,14 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -30,7 +26,6 @@ import {
   Users,
   Mail,
   Phone,
-  MessageSquare,
   CheckCircle,
   Clock,
   Star,
@@ -87,9 +82,6 @@ const getStatusConfig = (status: string) =>
   statusConfig[status as keyof typeof statusConfig] ?? defaultStatusConfig;
 
 export default function AILeadsPage() {
-  const router = useRouter();
-  const supabase = createClient();
-
   const [isLoading, setIsLoading] = useState(true);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, new: 0, contacted: 0, qualified: 0, converted: 0 });
@@ -97,11 +89,7 @@ export default function AILeadsPage() {
   const [activeTab, setActiveTab] = useState<string>('all');
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    fetchLeads();
-  }, [activeTab]);
-
-  const fetchLeads = async () => {
+  const fetchLeads = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -120,7 +108,11 @@ export default function AILeadsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    fetchLeads();
+  }, [fetchLeads]);
 
   const updateLeadStatus = async (leadId: string, status: string) => {
     setIsSaving(true);

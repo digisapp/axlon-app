@@ -110,7 +110,7 @@ export function LeadKanban({ leads: initialLeads, teamMembers = [], currentUserI
       } else {
         throw new Error('Failed to update');
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to save changes');
     } finally {
       setIsSaving(false);
@@ -148,7 +148,7 @@ export function LeadKanban({ leads: initialLeads, teamMembers = [], currentUserI
         rollback();
         toast.error('Failed to move lead');
       }
-    } catch (error) {
+    } catch {
       rollback();
       toast.error('Failed to move lead');
     }

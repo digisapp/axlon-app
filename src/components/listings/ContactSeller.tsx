@@ -29,7 +29,6 @@ export function ContactSeller({ listingId, sellerId, listingTitle }: ContactSell
   const [isSending, setIsSending] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [error, setError] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   // When the form was first shown: a submission seconds later is a bot.
   const startedAt = useRef<number>(Date.now());
 
@@ -39,7 +38,6 @@ export function ContactSeller({ listingId, sellerId, listingTitle }: ContactSell
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
-      setIsLoggedIn(!!user);
       if (user?.email) {
         setFormData(prev => ({ ...prev, email: user.email || '' }));
       }
@@ -106,7 +104,7 @@ export function ContactSeller({ listingId, sellerId, listingTitle }: ContactSell
         const data = await response.json();
         setError(data.error || 'Failed to send inquiry');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to send inquiry. Please try again.');
     } finally {
       setIsSending(false);

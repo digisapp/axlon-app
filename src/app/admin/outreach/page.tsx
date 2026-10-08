@@ -17,7 +17,6 @@ import {
   ChevronUp,
   Users,
   Building2,
-  Filter,
   X,
   CheckCircle2,
   RefreshCw,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -67,7 +67,7 @@ export default function AdminDealersPage() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function fetchDealers() {
+  const fetchDealers = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await csrfFetch(`/api/admin/dealers?status=${statusFilter}&limit=100`);
@@ -83,12 +83,12 @@ export default function AdminDealersPage() {
       toast.error('Could not load businesses');
     }
     setIsLoading(false);
-  };
+  }, [statusFilter]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchDealers flips isLoading synchronously before awaiting; standard fetch-on-change pattern
     fetchDealers();
-  }, [statusFilter]);
+  }, [fetchDealers]);
 
   const handleAction = async () => {
     if (!selectedDealer || !actionType) return;

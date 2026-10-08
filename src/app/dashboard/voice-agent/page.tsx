@@ -168,6 +168,7 @@ export default function VoiceAgentPage() {
 
   useEffect(() => {
     fetchVoiceAgent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount; `supabase` is a per-render client, so listing it would refetch every render
   }, []);
 
   useEffect(() => {
@@ -180,7 +181,7 @@ export default function VoiceAgentPage() {
     if (activeTab === 'staff' && staffLoading) {
       fetchStaff();
     }
-  }, [activeTab]);
+  }, [activeTab, staffLoading]);
 
   const fetchCallLogs = async () => {
     setIsLoadingCalls(true);

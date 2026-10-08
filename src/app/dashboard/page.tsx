@@ -412,7 +412,6 @@ export default async function DashboardPage() {
       {/* AI Command Center */}
       <CommandCenter
         insights={insights}
-        companyName={profile?.company_name || undefined}
       />
 
       {/* Stats Grid */}
@@ -611,32 +610,6 @@ function StatusBadge({ status }: { status: string }) {
     >
       {status}
     </span>
-  );
-}
-
-function QuickActionButton({
-  href,
-  icon,
-  label,
-  badge,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  label: string;
-  badge?: number;
-}) {
-  return (
-    <Button className="w-full justify-start text-sm" variant="outline" asChild>
-      <Link href={href}>
-        {icon}
-        <span className="ml-2">{label}</span>
-        {badge !== undefined && badge > 0 && (
-          <span className="ml-auto bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
-            {badge}
-          </span>
-        )}
-      </Link>
-    </Button>
   );
 }
 

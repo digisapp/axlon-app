@@ -4,7 +4,6 @@ import { checkIsAdmin } from '@/lib/admin/check-admin';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { sanitizeSearchFilter } from '@/lib/security/sanitize';
-import { requireCsrf } from '@/lib/security/csrf';
 export async function GET(request: NextRequest) {
   try {
     // Rate limit admin endpoints (100 requests per minute)

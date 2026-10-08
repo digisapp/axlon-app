@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth/with-auth';
 import { enforceFeature } from '@/lib/entitlements';
 import { RATE_LIMITS } from '@/lib/security/rate-limit';
@@ -124,7 +124,7 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
   const finalSubject = (action === 'edit' && edited_subject) ? edited_subject : item.ai_subject;
   const finalDraft = (action === 'edit' && edited_draft) ? edited_draft : item.ai_draft;
   const finalHtml = (action === 'edit' && edited_draft)
-    ? buildSimpleHtml(edited_draft, item.from_name)
+    ? buildSimpleHtml(edited_draft)
     : item.ai_draft_html;
 
   // Claim the send atomically so two concurrent approvals can't both email
@@ -194,7 +194,7 @@ export const PATCH = withAuth(async (request, { user, supabase }) => {
   return NextResponse.json(data);
 }, { rateLimit: { ...RATE_LIMITS.standard, prefix: 'ratelimit:ai-inbox-patch' } });
 
-function buildSimpleHtml(plainText: string, fromName: string): string {
+function buildSimpleHtml(plainText: string): string {
   const bodyHtml = plainText
     .split('\n')
     .map(line => line.trim() === '' ? '<br>' : `<p style="margin:0 0 10px 0;line-height:1.6;color:#1f2937;">${escapeHtml(line)}</p>`)

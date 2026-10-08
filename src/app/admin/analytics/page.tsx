@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,7 +79,7 @@ export default function AdminAnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [range, setRange] = useState('30');
 
-  async function fetchAnalytics() {
+  const fetchAnalytics = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch(`/api/admin/stats?range=${range}`);
@@ -93,12 +93,12 @@ export default function AdminAnalyticsPage() {
       logger.error('Error fetching analytics', { error });
     }
     setIsLoading(false);
-  };
+  }, [range]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchAnalytics flips isLoading synchronously before awaiting; standard fetch-on-change pattern
     fetchAnalytics();
-  }, [range]);
+  }, [fetchAnalytics]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);

@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import {
   Brain,
   ArrowRight,
-  TrendingDown,
   Users,
   BarChart3,
   AlertTriangle,
@@ -27,7 +26,6 @@ interface InsightCard {
 
 interface CommandCenterProps {
   insights: InsightCard[];
-  companyName?: string;
 }
 
 const suggestedPrompts = [
@@ -36,7 +34,7 @@ const suggestedPrompts = [
   'What should I price my trailer at?',
 ];
 
-export function CommandCenter({ insights, companyName }: CommandCenterProps) {
+export function CommandCenter({ insights }: CommandCenterProps) {
   const [query, setQuery] = useState('');
   const [answer, setAnswer] = useState<string | null>(null);
   const [isAsking, setIsAsking] = useState(false);

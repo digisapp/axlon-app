@@ -18,8 +18,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Upload,
-  X,
   Sparkles,
   Loader2,
   DollarSign,
@@ -38,7 +36,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { VINDecoder } from '@/components/listings/VINDecoder';
 import { VideoUpload } from '@/components/listings/VideoUpload';
 import { ListingWizard } from '@/components/agents/ListingWizard';
-import { canCreateListing, getPlanLimits, getRemainingListings } from '@/lib/plans';
+import { canCreateListing, getRemainingListings } from '@/lib/plans';
 import type { Category, AIPriceEstimate } from '@/types';
 import { logger } from '@/lib/logger';
 import { csrfFetch } from '@/lib/csrf-fetch';
@@ -317,7 +315,6 @@ export default function NewListingPage() {
     'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
   ];
 
-  const limits = getPlanLimits(subscriptionTier);
   const remainingListings = getRemainingListings(currentListingCount, subscriptionTier);
 
   // Show loading while checking limits

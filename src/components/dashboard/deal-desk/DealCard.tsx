@@ -1,6 +1,8 @@
 'use client';
 
+import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
+import { isOptimizerBlockedImage } from '@/lib/images/optimizer-blocked-hosts';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -17,12 +19,11 @@ import {
   ArrowRight,
   CheckCircle,
   XCircle,
-  Package,
   DollarSign,
   Clock,
   FileText,
 } from 'lucide-react';
-import type { Deal, DealStatus, DEAL_STATUS_INFO } from '@/types/deals';
+import type { Deal, DealStatus } from '@/types/deals';
 
 interface DealCardProps {
   deal: Deal;
@@ -157,9 +158,12 @@ export function DealCard({ deal, onStatusChange, onViewDetails }: DealCardProps)
         {deal.listing && (
           <div className="flex items-center gap-2 p-2 bg-muted/50 rounded">
             {primaryImage && (
-              <img
+              <Image
                 src={primaryImage}
                 alt=""
+                width={40}
+                height={40}
+                unoptimized={isOptimizerBlockedImage(primaryImage)}
                 className="w-10 h-10 object-cover rounded"
               />
             )}
