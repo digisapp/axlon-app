@@ -5,7 +5,12 @@ const eslintConfig = [
   {
     // One-off operational scraper/maintenance scripts run with node/tsx —
     // not part of the app build, not held to app lint standards
-    ignores: ["scripts/**"],
+    ignores: [
+      "scripts/**",
+      // HEAVY HAUL RUSH is a prebuilt Vite/Three.js bundle served as static
+      // files from /play — minified output, not source we lint
+      "public/play/**",
+    ],
   },
   ...nextConfig,
   ...tsConfig,
