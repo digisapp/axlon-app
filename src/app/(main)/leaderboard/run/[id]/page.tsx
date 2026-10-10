@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { money, clock, DriverLink, CompanyLink } from '../../board';
 import { getRun, placeName, jobName } from './run';
+import { dayKey } from '../../daily';
 
 export const revalidate = 300;
 
@@ -21,10 +22,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function RunPage({ params }: PageProps) {
   const run = await getRun((await params).id);
   if (!run) notFound();
+  // A daily run shared on its own day sends the friend to the same run; after that, to the game.
+  const today = run.daily !== null && run.daily === dayKey();
+  const dayName = run.daily ? new Date(`${run.daily}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }) : '';
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
       <p className="text-sm font-semibold uppercase tracking-wide text-amber-500">
-        <Link href="/leaderboard" className="hover:underline">HEAVY HAUL RUSH leaderboard</Link> / a run
+        <Link href="/leaderboard" className="hover:underline">HEAVY HAUL RUSH leaderboard</Link> / {run.daily ? `Daily Run — ${dayName}` : 'a run'}
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-6 rounded-2xl border border-border bg-card p-6">
         <div className="flex h-28 w-28 items-center justify-center rounded-xl bg-amber-400 text-7xl font-black text-black">{run.grade}</div>
@@ -42,7 +46,7 @@ export default async function RunPage({ params }: PageProps) {
       </div>
       <div className="mt-6 flex flex-wrap gap-3">
         <Button asChild size="lg">
-          <Link href="/play">Play now — beat {run.driver}</Link>
+          <Link href={today ? '/play?mode=daily&utm_source=run' : '/play'}>{today ? `Play today’s run — beat ${run.driver}` : `Play now — beat ${run.driver}`}</Link>
         </Button>
         <Button asChild size="lg" variant="outline">
           <Link href="/leaderboard">See the leaderboard</Link>
