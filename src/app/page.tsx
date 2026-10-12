@@ -14,7 +14,6 @@ import {
 import { HomeHeader } from '@/components/home/HomeHeader';
 import { HomeSearchSection } from '@/components/home/HomeSearchSection';
 import { HomeDeals } from '@/components/home/HomeDeals';
-import { HomeHelpBand } from '@/components/home/HomeHelpBand';
 import { SALES_PHONE_E164, SALES_PHONE_DISPLAY } from '@/lib/contact';
 import { getHomeDeals, getHomeStats, roundStat } from '@/lib/home-data';
 import { jsonLdString } from '@/lib/seo/json-ld';
@@ -130,9 +129,8 @@ export default async function HomePage() {
         {/* Hero: Logo + Search */}
         <HomeSearchSection />
 
-        {/* One hero CTA. The phone number lives in the corner call button,
-            the Meet AXLON band, and the footer; a second button here only
-            split the first click. */}
+        {/* One hero CTA. The phone number lives in the corner call button
+            and the footer; a second button here only split the first click. */}
         <div className="flex justify-center mb-6 md:mb-10 w-full max-w-sm sm:max-w-none sm:w-auto px-2">
           <Button
             size="lg"
@@ -218,9 +216,6 @@ export default async function HomePage() {
             <Image src="/images/brands/volvo.svg" alt="Volvo Trucks" width={188} height={27} className="h-3 md:h-4 w-auto dark:invert" />
           </div>
         </section>
-
-        {/* Help by phone or chat — the same AI that answers the phone line */}
-        <HomeHelpBand />
 
         {/* Sellers: one strip. The dealer pitch lives on /for-business; dealers
             are reached by calls and email, not the buyers who land here. */}
