@@ -696,17 +696,34 @@ class LeadTools:
                     user_id = listing_row.get('user_id')
 
             # Create the lead with correct field names
+            # leads.intent only accepts buy/lease/rent/unknown (leads_intent_check).
+            # The model also says "sell", "finance" or "Buy"; inserting that
+            # failed the whole row, and the caller was told they were noted
+            # while the lead was lost.
+            # The model writes numbers however it heard them ("555-0100-199");
+            # store a US number as (555) 010-0199 so lists and tel: links work.
+            if len(re.sub(r"\D", "", phone or "")) in (10, 11):
+                phone = _format_phone(phone)
+
+            intent_value = (intent or "").strip().lower() or None
+            if intent_value and intent_value not in ("buy", "lease", "rent", "unknown"):
+                intent_value = "unknown"
+
             lead_data = {
                 "buyer_name": name,
                 "buyer_phone": phone,
                 "buyer_email": email or "",
                 "message": interest,
+                # What the inbox and lead lists show as "interested in" (and the
+                # inbox uses as the subject); unset, every phone lead read
+                # "Your Axleyard inquiry".
+                "product_interest": ((interest or equipment_type or "").strip()[:200]) or None,
                 # Without a source the column defaults to 'website', so phone
                 # leads never showed under the Phone tab in /admin/leads.
                 "source": "phone_call",
                 "call_sid": self.call_sid,
                 "status": "new",
-                "intent": intent,  # buy, lease, rent
+                "intent": intent_value,  # buy, lease, rent, unknown
                 "equipment_type": equipment_type,
                 "created_at": datetime.utcnow().isoformat(),
             }
@@ -731,12 +748,14 @@ class LeadTools:
                 lead_id = result.data[0].get('id') if result.data else None
                 self.lead_id = lead_id or self.lead_id
                 logger.info(f"Lead captured successfully: {name} - {phone} - intent: {intent} - dealer: {user_id} - id: {lead_id}")
-                intent_str = f" to {intent}" if intent else ""
-
-                # Customize response if we have a business name
-                if self.business_name:
-                    return f"I've captured your information. Someone from {self.business_name} will reach out to you at {phone} soon about {interest}{intent_str}.", lead_id
-                return f"I've captured your information. A dealer will reach out to you at {phone} soon about {interest}{intent_str}.", lead_id
+                # This is the tool result the model answers from, not speech. It
+                # used to read "a dealer will reach out about selling a lowboy
+                # to sell" on Axleyard's own line.
+                who = f"someone from {self.business_name}" if self.business_name else "an Axleyard specialist"
+                return (
+                    f"Saved {name}'s details for follow-up about: {interest}. "
+                    f"Tell the caller {who} will call them back soon at the number they gave."
+                ), lead_id
             else:
                 return "I've noted your information. A team member will follow up with you shortly.", None
 
@@ -1583,7 +1602,11 @@ class CallLogTools:
             if equipment_type:
                 update_data["equipment_type"] = equipment_type
             if intent:
-                update_data["intent"] = intent
+                # The values migration 020 allows and /admin/calls colours.
+                # Prod has since lost that CHECK, so this keeps the data tidy
+                # rather than preventing a failure.
+                value = intent.strip().lower()
+                update_data["intent"] = value if value in ("buy", "lease", "rent", "browsing", "unknown") else "unknown"
             if lead_id:
                 update_data["lead_id"] = lead_id
             if summary:
