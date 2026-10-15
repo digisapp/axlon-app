@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Zap, ArrowRight, Search } from 'lucide-react';
+import { Zap, ArrowRight, MessageSquare, TrendingDown, Handshake } from 'lucide-react';
 import {
   LowboyTrailerIcon,
   FlatbedTrailerIcon,
@@ -57,6 +57,27 @@ const CATEGORY_TILES = [
   { name: 'Trucks', href: '/search?category=trucks', icon: SleeperTruckIcon },
   { name: 'Heavy Equipment', href: '/search?category=heavy-equipment', icon: HeavyEquipmentIcon },
   { name: 'All Categories', href: '/categories', icon: AllCategoriesIcon },
+];
+
+const HOW_IT_HELPS = [
+  {
+    step: 'Step 1 · Ask',
+    title: 'Search the way you talk',
+    body: 'Type "53-ton lowboy under $60k" or just ask a question. AXLON reads it the way a salesperson would and pulls matching units from dealers nationwide — by chat or phone, any hour.',
+    icon: MessageSquare,
+  },
+  {
+    step: 'Step 2 · Compare',
+    title: 'See what a fair price looks like',
+    body: 'Every listing gets an AI market estimate built from comparable units, so below-market deals stand out before you make a call.',
+    icon: TrendingDown,
+  },
+  {
+    step: 'Step 3 · Connect',
+    title: 'Go straight to the seller',
+    body: 'Message or call the dealer from the listing. If you were talking to AXLON, it hands over what you were looking for, so you never start from zero.',
+    icon: Handshake,
+  },
 ];
 
 const SERVICE_LINKS = [
@@ -124,26 +145,10 @@ export default async function HomePage() {
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 flex-1 flex flex-col items-center pt-8 md:pt-20 px-4">
+      <main className="relative z-10 flex-1 flex flex-col items-center pt-5 md:pt-12 px-4">
 
         {/* Hero: Logo + Search */}
         <HomeSearchSection />
-
-        {/* One hero CTA. The phone number lives in the corner call button
-            and the footer; a second button here only split the first click. */}
-        <div className="flex justify-center mb-6 md:mb-10 w-full max-w-sm sm:max-w-none sm:w-auto px-2">
-          <Button
-            size="lg"
-            className="gap-2 rounded-full shadow-lg shadow-primary/20 group w-full sm:w-auto"
-            asChild
-          >
-            <Link href="/search">
-              <Search className="w-4 h-4" />
-              Browse Equipment
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </Button>
-        </div>
 
         {/* Browse by Category */}
         <section className="w-full max-w-4xl mx-auto mb-8 md:mb-10 px-4">
@@ -152,9 +157,9 @@ export default async function HomePage() {
               <Link
                 key={href}
                 href={href}
-                className="flex flex-col items-center gap-2 rounded-xl border bg-white/80 dark:bg-white/[0.08] p-3 md:p-4 hover:border-primary/50 hover:shadow-md transition-all"
+                className="flex flex-col items-center gap-1.5 rounded-xl border bg-white/80 dark:bg-white/[0.08] px-2 py-2.5 md:py-3 hover:border-primary/50 hover:shadow-md transition-all"
               >
-                <Icon className="h-6 w-auto md:h-7 text-primary" />
+                <Icon className="h-5 w-auto md:h-6 text-primary" />
                 <span className="text-[11px] md:text-xs font-medium text-center leading-tight">{name}</span>
               </Link>
             ))}
@@ -217,25 +222,62 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* Sellers: one strip. The dealer pitch lives on /for-business; dealers
-            are reached by calls and email, not the buyers who land here. */}
-        <section className="w-full max-w-3xl mx-auto mb-10 md:mb-14 px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 rounded-2xl border border-primary/20 bg-primary/5 p-5 md:p-6 text-center md:text-left">
-            <div>
-              <h2 className="text-lg font-bold mb-1">Selling equipment?</h2>
+        {/* How AXLON helps you buy: the one place the homepage says what the
+            AI does for a buyer. Three steps, no mascot, no extra call/chat
+            buttons — the corner launcher already has those. */}
+        <section className="w-full max-w-4xl mx-auto mb-10 md:mb-14 px-4" aria-labelledby="how-axlon-helps">
+          <div className="text-center mb-6">
+            <h2 id="how-axlon-helps" className="text-xl md:text-2xl font-bold">How AXLON helps you buy</h2>
+            <p className="text-sm text-muted-foreground dark:text-foreground/60 mt-1">
+              AXLON is Axleyard&apos;s AI assistant. Here&apos;s what it does for you.
+            </p>
+          </div>
+          <ol className="grid gap-3 md:grid-cols-3 md:gap-4">
+            {HOW_IT_HELPS.map(({ step, title, body, icon: Icon }) => (
+              <li
+                key={step}
+                className="rounded-2xl border bg-white/70 dark:bg-white/[0.06] p-5 flex flex-col gap-3"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Icon className="w-4 h-4" />
+                  </span>
+                  <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground dark:text-foreground/50">
+                    {step}
+                  </span>
+                </div>
+                <h3 className="font-bold text-base">{title}</h3>
+                <p className="text-sm text-muted-foreground dark:text-foreground/60 leading-relaxed">{body}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {/* Dealers: one strip. The full pitch lives on /for-business; the
+            homepage's traffic is buyers, so this stays short. */}
+        <section className="w-full max-w-4xl mx-auto mb-10 md:mb-14 px-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-5 rounded-2xl border border-primary/20 bg-primary/5 p-5 md:p-7 text-center md:text-left">
+            <div className="max-w-xl">
+              <h2 className="text-lg md:text-xl font-bold mb-1.5">Sell more equipment. Let AXLON handle the leads.</h2>
               <p className="text-sm text-muted-foreground dark:text-foreground/60">
-                List it free and reach buyers nationwide.{' '}
-                <Link href="/for-business" className="text-primary hover:underline whitespace-nowrap">
-                  Dealer tools &rarr;
-                </Link>
+                List your inventory, reach buyers nationwide, and let your AI assistant answer questions and capture
+                leads around the clock.
               </p>
             </div>
-            <Button size="lg" className="rounded-full gap-2 shadow-lg shadow-primary/20 group w-full md:w-auto shrink-0" asChild>
-              <Link href="/signup">
-                <Zap className="w-4 h-4" />
-                List Equipment Free
-              </Link>
-            </Button>
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto shrink-0">
+              <Button size="lg" className="rounded-full gap-2 shadow-lg shadow-primary/20 group w-full sm:w-auto" asChild>
+                <Link href="/for-business">
+                  Explore Dealer Tools
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" className="rounded-full gap-2 glass-button w-full sm:w-auto" asChild>
+                <Link href="/signup">
+                  <Zap className="w-4 h-4" />
+                  List Equipment Free
+                </Link>
+              </Button>
+            </div>
           </div>
         </section>
       </main>

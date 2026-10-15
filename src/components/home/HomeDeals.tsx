@@ -29,6 +29,13 @@ export function HomeDeals({ deals }: { deals: HomeDeal[] }) {
           <DealCard key={deal.id} deal={deal} />
         ))}
       </div>
+      {/* Where the number comes from. A discount nobody can explain is a
+          discount nobody trusts. */}
+      <p className="mt-3 text-[11px] md:text-xs leading-relaxed text-muted-foreground dark:text-foreground/50 text-center max-w-2xl mx-auto">
+        Market estimates are the median asking price of comparable listings on Axleyard — same make, model and year
+        where we have them. Condition, hours, specs and location all move what a unit is really worth, so treat the
+        estimate as a starting point, not an appraisal.
+      </p>
     </div>
   );
 }
@@ -69,6 +76,11 @@ function DealCard({ deal }: { deal: HomeDeal }) {
           <p className="text-xs text-muted-foreground mt-0.5">
             AI market est. ${deal.ai_price_estimate.toLocaleString()}
           </p>
+          {deal.savings > 0 && (
+            <p className="text-xs font-medium text-green-700 dark:text-green-400 mt-1">
+              Est. savings ${deal.savings.toLocaleString()}
+            </p>
+          )}
         </div>
       </Card>
     </Link>

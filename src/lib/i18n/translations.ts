@@ -18,7 +18,7 @@ export interface SearchTranslations {
 
 export const translations: Record<SupportedLocale, SearchTranslations> = {
   en: {
-    placeholder: 'Search or ask anything about trucks & trailers...',
+    placeholder: "Try '2023 Peterbilt under $80k' or ask AXLON...",
     placeholderExamples: [
       'Search "Lowboy trailer 53 ton"',
       'Ask "Best semi truck for long haul?"',
