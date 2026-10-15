@@ -15,6 +15,7 @@ import {
 import { ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 import { dashboardNavSections, getNavSectionsWithBadges } from '@/lib/dashboard-nav';
 import { isFeatureUnlocked, type PlanTier } from '@/lib/plans';
+import { PlanCard } from './PlanCard';
 
 interface SidebarProps {
   unreadMessages?: number;
@@ -23,13 +24,23 @@ interface SidebarProps {
   subscriptionTier?: string;
   /** Trial-aware tier — free accounts in trial see everything unlocked */
   effectiveTier?: PlanTier;
+  /** Days left in the free trial — drives the plan card */
+  trialDaysRemaining?: number | null;
 }
 
-export function Sidebar({ unreadMessages = 0, newLeads = 0, pendingAiInbox = 0, subscriptionTier = 'free', effectiveTier = 'free' }: SidebarProps) {
+export function Sidebar({
+  unreadMessages = 0,
+  newLeads = 0,
+  pendingAiInbox = 0,
+  subscriptionTier = 'free',
+  effectiveTier = 'free',
+  trialDaysRemaining = null,
+}: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
 
   const sections = getNavSectionsWithBadges(dashboardNavSections, unreadMessages, newLeads, pendingAiInbox);
+  const isFree = !subscriptionTier || subscriptionTier === 'free';
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -138,30 +149,10 @@ export function Sidebar({ unreadMessages = 0, newLeads = 0, pendingAiInbox = 0, 
           ))}
         </nav>
 
-        {/* Bottom Banner */}
-        {!collapsed && (
+        {/* Plan card — trial countdown or upgrade; nothing for paying clients */}
+        {!collapsed && isFree && (
           <div className="p-3 border-t">
-            {subscriptionTier === 'free' ? (
-              <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-4">
-                <p className="font-medium text-sm mb-1">Unlock AI Tools</p>
-                <p className="text-xs text-muted-foreground mb-3">
-                  AI lead response, CRM, analytics & more — $499/mo
-                </p>
-                <Button size="sm" className="w-full" asChild>
-                  <Link href="/dashboard/billing">See Plans</Link>
-                </Button>
-              </div>
-            ) : (
-              <div className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 rounded-lg p-4">
-                <p className="font-medium text-sm mb-1">Add Voice Agent</p>
-                <p className="text-xs text-muted-foreground mb-3">
-                  AI answers your calls 24/7 — $299/mo
-                </p>
-                <Button size="sm" className="w-full" asChild>
-                  <Link href="/dashboard/billing">Add Voice</Link>
-                </Button>
-              </div>
-            )}
+            <PlanCard subscriptionTier={subscriptionTier} trialDaysRemaining={trialDaysRemaining} />
           </div>
         )}
 

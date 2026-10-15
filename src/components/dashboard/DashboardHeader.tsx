@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { dashboardNavItems } from '@/lib/dashboard-nav';
+import { allDashboardNavItems } from '@/lib/dashboard-nav';
 import type { PlanTier } from '@/lib/plans';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ import {
   CreditCard,
   HelpCircle,
   Clock,
+  Heart,
 } from 'lucide-react';
 
 interface DashboardHeaderProps {
@@ -62,7 +63,7 @@ export function DashboardHeader({
   const totalNotifications = unreadMessages + newLeads + pendingAiInbox;
   // Current section name (longest matching nav href wins, e.g. /dashboard/listings/new → Listings)
   const sectionLabel =
-    dashboardNavItems
+    allDashboardNavItems
       .filter((item) => (item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href)))
       .sort((a, b) => b.href.length - a.href.length)[0]?.label ?? 'Dashboard';
 
@@ -76,6 +77,7 @@ export function DashboardHeader({
           pendingAiInbox={pendingAiInbox}
           subscriptionTier={subscriptionTier}
           effectiveTier={effectiveTier}
+          trialDaysRemaining={trialDaysRemaining}
         />
 
         {/* Section name — not an <h1>: every page renders its own h1 via PageHeader */}
@@ -93,18 +95,15 @@ export function DashboardHeader({
             </Link>
           </Button>
 
-          {/* Trial Countdown */}
-          {trialDaysRemaining != null && trialDaysRemaining > 0 && (
+          {/* Trial countdown — only in the last week. The sidebar plan card
+              carries the countdown the rest of the trial. */}
+          {trialDaysRemaining != null && trialDaysRemaining > 0 && trialDaysRemaining <= 7 && (
             <Link
               href="/dashboard/billing"
-              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                trialDaysRemaining <= 7
-                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-950/60'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-950/60"
             >
               <Clock className="w-3 h-3" />
-              Trial: {trialDaysRemaining}d remaining
+              Trial ends in {trialDaysRemaining}d
             </Link>
           )}
 
@@ -204,6 +203,12 @@ export function DashboardHeader({
                 <Link href="/dashboard/storefront" className="cursor-pointer">
                   <Store className="w-4 h-4 mr-2" />
                   Storefront
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/saved" className="cursor-pointer">
+                  <Heart className="w-4 h-4 mr-2" />
+                  Saved Listings
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
