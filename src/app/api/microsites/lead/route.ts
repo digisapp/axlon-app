@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse, after } from 'next/server';
+import { SUPPORT_EMAIL } from '@/lib/contact';
 import { recordLeadInInbox } from '@/lib/email/lead-inbox';
 import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -11,7 +12,7 @@ import { botSignals } from '@/lib/leads/form-guard';
 
 export const runtime = 'nodejs';
 
-const FALLBACK_LEAD_EMAIL = (process.env.ADMIN_EMAIL || 'sales@axlon.ai').trim();
+const FALLBACK_LEAD_EMAIL = (process.env.ADMIN_EMAIL || SUPPORT_EMAIL).trim();
 
 // The inbox draft runs after the response (one model call).
 export const maxDuration = 60;

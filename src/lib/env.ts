@@ -116,7 +116,8 @@ export const env = {
   unsubscribeSecret: process.env.UNSUBSCRIBE_SECRET,
   redisUrl: process.env.UPSTASH_REDIS_REST_URL,
   redisToken: process.env.UPSTASH_REDIS_REST_TOKEN,
-  adminEmail: process.env.ADMIN_EMAIL ?? 'sales@axlon.ai',
+  // sales@axlon.ai has no MX record; support@axleyard.com is the admin inbox.
+  adminEmail: process.env.ADMIN_EMAIL ?? 'support@axleyard.com',
   resendFromEmail: process.env.RESEND_FROM_EMAIL ?? 'noreply@axlon.ai',
   isDev: process.env.NODE_ENV === 'development',
   isProd: process.env.NODE_ENV === 'production',

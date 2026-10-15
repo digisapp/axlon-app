@@ -138,7 +138,7 @@ export default function PrivacyPage() {
           <h2>10. Contact Us</h2>
           <p>
             If you have questions about this Privacy Policy, please contact us at{' '}
-            <a href="mailto:privacy@axlon.ai">privacy@axlon.ai</a> or visit our{' '}
+            <a href="mailto:privacy@axleyard.com">privacy@axleyard.com</a> or visit our{' '}
             <Link href="/contact">contact page</Link>.
           </p>
         </div>

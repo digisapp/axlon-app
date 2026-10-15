@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { SUPPORT_EMAIL } from '@/lib/contact';
 import { Resend } from 'resend';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { createClient } from '@/lib/supabase/server';
@@ -10,7 +11,7 @@ import { escapeHtml } from '@/lib/utils/html-escape';
 import { requireCsrf } from '@/lib/security/csrf';
 import { botSignals } from '@/lib/leads/form-guard';
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'sales@axlon.ai';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || SUPPORT_EMAIL;
 
 // POST does NOT use withAuth because trade-in submissions are allowed for
 // unauthenticated users (user_id is optional).

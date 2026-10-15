@@ -156,7 +156,7 @@ export default function TermsPage() {
           <h2>13. Contact</h2>
           <p>
             Questions about these Terms? Contact us at{' '}
-            <a href="mailto:legal@axlon.ai">legal@axlon.ai</a> or visit our{' '}
+            <a href="mailto:legal@axleyard.com">legal@axleyard.com</a> or visit our{' '}
             <Link href="/contact">contact page</Link>.
           </p>
         </div>

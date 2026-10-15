@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
+import { SUPPORT_EMAIL } from '@/lib/contact';
 import { Resend } from 'resend';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
 import { requireCsrf } from '@/lib/security/csrf';
@@ -9,7 +10,7 @@ import { validateBody, ValidationError, contactFormSchema } from '@/lib/validati
 import { escapeHtml } from '@/lib/utils/html-escape';
 import { botSignals } from '@/lib/leads/form-guard';
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'sales@axlon.ai';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || SUPPORT_EMAIL;
 
 const subjectLabels: Record<string, string> = {
   demo: 'Demo Request',

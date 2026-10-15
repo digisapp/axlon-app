@@ -42,6 +42,7 @@ from tools import (
     transcribe_call_recording,
     summarize_call,
     send_call_alert,
+    file_lead_in_inbox,
 )
 
 load_dotenv()
@@ -793,6 +794,12 @@ Do not search inventory or provide detailed information - just capture the lead.
                 )
             except Exception as e:
                 logger.error(f"Call alert failed: {e}")
+
+        # A caller who left an email becomes a conversation in /admin/email,
+        # same as a web-form lead, so the reply can go from the inbox.
+        # file_lead_in_inbox logs its own failures and never raises.
+        if lead_id:
+            await off_loop(file_lead_in_inbox, lead_id)
 
         # Recording-based transcription is only a fallback now.
         if call_log_id and not transcript and recording_url and call_duration and call_duration > 5:

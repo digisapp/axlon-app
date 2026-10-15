@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse, after } from 'next/server';
+import { SUPPORT_EMAIL } from '@/lib/contact';
 import { calculateLeadScoreWithAI } from '@/lib/leads/scoring';
 import { generateLeadAutoReply } from '@/lib/ai/lead-auto-reply';
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS, rateLimitResponse } from '@/lib/security/rate-limit';
@@ -15,7 +16,7 @@ import { instantReplyBlockedReason } from '@/lib/leads/instant-reply-guard';
 import { botSignals } from '@/lib/leads/form-guard';
 
 // Trimmed: a value pasted into the host's env UI can carry a trailing newline.
-const AXLONAI_ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'sales@axlon.ai').trim();
+const AXLONAI_ADMIN_EMAIL = (process.env.ADMIN_EMAIL || SUPPORT_EMAIL).trim();
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL?.trim() || 'https://axleyard.com').replace(/\/+$/, '');
 
 // Scoring, the instant reply and (after the response) the inbox draft are

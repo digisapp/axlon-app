@@ -1292,6 +1292,48 @@ def _format_phone(phone: Optional[str]) -> str:
     return phone or "unknown"
 
 
+async def file_lead_in_inbox(lead_id: str) -> bool:
+    """Ask the web app to file this lead in /admin/email.
+
+    The web forms do this themselves; the agent writes leads straight to the
+    database, so a caller who left an email never became a conversation you
+    could answer from the inbox. The app decides what belongs there (it skips
+    leads with no email and dealer leads, never auto-replies, and is
+    idempotent). Signed with the app's internal HMAC v2 scheme
+    (src/lib/security/internal-auth.ts). Skipped when unconfigured.
+    """
+    import hmac
+    import time
+    import httpx
+
+    secret = (os.getenv("INTERNAL_API_SECRET") or "").strip()
+    if not secret or not lead_id:
+        logger.info("Lead inbox filing skipped: INTERNAL_API_SECRET not set")
+        return False
+
+    path = "/api/internal/lead-inbox"
+    timestamp = str(int(time.time() * 1000))
+    signature = hmac.new(secret.encode(), f"{timestamp}.POST.{path}".encode(), hashlib.sha256).hexdigest()
+    app_url = (os.getenv("APP_URL") or "https://axleyard.com").rstrip("/")
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{app_url}{path}",
+                headers={"x-internal-signature": signature, "x-internal-timestamp": timestamp},
+                json={"lead_id": lead_id},
+                timeout=20.0,
+            )
+        if response.status_code >= 300:
+            logger.error(f"Lead inbox filing failed: {response.status_code} {response.text[:200]}")
+            return False
+        recorded = bool(response.json().get("recorded"))
+        logger.info(f"Lead {lead_id} {'filed in the admin inbox' if recorded else 'not for the inbox (no email or dealer lead)'}")
+        return recorded
+    except Exception as e:
+        logger.error(f"Lead inbox filing error: {e}")
+        return False
+
+
 async def send_call_alert(
     *,
     caller_phone: Optional[str],
@@ -1309,14 +1351,16 @@ async def send_call_alert(
 
     Sent for every call where the caller spoke, not only captured leads:
     caller ID means even a caller who never gave their name can be called
-    back. Recipients: LEAD_ALERT_EMAIL (the main line) and, on a dealer's own
+    back. Recipients: LEAD_ALERT_EMAIL (the main line; comma-separated, so a
+    salesperson can be added without a code change) and, on a dealer's own
     line, that dealer. Silently skipped when Resend isn't configured.
     """
     import html
     import httpx
 
     api_key = (os.getenv("RESEND_API_KEY") or "").strip()
-    recipients = [e for e in {(os.getenv("LEAD_ALERT_EMAIL") or "").strip(), (dealer_email or "").strip()} if e]
+    wanted = (os.getenv("LEAD_ALERT_EMAIL") or "").split(",") + [dealer_email or ""]
+    recipients = list(dict.fromkeys(e.strip().lower() for e in wanted if e and e.strip()))
     if not api_key or not recipients:
         logger.info("Call alert skipped: RESEND_API_KEY or LEAD_ALERT_EMAIL not set")
         return False
