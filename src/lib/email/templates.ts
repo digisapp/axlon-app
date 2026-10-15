@@ -472,7 +472,8 @@ export function confirmEmailTemplate({
   companyName,
   confirmationUrl,
 }: {
-  companyName: string;
+  /** Null when the signup form didn't ask for one (it stopped in Oct 2026). */
+  companyName: string | null;
   confirmationUrl: string;
 }): { subject: string; html: string; text: string } {
   const base = appUrl();
@@ -482,7 +483,13 @@ export function confirmEmailTemplate({
   // the visible fallback and the plain-text version, only if it passed.
   const href = sanitizeUrl(confirmationUrl);
   const link = href ? confirmationUrl.trim() : '';
-  const company = escapeHtml(companyName.trim());
+  const company = companyName?.trim() ? escapeHtml(companyName.trim()) : '';
+  // "the Axleyard account for <Company>" when the signup named one, else
+  // "your Axleyard account" (the form stopped asking in Oct 2026).
+  const theAccount = company
+    ? `the Axleyard account for <strong style="color: #0b1220;">${company}</strong>`
+    : 'your Axleyard account';
+  const theAccountText = companyName?.trim() ? `the Axleyard account for ${companyName.trim()}` : 'your Axleyard account';
   const year = new Date().getFullYear();
   const font = "font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;";
 
@@ -521,7 +528,7 @@ export function confirmEmailTemplate({
             <td style="background-color: #ffffff; padding: 40px 40px 8px;">
               <h1 style="${font} margin: 0 0 14px; font-size: 26px; line-height: 1.25; font-weight: 700; color: #0b1220;">Confirm your email</h1>
               <p style="${font} margin: 0 0 28px; font-size: 16px; line-height: 1.6; color: #334155;">
-                You're almost in. Confirm this address to finish creating the Axleyard account for <strong style="color: #0b1220;">${company}</strong>.
+                You're almost in. Confirm this address to finish creating ${theAccount}.
               </p>
 
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 20px;">
@@ -595,7 +602,7 @@ export function confirmEmailTemplate({
   const text = [
     'Confirm your email',
     '',
-    `You're almost in. Confirm this address to finish creating the Axleyard account for ${companyName.trim()}.`,
+    `You're almost in. Confirm this address to finish creating ${theAccountText}.`,
     '',
     `Confirm: ${link}`,
     '',

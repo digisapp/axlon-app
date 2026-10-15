@@ -377,6 +377,22 @@ export default async function DashboardPage() {
         description="Here's what's happening across your listings, leads, and AI tools."
       />
 
+      {/* Signup no longer asks for a company name; this is where it's
+          collected. Dismisses itself the moment one is saved. */}
+      {!profile?.company_name && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-medium">Add your company name</p>
+              <p className="text-sm text-muted-foreground">It appears on your listings and in messages to buyers.</p>
+            </div>
+            <Button asChild size="sm" className="shrink-0">
+              <Link href="/dashboard/settings">Add it in Settings</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Trial Conversion Banner */}
       {showTrialBanner && (
         <TrialBanner

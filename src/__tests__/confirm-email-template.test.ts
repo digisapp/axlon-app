@@ -51,4 +51,11 @@ describe('confirmEmailTemplate', () => {
     expect(mail.text.match(/AXLON/g)).toHaveLength(1);
     expect(mail.text).not.toMatch(/AXLON AI/);
   });
+  it('reads naturally when the signup form sent no company name', () => {
+    const mail = confirmEmailTemplate({ companyName: null, confirmationUrl: url });
+    expect(mail.html).toContain('finish creating your Axleyard account.');
+    expect(mail.text).toContain('finish creating your Axleyard account.');
+    expect(mail.html).not.toContain('account for');
+    expect(mail.html).not.toContain('for <strong');
+  });
 });
