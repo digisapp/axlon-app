@@ -10,7 +10,10 @@ import { z } from 'zod';
 const signupSchema = z.object({
   email: z.string().email('Invalid email').max(254, 'Email too long'),
   password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password too long'),
-  companyName: z.string().min(1, 'Company name is required').max(200, 'Company name too long'),
+  // Optional since the signup form stopped asking (2026-10-15): the
+  // dashboard collects it once the account exists. Still accepted so /claim
+  // and older clients can pass one.
+  companyName: z.string().trim().max(200, 'Company name too long').optional().or(z.literal('')),
   // Optional post-confirmation destination (same-site path only; the auth
   // callback re-validates it). Lets /claim bring a new dealer straight back.
   redirect: z
@@ -39,7 +42,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password, companyName, redirect } = parsed.data;
+    const { email, password, redirect } = parsed.data;
+    const companyName = parsed.data.companyName || null;
 
     // Since September, bots have been signing up with a random company name
     // and a stranger's address so that "Confirm your AXLON AI account" lands
@@ -68,7 +72,7 @@ export async function POST(request: NextRequest) {
       password,
       options: {
         data: {
-          company_name: companyName,
+          ...(companyName ? { company_name: companyName } : {}),
           is_business: true,
         },
         redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com'}/auth/callback${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`,
