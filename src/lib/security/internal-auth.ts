@@ -20,11 +20,25 @@ function timingSafeMatch(signature: string, expected: string): boolean {
  * external callers that haven't migrated — remove that fallback once all
  * callers send v2.
  */
+/**
+ * The keys a signature may be made with. The production value was pasted with
+ * a trailing newline, so the app signed with "<secret>\n" while every caller
+ * holding the clean secret (the phone agent, the scraper) got a 401. The
+ * trimmed value is the real key; the raw one is still accepted so a caller
+ * that happens to sign with it keeps working until the env value is fixed.
+ */
+function secretCandidates(raw: string | undefined): string[] {
+  if (!raw) return [];
+  const trimmed = raw.trim();
+  if (!trimmed) return [];
+  return trimmed === raw ? [trimmed] : [trimmed, raw];
+}
+
 export function verifyInternalRequest(request: NextRequest): boolean {
-  const internalSecret = process.env.INTERNAL_API_SECRET;
+  const secrets = secretCandidates(process.env.INTERNAL_API_SECRET);
 
   // If no secret is configured, reject internal requests
-  if (!internalSecret) {
+  if (secrets.length === 0) {
     logger.warn('INTERNAL_API_SECRET not configured - internal endpoints disabled');
     return false;
   }
@@ -46,27 +60,30 @@ export function verifyInternalRequest(request: NextRequest): boolean {
 
   // v2: signature bound to method + path
   const v2Payload = `${timestamp}.${request.method.toUpperCase()}.${request.nextUrl.pathname}`;
-  const expectedV2 = crypto
-    .createHmac('sha256', internalSecret)
-    .update(v2Payload)
-    .digest('hex');
 
-  if (timingSafeMatch(signature, expectedV2)) {
-    return true;
-  }
+  for (const internalSecret of secrets) {
+    const expectedV2 = crypto
+      .createHmac('sha256', internalSecret)
+      .update(v2Payload)
+      .digest('hex');
 
-  // Legacy: timestamp-only signature (replayable across endpoints — migrate
-  // callers to v2 and delete this)
-  const expectedLegacy = crypto
-    .createHmac('sha256', internalSecret)
-    .update(`${timestamp}`)
-    .digest('hex');
+    if (timingSafeMatch(signature, expectedV2)) {
+      return true;
+    }
 
-  if (timingSafeMatch(signature, expectedLegacy)) {
-    logger.warn('Internal request used legacy timestamp-only signature', {
-      path: request.nextUrl.pathname,
-    });
-    return true;
+    // Legacy: timestamp-only signature (replayable across endpoints — migrate
+    // callers to v2 and delete this)
+    const expectedLegacy = crypto
+      .createHmac('sha256', internalSecret)
+      .update(`${timestamp}`)
+      .digest('hex');
+
+    if (timingSafeMatch(signature, expectedLegacy)) {
+      logger.warn('Internal request used legacy timestamp-only signature', {
+        path: request.nextUrl.pathname,
+      });
+      return true;
+    }
   }
 
   return false;
@@ -78,7 +95,7 @@ export function verifyInternalRequest(request: NextRequest): boolean {
  * bound to that endpoint (v2 format).
  */
 export function generateInternalHeaders(method: string, path: string): Record<string, string> {
-  const internalSecret = process.env.INTERNAL_API_SECRET;
+  const internalSecret = process.env.INTERNAL_API_SECRET?.trim();
 
   if (!internalSecret) {
     throw new Error('INTERNAL_API_SECRET not configured');
