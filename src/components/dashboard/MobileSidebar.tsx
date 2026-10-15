@@ -16,15 +16,17 @@ import {
 import { Menu, Lock } from 'lucide-react';
 import { dashboardNavSections, getNavSectionsWithBadges } from '@/lib/dashboard-nav';
 import { isFeatureUnlocked, type PlanTier } from '@/lib/plans';
+import { PlanCard } from './PlanCard';
 
 interface MobileSidebarProps {
   unreadMessages?: number;
   newLeads?: number;
   pendingAiInbox?: number;
-  /** Actual plan — drives the upsell card (same copy as the desktop Sidebar) */
+  /** Actual plan — drives the plan card (same card as the desktop Sidebar) */
   subscriptionTier?: string;
   /** Trial-aware tier — locked items show a padlock, as on desktop */
   effectiveTier?: PlanTier;
+  trialDaysRemaining?: number | null;
 }
 
 export function MobileSidebar({
@@ -33,11 +35,13 @@ export function MobileSidebar({
   pendingAiInbox = 0,
   subscriptionTier,
   effectiveTier,
+  trialDaysRemaining = null,
 }: MobileSidebarProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
   const sections = getNavSectionsWithBadges(dashboardNavSections, unreadMessages, newLeads, pendingAiInbox);
+  const isFree = !subscriptionTier || subscriptionTier === 'free';
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -47,8 +51,8 @@ export function MobileSidebar({
           <span className="sr-only">Open dashboard menu</span>
         </Button>
       </SheetTrigger>
-      {/* Flex column: the nav scrolls, the upsell card sits below it. The old
-          absolute-positioned card covered the last nav items (Account/Billing). */}
+      {/* Flex column: the nav scrolls, the plan card sits below it. The old
+          absolute-positioned card covered the last nav items. */}
       <SheetContent side="left" className="w-72 p-0 flex flex-col gap-0">
         <SheetHeader className="h-16 shrink-0 border-b px-4 flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
@@ -110,34 +114,16 @@ export function MobileSidebar({
           ))}
         </nav>
 
-        {/* Bottom Banner — same offer as the desktop Sidebar */}
-        <div className="shrink-0 p-3 border-t bg-background pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          {!subscriptionTier || subscriptionTier === 'free' ? (
-            <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg p-3">
-              <p className="font-medium text-sm mb-1">Unlock AI Tools</p>
-              <p className="text-xs text-muted-foreground mb-2">
-                AI lead response, CRM, analytics & more — $499/mo
-              </p>
-              <Button size="sm" className="w-full" asChild>
-                <Link href="/dashboard/billing" onClick={() => setOpen(false)}>
-                  See Plans
-                </Link>
-              </Button>
-            </div>
-          ) : (
-            <div className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 rounded-lg p-3">
-              <p className="font-medium text-sm mb-1">Add Voice Agent</p>
-              <p className="text-xs text-muted-foreground mb-2">
-                AI answers your calls 24/7 — $299/mo
-              </p>
-              <Button size="sm" className="w-full" asChild>
-                <Link href="/dashboard/billing" onClick={() => setOpen(false)}>
-                  Add Voice
-                </Link>
-              </Button>
-            </div>
-          )}
-        </div>
+        {/* Plan card — same logic as the desktop Sidebar; paying clients see none */}
+        {isFree && (
+          <div className="shrink-0 p-3 border-t bg-background pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <PlanCard
+              subscriptionTier={subscriptionTier}
+              trialDaysRemaining={trialDaysRemaining}
+              onNavigate={() => setOpen(false)}
+            />
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );

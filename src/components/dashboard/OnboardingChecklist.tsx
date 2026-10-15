@@ -1,53 +1,107 @@
 'use client';
 
+import { useCallback, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { Check, Upload, ListPlus, Phone, Users } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Check, Upload, ListPlus, Phone, Users, Building2, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { panelClass } from './panel';
 
 interface OnboardingStep {
   id: string;
   label: string;
-  description: string;
   icon: React.ReactNode;
   href: string;
   completed: boolean;
 }
 
 interface OnboardingChecklistProps {
+  hasCompanyName: boolean;
   hasListings: boolean;
   hasImported: boolean;
   hasPhoneNumber: boolean;
   hasLeads: boolean;
 }
 
+const COLLAPSED_KEY = 'axlon.setup.collapsed';
+const HIDDEN_KEY = 'axlon.setup.hidden';
+
+// localStorage-backed flags. Read through useSyncExternalStore so the server
+// renders the card expanded and the browser applies the saved state on
+// hydration without a setState-in-effect.
+const listeners = new Set<() => void>();
+
+function subscribe(onChange: () => void) {
+  listeners.add(onChange);
+  window.addEventListener('storage', onChange);
+  return () => {
+    listeners.delete(onChange);
+    window.removeEventListener('storage', onChange);
+  };
+}
+
+function readFlag(key: string): boolean {
+  try {
+    return window.localStorage.getItem(key) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeFlag(key: string, on: boolean) {
+  try {
+    if (on) window.localStorage.setItem(key, '1');
+    else window.localStorage.removeItem(key);
+  } catch {
+    // private mode / blocked storage — the card just won't remember
+  }
+  listeners.forEach((l) => l());
+}
+
+function useLocalFlag(key: string): [boolean, (on: boolean) => void] {
+  const value = useSyncExternalStore(subscribe, () => readFlag(key), () => false);
+  const set = useCallback((on: boolean) => writeFlag(key, on), [key]);
+  return [value, set];
+}
+
+/**
+ * Setup checklist for a new dealer: one compact row that can be collapsed,
+ * dismissed, and disappears on its own once every step is done.
+ */
 export function OnboardingChecklist({
+  hasCompanyName,
   hasListings,
   hasImported,
   hasPhoneNumber,
   hasLeads,
 }: OnboardingChecklistProps) {
+  const [collapsed, setCollapsed] = useLocalFlag(COLLAPSED_KEY);
+  const [hidden, setHidden] = useLocalFlag(HIDDEN_KEY);
+
   const steps: OnboardingStep[] = [
     {
-      id: 'import',
-      label: 'Import your inventory',
-      description: 'Upload a CSV or drop files to bulk import',
-      icon: <Upload className="w-4 h-4" />,
-      href: '/dashboard/bulk',
-      completed: hasImported,
+      id: 'company',
+      label: 'Add your company name',
+      icon: <Building2 className="w-4 h-4" />,
+      href: '/dashboard/settings',
+      completed: hasCompanyName,
     },
     {
       id: 'listing',
       label: 'Create your first listing',
-      description: 'List a piece of equipment on the marketplace',
       icon: <ListPlus className="w-4 h-4" />,
       href: '/dashboard/listings/new',
       completed: hasListings,
     },
     {
+      id: 'import',
+      label: 'Import your inventory',
+      icon: <Upload className="w-4 h-4" />,
+      href: '/dashboard/bulk',
+      completed: hasImported,
+    },
+    {
       id: 'phone',
-      label: 'Connect your phone number',
-      description: 'Set up AXLON Voice to answer calls 24/7',
+      label: 'Turn on AXLON Voice',
       icon: <Phone className="w-4 h-4" />,
       href: '/dashboard/voice-agent',
       completed: hasPhoneNumber,
@@ -55,7 +109,6 @@ export function OnboardingChecklist({
     {
       id: 'lead',
       label: 'Receive your first lead',
-      description: 'AI captures leads from calls, chat, and inquiries',
       icon: <Users className="w-4 h-4" />,
       href: '/dashboard/leads',
       completed: hasLeads,
@@ -66,74 +119,70 @@ export function OnboardingChecklist({
   const allDone = completedCount === steps.length;
   const progress = (completedCount / steps.length) * 100;
 
-  if (allDone) return null;
+  if (allDone || hidden) return null;
+
+  const toggle = () => setCollapsed(!collapsed);
+  const dismiss = () => setHidden(true);
 
   return (
-    <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base">Get Started with AXLON</CardTitle>
-          <span className="text-xs font-medium text-muted-foreground">
-            {completedCount}/{steps.length} complete
-          </span>
-        </div>
-        {/* Progress bar */}
-        <div className="w-full h-2 bg-muted rounded-full overflow-hidden mt-2">
-          <div
-            className="h-full bg-primary rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
+    <section className={cn(panelClass, 'border-primary/20')} aria-label="Setup checklist">
+      <div className="flex items-center gap-3 px-4 py-3">
+        <button
+          type="button"
+          onClick={toggle}
+          aria-expanded={!collapsed}
+          className="flex flex-1 items-center gap-3 text-left min-w-0"
+        >
+          <ChevronDown
+            className={cn('w-4 h-4 shrink-0 text-muted-foreground transition-transform', collapsed && '-rotate-90')}
           />
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="space-y-2">
+          <span className="font-semibold text-sm">Set up AXLON</span>
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            {completedCount} of {steps.length} done
+          </span>
+          <span className="hidden sm:block flex-1 max-w-40 h-1.5 bg-muted rounded-full overflow-hidden">
+            <span
+              className="block h-full bg-primary rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={dismiss}
+          aria-label="Hide setup checklist"
+          className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {!collapsed && (
+        <div className="grid gap-2 px-4 pb-4 sm:grid-cols-2 lg:grid-cols-5">
           {steps.map((step) => (
             <Link
               key={step.id}
               href={step.href}
               className={cn(
-                'flex items-center gap-3 p-3 rounded-lg transition-colors',
+                'flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-colors',
                 step.completed
-                  ? 'bg-emerald-50 dark:bg-emerald-950/20'
-                  : 'hover:bg-muted/50'
+                  ? 'border-transparent bg-emerald-500/10 text-muted-foreground'
+                  : 'border-border/60 hover:border-primary/40 hover:bg-muted/50'
               )}
             >
-              <div
+              <span
                 className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
-                  step.completed
-                    ? 'bg-emerald-500 text-white'
-                    : 'bg-muted text-muted-foreground'
+                  'flex w-7 h-7 shrink-0 items-center justify-center rounded-full',
+                  step.completed ? 'bg-emerald-500 text-white' : 'bg-muted text-muted-foreground'
                 )}
               >
-                {step.completed ? (
-                  <Check className="w-4 h-4" />
-                ) : (
-                  step.icon
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p
-                  className={cn(
-                    'text-sm font-medium',
-                    step.completed && 'line-through text-muted-foreground'
-                  )}
-                >
-                  {step.label}
-                </p>
-                <p className="text-xs text-muted-foreground">{step.description}</p>
-              </div>
-              {!step.completed && (
-                // Visual affordance only — the whole row is the link, and a
-                // <button> nested inside an <a> is invalid and double-focusable.
-                <span className="shrink-0 text-xs font-medium text-primary px-3 py-1.5 rounded-md">
-                  Start
-                </span>
-              )}
+                {step.completed ? <Check className="w-3.5 h-3.5" /> : step.icon}
+              </span>
+              <span className={cn('min-w-0 leading-tight', step.completed && 'line-through')}>{step.label}</span>
             </Link>
           ))}
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </section>
   );
 }

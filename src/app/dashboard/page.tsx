@@ -1,26 +1,31 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Plus,
   Package,
   Eye,
-  MessageSquare,
   Users,
+  Phone,
   ArrowUpRight,
-  ArrowDownRight,
-  Sparkles,
+  Activity,
 } from 'lucide-react';
-import { SmartImportDropzone } from '@/components/dashboard/SmartImportDropzone';
-import { CommandCenter } from '@/components/dashboard/CommandCenter';
-import { LeadsPipeline } from '@/components/dashboard/LeadsPipeline';
 import { ActivityFeed, type ActivityItem } from '@/components/dashboard/ActivityFeed';
+import { AskAxlon } from '@/components/dashboard/AskAxlon';
+import { Greeting } from '@/components/dashboard/Greeting';
+import { NeedsAttention, type AttentionItem } from '@/components/dashboard/NeedsAttention';
 import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist';
-import { TrialBanner } from '@/components/dashboard/TrialBanner';
-import { RoiSnapshot } from '@/components/dashboard/RoiSnapshot';
 import { PageHeader } from '@/components/dashboard/PageHeader';
+import { RoiSnapshot } from '@/components/dashboard/RoiSnapshot';
+import { TrialBanner } from '@/components/dashboard/TrialBanner';
+import { panelClass } from '@/components/dashboard/panel';
+import { getEffectiveTier, isFeatureUnlocked } from '@/lib/plans';
+import { cn } from '@/lib/utils';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const MAX_ATTENTION_ITEMS = 6;
+const PHOTO_CHECK_LIMIT = 60;
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -31,46 +36,52 @@ export default async function DashboardPage() {
     redirect('/login?redirect=/dashboard');
   }
 
-  // Get user profile
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single();
 
-  // Time constants
+  // Time windows
   const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
-  const fortyFiveDaysAgo = new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString();
+  const nowIso = now.toISOString();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * DAY_MS).toISOString();
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * DAY_MS).toISOString();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * DAY_MS).toISOString();
+  const sixtyDaysAgo = new Date(now.getTime() - 60 * DAY_MS).toISOString();
+  const fortyFiveDaysAgo = new Date(now.getTime() - 45 * DAY_MS).toISOString();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-  // Get user's listing IDs first (needed for views queries)
+  // Listing ids first (the views queries need them). Every listings read here
+  // skips soft-deleted rows — the owner can still see them under RLS, so
+  // deleted listings used to reappear in counts, views and "Recent Listings".
   const { data: userListingIds } = await supabase
     .from('listings')
     .select('id')
-    .eq('user_id', user.id);
+    .eq('user_id', user.id)
+    .is('deleted_at', null);
   const listingIds = userListingIds?.map(l => l.id) || [];
 
-  // Batch 1: All independent queries in parallel
   const [
     { count: unreadMessages },
     { count: total },
     { count: active },
+    { count: listingsThisMonth },
     { data: viewsData },
+    { count: views30 },
+    { count: viewsPrev30 },
     { count: leads },
+    { count: leadsTotal },
     { count: leadsLast7 },
     { count: leadsPrev7 },
-    { count: viewsLast7 },
-    { count: viewsPrev7 },
+    { data: newLeadRows },
+    { data: overdueFollowups },
+    { count: pendingAiInbox },
+    { count: missedCalls7 },
+    { count: calls30 },
+    { data: photoCheckListings },
     { data: listings },
     { data: staleListings },
-    { data: topViewedListings },
-    { count: pipelineNew },
-    { count: pipelineContacted },
-    { count: pipelineQualified },
-    { count: pipelineWon },
-    { count: pipelineLost },
     { data: recentLeads },
     { data: recentMessages },
     { count: leadsThisMonth },
@@ -91,24 +102,52 @@ export default async function DashboardPage() {
     supabase
       .from('listings')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id),
+      .eq('user_id', user.id)
+      .is('deleted_at', null),
     // Active listings
     supabase
       .from('listings')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
+      .is('deleted_at', null)
       .eq('status', 'active'),
-    // Views data
+    // Listings added this month
+    supabase
+      .from('listings')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .is('deleted_at', null)
+      .gte('created_at', monthStart),
+    // All-time views
     supabase
       .from('listings')
       .select('views_count')
-      .eq('user_id', user.id),
-    // New leads count
+      .eq('user_id', user.id)
+      .is('deleted_at', null),
+    // Views last 30 days (listing_views timestamps are viewed_at, not created_at)
+    supabase
+      .from('listing_views')
+      .select('*', { count: 'exact', head: true })
+      .in('listing_id', listingIds)
+      .gte('viewed_at', thirtyDaysAgo),
+    // Views previous 30 days
+    supabase
+      .from('listing_views')
+      .select('*', { count: 'exact', head: true })
+      .in('listing_id', listingIds)
+      .gte('viewed_at', sixtyDaysAgo)
+      .lt('viewed_at', thirtyDaysAgo),
+    // New (unanswered) leads
     supabase
       .from('leads')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .eq('status', 'new'),
+    // Leads ever — the setup checklist's "first lead" step
+    supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id),
     // Leads last 7 days
     supabase
       .from('leads')
@@ -122,81 +161,78 @@ export default async function DashboardPage() {
       .eq('user_id', user.id)
       .gte('created_at', fourteenDaysAgo)
       .lt('created_at', sevenDaysAgo),
-    // Views last 7 days (listing_views timestamps are viewed_at, not created_at)
+    // Newest unanswered leads, for the attention list
     supabase
-      .from('listing_views')
-      .select('*', { count: 'exact', head: true })
-      .in('listing_id', listingIds)
-      .gte('viewed_at', sevenDaysAgo),
-    // Views previous 7 days
+      .from('leads')
+      .select('id, buyer_name, source, created_at, listings(title)')
+      .eq('user_id', user.id)
+      .eq('status', 'new')
+      .order('created_at', { ascending: false })
+      .limit(3),
+    // Follow-ups whose date has passed on a lead that's still open
     supabase
-      .from('listing_views')
+      .from('leads')
+      .select('id, buyer_name, follow_up_date, listings(title)')
+      .eq('user_id', user.id)
+      .in('status', ['new', 'contacted', 'qualified'])
+      .lte('follow_up_date', nowIso)
+      .order('follow_up_date', { ascending: true })
+      .limit(3),
+    // AI drafts waiting for approval
+    supabase
+      .from('ai_inbox_items')
       .select('*', { count: 'exact', head: true })
-      .in('listing_id', listingIds)
-      .gte('viewed_at', fourteenDaysAgo)
-      .lt('viewed_at', sevenDaysAgo),
+      .eq('dealer_id', user.id)
+      .eq('status', 'pending'),
+    // Calls the voice agent missed this week
+    supabase
+      .from('call_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('dealer_id', user.id)
+      .eq('status', 'missed')
+      .gte('started_at', sevenDaysAgo),
+    // Calls answered, last 30 days
+    supabase
+      .from('call_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('dealer_id', user.id)
+      .neq('status', 'missed')
+      .gte('started_at', thirtyDaysAgo),
+    // Newest active listings with their image ids — anything with none needs photos
+    supabase
+      .from('listings')
+      .select('id, title, images:listing_images(id)')
+      .eq('user_id', user.id)
+      .is('deleted_at', null)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(PHOTO_CHECK_LIMIT),
     // Recent listings
     supabase
       .from('listings')
       .select('id, title, price, status, views_count, created_at')
       .eq('user_id', user.id)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(5),
-    // Stale listings (>45 days)
+    // Stale listing (>45 days, still active)
     supabase
       .from('listings')
       .select('id, title, created_at, price')
       .eq('user_id', user.id)
+      .is('deleted_at', null)
       .eq('status', 'active')
       .lt('created_at', fortyFiveDaysAgo)
       .order('created_at', { ascending: true })
       .limit(1),
-    // Top viewed listing
-    supabase
-      .from('listings')
-      .select('id, title, views_count')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .order('views_count', { ascending: false })
-      .limit(1),
-    // Pipeline: new
-    supabase
-      .from('leads')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('status', 'new'),
-    // Pipeline: contacted
-    supabase
-      .from('leads')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('status', 'contacted'),
-    // Pipeline: qualified
-    supabase
-      .from('leads')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('status', 'qualified'),
-    // Pipeline: won
-    supabase
-      .from('leads')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('status', 'won'),
-    // Pipeline: lost
-    supabase
-      .from('leads')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('status', 'lost'),
-    // Recent leads for activity feed
+    // Recent leads for the activity feed
     supabase
       .from('leads')
       .select('id, buyer_name, source, created_at, listing_id')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(5),
-    // Recent messages for activity feed
+    // Recent messages for the activity feed
     // messages has no sender_name column — embed the sender profile instead
     supabase
       .from('messages')
@@ -204,46 +240,45 @@ export default async function DashboardPage() {
       .eq('recipient_id', user.id)
       .order('created_at', { ascending: false })
       .limit(3),
-    // ROI: form leads this month
+    // AXLON this month: form leads
     supabase
       .from('leads')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .gte('created_at', monthStart),
-    // ROI: AI chat leads this month
+    // AXLON this month: AI chat leads
     supabase
       .from('dealer_ai_leads')
       .select('*', { count: 'exact', head: true })
       .eq('dealer_id', user.id)
       .gte('created_at', monthStart),
-    // ROI: calls answered this month
+    // AXLON this month: calls answered
     supabase
       .from('call_logs')
       .select('*', { count: 'exact', head: true })
       .eq('dealer_id', user.id)
       .gte('started_at', monthStart),
-    // ROI: AI-drafted responses this month
+    // AXLON this month: AI-drafted responses
     supabase
       .from('ai_inbox_items')
       .select('*', { count: 'exact', head: true })
       .eq('dealer_id', user.id)
       .gte('created_at', monthStart),
-    // ROI: open leads with attached listing prices (pipeline value)
+    // Pipeline value: open leads with attached listing prices
     supabase
       .from('leads')
       .select('id, listings(price)')
       .eq('user_id', user.id)
       .in('status', ['new', 'contacted', 'qualified'])
       .limit(500),
-    // ROI: open deals (pipeline value)
+    // Pipeline value: open deals
     supabase
       .from('deals')
       .select('sale_price')
       .eq('dealer_id', user.id)
       .in('status', ['quote', 'negotiation', 'pending_approval'])
       .limit(500),
-    // Onboarding: the AI phone number lives on dealer_voice_agents
-    // (profiles has no voice_phone_number column)
+    // Setup: the AI phone number lives on dealer_voice_agents
     supabase
       .from('dealer_voice_agents')
       .select('phone_number')
@@ -253,19 +288,36 @@ export default async function DashboardPage() {
 
   // Trial status
   const trialStartDate = profile?.created_at ? new Date(profile.created_at) : new Date();
-  const trialEndDate = new Date(trialStartDate.getTime() + 30 * 24 * 60 * 60 * 1000);
-  const trialDaysRemaining = Math.max(0, Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+  const trialEndDate = new Date(trialStartDate.getTime() + 30 * DAY_MS);
+  const trialDaysRemaining = Math.max(0, Math.ceil((trialEndDate.getTime() - now.getTime()) / DAY_MS));
   const isOnTrial = (!profile?.subscription_tier || profile.subscription_tier === 'free') && trialDaysRemaining > 0;
-  const showTrialBanner = isOnTrial && trialDaysRemaining <= 21;
+  // The sidebar carries the countdown; the overview only speaks up in the last days.
+  const showTrialBanner = isOnTrial && trialDaysRemaining <= 9;
 
-  // Compute derived values
+  // Same gate as <FeatureGate> on /dashboard/ai-assistant: the prompt used to
+  // render for everyone, so after the trial a free dealer's first question
+  // came back as a raw "upgrade_required".
+  const effectiveTier = profile?.is_admin
+    ? 'enterprise'
+    : getEffectiveTier(profile?.subscription_tier, profile?.created_at);
+  const canAskAssistant = isFeatureUnlocked('aiAssistant', effectiveTier);
+
+  // Derived numbers
   const totalListings = total || 0;
   const activeListings = active || 0;
   const totalViews = viewsData?.reduce((sum, l) => sum + (l.views_count || 0), 0) || 0;
   const newLeads = leads || 0;
   const recentListings = listings || [];
+  const hasVoiceAgent = !!voiceAgent?.phone_number;
 
-  // ROI snapshot numbers
+  const leadsTrend = leadsPrev7 && leadsPrev7 > 0
+    ? Math.round(((leadsLast7 || 0) - leadsPrev7) / leadsPrev7 * 100)
+    : null;
+  const viewsTrend = viewsPrev30 && viewsPrev30 > 0
+    ? Math.round(((views30 || 0) - viewsPrev30) / viewsPrev30 * 100)
+    : null;
+
+  // AXLON this month
   const roiLeadsCaptured = (leadsThisMonth || 0) + (aiLeadsThisMonth || 0);
   const leadPipelineValue = (openLeadListings || []).reduce((sum, lead) => {
     const listing = lead.listings as { price: number | null } | { price: number | null }[] | null;
@@ -277,24 +329,105 @@ export default async function DashboardPage() {
   const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   const hasRoiActivity = roiLeadsCaptured > 0 || pipelineValue > 0 || (callsThisMonth || 0) > 0 || (aiDraftsThisMonth || 0) > 0;
 
-  const leadsTrend = leadsPrev7 && leadsPrev7 > 0
-    ? Math.round(((leadsLast7 || 0) - leadsPrev7) / leadsPrev7 * 100)
-    : leadsLast7 && leadsLast7 > 0 ? 100 : 0;
+  // Needs your attention — priority order, newest lead first
+  const attention: AttentionItem[] = [];
 
-  const viewsTrend = viewsPrev7 && viewsPrev7 > 0
-    ? Math.round(((viewsLast7 || 0) - viewsPrev7) / viewsPrev7 * 100)
-    : viewsLast7 && viewsLast7 > 0 ? 100 : 0;
+  (newLeadRows || []).forEach((lead) => {
+    const title = embeddedTitle(lead.listings);
+    attention.push({
+      id: `lead-${lead.id}`,
+      kind: 'lead',
+      title: `New inquiry · ${title || lead.buyer_name}`,
+      description: title ? `${lead.buyer_name} · ${sourceLabel(lead.source)}` : sourceLabel(lead.source),
+      href: '/dashboard/leads',
+      time: getTimeAgo(new Date(lead.created_at)),
+    });
+  });
 
-  const pipeline = {
-    new: pipelineNew || 0,
-    contacted: pipelineContacted || 0,
-    qualified: pipelineQualified || 0,
-    won: pipelineWon || 0,
-    lost: pipelineLost || 0,
-  };
+  (overdueFollowups || []).forEach((lead) => {
+    const title = embeddedTitle(lead.listings);
+    attention.push({
+      id: `followup-${lead.id}`,
+      kind: 'followup',
+      title: `Follow-up due · ${lead.buyer_name}`,
+      description: title ? `About ${title}` : 'Lead waiting for a response',
+      href: '/dashboard/leads',
+      time: lead.follow_up_date ? getTimeAgo(new Date(lead.follow_up_date)) : undefined,
+    });
+  });
 
-  // Build activity feed. Keep each row's real timestamp: getTimeAgo() emits
-  // labels like "3h"/"2w+" that don't sort chronologically on their own.
+  if (pendingAiInbox && pendingAiInbox > 0) {
+    attention.push({
+      id: 'ai-drafts',
+      kind: 'draft',
+      title: `${pendingAiInbox} AI ${pendingAiInbox === 1 ? 'reply' : 'replies'} ready to send`,
+      description: 'AXLON drafted answers to your leads. Review and approve.',
+      href: '/dashboard/ai-inbox',
+    });
+  }
+
+  if (unreadMessages && unreadMessages > 0) {
+    attention.push({
+      id: 'unread',
+      kind: 'message',
+      title: `${unreadMessages} unread message${unreadMessages === 1 ? '' : 's'}`,
+      description: 'Buyers are waiting on a reply',
+      href: '/dashboard/messages',
+    });
+  }
+
+  if (missedCalls7 && missedCalls7 > 0) {
+    attention.push({
+      id: 'missed-calls',
+      kind: 'call',
+      title: `${missedCalls7} missed call${missedCalls7 === 1 ? '' : 's'} this week`,
+      description: 'Callers AXLON could not reach — worth a call back',
+      href: '/dashboard/calls',
+    });
+  }
+
+  const listingsWithoutPhotos = (photoCheckListings || []).filter((l) => {
+    const images = l.images as { id: string }[] | null;
+    return !images || images.length === 0;
+  });
+  listingsWithoutPhotos.slice(0, 2).forEach((listing) => {
+    attention.push({
+      id: `photos-${listing.id}`,
+      kind: 'photos',
+      title: 'Listing needs photos',
+      description: listing.title,
+      href: `/dashboard/listings/${listing.id}/edit`,
+    });
+  });
+
+  const stale = staleListings?.[0];
+  if (stale) {
+    const daysListed = Math.floor((now.getTime() - new Date(stale.created_at).getTime()) / DAY_MS);
+    attention.push({
+      id: `stale-${stale.id}`,
+      kind: 'stale',
+      title: `Listed ${daysListed} days without a sale`,
+      description: `${stale.title} — consider a price change`,
+      href: `/dashboard/listings/${stale.id}/edit`,
+    });
+  }
+
+  // Count everything outstanding, not just the rows we show
+  const pendingCount =
+    attention.length
+    + Math.max(0, newLeads - (newLeadRows?.length || 0))
+    + Math.max(0, listingsWithoutPhotos.length - 2);
+  const attentionItems = attention.slice(0, MAX_ATTENTION_ITEMS);
+
+  // Ask AXLON prompts that fit today
+  const suggestions = [
+    newLeads > 0 ? 'Which leads need follow-up?' : 'How do I get more leads?',
+    activeListings > 0 ? 'Top listings this week' : 'How do I add my inventory?',
+    stale ? 'Which listings should I reprice?' : 'What should I price my trailer at?',
+  ];
+
+  // Activity feed. Keep each row's real timestamp: getTimeAgo() emits labels
+  // like "3h"/"2w+" that don't sort chronologically on their own.
   const activities: { at: number; item: ActivityItem }[] = [];
 
   recentLeads?.forEach((lead) => {
@@ -327,86 +460,84 @@ export default async function DashboardPage() {
     });
   });
 
-  // Most recent first, top 8
   const feedActivities = activities
     .sort((a, b) => b.at - a.at)
-    .slice(0, 8)
+    .slice(0, 6)
     .map((row) => row.item);
 
-  // Build AI insights
-  const insights: { type: 'inventory' | 'lead' | 'market'; title: string; description: string; action: string; href: string }[] = [];
-
-  if (staleListings && staleListings.length > 0) {
-    const stale = staleListings[0];
-    const daysListed = Math.floor((now.getTime() - new Date(stale.created_at).getTime()) / (1000 * 60 * 60 * 24));
-    insights.push({
-      type: 'inventory',
-      title: 'Inventory Alert',
-      description: `"${stale.title}" has been listed for ${daysListed} days. Consider adjusting the price to increase demand.`,
-      action: 'Edit',
-      href: `/dashboard/listings/${stale.id}/edit`,
-    });
-  }
-
-  if (newLeads && newLeads > 0) {
-    insights.push({
-      type: 'lead',
-      title: 'Lead Opportunity',
-      description: `You have ${newLeads} new lead${newLeads > 1 ? 's' : ''} waiting for a response. Quick follow-ups close 3x more deals.`,
-      action: 'View',
-      href: '/dashboard/leads',
-    });
-  }
-
-  if (topViewedListings && topViewedListings.length > 0 && topViewedListings[0].views_count > 5) {
-    const top = topViewedListings[0];
-    insights.push({
-      type: 'market',
-      title: 'High Demand',
-      description: `"${top.title}" has ${top.views_count} views — your most popular listing. Consider featuring it for more exposure.`,
-      action: 'View',
-      href: `/listing/${top.id}`,
-    });
-  }
-
-  // Business dashboard
   return (
     <div className="space-y-4 md:space-y-6">
       <PageHeader
-        title={profile?.company_name ? `Welcome back, ${profile.company_name}` : 'Welcome back'}
-        description="Here's what's happening across your listings, leads, and AI tools."
+        title={<Greeting name={profile?.company_name} />}
+        description="Here's what's happening at your dealership."
       />
 
-      {/* Signup no longer asks for a company name; this is where it's
-          collected. Dismisses itself the moment one is saved. */}
-      {!profile?.company_name && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="font-medium">Add your company name</p>
-              <p className="text-sm text-muted-foreground">It appears on your listings and in messages to buyers.</p>
-            </div>
-            <Button asChild size="sm" className="shrink-0">
-              <Link href="/dashboard/settings">Add it in Settings</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Trial Conversion Banner */}
       {showTrialBanner && (
         <TrialBanner
           trialDaysRemaining={trialDaysRemaining}
           trialEndsAt={trialEndDate.toISOString()}
-          stats={{
-            listingsCreated: totalListings,
-            totalViews: totalViews,
-            leadsCapured: newLeads,
-          }}
         />
       )}
 
-      {/* AXLON Impact — proof of value, front and center */}
+      {/* Setup — compact, collapsible, gone once every step is done */}
+      <OnboardingChecklist
+        hasCompanyName={!!profile?.company_name}
+        hasListings={totalListings > 0}
+        hasImported={totalListings >= 3}
+        hasPhoneNumber={hasVoiceAgent}
+        hasLeads={(leadsTotal || 0) > 0}
+      />
+
+      {/* How is my equipment business doing? */}
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
+        <KpiCard
+          title="Active Listings"
+          value={activeListings}
+          icon={<Package className="w-4 h-4" />}
+          sub={
+            listingsThisMonth && listingsThisMonth > 0
+              ? `+${listingsThisMonth} this month`
+              : `${totalListings} total`
+          }
+          tone={listingsThisMonth && listingsThisMonth > 0 ? 'up' : 'neutral'}
+          href="/dashboard/listings"
+        />
+        <KpiCard
+          title="New Leads"
+          value={newLeads}
+          icon={<Users className="w-4 h-4" />}
+          sub={
+            leadsLast7 && leadsLast7 > 0
+              ? `+${leadsLast7} this week${leadsTrend !== null ? ` · ${formatTrend(leadsTrend)}` : ''}`
+              : 'Awaiting your reply'
+          }
+          tone={leadsLast7 && leadsLast7 > 0 ? (leadsTrend !== null && leadsTrend < 0 ? 'down' : 'up') : 'neutral'}
+          href="/dashboard/leads"
+          highlight={newLeads > 0}
+        />
+        <KpiCard
+          title="AI Calls Answered"
+          value={calls30 || 0}
+          icon={<Phone className="w-4 h-4" />}
+          sub={hasVoiceAgent ? 'Last 30 days' : 'Turn on AXLON Voice'}
+          tone="neutral"
+          href={hasVoiceAgent ? '/dashboard/calls' : '/dashboard/voice-agent'}
+        />
+        <KpiCard
+          title="Equipment Views"
+          value={totalViews}
+          icon={<Eye className="w-4 h-4" />}
+          sub={
+            viewsTrend !== null
+              ? `${formatTrend(viewsTrend)} vs prior 30 days`
+              : `${(views30 || 0).toLocaleString()} in the last 30 days`
+          }
+          tone={viewsTrend === null ? 'neutral' : viewsTrend < 0 ? 'down' : 'up'}
+          href="/dashboard/analytics"
+        />
+      </div>
+
+      {/* What is AXLON doing for me? */}
       {hasRoiActivity && (
         <RoiSnapshot
           monthLabel={monthLabel}
@@ -417,216 +548,178 @@ export default async function DashboardPage() {
         />
       )}
 
-      {/* Onboarding Checklist */}
-      <OnboardingChecklist
-        hasListings={totalListings > 0}
-        hasImported={totalListings >= 3}
-        hasPhoneNumber={!!voiceAgent?.phone_number}
-        hasLeads={(newLeads || 0) > 0 || (pipeline.contacted || 0) > 0 || (pipeline.won || 0) > 0}
-      />
+      {/* What needs my attention right now? */}
+      <NeedsAttention items={attentionItems} pendingCount={pendingCount} />
 
-      {/* AI Command Center */}
-      <CommandCenter
-        insights={insights}
-      />
+      <AskAxlon suggestions={suggestions} locked={!canAskAssistant} />
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <StatCard
-          title="Active Listings"
-          value={activeListings || 0}
-          icon={<Package className="w-5 h-5" />}
-          description={`${totalListings || 0} total`}
-        />
-        <StatCard
-          title="Total Views"
-          value={totalViews}
-          icon={<Eye className="w-5 h-5" />}
-          description={`${(viewsLast7 || 0).toLocaleString()} in the last 7 days`}
-          trend={viewsTrend || undefined}
-        />
-        <StatCard
-          title="New Leads"
-          value={newLeads || 0}
-          icon={<Users className="w-5 h-5" />}
-          description="Awaiting response"
-          highlight={!!newLeads}
-          trend={leadsTrend || undefined}
-        />
-        <StatCard
-          title="Messages"
-          value={unreadMessages || 0}
-          icon={<MessageSquare className="w-5 h-5" />}
-          description="Unread"
-          highlight={!!unreadMessages}
-        />
-      </div>
-
-      {/* Smart Import Card */}
-      <Card className="border-dashed border-2 border-primary/20 bg-primary/5">
-        <CardContent className="p-4 md:p-6">
-          <div className="flex items-start gap-3 md:gap-4 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
-              <Sparkles className="w-5 h-5 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-sm md:text-base">Smart Import</h3>
-              <p className="text-xs md:text-sm text-muted-foreground">
-                Switching from TruckPaper, Salesforce, or spreadsheets? Drop any file and AI imports your data automatically.
-              </p>
-            </div>
-          </div>
-          <SmartImportDropzone compact />
-        </CardContent>
-      </Card>
-
-      {/* Pipeline + Activity Row */}
-      <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
-        <Card>
-          <CardContent className="p-4 md:p-5">
-            <LeadsPipeline pipeline={pipeline} />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-muted-foreground" />
+      {/* Recent activity + recent listings */}
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
+        <section className={panelClass} aria-labelledby="recent-activity-heading">
+          <div className="flex items-center justify-between px-4 pt-4 md:px-5 md:pt-5">
+            <h2 id="recent-activity-heading" className="flex items-center gap-2 text-sm font-semibold">
+              <Activity className="w-4 h-4 text-muted-foreground" />
               Recent Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <ActivityFeed activities={feedActivities} />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Listings */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <div>
-            <CardTitle className="text-base md:text-lg">Recent Listings</CardTitle>
-            <CardDescription>Your latest equipment listings</CardDescription>
-          </div>
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/dashboard/listings">
-              View All
-              <ArrowUpRight className="w-4 h-4 ml-1" />
-            </Link>
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {recentListings && recentListings.length > 0 ? (
-            <div className="space-y-2 md:space-y-3">
-              {recentListings.map((listing) => (
-                <div
-                  key={listing.id}
-                  className="flex items-center justify-between p-2.5 md:p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium truncate text-sm md:text-base">{listing.title}</p>
-                    <p className="text-xs md:text-sm text-muted-foreground">
-                      {listing.price
-                        ? `$${listing.price.toLocaleString()}`
-                        : 'No price set'}
-                      {' · '}
-                      {listing.views_count || 0} views
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 ml-3 md:ml-4">
-                    <StatusBadge status={listing.status} />
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/dashboard/listings/${listing.id}/edit`}>
-                        Edit
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground mb-4">
-                No listings yet. Create your first listing!
-              </p>
-              <Button asChild>
-                <Link href="/dashboard/listings/new">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Listing
+            </h2>
+            {feedActivities.length > 0 && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
+                <Link href="/dashboard/leads">
+                  View all
+                  <ArrowUpRight className="w-3.5 h-3.5 ml-1" />
                 </Link>
               </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </div>
+          <div className="px-2 pb-2 pt-2 md:px-3 md:pb-3">
+            <ActivityFeed activities={feedActivities} />
+          </div>
+        </section>
+
+        <section className={panelClass} aria-labelledby="recent-listings-heading">
+          <div className="flex items-center justify-between px-4 pt-4 md:px-5 md:pt-5">
+            <h2 id="recent-listings-heading" className="flex items-center gap-2 text-sm font-semibold">
+              <Package className="w-4 h-4 text-muted-foreground" />
+              Recent Listings
+            </h2>
+            {recentListings.length > 0 && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
+                <Link href="/dashboard/listings">
+                  View all
+                  <ArrowUpRight className="w-3.5 h-3.5 ml-1" />
+                </Link>
+              </Button>
+            )}
+          </div>
+          <div className="px-4 pb-4 pt-3 md:px-5 md:pb-5">
+            {recentListings.length > 0 ? (
+              <ul className="space-y-1.5">
+                {recentListings.map((listing) => (
+                  <li
+                    key={listing.id}
+                    className="flex items-center justify-between gap-3 rounded-lg px-2.5 py-2 transition-colors hover:bg-muted/50"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{listing.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {listing.price ? `$${listing.price.toLocaleString()}` : 'No price set'}
+                        {' · '}
+                        {(listing.views_count || 0).toLocaleString()} views
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <StatusBadge status={listing.status} />
+                      <Button variant="ghost" size="sm" className="h-7 text-xs" asChild>
+                        <Link href={`/dashboard/listings/${listing.id}/edit`}>Edit</Link>
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="py-6 text-center">
+                <Package className="mx-auto mb-3 w-10 h-10 text-muted-foreground/50" />
+                <p className="mb-3 text-sm text-muted-foreground">
+                  No listings yet. Put your first piece of equipment in front of buyers.
+                </p>
+                <Button size="sm" asChild>
+                  <Link href="/dashboard/listings/new">
+                    <Plus className="w-4 h-4 mr-1.5" />
+                    Create Listing
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
 
-function StatCard({
+function KpiCard({
   title,
   value,
   icon,
-  description,
-  trend,
+  sub,
+  tone,
+  href,
   highlight = false,
 }: {
   title: string;
-  value: string | number;
+  value: number;
   icon: React.ReactNode;
-  description: string;
-  trend?: number;
+  sub: string;
+  tone: 'up' | 'down' | 'neutral';
+  href: string;
   highlight?: boolean;
 }) {
+  const subColor =
+    tone === 'up'
+      ? 'text-emerald-600 dark:text-emerald-400'
+      : tone === 'down'
+        ? 'text-red-600 dark:text-red-400'
+        : 'text-muted-foreground';
+
   return (
-    <Card className={highlight ? 'border-primary/50 bg-primary/5' : ''}>
-      <CardContent className="p-3 md:p-6">
-        <div className="flex items-center justify-between mb-2 md:mb-3">
-          <span className="text-muted-foreground">{icon}</span>
-          {trend !== undefined && (
-            <span
-              className={`flex items-center text-xs font-medium ${
-                trend >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-              }`}
-              title="vs. the previous 7 days"
-            >
-              {trend >= 0 ? (
-                <ArrowUpRight className="w-3 h-3 mr-0.5" />
-              ) : (
-                <ArrowDownRight className="w-3 h-3 mr-0.5" />
-              )}
-              {Math.abs(trend)}%
-            </span>
-          )}
-          {highlight && (
-            <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-          )}
-        </div>
-        <p className="text-xl md:text-3xl font-bold">{value.toLocaleString()}</p>
-        <p className="text-xs md:text-sm text-muted-foreground">{title}</p>
-        <p className="text-xs text-muted-foreground mt-0.5 md:mt-1">{description}</p>
-      </CardContent>
-    </Card>
+    <Link
+      href={href}
+      className={cn(
+        panelClass,
+        'block p-4 md:p-5 transition-colors hover:border-primary/40',
+        highlight && 'border-primary/30'
+      )}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs md:text-sm text-muted-foreground">{title}</span>
+        <span className="text-primary">{icon}</span>
+      </div>
+      <p className="mt-3 text-2xl md:text-3xl font-bold tracking-tight">{value.toLocaleString()}</p>
+      <p className={cn('mt-1 text-xs md:text-sm', subColor)}>{sub}</p>
+    </Link>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
   const styles = {
-    active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-    draft: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-    sold: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    expired: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
+    active: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
+    draft: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
+    sold: 'bg-blue-500/15 text-blue-700 dark:text-blue-400',
+    expired: 'bg-muted text-muted-foreground',
   };
 
   return (
     <span
-      className={`px-2 py-1 text-xs font-medium rounded-full capitalize whitespace-nowrap ${
+      className={`px-2 py-0.5 text-xs font-medium rounded-full capitalize whitespace-nowrap ${
         styles[status as keyof typeof styles] || styles.expired
       }`}
     >
       {status}
     </span>
   );
+}
+
+function formatTrend(pct: number): string {
+  return `${pct >= 0 ? '+' : ''}${pct}%`;
+}
+
+function sourceLabel(source: string | null | undefined): string {
+  switch (source) {
+    case 'phone_call':
+      return 'Called your AI line';
+    case 'chat':
+      return 'Asked AXLON on your storefront';
+    case 'referral':
+      return 'Referred';
+    default:
+      return 'Sent an inquiry';
+  }
+}
+
+/** Supabase embeds a to-one relation as an object or a one-element array depending on the FK shape. */
+function embeddedTitle(rel: unknown): string | null {
+  const row = Array.isArray(rel) ? rel[0] : rel;
+  const title = (row as { title?: string | null } | null)?.title;
+  return title || null;
 }
 
 function getTimeAgo(date: Date): string {

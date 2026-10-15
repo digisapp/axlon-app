@@ -89,6 +89,7 @@ export default async function DashboardLayout({
           pendingAiInbox={pendingAiInbox || 0}
           subscriptionTier={profile?.subscription_tier || 'free'}
           effectiveTier={effectiveTier}
+          trialDaysRemaining={trialDaysRemaining}
         />
       </div>
 

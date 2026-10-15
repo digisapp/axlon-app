@@ -1252,9 +1252,15 @@ export default function AIAssistantPage() {
         {/* Save Button */}
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end mt-6 gap-3 sm:gap-4">
           <Button variant="outline" asChild>
+            <Link href="/dashboard/ai-leads">
+              <Sparkles className="w-4 h-4 mr-2" />
+              AI Leads
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
             <Link href="/dashboard/conversations">
               <MessageCircle className="w-4 h-4 mr-2" />
-              View Conversations
+              AI Chats
             </Link>
           </Button>
           <Button onClick={handleSave} disabled={isSaving} size="lg">

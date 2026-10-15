@@ -39,9 +39,16 @@ export interface NavSection {
   items: NavItem[];
 }
 
+/**
+ * Sidebar navigation. Five short sections instead of one long list: a new
+ * dealer should be able to find Leads and Listings without reading 22 items.
+ * Pages that exist but aren't listed here (Call Log, AI Chats, AI Leads,
+ * Saved) are reached from their parent page or the account menu — see
+ * `secondaryNavItems`.
+ */
 export const dashboardNavSections: NavSection[] = [
   {
-    label: 'Dashboard',
+    label: 'Main',
     items: [
       {
         href: '/dashboard',
@@ -56,7 +63,7 @@ export const dashboardNavSections: NavSection[] = [
     ],
   },
   {
-    label: 'Inventory',
+    label: 'Equipment',
     items: [
       {
         href: '/dashboard/listings',
@@ -73,12 +80,6 @@ export const dashboardNavSections: NavSection[] = [
         feature: 'bulkImport',
         label: 'Bulk Import',
         icon: <Upload className="w-5 h-5" />,
-      },
-      {
-        href: '/dashboard/floor-plan',
-        feature: 'floorPlan',
-        label: 'Floor Plan',
-        icon: <DollarSign className="w-5 h-5" />,
       },
     ],
   },
@@ -99,7 +100,7 @@ export const dashboardNavSections: NavSection[] = [
       {
         href: '/dashboard/deal-desk',
         feature: 'dealDesk',
-        label: 'Deal Desk',
+        label: 'Deals',
         icon: <Handshake className="w-5 h-5" />,
       },
       {
@@ -110,7 +111,7 @@ export const dashboardNavSections: NavSection[] = [
     ],
   },
   {
-    label: 'AI Tools',
+    label: 'AXLON AI',
     items: [
       {
         href: '/dashboard/ai-inbox',
@@ -119,10 +120,10 @@ export const dashboardNavSections: NavSection[] = [
         icon: <Inbox className="w-5 h-5" />,
       },
       {
-        href: '/dashboard/ai-performance',
-        feature: 'aiAssistant',
-        label: 'AI Performance',
-        icon: <Bot className="w-5 h-5" />,
+        href: '/dashboard/voice-agent',
+        feature: 'voiceAgent',
+        label: 'Voice Agent',
+        icon: <Phone className="w-5 h-5" />,
       },
       {
         href: '/dashboard/ai-assistant',
@@ -131,28 +132,10 @@ export const dashboardNavSections: NavSection[] = [
         icon: <Brain className="w-5 h-5" />,
       },
       {
-        href: '/dashboard/voice-agent',
-        feature: 'voiceAgent',
-        label: 'Voice Agent',
-        icon: <Phone className="w-5 h-5" />,
-      },
-      {
-        href: '/dashboard/calls',
-        feature: 'voiceAgent',
-        label: 'Call Log',
-        icon: <PhoneIncoming className="w-5 h-5" />,
-      },
-      {
-        href: '/dashboard/conversations',
+        href: '/dashboard/ai-performance',
         feature: 'aiAssistant',
-        label: 'AI Chats',
-        icon: <BotMessageSquare className="w-5 h-5" />,
-      },
-      {
-        href: '/dashboard/ai-leads',
-        feature: 'aiAssistant',
-        label: 'AI Leads',
-        icon: <Sparkles className="w-5 h-5" />,
+        label: 'Performance',
+        icon: <Bot className="w-5 h-5" />,
       },
       {
         href: '/dashboard/market-intel',
@@ -163,26 +146,22 @@ export const dashboardNavSections: NavSection[] = [
     ],
   },
   {
-    label: 'Marketplace',
+    label: 'Business',
     items: [
+      {
+        href: '/dashboard/floor-plan',
+        feature: 'floorPlan',
+        label: 'Floor Plan',
+        icon: <DollarSign className="w-5 h-5" />,
+      },
       {
         href: '/dashboard/storefront',
         label: 'Storefront',
         icon: <Store className="w-5 h-5" />,
       },
       {
-        href: '/dashboard/saved',
-        label: 'Saved',
-        icon: <Heart className="w-5 h-5" />,
-      },
-    ],
-  },
-  {
-    label: 'Settings',
-    items: [
-      {
         href: '/dashboard/settings',
-        label: 'Account',
+        label: 'Settings',
         icon: <Settings className="w-5 h-5" />,
       },
       {
@@ -194,8 +173,38 @@ export const dashboardNavSections: NavSection[] = [
   },
 ];
 
+/**
+ * Pages reachable from inside another page rather than the sidebar. Listed so
+ * the header can still name the section the dealer is on.
+ */
+export const secondaryNavItems: NavItem[] = [
+  {
+    href: '/dashboard/calls',
+    label: 'Call Log',
+    icon: <PhoneIncoming className="w-5 h-5" />,
+  },
+  {
+    href: '/dashboard/conversations',
+    label: 'AI Chats',
+    icon: <BotMessageSquare className="w-5 h-5" />,
+  },
+  {
+    href: '/dashboard/ai-leads',
+    label: 'AI Leads',
+    icon: <Sparkles className="w-5 h-5" />,
+  },
+  {
+    href: '/dashboard/saved',
+    label: 'Saved Listings',
+    icon: <Heart className="w-5 h-5" />,
+  },
+];
+
 // Flat list for backward compatibility
 export const dashboardNavItems: NavItem[] = dashboardNavSections.flatMap(s => s.items);
+
+/** Every dashboard page with a nav label, sidebar or not. */
+export const allDashboardNavItems: NavItem[] = [...dashboardNavItems, ...secondaryNavItems];
 
 export function getNavItemsWithBadges(
   items: NavItem[],
