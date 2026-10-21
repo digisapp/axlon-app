@@ -670,8 +670,12 @@ Do not search inventory or provide detailed information - just capture the lead.
     # Create xAI Realtime model with voice from settings
     # Pinned, not grok-voice-latest: xAI moves that alias on every release,
     # and a model change should arrive as a deliberate, tested deploy.
+    # Note the pin is only as good as the id: xAI silently serves its current
+    # model for any id it doesn't recognise (verified 2026-10-21, a bogus id
+    # returned grok-voice-3.0), so check the resolved session.model after a
+    # change. grok-voice-think-fast-2.0 now resolves to the deprecated 2.0.
     model = xai.realtime.RealtimeModel(
-        model=os.getenv("XAI_VOICE_MODEL", "grok-voice-think-fast-2.0"),
+        model=os.getenv("XAI_VOICE_MODEL", "grok-voice-3.0"),
         # The API takes lowercase voice IDs; the admin setting is "Eve"-style.
         voice=(settings.get('voice') or 'eve').lower(),
         api_key=os.getenv("XAI_API_KEY"),

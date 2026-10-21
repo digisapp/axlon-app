@@ -120,7 +120,8 @@ The voice is configured in the database via the admin panel, or you can modify i
 ```python
 # xAI Grok Voice options
 model = xai.realtime.RealtimeModel(
-    voice="Sal",  # Available: Sal, Chloe, etc.
+    model="grok-voice-3.0",  # or set XAI_VOICE_MODEL; pin a version, not grok-voice-latest
+    voice="sal",  # lowercase ids: eve, ara, sal, leo, rex, luna, ...
     api_key=os.getenv("XAI_API_KEY"),
 )
 ```
