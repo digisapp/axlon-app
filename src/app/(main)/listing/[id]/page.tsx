@@ -42,6 +42,7 @@ import { AskAxlonAboutListing } from '@/components/listings/AskAxlonAboutListing
 import { MobileContactCTA } from '@/components/listings/MobileContactCTA';
 import { BackToResultsLink } from '@/components/listings/BackToResultsLink';
 import { jsonLdString } from '@/lib/seo/json-ld';
+import { listingSeoTitle } from '@/lib/seo/listing-title';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -67,6 +68,10 @@ const getListing = cache(async (id: string) => {
   return result;
 });
 
+function truncate(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max).trimEnd()}...` : text;
+}
+
 // Generate dynamic metadata for SEO
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
@@ -83,18 +88,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const imageUrl = primaryImage?.url || '/opengraph-image';
 
   // Build descriptive title and description
-  const titleParts = [listing.year, listing.make, listing.model].filter(Boolean);
-  const metaTitle = titleParts.length > 0
-    ? `${titleParts.join(' ')} for Sale`
-    : listing.title;
+  const category = Array.isArray(listing.category) ? listing.category[0] : listing.category;
+  const metaTitle = listingSeoTitle({ ...listing, category });
 
   const priceText = listing.price ? `$${listing.price.toLocaleString()}` : 'Contact for price';
   const locationText = [listing.city, listing.state].filter(Boolean).join(', ');
 
+  // Lead with price and location — the facts a search snippet or an AI
+  // answer quotes — then as much of the description as fits.
   const conditionText = listing.condition ? `${listing.condition} ` : '';
+  const facts = `${priceText}${locationText ? ` · ${locationText}` : ''}`;
   const metaDescription = listing.description
-    ? listing.description.slice(0, 155) + (listing.description.length > 155 ? '...' : '')
-    : `${conditionText}${metaTitle} - ${priceText}${locationText ? ` in ${locationText}` : ''}. Browse trucks, trailers, and equipment on Axleyard.`;
+    ? truncate(`${facts}. ${listing.description}`, 155)
+    : `${conditionText}${metaTitle} - ${priceText}. Browse trucks, trailers, and equipment on Axleyard.`;
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com';
 
@@ -368,10 +374,18 @@ export default async function ListingPage({ params }: PageProps) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://axleyard.com';
   const listingUrl = `${baseUrl}/listing/${id}`;
 
+  // Unclaimed scraped units sit under the house account, so the schema named
+  // "AXLON AI" as the seller of 600-odd trailers. The dealer whose yard the
+  // unit is on is the seller a search result or an AI answer should cite.
+  const schemaListing = {
+    ...listing,
+    user: unclaimedSourceName ? { is_business: true, company_name: unclaimedSourceName } : seller,
+  } as ListingForSchema;
+
   return (
     <div className="min-h-screen bg-background">
       {/* JSON-LD Product + Breadcrumb Schema for SEO */}
-      <ProductJsonLd listing={listing as ListingForSchema} url={listingUrl} />
+      <ProductJsonLd listing={schemaListing} url={listingUrl} />
       <BreadcrumbJsonLd listing={listing as ListingForSchema} baseUrl={baseUrl} />
 
       {/* Track view client-side */}

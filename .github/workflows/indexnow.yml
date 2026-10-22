@@ -1,0 +1,38 @@
+name: Submit Changed Listings to IndexNow
+
+on:
+  # Daily. Listings arrive from the dealer scrapes (1st and 15th) and from
+  # dealers' own dashboards at any time; the 26h window overlaps runs.
+  schedule:
+    - cron: '30 7 * * *'
+  workflow_dispatch:
+    inputs:
+      all:
+        description: 'Submit every URL in the sitemap (first run, or after a big change)'
+        type: boolean
+        default: false
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          check-latest: true
+
+      # No npm ci: the script uses only Node built-ins.
+      - name: Submit to IndexNow
+        env:
+          SUBMIT_ALL: ${{ github.event.inputs.all }}
+        run: |
+          if [ "$SUBMIT_ALL" = "true" ]; then
+            node scripts/indexnow-submit.mjs --all
+          else
+            node scripts/indexnow-submit.mjs
+          fi
