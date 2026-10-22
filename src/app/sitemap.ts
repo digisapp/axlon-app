@@ -162,6 +162,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Dynamic listing pages - fetch ALL active listings (paginated to avoid Supabase row limits)
   let listingPages: MetadataRoute.Sitemap = [];
+  // Categories that have at least one active listing — the rest are empty
+  // pages (and noindexed), so they stay out of the sitemap.
+  const stockedCategoryIds = new Set<string>();
 
   try {
     const supabase = createStaticClient();
@@ -179,7 +182,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (let i = 0; i < pages; i++) {
       const { data: listings } = await supabase
         .from('listings')
-        .select('id, updated_at')
+        .select('id, updated_at, category_id')
         .eq('status', 'active')
         .order('updated_at', { ascending: false })
         // Unique tiebreaker: without it rows sharing the sort key can shift
@@ -188,6 +191,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .range(i * SUPABASE_PAGE_SIZE, (i + 1) * SUPABASE_PAGE_SIZE - 1);
 
       if (listings) {
+        for (const listing of listings) {
+          if (listing.category_id) stockedCategoryIds.add(listing.category_id);
+        }
         listingPages = listingPages.concat(
           listings.map((listing) => ({
             url: `${baseUrl}/listing/${listing.id}`,
@@ -210,10 +216,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const { data: categories } = await supabase
       .from('categories')
-      .select('slug');
+      .select('id, slug, parent_id');
 
     if (categories) {
-      categoryPages = categories.map((cat) => ({
+      // A parent category's page lists its children's inventory too.
+      const isStocked = (cat: { id: string; parent_id: string | null }) =>
+        stockedCategoryIds.has(cat.id) ||
+        (!cat.parent_id && categories.some((child) => child.parent_id === cat.id && stockedCategoryIds.has(child.id)));
+      // If the listing read failed nothing looks stocked — keep every
+      // category rather than dropping them all.
+      const listed = stockedCategoryIds.size > 0 ? categories.filter(isStocked) : categories;
+      categoryPages = listed.map((cat) => ({
         url: `${baseUrl}/search?category=${cat.slug}`,
         lastModified: new Date(),
         changeFrequency: 'daily' as const,

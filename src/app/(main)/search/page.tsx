@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import SearchPageClient from './SearchPageClient';
+import { SearchInventoryIndex } from '@/components/search/SearchInventoryIndex';
+import { getSearchInventory } from '@/lib/seo/search-inventory';
 
 // Category-specific metadata for SEO — gives unique titles/descriptions
 // when users land on /search?category=trucks etc.
@@ -38,16 +40,30 @@ interface SearchPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
+/** A string search param, or '' when absent or repeated. */
+function stringParam(value: string | string[] | undefined): string {
+  return typeof value === 'string' ? value : '';
+}
+
 export async function generateMetadata({ searchParams }: SearchPageProps): Promise<Metadata> {
   const params = await searchParams;
-  const category = typeof params.category === 'string' ? params.category : '';
-  const query = typeof params.q === 'string' ? params.q : '';
+  const category = stringParam(params.category);
+  const query = stringParam(params.q);
 
+  // Every category gets its own title — only these seven had one, so the
+  // other 70-odd category pages shared "Search Trucks, Trailers & Equipment".
+  const inventory = category ? await getSearchInventory(category) : undefined;
   const catMeta = category ? categoryMeta[category] : null;
+  const categoryName = inventory?.category?.name;
+  const makes = inventory?.topMakes.slice(0, 4) ?? [];
 
   const title = catMeta?.title
+    || (categoryName ? `${categoryName} for Sale` : null)
     || (query ? `Results for "${query}"` : 'Search Trucks, Trailers & Equipment');
   const description = catMeta?.description
+    || (categoryName && inventory
+      ? `Browse ${inventory.total.toLocaleString()} ${categoryName.toLowerCase()} for sale on Axleyard${makes.length ? ` from ${makes.join(', ')} and more` : ''}. Compare prices, specs and locations, and contact the seller from any listing.`
+      : null)
     || (query
       ? `Search results for "${query}" on Axleyard. Browse trucks, trailers, and equipment matching your search.`
       : 'Search thousands of trucks, trailers, and heavy equipment listings. Filter by price, year, make, condition, and location. AI-powered search understands natural language.');
@@ -55,6 +71,11 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
   const canonical = category
     ? `/search?category=${category}`
     : '/search';
+
+  // An unknown or empty category is a thin page: keep it out of the index
+  // but let crawlers follow its links. `undefined` means the read failed —
+  // never noindex a category on an error.
+  const noindex = Boolean(category) && (inventory === null || inventory?.total === 0);
 
   return {
     title,
@@ -71,9 +92,21 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
     alternates: {
       canonical,
     },
+    ...(noindex && { robots: { index: false, follow: true } }),
   };
 }
 
-export default function SearchPage() {
-  return <SearchPageClient />;
+export default async function SearchPage({ searchParams }: SearchPageProps) {
+  const params = await searchParams;
+  const category = stringParam(params.category);
+  // The server-rendered index belongs to the canonical pages — /search and
+  // /search?category=… — not to free-text query results.
+  const inventory = stringParam(params.q) ? undefined : await getSearchInventory(category || null);
+
+  return (
+    <>
+      <SearchPageClient />
+      {inventory && <SearchInventoryIndex inventory={inventory} />}
+    </>
+  );
 }
