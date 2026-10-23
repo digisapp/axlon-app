@@ -81,6 +81,27 @@ export function parseCondition(value) {
   return null;
 }
 
+const STATES = {
+  alabama: 'AL', alaska: 'AK', arizona: 'AZ', arkansas: 'AR', california: 'CA', colorado: 'CO', connecticut: 'CT',
+  delaware: 'DE', florida: 'FL', georgia: 'GA', hawaii: 'HI', idaho: 'ID', illinois: 'IL', indiana: 'IN', iowa: 'IA',
+  kansas: 'KS', kentucky: 'KY', louisiana: 'LA', maine: 'ME', maryland: 'MD', massachusetts: 'MA', michigan: 'MI',
+  minnesota: 'MN', mississippi: 'MS', missouri: 'MO', montana: 'MT', nebraska: 'NE', nevada: 'NV', 'new hampshire': 'NH',
+  'new jersey': 'NJ', 'new mexico': 'NM', 'new york': 'NY', 'north carolina': 'NC', 'north dakota': 'ND', ohio: 'OH',
+  oklahoma: 'OK', oregon: 'OR', pennsylvania: 'PA', 'rhode island': 'RI', 'south carolina': 'SC', 'south dakota': 'SD',
+  tennessee: 'TN', texas: 'TX', utah: 'UT', vermont: 'VT', virginia: 'VA', washington: 'WA', 'west virginia': 'WV',
+  wisconsin: 'WI', wyoming: 'WY',
+};
+const ABBRS = new Set(Object.values(STATES));
+
+/** "Aurora, Illinois" / "Aurora, IL" → { city: 'Aurora', state: 'IL' }; anything else → null. */
+export function parseCityState(value) {
+  const m = String(value ?? '').trim().match(/^([A-Za-z .'-]+?),\s*([A-Za-z .]+?)(?:\s+\d{5}(?:-\d{4})?)?$/);
+  if (!m) return null;
+  const st = m[2].trim();
+  const state = ABBRS.has(st.toUpperCase()) ? st.toUpperCase() : STATES[st.toLowerCase()];
+  return state ? { city: m[1].trim(), state } : null;
+}
+
 const VIN_RE = /^[A-HJ-NPR-Z0-9]{17}$/i;
 export const cleanVin = (v) => {
   const s = String(v ?? '').trim().toUpperCase();
@@ -89,7 +110,7 @@ export const cleanVin = (v) => {
 
 const KEEP_CAPS = new Set([
   'RGN', 'HDG', 'XL', 'XXL', 'HD', 'CTS', 'CPS', 'MAC', 'MAS', 'WLW', 'JT', 'DEF', 'GVW', 'GVWR', 'LTWT', 'BTR', 'AG',
-  'FET', 'TK', 'II', 'III', 'IV', 'USA', 'LP', 'ATV', 'CAT', 'JLG', 'JCB', 'TX', 'NM', 'LA', 'AR', 'OK', 'CO', 'UT', 'ID', 'WA',
+  'FET', 'TK', 'II', 'III', 'IV', 'USA', 'LP', 'ATV', 'CAT', 'JLG', 'JCB', 'CIMC', 'TX', 'NM', 'LA', 'AR', 'OK', 'CO', 'UT', 'ID', 'WA',
 ]);
 
 /**
@@ -99,7 +120,11 @@ const KEEP_CAPS = new Set([
 export const titleCaseShouting = (s) => {
   const t = decode(String(s ?? '')).replace(/\s+/g, ' ').trim();
   if (/[a-z]/.test(t)) return t;
-  return t.replace(/[A-Z][A-Z0-9'’-]*/g, (w) => (/\d/.test(w) || KEEP_CAPS.has(w) ? w : w[0] + w.slice(1).toLowerCase()));
+  // Whole tokens: model codes with digits (60LCC, 53FT), known acronyms and vowel-less
+  // abbreviations (PVR, VXP, WS) stay upper case.
+  return t.replace(/[A-Z0-9][A-Z0-9'’]*/g, (w) =>
+    /\d/.test(w) || w.length < 2 || KEEP_CAPS.has(w) || /^[^AEIOUY]+$/.test(w) ? w : w[0] + w.slice(1).toLowerCase()
+  );
 };
 
 // Trailer manufacturers seen on US dealer sites, for titles without a separate make field.

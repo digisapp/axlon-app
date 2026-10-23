@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import * as lib from '../../scripts/dealers/_lib.mjs';
 import * as lonestar from '../../scripts/dealers/lonestar-truck-group.mjs';
 import * as area from '../../scripts/dealers/area-trailer-sales.mjs';
+import * as iloca from '../../scripts/dealers/iloca-services.mjs';
 
 const dealer = { city: 'Dealer City', state: 'ZZ' };
 
@@ -252,6 +253,92 @@ describe('Area Trailer Sales & Rentals (Squarespace)', () => {
     expect([v.city, v.state]).toEqual(['Boise', 'ID']);
     expect(v.condition).toBe('used');
     expect(v.stock_number).toBeNull();
+  });
+});
+
+describe('ILoca Services (WooCommerce Store API)', () => {
+  const attr = (name: string, ...terms: string[]) => ({ name, terms: terms.map((t) => ({ name: t })) });
+  const product = (over: Record<string, unknown> = {}) => ({
+    id: 2455031,
+    name: '2027 FONTAINE SPECIALIZED 60LCC HYDRAULIC DETACHABLE LOWBOY',
+    permalink: 'https://semitrailers.net/shop/2027-fontaine-specialized-60lcc-hydraulic-detachable-lowboy/',
+    sku: '',
+    description: '<p>Take on demanding heavy haul jobs with this <strong>60-ton</strong> lowboy.</p><ul><li>26&#8242; flat level deck</li></ul>',
+    prices: { price: '0', currency_minor_unit: 2 },
+    is_in_stock: true,
+    images: [{ src: 'https://semitrailers.net/wp-content/uploads/2026/07/image002-1-1.jpg' }, { src: 'https://semitrailers.net/wp-content/uploads/2026/07/image003-1.jpg' }],
+    categories: [
+      { name: 'Heavy Haul Lowboys', slug: 'lowboy-heavy-haul-lowboy-trailers' },
+      { name: 'Trailers', slug: 'trailers' },
+    ],
+    attributes: [
+      attr('Year', '2027'),
+      attr('Condition ', 'New'),
+      attr('Axle', 'Tri'),
+      attr('Length (in feet)', '51'),
+      attr('Width', '102'),
+      attr('Stock Number', 'N110001899'),
+      attr('Location', 'Aurora, Illinois'),
+    ],
+    ...over,
+  });
+
+  it('keeps for-sale trailers and skips to-order, pending, sold, accessories and photo-less products', () => {
+    expect(iloca.isListableProduct(product())).toBe(true);
+    expect(iloca.isListableProduct(product({ attributes: [attr('For Sale', 'AVAILABLE TO ORDER')] }))).toBe(false);
+    expect(iloca.isListableProduct(product({ attributes: [attr('For Sale', 'For Sale'), attr('Stock Number', 'Pending')] }))).toBe(false);
+    expect(iloca.isListableProduct(product({ is_in_stock: false }))).toBe(false);
+    expect(iloca.isListableProduct(product({ name: '2027 FONTAINE 3RD AXLE FLIP &#8211; DOUBLE DROP' }))).toBe(false);
+    expect(iloca.isListableProduct(product({ name: '2027 VANGUARD NEW TANDEM AXLE DOLLY' }))).toBe(false);
+    expect(iloca.isListableProduct(product({ name: '2022 CIMC ONE-WAY DOMESTIC CONTAINER' }))).toBe(false);
+    expect(iloca.isListableProduct(product({ name: '2024 STOUGHTON 40FT CONTAINER CHASSIS' }))).toBe(true);
+    expect(iloca.isListableProduct(product({ images: [] }))).toBe(false);
+  });
+
+  it('extracts a usable stock number or none', () => {
+    expect(iloca.stockNumberOf('N110001864')).toBe('N110001864');
+    expect(iloca.stockNumberOf('5A3304 PAVER')).toBe('5A3304');
+    expect(iloca.stockNumberOf('LOWBOY 55SA')).toBeNull();
+    expect(iloca.stockNumberOf('Pending')).toBeNull();
+  });
+
+  it('maps a product to a raw listing with its single yard location', () => {
+    const l = iloca.toRawListing(product(), { city: 'Aurora', state: 'IL' });
+    expect(l).toMatchObject({
+      title: '2027 Fontaine Specialized 60LCC Hydraulic Detachable Lowboy',
+      year: 2027,
+      make: 'Fontaine',
+      condition: 'new',
+      price: null,
+      price_type: 'call_for_price',
+      stock_number: 'N110001899',
+      vin: null,
+      source_url: 'https://semitrailers.net/shop/2027-fontaine-specialized-60lcc-hydraulic-detachable-lowboy/',
+      source_listing_id: '2455031',
+      city: 'Aurora',
+      state: 'IL',
+    });
+    expect(l.specs).toMatchObject({ Axle: 'Tri', Length: '51 ft', Width: '102 in', 'Trailer Type': 'Heavy Haul Lowboys' });
+    expect(l.description).toContain('60-ton lowboy');
+    expect(l.description).toContain('26′ flat level deck');
+    expect(l.images).toHaveLength(2);
+    expect(lib.isLowboyFamily(l)).toBe(true);
+  });
+
+  it('uses the dealer default when a unit is offered at several yards, and a VIN-shaped SKU as the VIN', () => {
+    const l = iloca.toRawListing(
+      product({
+        sku: '13N350200V35A5755',
+        prices: { price: '8990000', currency_minor_unit: 2 },
+        attributes: [attr('Manufacturer', 'FONTAINE'), attr('Location', 'Aurora, Illinois', 'Davenport, Iowa')],
+      }),
+      { city: 'Aurora', state: 'IL' }
+    );
+    expect(l.vin).toBe('13N350200V35A5755');
+    expect(l.price).toBe(89900);
+    expect(l.price_type).toBe('fixed');
+    expect(l.specs['Available At']).toBe('Aurora, Illinois; Davenport, Iowa');
+    expect([l.city, l.state]).toEqual(['Aurora', 'IL']);
   });
 });
 
