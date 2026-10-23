@@ -13,7 +13,7 @@
  * sale (sold units drop off), and a missing SalesPrice stays null.
  */
 
-import { politeClient, decode, parsePrice, parseYear, parseCondition, cleanVin, titleCaseShouting } from './_lib.mjs';
+import { politeClient, decode, parsePrice, parseYear, parseCondition, cleanVin, titleCaseShouting, canonicalMake } from './_lib.mjs';
 
 const BASE_URL = 'https://www.tntxtruck.com';
 const INVENTORY_URL = `${BASE_URL}/Sales/Trailer-Inventory`;
@@ -49,7 +49,7 @@ export function trailerTypeLabel(type) {
 
 export function toRawListing(vehicle, dealer, detailsViewUrl = DETAILS_URL) {
   const s = vehicle.Specs;
-  const make = titleCaseShouting(s.Make) || null;
+  const make = canonicalMake(s.Make);
   const model = titleCaseShouting(s.Model) || null;
   const type = trailerTypeLabel(s.xtrailerType);
   const typeWord = type.split(' ').pop()?.toLowerCase();

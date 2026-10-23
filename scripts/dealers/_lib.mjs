@@ -119,13 +119,30 @@ const KEEP_CAPS = new Set([
  */
 export const titleCaseShouting = (s) => {
   const t = decode(String(s ?? '')).replace(/\s+/g, ' ').trim();
-  if (/[a-z]/.test(t)) return t;
-  // Whole tokens: model codes with digits (60LCC, 53FT), known acronyms and vowel-less
-  // abbreviations (PVR, VXP, WS) stay upper case.
-  return t.replace(/[A-Z0-9][A-Z0-9'’]*/g, (w) =>
-    /\d/.test(w) || w.length < 2 || KEEP_CAPS.has(w) || /^[^AEIOUY]+$/.test(w) ? w : w[0] + w.slice(1).toLowerCase()
+  // In mixed-case text ("2015 GREAT DANE Dry Van") only shouted words of 4+ letters change;
+  // in all-caps text every word does. Either way, whole tokens with digits (60LCC, 53FT),
+  // known acronyms and vowel-less abbreviations (PVR, VXP, WS) stay upper case.
+  const minLen = /[a-z]/.test(t) ? 4 : 2;
+  return t.replace(/(?<![A-Za-z0-9])[A-Z0-9][A-Z0-9'’]*(?![A-Za-z0-9])/g, (w) =>
+    /\d/.test(w) || w.length < minLen || KEEP_CAPS.has(w) || /^[^AEIOUY]+$/.test(w) ? w : w[0] + w.slice(1).toLowerCase()
   );
 };
+
+const MAKE_ALIASES = {
+  xl: 'XL Specialized',
+  'xl specialized trailers': 'XL Specialized',
+  'fontaine specialized': 'Fontaine',
+  kalynsiebert: 'Kalyn Siebert',
+  'trail king': 'Trail King',
+  brant: 'Brandt',
+};
+
+/** Dealer-entered manufacturer → a consistent spelling ("XL" → "XL Specialized", "FONTAINE" → "Fontaine"). */
+export function canonicalMake(make) {
+  const m = titleCaseShouting(make);
+  if (!m) return null;
+  return MAKE_ALIASES[m.toLowerCase()] || m;
+}
 
 // Trailer manufacturers seen on US dealer sites, for titles without a separate make field.
 const KNOWN_MAKES = [
@@ -155,7 +172,7 @@ export function guessMake(title, extra = []) {
 
 // ── lowboy family ────────────────────────────────────────────────────────────
 const LOWBOY_RE =
-  /\b(low[\s-]?boys?|lowbed|rgn|hrg|hdg|removable goose ?neck|detach(?:able)?|double[\s-]?drop|travel(?:l?ing)?[\s-]?axle|(?:hydraulic )?sliding[\s-]axle|tag[\s-]?along|hydraulic (?:detach|goose ?neck)|mechanical goose ?neck)\b/i;
+  /(?:\b|\d)(low[\s-]?boys?|lowbed|rgn|hrg|hdgs?p?|mfga?|hfg|[hms]de|removable goose ?neck|detach(?:able)?|double[\s-]?drop|travel(?:l?ing)?[\s-]?axle|(?:hydraulic )?sliding[\s-]axle|tag[\s-]?along|hydraulic (?:detach|goose ?neck)|mechanical goose ?neck)\b/i;
 
 /** True when a raw listing is in the lowboy family (lowboy/RGN/detachable/double-drop/traveling-axle/tag-along). */
 export function isLowboyFamily(listing) {
@@ -260,11 +277,11 @@ export function politeClient(baseUrl, { log = () => {}, minDelayMs = MIN_DELAY_M
   let delayMs = minDelayMs;
   let last = 0;
 
-  async function raw(url, accept) {
+  async function raw(url, accept, extraHeaders = {}) {
     const wait = last + delayMs - Date.now();
     if (wait > 0) await sleep(wait);
     last = Date.now();
-    const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT, Accept: accept }, redirect: 'follow' });
+    const res = await fetch(url, { headers: { ...extraHeaders, 'User-Agent': USER_AGENT, Accept: accept }, redirect: 'follow' });
     const body = await res.text();
     last = Date.now();
     return { res, body };
@@ -280,13 +297,13 @@ export function politeClient(baseUrl, { log = () => {}, minDelayMs = MIN_DELAY_M
     return robots;
   }
 
-  async function get(url, { as = 'text', accept } = {}) {
+  async function get(url, { as = 'text', accept, headers } = {}) {
     const abs = new URL(url, origin).href;
     if (new URL(abs).origin === origin) {
       const r = await loadRobots();
       if (!isAllowedByRobots(r, abs)) throw new RobotsDisallowedError(abs);
     }
-    const { res, body } = await raw(abs, accept || (as === 'json' ? 'application/json' : 'text/html'));
+    const { res, body } = await raw(abs, accept || (as === 'json' ? 'application/json' : 'text/html'), headers);
     assertNotChallenge(res.status, body, abs);
     if (!res.ok) throw new Error(`${abs} returned HTTP ${res.status}`);
     if (as === 'json') {

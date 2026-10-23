@@ -28,6 +28,7 @@ import {
   titleCaseShouting,
   parseCityState,
   guessMake,
+  canonicalMake,
 } from './_lib.mjs';
 
 const BASE_URL = 'https://semitrailers.net';
@@ -70,7 +71,7 @@ export function toRawListing(product, dealer) {
   const title = titleCaseShouting(rawTitle);
   const locations = (at.Location || '').split('|').filter(Boolean);
   const loc = locations.length === 1 ? parseCityState(locations[0]) : null;
-  const make = (titleCaseShouting(at.Manufacturer || '') || guessMake(rawTitle) || '').replace(/^Fontaine Specialized$/i, 'Fontaine') || null;
+  const make = canonicalMake(at.Manufacturer) || guessMake(rawTitle);
 
   const specs = {};
   const skip = new Set(['Year', 'Condition', 'Manufacturer', 'For Sale', 'Stock Number', 'Stock', 'Location']);

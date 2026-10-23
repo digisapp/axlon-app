@@ -4,6 +4,9 @@ import * as lonestar from '../../scripts/dealers/lonestar-truck-group.mjs';
 import * as area from '../../scripts/dealers/area-trailer-sales.mjs';
 import * as iloca from '../../scripts/dealers/iloca-services.mjs';
 import * as moore from '../../scripts/dealers/moore-truck.mjs';
+import * as buzz from '../../scripts/dealers/_buzznerd.mjs';
+import * as ballard from '../../scripts/dealers/ballard-trucks.mjs';
+import * as northwest from '../../scripts/dealers/northwest-truck-trailer.mjs';
 
 const dealer = { city: 'Dealer City', state: 'ZZ' };
 
@@ -63,8 +66,11 @@ describe('dealer adapter plumbing (_lib)', () => {
   it('classifies the lowboy family', () => {
     const t = (title: string, specs = {}) => lib.isLowboyFamily({ title, specs });
     expect(t('2027 Dragon RGN 55 Ton Lowboy')).toBe(true);
-    expect(t('2025 Trail King TK110HDG')).toBe(false);
-    expect(t('2025 Trail King TK110HDG', { 'Trailer Type': 'Hydraulic Detach' })).toBe(true);
+    expect(t('2025 Trail King TK110HDG')).toBe(true); // hydraulic detachable gooseneck code
+    expect(t('2027 XL Specialized XL110HDGS')).toBe(true);
+    expect(t('2026 XL 80 MFG')).toBe(true); // mechanical folding gooseneck
+    expect(t('2026 Trail King TK80SA', { 'Trailer Type': 'Lowboy Trailers' })).toBe(true);
+    expect(t('2027 XL Specialized XL40T', { 'Trailer Type': 'Flatbed / Tag Trailers' })).toBe(false);
     expect(t('2024 Fontaine Double Drop')).toBe(true);
     expect(t('2026 Witzco Tag-Along')).toBe(true);
     expect(t('2027 Wabash Flatbed')).toBe(false);
@@ -406,6 +412,103 @@ ${card('t20oilfield nabors used', 'no-id-float.html', 'used', '1976 Nabors 3 Axl
     expect(l.specs).toMatchObject({ 'Trailer Type': 'Lowboy', Capacity: '60 tons', Deck: `42' Deck x 102" Wide` });
     expect(l.description).toContain('• Air Ride w/1 Lift Axle');
     expect(moore.toRawListing(kalyn, {}).title).toBe('Kalyn Siebert 5 Axle 60/70 Ton Stiff Narrow Neck Lowboy');
+  });
+});
+
+describe('buzznerd sites (Ballard Truck Centers, Northwest Truck & Trailer)', () => {
+  const card = (id: string, sku: string, slug: string, title: string, price = '') => `
+<li class="ais-InfiniteHits-item">
+<div class="item">
+<div class="contentRightCol">
+<span class="condition">New</span>
+<div class="row">
+<div class="col-xs-8 titleContainer"><h2 class="title"><a class="" href="https://www.ballardtrucks.com/product/${slug}/" >${title}</a></h2></div>
+<div class="col-xs-4 pricePhoneContainer"><div class="price">${price}</div></div>
+</div>
+<div class="cta-btns"><a href='https://www.ballardtrucks.com/product/${slug}/' class='buttontrailer'
+data-product_id='${id}'
+data-product_sku='${sku}'
+>View details</a></div>
+</div></div></li>`;
+  const inventory = `
+<div id="condition">
+  <div class="ais-RefinementList"><ul class="ais-RefinementList-list">
+    <li class="ais-RefinementList-item item"><a href="https://www.nwtruckandtrailer.com/condition/new?product-type=trailer">
+      <label class="ais-RefinementList-label"><span class="ais-RefinementList-labelText">New</span>
+      <span class="ais-RefinementList-count">(19)</span></label></a></li>
+    <li class="ais-RefinementList-item item"><a href="https://www.nwtruckandtrailer.com/condition/used?product-type=trailer">
+      <label class="ais-RefinementList-label"><span class="ais-RefinementList-labelText">Used</span>
+      <span class="ais-RefinementList-count">(13)</span></label></a></li>
+  </ul></div>
+</div>
+<ul>
+${card('161116', '88674', '2026-trail-king-tk80sa', '2026 TRAIL KING TK80SA')}
+${card('165997', '71874', '2027-trail-king-tklb332-102-2', '2027 TRAIL KING TKLB332-102', '<span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">&#36;</span>117,500.00</bdi></span>')}
+</ul>`;
+
+  const productPage = ({ offers = '', wrapper = 'instock', location = 'HERMON' } = {}) => `
+<script type="application/ld+json" class="rank-math-schema-pro">{"@context":"https://schema.org","@graph":[{"@type":"Organization","name":"Ballard"},{"@type":"Product","name":"2026 TRAIL KING TK80SA - Ballard Truck Centers","description":"Contact us to learn more about this trailer.","sku":"88674","category":"Semi-Trailers - Lowboy Trailers",${offers}"image":[{"@type":"ImageObject","url":"https://cdn.example/uploads/2026/07/a.jpg"}],"additionalProperty":[{"@type":"PropertyValue","name":"pa_truck_manufacturer","value":"TRAIL KING"},{"@type":"PropertyValue","name":"pa_truck_model","value":"TK80SA"},{"@type":"PropertyValue","name":"pa_truck_location","value":"${location}"},{"@type":"PropertyValue","name":"pa_truck_year","value":"2026"},{"@type":"PropertyValue","name":"pa_condition","value":"New"},{"@type":"PropertyValue","name":"pa_truck_vinserialnumber","value":"1TKA05026TM088674"},{"@type":"PropertyValue","name":"pa_trailer_axle","value":"Tandem"},{"@type":"PropertyValue","name":"pa_trailer_length","value":"50"}]}]}</script>
+<div id="product-161116" class="product type-product post-161116 status-publish first ${wrapper} product_cat-semi-trailers-lowboy-trailers product-type-trailer">
+<div data-thumb="https://cdn.example/uploads/2026/07/a-100x100.jpg" class="woocommerce-product-gallery__image"><a href="https://cdn.example/uploads/2026/07/a.jpg"><img src="https://cdn.example/uploads/2026/07/a.jpg"></a></div>
+<div data-thumb="https://cdn.example/uploads/2026/07/b-100x100.jpg" class="woocommerce-product-gallery__image"><a href="https://cdn.example/uploads/2026/07/b.jpg"><img src="https://cdn.example/uploads/2026/07/b.jpg"></a></div>
+<div id="collapse-description" class="content panel-collapse collapse in">
+    <div class="panel-body">
+        <p>50&#8242; Trail King TK80SA Sliding Axle Trailer<br />
+> PTO hydraulics</p>
+    </div>
+</div>
+</div>`;
+
+  it('reads server-rendered cards and the condition facet totals', () => {
+    const cards = buzz.parseInventoryCards(inventory);
+    expect(cards).toEqual([
+      { id: '161116', sku: '88674', url: 'https://www.ballardtrucks.com/product/2026-trail-king-tk80sa/', title: '2026 TRAIL KING TK80SA', price: null, condition: 'New' },
+      { id: '165997', sku: '71874', url: 'https://www.ballardtrucks.com/product/2027-trail-king-tklb332-102-2/', title: '2027 TRAIL KING TKLB332-102', price: 117500, condition: 'New' },
+    ]);
+    const facet = buzz.parseConditionFacet(inventory);
+    expect(facet.map((b: any) => [b.label, b.count])).toEqual([['New', 19], ['Used', 13]]);
+    expect(facet[1].url).toBe('https://www.nwtruckandtrailer.com/condition/used?product-type=trailer');
+  });
+
+  it('parses JSON-LD attributes, the full gallery and the description from a product page', () => {
+    const d = buzz.parseDetail(productPage());
+    expect(d.sku).toBe('88674');
+    expect(d.category).toBe('Semi-Trailers - Lowboy Trailers');
+    expect(d.attributes).toMatchObject({ truck_location: 'HERMON', truck_vinserialnumber: '1TKA05026TM088674', trailer_length: '50' });
+    expect(d.images).toEqual(['https://cdn.example/uploads/2026/07/a.jpg', 'https://cdn.example/uploads/2026/07/b.jpg']);
+    expect(d.description).toBe('50′ Trail King TK80SA Sliding Axle Trailer\n> PTO hydraulics');
+    expect(d.price).toBeNull();
+    expect(buzz.isForSale(d)).toBe(true);
+    expect(buzz.isForSale(buzz.parseDetail(productPage({ wrapper: 'outofstock' })))).toBe(false);
+    const priced = buzz.parseDetail(productPage({ offers: '"offers":{"@type":"Offer","price":"125900.00","availability":"http://schema.org/InStock"},' }));
+    expect(priced.price).toBe(125900);
+  });
+
+  it('maps a unit with its yard and never takes a price only the cached card shows', () => {
+    const [, tklb] = buzz.parseInventoryCards(inventory);
+    const d = buzz.parseDetail(productPage());
+    const l = ballard.toRawListing(tklb, d, { city: 'Avon', state: 'MA' }, { locations: ballard.LOCATIONS });
+    expect(l).toMatchObject({
+      title: '2027 Trail King TKLB332-102',
+      year: 2026,
+      make: 'Trail King',
+      model: 'TK80SA',
+      condition: 'new',
+      price: null,
+      price_type: 'call_for_price',
+      stock_number: '88674',
+      vin: '1TKA05026TM088674',
+      source_listing_id: '165997',
+      city: 'Hermon',
+      state: 'ME',
+    });
+    expect(l.specs).toMatchObject({ Axle: 'Tandem', Length: '50 ft', 'Trailer Type': 'Lowboy Trailers', Yard: 'Hermon, ME' });
+    expect(lib.isLowboyFamily(l)).toBe(true);
+
+    const nw = northwest.toRawListing(tklb, buzz.parseDetail(productPage({ location: 'NWTT' })), { city: 'Fargo', state: 'ND' }, { locations: northwest.LOCATIONS });
+    expect([nw.city, nw.state]).toEqual(['Fargo', 'ND']);
+    const unknown = ballard.toRawListing(tklb, buzz.parseDetail(productPage({ location: 'Somewhere' })), { city: 'Avon', state: 'MA' }, { locations: ballard.LOCATIONS });
+    expect([unknown.city, unknown.state]).toEqual(['Avon', 'MA']);
   });
 });
 
