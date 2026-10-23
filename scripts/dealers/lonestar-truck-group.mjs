@@ -13,7 +13,7 @@
  * sale (sold units drop off), and a missing SalesPrice stays null.
  */
 
-import { politeClient, decode, parsePrice, parseYear, parseCondition, cleanVin } from './_lib.mjs';
+import { politeClient, decode, parsePrice, parseYear, parseCondition, cleanVin, titleCaseShouting } from './_lib.mjs';
 
 const BASE_URL = 'https://www.tntxtruck.com';
 const INVENTORY_URL = `${BASE_URL}/Sales/Trailer-Inventory`;
@@ -38,15 +38,6 @@ export function isListableUnit(vehicle) {
 }
 
 const tidy = (s) => decode(String(s ?? '')).replace(/\r/g, '').replace(/\s+/g, ' ').trim();
-
-const KEEP_CAPS = new Set(['RGN', 'HDG', 'XL', 'HD', 'CTS', 'CPS', 'MAC', 'MAS', 'WLW', 'JT', 'DEF', 'GVW', 'LTWT']);
-
-/** "END DUMP" → "End Dump", "WILSON" → "Wilson"; mixed-case text, codes with digits and acronyms (RGN) stay. */
-export const titleCaseShouting = (s) => {
-  const t = tidy(s);
-  if (/[a-z]/.test(t)) return t;
-  return t.replace(/[A-Z][A-Z0-9'-]*/g, (w) => (/\d/.test(w) || KEEP_CAPS.has(w) ? w : w[0] + w.slice(1).toLowerCase()));
-};
 
 /** "Lowboy - 55 Ton" → "55 Ton Lowboy", "Bottom Dump - LTWT" → "Bottom Dump". */
 export function trailerTypeLabel(type) {

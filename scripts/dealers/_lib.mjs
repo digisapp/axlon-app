@@ -87,9 +87,50 @@ export const cleanVin = (v) => {
   return VIN_RE.test(s) ? s : null;
 };
 
+const KEEP_CAPS = new Set([
+  'RGN', 'HDG', 'XL', 'XXL', 'HD', 'CTS', 'CPS', 'MAC', 'MAS', 'WLW', 'JT', 'DEF', 'GVW', 'GVWR', 'LTWT', 'BTR', 'AG',
+  'FET', 'TK', 'II', 'III', 'IV', 'USA', 'LP', 'ATV', 'CAT', 'JLG', 'JCB', 'TX', 'NM', 'LA', 'AR', 'OK', 'CO', 'UT', 'ID', 'WA',
+]);
+
+/**
+ * "END DUMP" → "End Dump", "2025 DORSEY COMBO DROP DECK BTR TRAILER" → "2025 Dorsey Combo Drop Deck BTR Trailer".
+ * Only all-caps strings are touched; codes with digits and known acronyms (RGN, BTR) stay.
+ */
+export const titleCaseShouting = (s) => {
+  const t = decode(String(s ?? '')).replace(/\s+/g, ' ').trim();
+  if (/[a-z]/.test(t)) return t;
+  return t.replace(/[A-Z][A-Z0-9'’-]*/g, (w) => (/\d/.test(w) || KEEP_CAPS.has(w) ? w : w[0] + w.slice(1).toLowerCase()));
+};
+
+// Trailer manufacturers seen on US dealer sites, for titles without a separate make field.
+const KNOWN_MAKES = [
+  'Trail King', 'Fontaine', 'Talbert', 'XL Specialized', 'Pitts', 'Eager Beaver', 'Kaufman', 'Witzco', 'Globe', 'Etnyre',
+  'Landoll', 'Faymonville', 'Loadstar', 'Load King', 'Rogers', 'Dragon', 'Felling', 'Towmaster', 'Interstate', 'Belshe',
+  'Brandt', 'Dorsey', 'Prestige', 'Dura-Haul', 'Hard Core', 'CPS', 'Travis', 'Vanguard', 'Utility', 'Hyundai', 'Wabash',
+  'Great Dane', 'Stoughton', 'Iron Lite', 'Midland', 'Maxxim', 'Trinity', 'Atoka', 'MAC', 'Retesa', 'Paisano', 'Demco',
+  'Vantage', 'Polar', 'Pro-Haul', 'Gallegos', 'Wilson', 'Timpte', 'Manac', 'Benson', 'Reitnouer', 'Transcraft', 'Fruehauf',
+  'East', 'Ranco', 'Trail-Eze', 'Kalyn Siebert', 'Aspen', 'Nelson', 'Ledwell', 'Viking', 'Clement', 'Doonan', 'Cozad',
+  'Murray', 'Liddell', 'Lufkin', 'Heil', 'Tremcar', 'Brenner', 'Walker', 'Big Tex', 'Sooner', 'Exiss', 'Featherlite',
+  'Hillsboro', 'Merritt', 'Neville', 'Trailstar', 'Western Trailers', 'Ravens', 'Cottrell', 'Boydstun', 'Sun Country',
+  'Hale', 'Magnitude', 'Kentucky', 'Dakota', 'SmithCo', 'Beall', 'Ross', 'Ironhorse', "Sidump'r", 'Pratt', 'Lode-King',
+  'Lode King', 'Hutchens', 'Haulmark', 'Peerless', 'Armor Lite', 'Heartland', 'Jet', 'Cancade', 'Trailmobile', 'Strick',
+  'Mack', 'Vantage Trailers', 'Thunder Creek', 'Dorsey Trailers', 'Fontaine Heritage', 'Fontaine Magnitude', 'Wells Cargo',
+];
+
+/** The first known manufacturer named in a title (longest name wins), canonical spelling, or null. */
+export function guessMake(title, extra = []) {
+  const t = ` ${String(title ?? '').replace(/[®™]/g, ' ')} `.toLowerCase();
+  const names = [...new Set([...extra, ...KNOWN_MAKES])].sort((a, b) => b.length - a.length);
+  for (const name of names) {
+    const n = name.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (new RegExp(`[^a-z0-9]${n}[^a-z0-9]`).test(t)) return name.replace(/ (Trailers|Heritage|Magnitude)$/, '');
+  }
+  return null;
+}
+
 // ── lowboy family ────────────────────────────────────────────────────────────
 const LOWBOY_RE =
-  /\b(low[\s-]?boy|lowbed|rgn|removable goose ?neck|detach(?:able)?|double[\s-]?drop|traveling[\s-]?axle|travel(?:ing)? axle|tag[\s-]?along|tagalong|hydraulic (?:detach|goose ?neck)|hdg|mechanical goose ?neck|fixed[\s-]?neck lowboy|extendable lowboy|stretch rgn)\b/i;
+  /\b(low[\s-]?boys?|lowbed|rgn|hrg|hdg|removable goose ?neck|detach(?:able)?|double[\s-]?drop|travel(?:l?ing)?[\s-]?axle|(?:hydraulic )?sliding[\s-]axle|tag[\s-]?along|hydraulic (?:detach|goose ?neck)|mechanical goose ?neck)\b/i;
 
 /** True when a raw listing is in the lowboy family (lowboy/RGN/detachable/double-drop/traveling-axle/tag-along). */
 export function isLowboyFamily(listing) {

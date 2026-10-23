@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as lib from '../../scripts/dealers/_lib.mjs';
 import * as lonestar from '../../scripts/dealers/lonestar-truck-group.mjs';
+import * as area from '../../scripts/dealers/area-trailer-sales.mjs';
 
 const dealer = { city: 'Dealer City', state: 'ZZ' };
 
@@ -130,3 +131,128 @@ describe('Lonestar Truck Group (tntxtruck.com)', () => {
     expect([l.city, l.state]).toEqual(['Dealer City', 'ZZ']);
   });
 });
+
+describe('Area Trailer Sales & Rentals (Squarespace)', () => {
+  const list = `
+<div class="product-list-item" data-product-id="6aac458bc9c0f50bb5b8afae">
+  <a class="product-list-item-link" href=/trailers-for-sale-new-used/p/2025-atoka-rgn-lowboy aria-label="2025 Atoka RGN Lowboy">
+    <figure class="product-list-item-image"><img data-src="https://images.squarespace-cdn.com/content/v1/65ca/a/image002.jpg"></figure>
+    <section class="product-list-item-meta" data-animation-role="content">
+      <div class="product-list-title-price"><div class="product-list-item-title">
+          2025 Atoka RGN Lowboy
+        </div></div>
+      <div class="product-list-item-status"></div>
+    </section>
+  </a>
+</div>
+<div class="product-list-item tag-dry-van tag-used" data-product-id="68bf23e891ca2a75c5ac9ed3">
+  <a class="product-list-item-link" href=/trailers-for-sale-new-used/p/53-foot-dry-van-for-sale aria-label="x">
+    <section class="product-list-item-meta">
+      <div class="product-list-item-title">2020 Vanguard 53' Dry Van | Used Box Van</div>
+      <div class="product-list-item-status"></div>
+    </section>
+  </a>
+</div>
+<div class="product-list-item on-sale" data-product-id="soldout1">
+  <a class="product-list-item-link" href=/trailers-for-sale-new-used/p/sold-one aria-label="x">
+    <section class="product-list-item-meta">
+      <div class="product-list-item-title">2024 Dorsey Flatbed</div>
+      <div class="product-list-item-status"><div class="product-mark sold-out">Sold Out</div></div>
+    </section>
+  </a>
+</div>`;
+
+  const detail = (variant: object, title = '2025 DORSEY COMBO DROP DECK BTR TRAILER') => `
+<script>Static.SQUARESPACE_CONTEXT = {"templateId":"x","product":{"variantAttributeNames":[],"variants":[${JSON.stringify(variant)}],"subscribable":false},"showAnnouncementBar":true};</script>
+<div class="product-gallery-slides">
+  <div class="product-gallery-slides-item"><img data-src="https://images.squarespace-cdn.com/content/v1/65ca/x/one.jpg" data-image="https://images.squarespace-cdn.com/content/v1/65ca/x/one.jpg"></div>
+  <div class="product-gallery-slides-item"><img data-src="https://images.squarespace-cdn.com/content/v1/65ca/x/two.jpg?format=1500w"></div>
+</div>
+<div class="product-gallery-thumbnails"><img data-src="https://images.squarespace-cdn.com/content/v1/65ca/x/thumb-only.jpg"></div>
+<div class="product-meta">
+  <h1 class="product-title">${title}</h1>
+  <div class="product-price-value"><span class="sale-price">$54,900.00</span><span class="original-price">$55,900.00</span></div>
+  <div class="product-description hidden-down-md"><p>CAPACITY: Standard Beam Pkg - 80,000 GVWR</p><p>OVERALL LENGTH: 53'</p><p>Great trailer &amp; ready to work.</p></div>
+</div>`;
+  const unit = { sku: 'D42986', price: { value: 5590000 }, salePrice: { value: 5490000 }, onSale: true, stock: { unlimited: false, quantity: 1 } };
+
+  it('reads every product card with its id, url and tags', () => {
+    const cards = area.parseInventory(list);
+    expect(cards.map((c: any) => c.id)).toEqual(['6aac458bc9c0f50bb5b8afae', '68bf23e891ca2a75c5ac9ed3', 'soldout1']);
+    expect(cards[0]).toMatchObject({
+      url: 'https://www.areatrailersalesandrentals.com/trailers-for-sale-new-used/p/2025-atoka-rgn-lowboy',
+      title: '2025 Atoka RGN Lowboy',
+    });
+    expect(cards[1].tags).toEqual(['dry-van', 'used']);
+    expect(cards.filter(area.isForSaleCard).map((c: any) => c.id)).not.toContain('soldout1');
+  });
+
+  it('takes the sale price, the gallery photos and spec lines from a product page', () => {
+    const d = area.parseDetail(detail(unit));
+    expect(d.price).toBe(54900);
+    expect(d.sku).toBe('D42986');
+    expect(d.soldOut).toBe(false);
+    expect(d.images).toEqual([
+      'https://images.squarespace-cdn.com/content/v1/65ca/x/one.jpg',
+      'https://images.squarespace-cdn.com/content/v1/65ca/x/two.jpg',
+    ]);
+    expect(d.specs).toMatchObject({ Capacity: 'Standard Beam Pkg - 80,000 GVWR', 'Overall Length': "53'" });
+    expect(d.description).toContain('Great trailer & ready to work.');
+  });
+
+  it('treats $0 as call-for-price and tracked stock at 0 as sold out', () => {
+    const zero = area.parseDetail(detail({ sku: 'SQ9243101', price: { value: 0 }, salePrice: { value: 0 }, onSale: false, stock: { unlimited: true } }));
+    expect(zero.price).toBeNull();
+    const sold = area.parseDetail(detail({ sku: 'D1', price: { value: 100 }, onSale: false, stock: { unlimited: false, quantity: 0 } }));
+    expect(sold.soldOut).toBe(true);
+  });
+
+  it('skips build-to-order model pages but keeps untracked units that name a year or stock number', () => {
+    const card = (slug: string, title: string) => ({
+      id: 'x',
+      url: `https://www.areatrailersalesandrentals.com/trailers-for-sale-new-used/p/${slug}`,
+      title,
+      tags: [],
+      marks: [],
+      status: '',
+    });
+    const unlimited = (title: string, sku = 'SQ4198243') => ({ title, sku, stock: { unlimited: true } });
+    const wet = 'Midland Sand Hopper - Wet Sand';
+    const tilt = 'Traveling Axle Tilt Trailer - 40 Ton';
+    expect(area.isCatalogModel(card('midland-sand-hopper-wet-sand', wet), unlimited(wet))).toBe(true);
+    expect(area.isCatalogModel(card('2025-atoka-rgn-lowboy', '2025 Atoka RGN Lowboy'), unlimited('2025 Atoka RGN Lowboy'))).toBe(false);
+    expect(area.isCatalogModel(card('traveling-axle-tilt-trailer-40-ton-sa8244', tilt), unlimited(tilt))).toBe(false);
+    expect(
+      area.isCatalogModel(card('x', 'Midland Sand Hopper - Dry Sand'), { title: 'x', sku: '010871', stock: { unlimited: false, quantity: 1 } })
+    ).toBe(false);
+  });
+
+  it('maps a product to a raw listing keyed by the Squarespace product id', () => {
+    const [atoka, van] = area.parseInventory(list);
+    const d = area.parseDetail(detail(unit));
+    const l = area.toRawListing(atoka, d, { city: 'Amarillo', state: 'TX' });
+    expect(l).toMatchObject({
+      title: '2025 Dorsey Combo Drop Deck BTR Trailer',
+      year: 2025,
+      make: 'Dorsey',
+      price: 54900,
+      price_type: 'fixed',
+      stock_number: 'D42986',
+      source_listing_id: '6aac458bc9c0f50bb5b8afae',
+      source_url: 'https://www.areatrailersalesandrentals.com/trailers-for-sale-new-used/p/2025-atoka-rgn-lowboy',
+      city: 'Amarillo',
+      state: 'TX',
+    });
+    const v = area.toRawListing(
+      van,
+      { ...d, title: 'For Sale: 2025 Hard Core Belly Dump Boise, ID', sku: 'Sand Chassis Trailers For Sale' },
+      { city: 'Amarillo', state: 'TX' }
+    );
+    expect(v.title).toBe('2025 Hard Core Belly Dump');
+    expect([v.city, v.state]).toEqual(['Boise', 'ID']);
+    expect(v.condition).toBe('used');
+    expect(v.stock_number).toBeNull();
+  });
+});
+
+// ── more dealer suites below ──
