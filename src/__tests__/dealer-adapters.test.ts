@@ -3,6 +3,7 @@ import * as lib from '../../scripts/dealers/_lib.mjs';
 import * as lonestar from '../../scripts/dealers/lonestar-truck-group.mjs';
 import * as area from '../../scripts/dealers/area-trailer-sales.mjs';
 import * as iloca from '../../scripts/dealers/iloca-services.mjs';
+import * as moore from '../../scripts/dealers/moore-truck.mjs';
 
 const dealer = { city: 'Dealer City', state: 'ZZ' };
 
@@ -339,6 +340,72 @@ describe('ILoca Services (WooCommerce Store API)', () => {
     expect(l.price_type).toBe('fixed');
     expect(l.specs['Available At']).toBe('Aurora, Illinois; Davenport, Iowa');
     expect([l.city, l.state]).toEqual(['Aurora', 'IL']);
+  });
+});
+
+describe('Moore Truck & Equipment (static HTML)', () => {
+  const card = (cls: string, href: string, cond: string, title: string, badge: string, imgs: string[]) => `
+<div class="product item ${cls} featured-0 new-0 clearfix">
+    <div class="thumb">
+        ${imgs.map((i) => `<a href="/assets/image-cache/${i}.0f5ae966.jpg" data-lightbox=x><img src="/assets/image-cache/${i}.40982122.jpg" alt=""></a>`).join('\n')}
+    </div>
+    <div class="product-info">
+        <div class="product-title"><a href="${href}"><span class="condition">${cond}</span>&ensp;${title}</a></div>
+        <div class="products-details"><h3>Details:</h3><ul>
+<li>42' Deck x 102" Wide</li>
+<li>Air Ride w/1 Lift Axle</li>
+</ul></div>
+        <div class="product-manufacturer viking"><h3>Manufacturer</h3></div>
+        <div class="product-availability"><h3>Availability</h3><span class="glyphicon ${badge}"></span> Available</div>
+    </div>
+</div>`;
+  const page = `<base href="https://www.mooretruck.com/"><div id="products">
+${card('t10lowboy viking used', '4-axle-60-ton-oilfield-lowboy-3411010815.html', 'used', '2009 Viking Trailers 4 Axle 60 Ton Oilfield Lowboy', 'available-now', ['20260728_103821-800w', '20260728_103844-800w'])}
+${card('t10lowboy kalyn new', 'stiff-narrow-neck-lowboy.html', 'new', ' KalynSiebert 5 Axle 60/70 Ton Stiff Narrow Neck Lowboy', 'available-now', ['1465481854KS5xStiff'])}
+${card('t10lowboy xl new', 'mt-1009221219.html', 'new', ' XL Specialized Trailers 5 Axle 65 Ton Folding Neck Lowboy', 'available-order', ['78-product47'])}
+${card('t70jeep scona used', 'tandem-axle-jeep-1111010814.html', 'used', '2012 Scona Tandem Axle Jeep', 'available-now', ['20260417_113700-800w'])}
+${card('t20oilfield nabors used', 'no-id-float.html', 'used', '1976 Nabors 3 Axle Oilfield Float', 'available-now', ['02-product0'])}
+</div>`;
+
+  it('keeps only "Available Now" trailers, not to-order models or jeeps', () => {
+    const cards = moore.parseInventory(page);
+    expect(cards).toHaveLength(5);
+    expect(cards.filter(moore.isListableCard).map((c: any) => c.title)).toEqual([
+      '2009 Viking Trailers 4 Axle 60 Ton Oilfield Lowboy',
+      'KalynSiebert 5 Axle 60/70 Ton Stiff Narrow Neck Lowboy',
+      '1976 Nabors 3 Axle Oilfield Float',
+    ]);
+  });
+
+  it('keys units by CMS record number or first-photo upload stamp, never by title', () => {
+    const [viking, kalyn, , , float] = moore.parseInventory(page);
+    expect(moore.stableIdOf(viking)).toBe('3411010815');
+    expect(moore.stableIdOf(kalyn)).toBe('photo-1465481854');
+    expect(moore.stableIdOf(float)).toBeNull();
+  });
+
+  it('maps a card to a raw listing', () => {
+    const [viking, kalyn] = moore.parseInventory(page);
+    const l = moore.toRawListing(viking, { city: 'Shreveport', state: 'LA' });
+    expect(l).toMatchObject({
+      title: '2009 Viking Trailers 4 Axle 60 Ton Oilfield Lowboy',
+      year: 2009,
+      make: 'Viking',
+      condition: 'used',
+      price: null,
+      price_type: 'call_for_price',
+      source_url: 'https://www.mooretruck.com/4-axle-60-ton-oilfield-lowboy-3411010815.html',
+      source_listing_id: '3411010815',
+      city: 'Shreveport',
+      state: 'LA',
+    });
+    expect(l.images).toEqual([
+      'https://www.mooretruck.com/assets/image-cache/20260728_103821-800w.0f5ae966.jpg',
+      'https://www.mooretruck.com/assets/image-cache/20260728_103844-800w.0f5ae966.jpg',
+    ]);
+    expect(l.specs).toMatchObject({ 'Trailer Type': 'Lowboy', Capacity: '60 tons', Deck: `42' Deck x 102" Wide` });
+    expect(l.description).toContain('• Air Ride w/1 Lift Axle');
+    expect(moore.toRawListing(kalyn, {}).title).toBe('Kalyn Siebert 5 Axle 60/70 Ton Stiff Narrow Neck Lowboy');
   });
 });
 

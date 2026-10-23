@@ -34,7 +34,7 @@ export class RobotsDisallowedError extends Error {
   }
 }
 
-const ENTITIES = { amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', nbsp: ' ', ndash: '–', mdash: '—', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', deg: '°', frac12: '½', times: '×', reg: '®', trade: '™', hellip: '…' };
+const ENTITIES = { amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', nbsp: ' ', ensp: ' ', emsp: ' ', thinsp: ' ', ndash: '–', mdash: '—', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', deg: '°', frac12: '½', times: '×', reg: '®', trade: '™', hellip: '…' };
 
 export const decode = (s) =>
   String(s ?? '')
