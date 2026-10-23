@@ -45,6 +45,7 @@ const MANUFACTURERS = [
   { slug: 'smithco',         script: 'scrape-mfr-smithco.mjs' },
   { slug: 'mack',            script: 'scrape-mfr-mack.mjs' },
   { slug: 'felling',         script: 'scrape-mfr-felling.mjs' },
+  { slug: 'rogers',          script: 'scrape-mfr-rogers.mjs' },
 ];
 
 // ---------------------------------------------------------------------------
