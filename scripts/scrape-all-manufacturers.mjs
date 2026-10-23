@@ -47,6 +47,7 @@ const MANUFACTURERS = [
   { slug: 'felling',         script: 'scrape-mfr-felling.mjs' },
   { slug: 'cozad',           script: 'scrape-mfr-cozad.mjs' },
   { slug: 'interstate',      script: 'scrape-mfr-interstate.mjs' },
+  { slug: 'murray',          script: 'scrape-mfr-murray.mjs' },
 ];
 
 // ---------------------------------------------------------------------------
