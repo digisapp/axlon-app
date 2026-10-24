@@ -6,12 +6,12 @@
  * and upserts into the listings table with source tracking.
  */
 
-// Plain puppeteer on purpose — NOT puppeteer-extra's stealth plugin. Dealer
-// sites that challenge an honest headless browser (Cloudflare "Just a
-// moment…", Imperva, 403s) are opting out of automated access; we mark them
-// `active: false` in dealer-configs instead of disguising the browser. The
-// stealth plugin was silently getting this runner past Cloudflare on six
-// dealer sites (Oct 2026 audit).
+// Plain puppeteer on purpose — no stealth plugin, no hidden webdriver flag.
+// A dealer site that challenges an honest headless browser (Cloudflare "Just
+// a moment…", Imperva, 403s) is opting out of automated access: the crawl
+// logs it as a bot wall and retires nothing. Until Oct 2026 the stealth
+// plugin was quietly getting this runner past Cloudflare on several dealer
+// sites; inventory from those dealers needs their permission or a feed.
 import puppeteer from 'puppeteer';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
@@ -64,24 +64,16 @@ export function getSupabaseClient() {
 
 // ─── Browser / Page ────────────────────────────────────────────────────────
 
-export async function createBrowser(headless = 'new') {
+export async function createBrowser(headless = true) {
   return puppeteer.launch({
     headless,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-blink-features=AutomationControlled',
-      '--window-size=1920,1080',
-    ],
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1920,1080'],
   });
 }
 
 export async function createPage(browser) {
   const page = await browser.newPage();
   await page.setViewport({ width: 1920, height: 1080 });
-  await page.evaluateOnNewDocument(() => {
-    Object.defineProperty(navigator, 'webdriver', { get: () => false });
-  });
   return page;
 }
 

@@ -99,7 +99,7 @@ describe('Lonestar Truck Group (tntxtruck.com)', () => {
 
   it('skips accessories and units without photos', () => {
     const { vehicles } = lonestar.parseInventory(page);
-    expect(vehicles.filter(lonestar.isListableUnit).map((v: any) => v.Specs.StockNumber)).toEqual(['VD207257', 'PS000187']);
+    expect(vehicles.filter(lonestar.isListableUnit).map((v: { Specs: { StockNumber: string } }) => v.Specs.StockNumber)).toEqual(['VD207257', 'PS000187']);
   });
 
   it('maps a unit to a raw listing with its own yard location', () => {
@@ -135,7 +135,7 @@ describe('Lonestar Truck Group (tntxtruck.com)', () => {
     expect(l.price_type).toBe('call_for_price');
     expect(l.condition).toBe('used');
     expect(l.title).toBe('2023 CTS Bottom Dump - STND');
-    expect(l.specs.Width).toBeUndefined();
+    expect((l.specs as Record<string, unknown>).Width).toBeUndefined();
     expect([l.city, l.state]).toEqual(['Dealer City', 'ZZ']);
   });
 });
@@ -186,13 +186,13 @@ describe('Area Trailer Sales & Rentals (Squarespace)', () => {
 
   it('reads every product card with its id, url and tags', () => {
     const cards = area.parseInventory(list);
-    expect(cards.map((c: any) => c.id)).toEqual(['6aac458bc9c0f50bb5b8afae', '68bf23e891ca2a75c5ac9ed3', 'soldout1']);
+    expect(cards.map((c: { id: string }) => c.id)).toEqual(['6aac458bc9c0f50bb5b8afae', '68bf23e891ca2a75c5ac9ed3', 'soldout1']);
     expect(cards[0]).toMatchObject({
       url: 'https://www.areatrailersalesandrentals.com/trailers-for-sale-new-used/p/2025-atoka-rgn-lowboy',
       title: '2025 Atoka RGN Lowboy',
     });
     expect(cards[1].tags).toEqual(['dry-van', 'used']);
-    expect(cards.filter(area.isForSaleCard).map((c: any) => c.id)).not.toContain('soldout1');
+    expect(cards.filter(area.isForSaleCard).map((c: { id: string }) => c.id)).not.toContain('soldout1');
   });
 
   it('takes the sale price, the gallery photos and spec lines from a product page', () => {
@@ -376,7 +376,7 @@ ${card('t20oilfield nabors used', 'no-id-float.html', 'used', '1976 Nabors 3 Axl
   it('keeps only "Available Now" trailers, not to-order models or jeeps', () => {
     const cards = moore.parseInventory(page);
     expect(cards).toHaveLength(5);
-    expect(cards.filter(moore.isListableCard).map((c: any) => c.title)).toEqual([
+    expect(cards.filter(moore.isListableCard).map((c: { title: string }) => c.title)).toEqual([
       '2009 Viking Trailers 4 Axle 60 Ton Oilfield Lowboy',
       'KalynSiebert 5 Axle 60/70 Ton Stiff Narrow Neck Lowboy',
       '1976 Nabors 3 Axle Oilfield Float',
@@ -466,7 +466,7 @@ ${card('165997', '71874', '2027-trail-king-tklb332-102-2', '2027 TRAIL KING TKLB
       { id: '165997', sku: '71874', url: 'https://www.ballardtrucks.com/product/2027-trail-king-tklb332-102-2/', title: '2027 TRAIL KING TKLB332-102', price: 117500, condition: 'New' },
     ]);
     const facet = buzz.parseConditionFacet(inventory);
-    expect(facet.map((b: any) => [b.label, b.count])).toEqual([['New', 19], ['Used', 13]]);
+    expect(facet.map((b: { label: string; count: number }) => [b.label, b.count])).toEqual([['New', 19], ['Used', 13]]);
     expect(facet[1].url).toBe('https://www.nwtruckandtrailer.com/condition/used?product-type=trailer');
   });
 

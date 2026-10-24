@@ -124,7 +124,7 @@ describe('fieldsToListing', () => {
       year: 2027,
       specs: { Length: '51 ft.' },
     });
-    expect(out.location).toBeUndefined(); // "N/A" is dropped
+    expect((out as Record<string, unknown>).location).toBeUndefined(); // "N/A" is dropped
   });
 });
 

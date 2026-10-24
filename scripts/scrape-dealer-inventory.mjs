@@ -153,15 +153,21 @@ async function scrapeDealer(browser, supabase, dealer) {
   stats.found = crawl.found;
   stats.pageErrors = crawl.pageErrors;
   stats.truncated = crawl.truncated;
-  const listings = crawl.listings;
-  stats.unique = listings.length;
-  for (const raw of listings) stats.seen.add(stableSourceListingId(raw));
+  stats.unique = crawl.listings.length;
+  // Every unit the crawl saw counts for retirement, photo or not…
+  for (const raw of crawl.listings) stats.seen.add(stableSourceListingId(raw));
+  // …but a unit without a photo isn't imported: it renders as a blank card,
+  // can't qualify for Google's product results, and one dealer's photo-less
+  // stock list (Hale: 6,740 units) would bury every real listing.
+  const listings = crawl.listings.filter((l) => l.images?.length > 0);
+  stats.noPhoto = crawl.listings.length - listings.length;
 
   console.log(`   Crawl: ${crawl.found} cards → ${listings.length} unique units` +
     (crawl.filtered ? ` (${crawl.filtered} filtered out by config)` : '') +
     (crawl.expected ? `; dealer's page advertises ${crawl.expected}` : ''));
   if (crawl.pageErrors) console.warn(`   ⚠ ${crawl.pageErrors} crawl error(s): ${crawl.errorReasons.join(' | ')}`);
   if (crawl.truncated) console.warn(`   ⚠ Crawl incomplete: ${crawl.truncatedReason}`);
+  if (stats.noPhoto) console.log(`   ↷ ${stats.noPhoto} unit(s) without photos not imported`);
   if (listings.length === 0) console.warn('   ⚠ No listings found — selectors or URL are probably stale');
 
   if (dryRun) {
@@ -226,6 +232,7 @@ async function scrapeDealer(browser, supabase, dealer) {
   console.log(`   Dealer: ${dealer.name}`);
   console.log(`   Found (cards): ${stats.found}`);
   console.log(`   Unique units: ${stats.unique}`);
+  if (stats.noPhoto) console.log(`   Without photos (not imported): ${stats.noPhoto}`);
   console.log(`   ${dryRun ? 'Would import' : 'Created'}: ${stats.created}`);
   if (!dryRun) console.log(`   Skipped (existing): ${stats.skipped}`);
   if (stats.deferred) console.log(`   Deferred (per-run cap): ${stats.deferred}`);
@@ -249,6 +256,25 @@ async function crawlDealer(browser, dealer) {
     expected: 0, listings: [],
   };
   const byId = new Map();
+
+  if (dealer.adapter) {
+    // Plain-HTTP adapter (scripts/dealers/<adapter>.mjs) that returns raw
+    // listings itself — no browser. A bot challenge or robots.txt refusal
+    // surfaces as an error, so the crawl counts as incomplete.
+    try {
+      const { fetchListings } = await import(`./dealers/${dealer.adapter}.mjs`);
+      for (const raw of await fetchListings(dealer, { log: (...m) => console.log(...m) })) {
+        result.found++;
+        const id = stableSourceListingId(raw);
+        if (!byId.has(id)) byId.set(id, raw);
+      }
+    } catch (err) {
+      result.pageErrors++;
+      result.errorReasons.push(err.message);
+    }
+    result.listings = [...byId.values()];
+    return result;
+  }
 
   const page = await createPage(browser);
   if (cfg.blockResources) {

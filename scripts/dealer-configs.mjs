@@ -185,6 +185,10 @@ export const DEALER_CONFIGS = [
       waitUntil: 'domcontentloaded',
     },
     maxCreatePerRun: 300,
+    // Off: none of the 6,740 units has a photo and every one is call-for-
+    // price, so the no-photo rule would import nothing after a 50-min crawl.
+    // Turn back on if Hale starts publishing photos.
+    active: false,
     city: 'Voorhees',
     state: 'NJ',
   },
@@ -550,6 +554,72 @@ export const DEALER_CONFIGS = [
     state: 'TX',
   },
 
+
+  // ─── Plain-HTTP adapters (scripts/dealers/<adapter>.mjs) ─────────────
+  // Each fetches the dealer's own inventory without a browser, identifies as
+  // AxleyardBot, honors robots.txt, and stops at any bot challenge.
+  {
+    name: 'HD Trailers',
+    slug: 'hd-trailers',
+    website: 'https://hdtrailers.com',
+    inventoryUrl: 'https://hdtrailers.com/inventory',
+    adapter: 'hd-trailers',
+    city: 'Andalusia',
+    state: 'AL',
+  },
+  {
+    name: 'Lonestar Truck Group',
+    slug: 'lonestar-truck-group',
+    website: 'https://www.tntxtruck.com',
+    inventoryUrl: 'https://www.tntxtruck.com/Sales/TrailerInventory.aspx',
+    adapter: 'lonestar-truck-group',
+    state: 'TX',
+  },
+  {
+    name: 'Area Trailer Sales & Rentals',
+    slug: 'area-trailer-sales',
+    website: 'https://www.areatrailersalesandrentals.com',
+    inventoryUrl: 'https://www.areatrailersalesandrentals.com/trailers-for-sale-new-used',
+    adapter: 'area-trailer-sales',
+    city: 'Odessa',
+    state: 'TX',
+  },
+  {
+    name: 'ILoca Services',
+    slug: 'iloca-services',
+    website: 'https://semitrailers.net',
+    inventoryUrl: 'https://semitrailers.net/',
+    adapter: 'iloca-services',
+    city: 'Aurora',
+    state: 'IL',
+  },
+  {
+    name: 'Moore Truck & Equipment',
+    slug: 'moore-truck',
+    website: 'https://www.mooretruck.com',
+    inventoryUrl: 'https://www.mooretruck.com/lowboy-trailers-for-sale.html',
+    adapter: 'moore-truck',
+    city: 'Shreveport',
+    state: 'LA',
+  },
+  {
+    name: 'Ballard Truck Centers',
+    slug: 'ballard-trucks',
+    website: 'https://www.ballardtrucks.com',
+    inventoryUrl: 'https://www.ballardtrucks.com/trailer-inventory/',
+    adapter: 'ballard-trucks',
+    city: 'Avon',
+    state: 'MA',
+  },
+  {
+    name: 'Northwest Truck & Trailer',
+    slug: 'northwest-truck-trailer',
+    website: 'https://www.nwtruckandtrailer.com',
+    inventoryUrl: 'https://www.nwtruckandtrailer.com/inventory/',
+    adapter: 'northwest-truck-trailer',
+    city: 'Fargo',
+    state: 'ND',
+  },
 ];
 
 export function getDealerBySlug(slug) {
