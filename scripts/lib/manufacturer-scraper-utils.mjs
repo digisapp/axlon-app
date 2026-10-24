@@ -45,9 +45,29 @@ export async function createPage(browser) {
 }
 
 /**
- * Get a Supabase client with service role key for write access
+ * Dry run: `--dry-run` on any scraper (or DRY_RUN=1). Nothing touches the
+ * database or storage — no service-role key is needed — and each product the
+ * scraper would upsert is printed instead, so a new or changed scraper can be
+ * checked against the live site before it writes to the catalog.
+ */
+export const DRY_RUN = process.argv.includes('--dry-run') || process.env.DRY_RUN === '1';
+const dryRunProducts = [];
+
+if (DRY_RUN) {
+  console.log('🧪 DRY RUN — no database or storage writes\n');
+  process.on('exit', () => {
+    const byType = {};
+    for (const p of dryRunProducts) byType[p.product_type] = (byType[p.product_type] || 0) + 1;
+    console.log(`\n🧪 DRY RUN: ${dryRunProducts.length} product(s) would be upserted`, byType);
+  });
+}
+
+/**
+ * Get a Supabase client with service role key for write access.
+ * Returns null in a dry run; every helper below handles that.
  */
 export function getSupabaseClient() {
+  if (DRY_RUN) return null;
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env vars');
   }
@@ -61,6 +81,7 @@ export function getSupabaseClient() {
  * Get manufacturer ID by slug
  */
 export async function getManufacturerId(supabase, slug) {
+  if (DRY_RUN) return `dry-run:${slug}`;
   const { data, error } = await supabase
     .from('manufacturers')
     .select('id')
@@ -70,6 +91,42 @@ export async function getManufacturerId(supabase, slug) {
   if (error || !data) {
     throw new Error(`Manufacturer not found: ${slug}`);
   }
+  return data.id;
+}
+
+/**
+ * Manufacturer ID by slug, creating the manufacturer on first run. New
+ * catalog brands use this instead of getManufacturerId so adding one is just
+ * a new scraper — no hand-inserted row first.
+ * `info`: { name, website, canonical_name?, headquarters?, country?, short_description?, name_variations? }
+ */
+export async function ensureManufacturer(supabase, slug, info) {
+  if (DRY_RUN) return `dry-run:${slug}`;
+  const { data: existing } = await supabase
+    .from('manufacturers')
+    .select('id')
+    .eq('slug', slug)
+    .maybeSingle();
+  if (existing) return existing.id;
+
+  const { data, error } = await supabase
+    .from('manufacturers')
+    .insert({
+      slug,
+      name: info.name,
+      canonical_name: info.canonical_name || info.name,
+      website: info.website || null,
+      headquarters: info.headquarters || null,
+      country: info.country || 'USA',
+      short_description: info.short_description || null,
+      name_variations: info.name_variations || [],
+      equipment_types: ['trailers'],
+      is_active: true,
+    })
+    .select('id')
+    .single();
+  if (error) throw new Error(`Could not create manufacturer ${slug}: ${error.message}`);
+  console.log(`  ➕ Created manufacturer ${info.name} (${slug})`);
   return data.id;
 }
 
@@ -167,6 +224,20 @@ export async function upsertProduct(supabase, manufacturerId, product) {
 
   const slug = slugify(product.name);
 
+  if (DRY_RUN) {
+    const type = inferProductTypeFromName(product.name) || product.product_type || 'lowboy';
+    dryRunProducts.push({ ...product, product_type: type });
+    const facts = [
+      type,
+      (product.tonnage_min || product.tonnage_max) && `${product.tonnage_min || '?'}-${product.tonnage_max || '?'}T`,
+      product.deck_length_feet && `deck ${product.deck_length_feet}ft`,
+      product.deck_height_inches && `height ${product.deck_height_inches}in`,
+      product.axle_count && `${product.axle_count} axles`,
+    ].filter(Boolean).join(', ');
+    console.log(`  🧪 ${product.name} [${facts}] ${product.source_url || ''}`);
+    return `dry-run:${slug}`;
+  }
+
   // The upsert below sets is_active: true, so without this a re-scrape would
   // revive every row that was deactivated by hand as not-a-product.
   const { data: existingRow } = await supabase
@@ -235,6 +306,10 @@ export async function upsertProduct(supabase, manufacturerId, product) {
  */
 export async function upsertProductImages(supabase, productId, images) {
   if (!images || images.length === 0) return;
+  if (DRY_RUN) {
+    console.log(`     ${images.length} image(s), first: ${images[0]?.url || '—'}`);
+    return;
+  }
 
   // Reuse stored copies keyed by the original external URL
   const { data: existing } = await supabase
@@ -290,6 +365,11 @@ export async function upsertProductImages(supabase, productId, images) {
  */
 export async function upsertProductSpecs(supabase, productId, specs) {
   if (!specs || specs.length === 0) return;
+  if (DRY_RUN) {
+    const sample = specs.slice(0, 4).map((s) => `${s.key}=${s.value}${s.unit ? ' ' + s.unit : ''}`).join('; ');
+    console.log(`     ${specs.length} spec(s): ${sample}`);
+    return;
+  }
 
   // Delete existing specs for this product
   await supabase
@@ -332,6 +412,7 @@ export async function upsertProductSpecs(supabase, productId, specs) {
  * Update the product_count on the manufacturers table
  */
 export async function updateProductCount(supabase, manufacturerId) {
+  if (DRY_RUN) return dryRunProducts.length;
   const { count } = await supabase
     .from('manufacturer_products')
     .select('*', { count: 'exact', head: true })
@@ -374,6 +455,7 @@ export function signInternalRequest(method, path, secret = process.env.INTERNAL_
  * fail a successful scrape. Returns true when the app acknowledged.
  */
 export async function notifyCatalogChanged() {
+  if (DRY_RUN) return false;
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || '').trim().replace(/\/+$/, '');
   const path = '/api/internal/revalidate';
   if (!appUrl || !process.env.INTERNAL_API_SECRET) {

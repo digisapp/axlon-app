@@ -6,13 +6,16 @@
  * and upserts into the listings table with source tracking.
  */
 
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+// Plain puppeteer on purpose — no stealth plugin, no hidden webdriver flag.
+// A dealer site that challenges an honest headless browser (Cloudflare "Just
+// a moment…", Imperva, 403s) is opting out of automated access: the crawl
+// logs it as a bot wall and retires nothing. Until Oct 2026 the stealth
+// plugin was quietly getting this runner past Cloudflare on several dealer
+// sites; inventory from those dealers needs their permission or a feed.
+import puppeteer from 'puppeteer';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import 'dotenv/config';
-
-puppeteer.use(StealthPlugin());
 
 // System user for scraped listings (admin@axlon.ai)
 const AXLON_SYSTEM_USER_ID = '3d03c1b8-48d4-4aa2-a829-fb83cf0d082f';
@@ -61,25 +64,34 @@ export function getSupabaseClient() {
 
 // ─── Browser / Page ────────────────────────────────────────────────────────
 
-export async function createBrowser(headless = 'new') {
+export async function createBrowser(headless = true) {
   return puppeteer.launch({
     headless,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-blink-features=AutomationControlled',
-      '--window-size=1920,1080',
-    ],
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1920,1080'],
   });
 }
 
 export async function createPage(browser) {
   const page = await browser.newPage();
   await page.setViewport({ width: 1920, height: 1080 });
-  await page.evaluateOnNewDocument(() => {
-    Object.defineProperty(navigator, 'webdriver', { get: () => false });
-  });
   return page;
+}
+
+/**
+ * Detect a bot-protection interstitial (Cloudflare "Just a moment…",
+ * Imperva, plain 403/429). Used for logging/reporting only: a page that
+ * returns one counts as a failed crawl (nothing is retired) and the run
+ * names the reason, so a dealer that starts blocking shows up in the logs
+ * instead of as a silent "Found 0 listings". Returns a reason or null.
+ */
+export async function detectBotWall(page, response) {
+  const status = response?.status?.() ?? null;
+  const title = (await page.title().catch(() => '')) || '';
+  if (/just a moment|attention required|access denied|verify you are human|are you a robot|request unsuccessful|pardon our interruption/i.test(title)) {
+    return `bot-protection page ("${title.trim()}", HTTP ${status})`;
+  }
+  if (status === 403 || status === 429) return `HTTP ${status}`;
+  return null;
 }
 
 // ─── Dealer Source Management ──────────────────────────────────────────────
@@ -346,8 +358,12 @@ async function listingOwnerFor(supabase, dealerSourceId) {
   return owner;
 }
 
-export async function upsertListing(supabase, dealerSourceId, listing) {
-  const sourceListingId = stableSourceListingId(listing);
+export async function upsertListing(supabase, dealerSourceId, listing, sourceListingIdOverride = null) {
+  // The caller passes the id it derived from the RAW scrape so the stored id
+  // always equals the id the crawl recorded as "seen" (retirement compares
+  // the two). Re-deriving from the AI-normalized copy could fall back to a
+  // different title slug and make every run look like new inventory.
+  const sourceListingId = sourceListingIdOverride || stableSourceListingId(listing);
   const ownerId = await listingOwnerFor(supabase, dealerSourceId);
 
   // Check for existing
@@ -452,10 +468,10 @@ export async function processListing(supabase, dealerSourceId, rawListing) {
   }
 
   // 1. Normalize with AI
-  const normalized = await normalizeWithAI(rawListing);
+  const normalized = mergeNormalized(rawListing, await normalizeWithAI(rawListing));
 
-  // 2-3. Upsert (includes a second dedup check on the normalized id)
-  const { id, action, sourceListingId } = await upsertListing(supabase, dealerSourceId, normalized);
+  // 2-3. Upsert (includes a second dedup check on the same raw-derived id)
+  const { id, action, sourceListingId } = await upsertListing(supabase, dealerSourceId, normalized, rawSourceListingId);
 
   if (!id || action === 'skipped') {
     return { id, action, sourceListingId };
@@ -476,6 +492,38 @@ export async function processListing(supabase, dealerSourceId, rawListing) {
   }
 
   return { id, action, sourceListingId };
+}
+
+// Fields the scraper read straight off the dealer's page. The AI pass may
+// clean up the title/description and classify the unit, but it must never
+// replace these with a guess — e.g. inventing a price for a "Call for price"
+// unit, or nulling a year/VIN/location the card stated plainly.
+const SCRAPED_AUTHORITATIVE = [
+  'price', 'price_type', 'source_url', 'source_listing_id', 'stock_number', 'vin',
+  'city', 'state', 'images',
+];
+
+/**
+ * Overlay the AI output on the raw scrape without letting AI nulls (or AI
+ * guesses for scraper-authoritative fields) clobber what the page stated.
+ * Previously `{ ...raw, ...ai }` let `"year": null` from the model wipe the
+ * scraped year.
+ */
+export function mergeNormalized(raw, ai) {
+  const out = { ...raw };
+  if (!ai || ai === raw) return out;
+  for (const [k, v] of Object.entries(ai)) {
+    if (v === null || v === undefined || v === '') continue;
+    if (SCRAPED_AUTHORITATIVE.includes(k) && raw[k] !== undefined) continue;
+    // Structured fields the card stated explicitly win over the model's read.
+    if (['year', 'make', 'model', 'condition'].includes(k) && raw[k] != null) continue;
+    if (k === 'specs' && raw.specs && typeof v === 'object') {
+      out.specs = { ...v, ...raw.specs };
+      continue;
+    }
+    out[k] = v;
+  }
+  return out;
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────

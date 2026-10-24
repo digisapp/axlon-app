@@ -1,26 +1,34 @@
 // @ts-nocheck
 /**
- * Scrape Witzco Challenger lowboy/heavy-haul product catalog
+ * Scrape the Witzco Challenger lowboy / heavy-haul product catalog
  *
- * Witzco Challenger (witzco.com) manufactures RG (Removable Gooseneck,
- * ground-bearing) and NGB (Non-Ground Bearing) series lowboy trailers.
- * This scraper discovers product pages from their /product/ section,
- * extracts specs, images, and descriptions, and upserts them into
- * the manufacturer_products tables via shared utilities.
+ * Witzco (witzco.com, Sarasota FL) is a WooCommerce + Divi site. Trailers
+ * live under /product/<slug>/ alongside ~60 option pages ("Air Ride
+ * Suspension", "36 inch Beaver Tail") in the same post type, so products are
+ * discovered from the trailer category pages, never from the product sitemap:
  *
- * Key product lines:
- *   RG-35  – 35 ton, tandem, 22' well, spring suspension
- *   RG-52  – 52 ton, tri-axle, 22'-26' well, spring suspension
- *   NGB-35 – 35 ton, tandem, air ride, 4 height settings, Honda pony motor
- *   NGB-52 – 52 ton, tri-axle, Honda GX390 pony motor, air ride
- *   NGB-60 – 60 ton, 56'6" overall, 24'2" well
+ *   uncategorized/srgrgs    RG series   removable gooseneck (ground bearing)  → rgn
+ *   uncategorized/ngbgngbs  NGB series  non-ground-bearing removable neck     → rgn
+ *   rnrns                   RN series   rigid neck                            → lowboy
+ *   rtrts                   RT series   rolling tailboard, rigid neck         → lowboy
+ *   taltts                  TT series   tag-along                             → tag-along
  *
- * Usage:  node scripts/scrape-mfr-witzco.mjs
+ * Skipped: oa (options), dddds (DD drop decks), fbsps (SP flatbed).
+ *
+ * Pages are server-rendered, so this is plain fetch + cheerio. Two traps the
+ * old Puppeteer version fell into: the first <h1> on every page is a header
+ * widget's "Translate:" (the real name is h1.product_title), and /products/
+ * and /product/ are 404s, so discovery used to fall back to four hardcoded
+ * URLs. Specs are prose ("104,000# load capacity, 3 axles with 48′ overall
+ * length … 22′ load deck"), parsed into structured fields below.
+ *
+ * Usage:
+ *   node scripts/scrape-mfr-witzco.mjs
+ *   node scripts/scrape-mfr-witzco.mjs --dry-run   # no DB writes, no keys needed
  */
 
+import * as cheerio from 'cheerio';
 import {
-  createBrowser,
-  createPage,
   getSupabaseClient,
   getManufacturerId,
   upsertProduct,
@@ -29,11 +37,9 @@ import {
   updateProductCount,
   sleep,
   cleanText,
-  parseWeight,
   parseTonnage,
   parseDeckHeight,
   parseLength,
-  slugify,
   printBanner,
   printSummary,
 } from './lib/manufacturer-scraper-utils.mjs';
@@ -45,35 +51,22 @@ import {
 const MANUFACTURER_SLUG = 'witzco';
 const MANUFACTURER_NAME = 'Witzco Challenger';
 const WEBSITE = 'https://www.witzco.com';
+const USER_AGENT =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 
-/** Starting pages to discover lowboy / heavy-haul products */
-const SEED_URLS = [
-  'https://www.witzco.com/',
-  'https://www.witzco.com/products/',
-  'https://www.witzco.com/product/',
-];
-
-/** Direct product pages we know about (fallbacks in case discovery misses them) */
-const KNOWN_PRODUCT_PAGES = [
-  'https://www.witzco.com/product/rg-35-35-ton-removable-gooseneck-series/',
-  'https://www.witzco.com/product/rg-50-50-ton-removable-gooseneck/',
-  'https://www.witzco.com/product/ngb-35-35-ton-non-ground-bearing-removable-gooseneck/',
-  'https://www.witzco.com/product/ngb-50-50-ton-non-ground-bearing-removable-gooseneck/',
-];
-
-/**
- * Keywords that signal a page is a lowboy / heavy-haul product.
- * Used to filter discovered links.
- */
-const LOWBOY_KEYWORDS = [
-  'lowboy', 'low boy', 'removable gooseneck', 'detachable', 'gooseneck',
-  'rgn', 'rg-', 'ngb-', 'non-ground bearing', 'non ground bearing',
-  'heavy haul', 'ton', 'pony motor', 'challenger',
+/** Trailer categories and what each one is. Order = scrape order. */
+const CATEGORIES = [
+  { path: 'uncategorized/srgrgs', series: 'RG Series', type: 'rgn', gooseneck: 'hydraulic-detachable' },
+  { path: 'uncategorized/ngbgngbs', series: 'NGB Series', type: 'rgn', gooseneck: 'non-ground-bearing' },
+  { path: 'rnrns', series: 'RN Series', type: 'lowboy', gooseneck: 'fixed' },
+  { path: 'rtrts', series: 'RT Series', type: 'lowboy', gooseneck: 'fixed' },
+  { path: 'taltts', series: 'TT Series', type: 'tag-along', gooseneck: null },
 ];
 
 /** Delay between page loads (ms) */
 const PAGE_DELAY_MIN = 2000;
-const PAGE_DELAY_MAX = 3500;
+const PAGE_DELAY_MAX = 3000;
+const MAX_RETRIES = 2;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -83,111 +76,149 @@ function randomDelay() {
   return PAGE_DELAY_MIN + Math.random() * (PAGE_DELAY_MAX - PAGE_DELAY_MIN);
 }
 
-/**
- * Determine the product_type from a product name / description.
- * All Witzco Challenger products are lowboy trailers.
- */
-function classifyProductType(_name, _description = '') {
-  return 'lowboy';
-}
-
-/**
- * Determine the gooseneck_type from product name / specs text.
- * RG models are ground-bearing hydraulic-detachable.
- * NGB models are non-ground-bearing.
- */
-function classifyGooseneckType(name, specsText = '') {
-  const text = `${name} ${specsText}`.toLowerCase();
-  if (/ngb|non.?ground.?bearing/.test(text)) return 'non-ground-bearing';
-  if (/\brg\b|rg-?\d|removable.?gooseneck|ground.?bearing/.test(text)) return 'hydraulic-detachable';
-  if (/hydraulic.?detach/.test(text)) return 'hydraulic-detachable';
-  if (/detach/.test(text)) return 'detachable';
-  return 'hydraulic-detachable'; // default for Witzco
-}
-
-/**
- * Detect series from the product name / URL.
- * Witzco uses RG (Removable Gooseneck) and NGB (Non-Ground Bearing) prefixes.
- */
-function detectSeries(name, url = '') {
-  const text = `${name} ${url}`.toUpperCase();
-  if (/NGB[-\s]?60/.test(text)) return 'NGB';
-  if (/NGB[-\s]?52|NGB[-\s]?50/.test(text)) return 'NGB';
-  if (/NGB[-\s]?35/.test(text)) return 'NGB';
-  if (/NGB/.test(text)) return 'NGB';
-  if (/RG[-\s]?52|RG[-\s]?50/.test(text)) return 'RG';
-  if (/RG[-\s]?35/.test(text)) return 'RG';
-  if (/\bRG\b/.test(text)) return 'RG';
+async function fetchHtml(url) {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': USER_AGENT, Accept: 'text/html' },
+        redirect: 'follow',
+        signal: AbortSignal.timeout(45000),
+      });
+      if (res.status === 404) {
+        console.warn(`    404 ${url}`);
+        return null;
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.text();
+    } catch (err) {
+      console.warn(`    [WARN] ${url} attempt ${attempt + 1}: ${err.message}`);
+      if (attempt < MAX_RETRIES) await sleep(5000);
+    }
+  }
   return null;
 }
 
-/**
- * Extract model number from a product name.
- * E.g. "RG-35", "NGB-52", "NGB-60"
- */
+/** Curly feet/inch marks to ASCII, so one set of patterns reads every page. */
+function normalizeMarks(text) {
+  return (text || '')
+    .replace(/[’′‘`´]/g, "'")
+    .replace(/[″”“]/g, '"')
+    .replace(/\s+'/g, "'") // "22 ' 6"" → "22' 6""
+    // "28', 6", lower deck" / "44'-3" overall" / "8'-6" width" → "28' 6" …"
+    .replace(/(\d+)'\s*[,-]?\s*(\d+(?:\.\d+)?)"\s*,?/g, `$1' $2" `)
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** "RN 40 • 40 TON NARROW NECK" → "RN-40 • 40 Ton Narrow Neck" */
+function cleanName(raw) {
+  let name = cleanText(raw).replace(/^(RG|NGB|RNN|RN|RT|TT)\s+(\d)/i, '$1-$2');
+  const letters = name.replace(/^\S+/, '').replace(/[^a-z]/gi, '');
+  if (letters.length > 6 && letters === letters.toUpperCase()) {
+    name = name
+      .split(' ')
+      .map((w) => (/\d/.test(w) || w.length <= 2 ? w : w.charAt(0) + w.slice(1).toLowerCase()))
+      .join(' ');
+  }
+  return name;
+}
+
+/** Whole sentences up to `max` characters, never a cut-off word. */
+function firstSentences(text, max = 300) {
+  const t = cleanText(text);
+  if (!t) return null;
+  if (t.length <= max) return t;
+  // Split after sentence punctuation followed by a space, so "16.5"" stays whole.
+  const sentences = t.split(/(?<=[.!?])\s+/);
+  let out = '';
+  for (const s of sentences) {
+    if ((out ? out.length + 1 : 0) + s.length > max) break;
+    out = out ? `${out} ${s}` : s;
+  }
+  return out.trim() || t.slice(0, max).replace(/\s+\S*$/, '') + '…';
+}
+
 function extractModelNumber(name) {
-  const text = name.toUpperCase();
-  // Match patterns like NGB-60, NGB-52, NGB-35, RG-52, RG-35
-  const ngbMatch = text.match(/NGB[-\s]?\d{2,}/);
-  if (ngbMatch) return ngbMatch[0].replace(/\s+/g, '-');
-  const rgMatch = text.match(/RG[-\s]?\d{2,}/);
-  if (rgMatch) return rgMatch[0].replace(/\s+/g, '-');
-  return null;
+  const m = name.toUpperCase().match(/^(RG|NGB|RNN|RN|RT|TT)[-\s]?(\d{2})/);
+  return m ? `${m[1]}-${m[2]}` : null;
 }
 
-/**
- * Parse axle count from spec text.
- */
-function parseAxleCount(text) {
-  if (!text) return null;
-  const lower = text.toLowerCase();
-  if (/tri[-\s]?axle/.test(lower)) return 3;
-  if (/tandem/.test(lower)) return 2;
-  if (/quad/.test(lower)) return 4;
-  const match = text.match(/(\d+)\s*(?:axle|axles)/i);
-  if (match) return parseInt(match[1], 10);
-  const numMatch = text.match(/(\d+)/);
-  if (numMatch) {
-    const n = parseInt(numMatch[1], 10);
-    if (n >= 2 && n <= 8) return n;
-  }
-  return null;
-}
+const WORD_NUMBERS = { two: 2, three: 3, four: 4, five: 5, tandem: 2, tri: 3 };
 
 /**
- * Try to infer axle count from the product name / description when specs
- * don't contain an explicit axle field.
+ * Parse Witzco's "Standard Features" prose into labelled specs.
+ * Only facts actually stated on the page are returned.
  */
-function inferAxleCount(name, description = '') {
-  const text = `${name} ${description}`.toLowerCase();
-  if (/tri[-\s]?axle/.test(text)) return 3;
-  if (/tandem/.test(text)) return 2;
-  if (/quad/.test(text)) return 4;
-  // NGB-60 and RG-52/NGB-52 are typically tri-axle; RG-35/NGB-35 are tandem
-  if (/ngb[-\s]?60/.test(text)) return 3;
-  if (/ngb[-\s]?52|rg[-\s]?52|ngb[-\s]?50|rg[-\s]?50/.test(text)) return 3;
-  if (/ngb[-\s]?35|rg[-\s]?35/.test(text)) return 2;
-  return null;
-}
+function parseFeatureProse(text) {
+  const t = normalizeMarks(text);
+  const specs = [];
+  // A value that already carries its unit mark (43' 11", 40") gets no unit,
+  // or the detail page would print "43' 11" ft".
+  const add = (category, key, value, unit = null) => {
+    if (!value) return;
+    const v = String(value).trim();
+    specs.push({ category, key, value: v, unit: /['"]$/.test(v) ? null : unit });
+  };
 
-/**
- * Try to infer tonnage from the product name when specs don't have it.
- */
-function inferTonnage(name) {
-  const text = name.toUpperCase();
-  if (/NGB[-\s]?60/.test(text)) return { min: 60, max: 60 };
-  if (/NGB[-\s]?52|NGB[-\s]?50/.test(text)) return { min: 52, max: 52 };
-  if (/NGB[-\s]?35/.test(text)) return { min: 35, max: 35 };
-  if (/RG[-\s]?52|RG[-\s]?50/.test(text)) return { min: 52, max: 52 };
-  if (/RG[-\s]?35/.test(text)) return { min: 35, max: 35 };
-  // Generic fallback from name
-  const tonMatch = text.match(/(\d+)\s*[-–]?\s*(?:TO\s*)?(\d+)?\s*TON/);
-  if (tonMatch) {
-    const min = parseInt(tonMatch[1], 10);
-    const max = tonMatch[2] ? parseInt(tonMatch[2], 10) : min;
-    return { min, max };
-  }
-  return { min: null, max: null };
+  const cap = t.match(/(\d[\d,]{4,})\s*#\s*load capacity/i);
+  if (cap) add('Capacity', 'Load Capacity', `${cap[1]} lbs`, 'lbs');
+
+  const axles = t.match(/\b(\d|two|three|four)\s+(?:each\s+[\d,]+\s*#\s*)?axles\b/i);
+  if (axles) add('Running Gear', 'Axles', String(WORD_NUMBERS[axles[1].toLowerCase()] || axles[1]));
+
+  const axleCap = t.match(/(\d[\d,]{4,})\s*#\s*(?:capacity\s+)?axles/i);
+  if (axleCap) add('Running Gear', 'Axle Capacity', `${axleCap[1]} lbs`, 'lbs');
+
+  const overall = t.match(/(\d+'(?:\s*\d+(?:\.\d+)?")?)\s*overall length/i);
+  if (overall) add('Dimensions', 'Overall Length', overall[1], 'ft');
+
+  const deck = t.match(/(\d+'(?:\s*\d+(?:\.\d+)?")?)\s*(?:level\s+)?(?:load|lower|loading)\s+deck\b(?!\s*height)/i);
+  if (deck) add('Dimensions', 'Deck Length', deck[1], 'ft');
+
+  const height = t.match(/(?:lower\s+)?deck height\s*(?:of\s*)?(\d+(?:\.\d+)?)"/i);
+  if (height) add('Dimensions', 'Deck Height', `${height[1]}"`, 'in');
+
+  const width = t.match(/(\d+'\s*\d*"?)\s*wide/i) || t.match(/(\d+'\s*-\s*\d+")\s*width/i);
+  if (width) add('Dimensions', 'Width', width[1].replace(/\s*-\s*/, ' '), 'ft');
+
+  const neck = t.match(/(\d+'(?:\s*\d+")?)\s*long loadable gooseneck/i);
+  if (neck) add('Dimensions', 'Loadable Gooseneck Length', neck[1], 'ft');
+
+  const tail = t.match(/(\d+"|\d+'(?:\s*\d+")?)\s*beaver ?tail/i);
+  if (tail) add('Dimensions', 'Beavertail Length', tail[1], tail[1].endsWith('"') ? 'in' : 'ft');
+
+  const roller = t.match(/(\d+")\s*roller tail/i);
+  if (roller) add('Dimensions', 'Roller Tail', roller[1], 'in');
+
+  const susp = t.match(/(Hutch(?:en's)?(?: type)?\s*H?-?\d{4}[^,.]*?(?:suspension)?|air ride suspension)(?=[,.])/i);
+  if (susp) add('Running Gear', 'Suspension', susp[1].trim());
+
+  const brakes = t.match(/([\d.]+"\s*x\s*[\d.]+"\s*air brakes(?:\s*w\/ABS(?: system)?)?)/i);
+  if (brakes) add('Running Gear', 'Brakes', brakes[1]);
+
+  const tires = t.match(/(\d{3}\/\d{2}\s*R\s*\d{2}(?:\.\d)?)\s*(?:radial\s+)?tires/i);
+  if (tires) add('Running Gear', 'Tires', tires[1].replace(/\s+/g, ' '));
+
+  const decking = t.match(/(\d+"\s*(?:rough sawn\s+)?(?:oak|lumber)[^,.]*?decking|\d+"\s*(?:rough sawn\s+)?oak lumber)/i);
+  if (decking) add('Construction', 'Decking', decking[1]);
+
+  const outriggers = t.match(/\((\d+)\)\s*(\d+")\s*outriggers/i);
+  if (outriggers) add('Construction', 'Outriggers', `${outriggers[1]} × ${outriggers[2]}`);
+
+  const slope = t.match(/(\d+)\s*degree slope/i);
+  if (slope) add('Gooseneck', 'Slope Bed to Neck', `${slope[1]}°`);
+
+  const hitch = t.match(/(\d+"\s*lunette eye[^,.]*)/i);
+  if (hitch) add('Hitch', 'Hitch', hitch[1]);
+
+  const ramps = t.match(/(\d+"\s*x\s*\d+"\s*[^,.]*ramps)/i);
+  if (ramps) add('Ramps', 'Ramps', ramps[1]);
+
+  if (/self-contained hydraulic/i.test(t)) add('Hydraulics', 'Hydraulic System', 'Self-contained');
+  if (/ride height adjustment/i.test(t)) add('Gooseneck', 'Ride Height Adjustment', '4-position, 2" increments');
+  if (/air-operated gooseneck safety lock/i.test(t)) add('Gooseneck', 'Safety Lock', 'Air-operated locking pin');
+
+  return specs;
 }
 
 // ---------------------------------------------------------------------------
@@ -195,453 +226,117 @@ function inferTonnage(name) {
 // ---------------------------------------------------------------------------
 
 /**
- * Discover product page URLs from seed pages.
+ * Product URLs per trailer category. A product listed in two categories is
+ * kept under the first.
  */
-async function discoverProductLinks(page) {
-  const allLinks = new Set();
-
-  for (const seedUrl of SEED_URLS) {
-    console.log(`  Crawling seed page: ${seedUrl}`);
-    try {
-      await page.goto(seedUrl, { waitUntil: 'networkidle2', timeout: 45000 });
-      await sleep(randomDelay());
-
-      const links = await page.evaluate((baseUrl) => {
-        const found = [];
-        document.querySelectorAll('a[href]').forEach((a) => {
-          const href = a.getAttribute('href');
-          if (!href) return;
-          const fullUrl = href.startsWith('http') ? href : new URL(href, baseUrl).href;
-          // Only keep links on witzco.com under /product/ or /products/
-          if (
-            fullUrl.includes('witzco.com') &&
-            (fullUrl.includes('/product/') || fullUrl.includes('/products/'))
-          ) {
-            found.push(fullUrl.replace(/\/$/, '') + '/');
-          }
-        });
-        return [...new Set(found)];
-      }, WEBSITE);
-
-      links.forEach((l) => allLinks.add(l));
-      console.log(`    Found ${links.length} links`);
-    } catch (err) {
-      console.error(`    Error crawling ${seedUrl}: ${err.message}`);
+async function discoverProducts() {
+  const found = new Map(); // url → category
+  for (let i = 0; i < CATEGORIES.length; i++) {
+    const cat = CATEGORIES[i];
+    const url = `${WEBSITE}/product-category/${cat.path}/`;
+    console.log(`  Category: ${url}`);
+    const html = await fetchHtml(url);
+    if (html) {
+      const $ = cheerio.load(html);
+      let n = 0;
+      $('ul.products li.product a.woocommerce-LoopProduct-link').each((_, a) => {
+        const href = ($(a).attr('href') || '').split('?')[0];
+        if (!/^https:\/\/www\.witzco\.com\/product\/[^/]+\/?$/.test(href)) return;
+        const normalized = href.replace(/\/?$/, '/');
+        if (!found.has(normalized)) {
+          found.set(normalized, cat);
+          n++;
+        }
+      });
+      console.log(`    ${n} product(s)`);
     }
+    await sleep(randomDelay());
   }
-
-  // Add known product pages as fallbacks
-  KNOWN_PRODUCT_PAGES.forEach((url) => allLinks.add(url));
-
-  // Filter to product detail pages (not top-level category pages)
-  const filtered = [...allLinks].filter((url) => {
-    // Skip top-level category pages
-    if (url === 'https://www.witzco.com/products/') return false;
-    if (url === 'https://www.witzco.com/product/') return false;
-
-    // Must be a sub-page under /product/ (individual product detail)
-    const isProductPage = /\/product\/[^/]+\/$/.test(url);
-    // Also allow /products/<slug>/ if they use that pattern
-    const isProductsPage = /\/products\/[^/]+\/$/.test(url);
-    return isProductPage || isProductsPage;
-  });
-
-  console.log(`\n  Discovered ${filtered.length} candidate product pages`);
-  return filtered;
+  return [...found.entries()].map(([url, category]) => ({ url, category }));
 }
 
 /**
  * Scrape a single product page and return structured data.
  */
-async function scrapeProductPage(page, url) {
-  console.log(`\n  Scraping: ${url}`);
+async function scrapeProductPage(url, category) {
+  const html = await fetchHtml(url);
+  if (!html) return null;
+  const $ = cheerio.load(html);
 
-  try {
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 45000 });
-    await sleep(randomDelay());
-  } catch (err) {
-    console.error(`    Navigation error: ${err.message}`);
+  const rawName = $('h1.product_title').first().text();
+  const name = cleanName(rawName);
+  if (!name) {
+    console.warn(`    No h1.product_title on ${url}, skipping`);
     return null;
   }
 
-  const pageData = await page.evaluate(() => {
-    // --- Name / title ---
-    const h1 = document.querySelector('h1');
-    const name = h1 ? h1.textContent.trim() : '';
+  // Description tab: marketing paragraphs + the "Standard Features" paragraph.
+  // Colour and "call the factory" lines are dropped.
+  const paragraphs = $('#tab-description p')
+    .map((_, p) => cleanText($(p).text()))
+    .get()
+    .filter((p) => p.length > 20)
+    .filter((p) => !/^colou?rs available|^we welcome custom/i.test(p));
+  const featuresPara = paragraphs.find((p) => /standard features|features\s*[–-]/i.test(p)) || paragraphs.join(' ');
+  const description = paragraphs
+    .map((p) => p.replace(/\s*(We welcome custom requests?|Colou?rs available)[\s\S]*$/i, '').trim())
+    .filter(Boolean)
+    .join('\n\n');
+  const marketing = paragraphs.find((p) => !/standard features|features\s*[–-]/i.test(p));
+  const shortDescription = firstSentences(marketing || featuresPara, 300);
 
-    // --- Tagline (often in a subtitle or first prominent paragraph) ---
-    let tagline = '';
-    const subtitle = document.querySelector(
-      '.entry-subtitle, .page-subtitle, .product-subtitle, .woocommerce-product-details__short-description, h2'
-    );
-    if (subtitle) {
-      tagline = subtitle.textContent.trim();
-    }
+  // Features paragraph first so its numbers win; the NGB marketing copy
+  // carries the ride-height and safety-lock facts.
+  const specs = parseFeatureProse([featuresPara, ...paragraphs.filter((p) => p !== featuresPara)].join(' '));
 
-    // --- Description ---
-    let description = '';
-    let shortDescription = '';
-    const contentSelectors = [
-      '.entry-content p',
-      '.page-content p',
-      '.product-description p',
-      '.woocommerce-product-details__short-description p',
-      'article p',
-      'main p',
-      '.content p',
-      '#content p',
-      '.elementor-widget-text-editor p',
-      '.wpb_text_column p',
-    ];
-    for (const sel of contentSelectors) {
-      const paragraphs = document.querySelectorAll(sel);
-      if (paragraphs.length > 0) {
-        const texts = [];
-        paragraphs.forEach((p) => {
-          const t = p.textContent.trim();
-          if (t.length > 20) texts.push(t);
-        });
-        if (texts.length > 0) {
-          description = texts.join('\n\n');
-          shortDescription = texts[0].substring(0, 300);
-          break;
-        }
-      }
-    }
-
-    // --- Specs table / list ---
-    const specs = [];
-
-    // Look for specification tables
-    const tables = document.querySelectorAll('table');
-    tables.forEach((table) => {
-      const rows = table.querySelectorAll('tr');
-      rows.forEach((row) => {
-        const cells = row.querySelectorAll('td, th');
-        if (cells.length >= 2) {
-          const key = cells[0].textContent.trim();
-          const value = cells[1].textContent.trim();
-          if (key && value && key.length < 100 && value.length < 200) {
-            specs.push({ rawKey: key, rawValue: value });
-          }
-        }
-      });
-    });
-
-    // Also look for definition lists
-    const dlItems = document.querySelectorAll('dl dt, dl dd');
-    for (let i = 0; i < dlItems.length - 1; i += 2) {
-      if (dlItems[i].tagName === 'DT' && dlItems[i + 1]?.tagName === 'DD') {
-        const key = dlItems[i].textContent.trim();
-        const value = dlItems[i + 1].textContent.trim();
-        if (key && value) {
-          specs.push({ rawKey: key, rawValue: value });
-        }
-      }
-    }
-
-    // Also look for spec-like key/value pairs in list items
-    document.querySelectorAll('li, .spec-item, .feature-item').forEach((li) => {
-      const text = li.textContent.trim();
-      // Patterns like "Capacity: 110,000 lbs" or "Deck Height: 18""
-      const kvMatch = text.match(/^([^:]{3,50}):\s*(.+)$/);
-      if (kvMatch) {
-        specs.push({ rawKey: kvMatch[1].trim(), rawValue: kvMatch[2].trim() });
-      }
-    });
-
-    // Also look for strong/b tags followed by text (common spec format)
-    document.querySelectorAll('p, div').forEach((el) => {
-      const strongs = el.querySelectorAll('strong, b');
-      strongs.forEach((strong) => {
-        const key = strong.textContent.trim().replace(/:$/, '');
-        const fullText = el.textContent.trim();
-        const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const valueMatch = fullText.match(
-          new RegExp(escapedKey + '[:\\s]+(.+)', 'i')
-        );
-        if (valueMatch && key.length > 2 && key.length < 80) {
-          specs.push({ rawKey: key, rawValue: valueMatch[1].trim() });
-        }
-      });
-    });
-
-    // Look for Elementor-based specs (common in modern WordPress sites)
-    document.querySelectorAll('.elementor-icon-list-text, .elementor-text-editor li').forEach((el) => {
-      const text = el.textContent.trim();
-      const kvMatch = text.match(/^([^:]{3,50}):\s*(.+)$/);
-      if (kvMatch) {
-        specs.push({ rawKey: kvMatch[1].trim(), rawValue: kvMatch[2].trim() });
-      }
-    });
-
-    // --- Images ---
-    const images = [];
-    const seenUrls = new Set();
-    document.querySelectorAll('img').forEach((img) => {
-      const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src');
-      if (!src) return;
-      // Skip tiny icons, logos, etc.
-      if (src.includes('logo') || src.includes('icon') || src.includes('favicon')) return;
-      if (src.includes('.gif') || src.includes('.svg')) return;
-      if (src.includes('gravatar') || src.includes('wp-content/plugins')) return;
-      // Only keep witzco.com domain images or CDN / wp-content images
-      if (!src.includes('witzco.com') && !src.includes('wp-content')) return;
-
-      const width = img.naturalWidth || img.width || 0;
-      if (width > 0 && width < 50) return; // skip tiny images
-
-      const normalizedSrc = src.split('?')[0]; // remove query params for dedup
-      if (seenUrls.has(normalizedSrc)) return;
-      seenUrls.add(normalizedSrc);
-
-      images.push({
-        url: src,
-        alt: img.alt || '',
-      });
-    });
-
-    // Also check for gallery images (WooCommerce or custom galleries)
-    document.querySelectorAll(
-      '.woocommerce-product-gallery__image img, .product-gallery img, .gallery img, .slider img, .carousel img'
-    ).forEach((img) => {
-      const src = img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src');
-      if (!src) return;
-      const normalizedSrc = src.split('?')[0];
-      if (seenUrls.has(normalizedSrc)) return;
-      seenUrls.add(normalizedSrc);
-      images.push({
-        url: src,
-        alt: img.alt || '',
-      });
-    });
-
-    // --- Features list (to capture NGB-specific features) ---
-    const features = [];
-    document.querySelectorAll('ul li, ol li').forEach((li) => {
-      const text = li.textContent.trim();
-      if (text.length > 10 && text.length < 300) {
-        features.push(text);
-      }
-    });
-
-    // --- Body text for classification ---
-    const bodyText = document.body ? document.body.textContent.substring(0, 5000) : '';
-
-    return { name, tagline, description, shortDescription, specs, images, features, bodyText };
+  // Gallery: data-large_image is the full-size file.
+  const images = [];
+  const seen = new Set();
+  $('.woocommerce-product-gallery__image').each((_, el) => {
+    const img = $(el).find('img').first();
+    const src = img.attr('data-large_image') || $(el).find('a').attr('href') || img.attr('data-src') || img.attr('src');
+    if (!src || !/^https?:\/\//.test(src) || src.startsWith('data:')) return;
+    const key = src.split('?')[0];
+    if (seen.has(key)) return;
+    seen.add(key);
+    images.push({ url: src, alt_text: `${name} trailer`, source_url: url });
   });
 
-  if (!pageData || !pageData.name) {
-    console.log('    No product name found, skipping');
-    return null;
-  }
-
-  console.log(`    Name: ${pageData.name}`);
-  console.log(`    Specs found: ${pageData.specs.length}`);
-  console.log(`    Images found: ${pageData.images.length}`);
-  console.log(`    Features found: ${pageData.features.length}`);
-
-  return { ...pageData, sourceUrl: url };
-}
-
-/**
- * Categorize raw specs into structured spec objects.
- */
-function categorizeSpecs(rawSpecs) {
-  const specs = [];
-  const seen = new Set();
-
-  for (const { rawKey, rawValue } of rawSpecs) {
-    const key = rawKey.trim();
-    const value = rawValue.trim();
-    const dedup = `${key}|${value}`;
-    if (seen.has(dedup)) continue;
-    seen.add(dedup);
-
-    const keyLower = key.toLowerCase();
-
-    // Classify by key content
-    let category = 'General';
-    let unit = null;
-
-    if (/capacity|payload|gvwr|weight|tonnage|ton/i.test(keyLower)) {
-      category = 'Capacity';
-      if (/lbs?|pounds?/i.test(value)) unit = 'lbs';
-      else if (/ton/i.test(value)) unit = 'tons';
-    } else if (/deck|height|length|width|clearance|swing|well|overall/i.test(keyLower)) {
-      category = 'Dimensions';
-      if (/["'']/i.test(value) || /inch/i.test(value)) unit = 'in';
-      else if (/['']/i.test(value) || /feet|ft/i.test(value)) unit = 'ft';
-    } else if (/axle|suspension|tire|wheel|brake|air.?ride|spring/i.test(keyLower)) {
-      category = 'Running Gear';
-    } else if (/gooseneck|kingpin|hitch|detach/i.test(keyLower)) {
-      category = 'Gooseneck';
-    } else if (/hydraulic|cylinder|pump|pony.?motor|honda|motor/i.test(keyLower)) {
-      category = 'Hydraulics';
-    } else if (/deck|floor|wood|platform/i.test(keyLower)) {
-      category = 'Decking';
-    } else if (/light|electric|wiring|harness/i.test(keyLower)) {
-      category = 'Electrical';
-    } else if (/frame|beam|steel|structural/i.test(keyLower)) {
-      category = 'Frame';
-    } else if (/paint|finish|coating/i.test(keyLower)) {
-      category = 'Finish';
-    } else if (/height.?setting|ride.?height|auto.?height/i.test(keyLower)) {
-      category = 'Height Control';
-    }
-
-    specs.push({ category, key, value, unit });
-  }
-
-  return specs;
+  return { name, description, shortDescription, specs, images, category, sourceUrl: url };
 }
 
 /**
  * Build structured product data from scraped page data.
  */
 function buildProduct(pageData) {
-  const { name, tagline, description, shortDescription, specs: rawSpecs, features, sourceUrl } = pageData;
+  const { name, description, shortDescription, specs, category, sourceUrl } = pageData;
+  const spec = (key) => specs.find((s) => s.key === key)?.value || null;
 
-  // Combine all spec values for searching
-  const allSpecText = rawSpecs.map((s) => `${s.rawKey}: ${s.rawValue}`).join(' ');
-  const combinedText = `${name} ${description} ${allSpecText}`;
+  let tonnage = parseTonnage(spec('Load Capacity'));
+  if (!tonnage.min) tonnage = parseTonnage(name);
 
-  // Tonnage
-  let tonnageMin = null;
-  let tonnageMax = null;
-  for (const { rawKey, rawValue } of rawSpecs) {
-    if (/capacity|tonnage|ton|payload/i.test(rawKey)) {
-      const t = parseTonnage(rawValue);
-      if (t.min) { tonnageMin = t.min; tonnageMax = t.max; break; }
-    }
-  }
-  // Fallback: search description for tonnage
-  if (!tonnageMin) {
-    const tonMatch = combinedText.match(/(\d+)\s*[-–]?\s*(?:to\s*)?(\d+)?\s*ton/i);
-    if (tonMatch) {
-      tonnageMin = parseInt(tonMatch[1], 10);
-      tonnageMax = tonMatch[2] ? parseInt(tonMatch[2], 10) : tonnageMin;
-    }
-  }
-  // Fallback: infer from model name
-  if (!tonnageMin) {
-    const inferred = inferTonnage(name);
-    tonnageMin = inferred.min;
-    tonnageMax = inferred.max;
-  }
-
-  // Deck height
-  let deckHeightInches = null;
-  for (const { rawKey, rawValue } of rawSpecs) {
-    if (/deck.?height|loaded.?height/i.test(rawKey)) {
-      deckHeightInches = parseDeckHeight(rawValue);
-      if (deckHeightInches) break;
-    }
-  }
-
-  // Deck length (well length for lowboys)
-  let deckLengthFeet = null;
-  for (const { rawKey, rawValue } of rawSpecs) {
-    if (/deck.?length|well.?length|loading.?length/i.test(rawKey)) {
-      deckLengthFeet = parseLength(rawValue);
-      if (deckLengthFeet) break;
-    }
-  }
-
-  // Overall length
-  let overallLengthFeet = null;
-  for (const { rawKey, rawValue } of rawSpecs) {
-    if (/overall.?length|total.?length/i.test(rawKey)) {
-      overallLengthFeet = parseLength(rawValue);
-      if (overallLengthFeet) break;
-    }
-  }
-
-  // Axle count
-  let axleCount = null;
-  for (const { rawKey, rawValue } of rawSpecs) {
-    if (/axle/i.test(rawKey)) {
-      axleCount = parseAxleCount(rawValue);
-      if (axleCount) break;
-    }
-  }
-  // Fallback: infer from product name/description
-  if (!axleCount) {
-    axleCount = inferAxleCount(name, description);
-  }
-
-  // Empty weight
-  let emptyWeightLbs = null;
-  for (const { rawKey, rawValue } of rawSpecs) {
-    if (/empty.?weight|tare.?weight|unladen/i.test(rawKey)) {
-      emptyWeightLbs = parseWeight(rawValue);
-      if (emptyWeightLbs) break;
-    }
-  }
-
-  // GVWR
-  let gvwrLbs = null;
-  for (const { rawKey, rawValue } of rawSpecs) {
-    if (/gvwr|gross.?vehicle|gross.?weight/i.test(rawKey)) {
-      gvwrLbs = parseWeight(rawValue);
-      if (gvwrLbs) break;
-    }
-  }
-
-  // Concentrated capacity
-  let concentratedCapacityLbs = null;
-  for (const { rawKey, rawValue } of rawSpecs) {
-    if (/concentrated|max.?payload|capacity.*lbs/i.test(rawKey)) {
-      concentratedCapacityLbs = parseWeight(rawValue);
-      if (concentratedCapacityLbs) break;
-    }
-  }
-
-  const series = detectSeries(name, sourceUrl);
-  const modelNumber = extractModelNumber(name);
-  const productType = classifyProductType(name, description);
-  const gooseneckType = classifyGooseneckType(name, allSpecText);
-
-  // Build a richer description that includes key features for NGB models
-  let enrichedDescription = cleanText(description) || null;
-  if (features && features.length > 0 && (!enrichedDescription || enrichedDescription.length < 100)) {
-    const featureText = features.slice(0, 10).join('\n');
-    enrichedDescription = enrichedDescription
-      ? `${enrichedDescription}\n\nKey Features:\n${featureText}`
-      : `Key Features:\n${featureText}`;
-  }
+  const axles = parseInt(spec('Axles') || '', 10) || null;
 
   return {
-    name: cleanText(name),
-    series,
-    model_number: modelNumber,
-    tagline: cleanText(tagline) || null,
-    description: enrichedDescription,
-    short_description: cleanText(shortDescription) || null,
-    product_type: productType,
-    tonnage_min: tonnageMin,
-    tonnage_max: tonnageMax,
-    deck_height_inches: deckHeightInches,
-    deck_length_feet: deckLengthFeet,
-    overall_length_feet: overallLengthFeet,
-    axle_count: axleCount,
-    gooseneck_type: gooseneckType,
-    empty_weight_lbs: emptyWeightLbs,
-    gvwr_lbs: gvwrLbs,
-    concentrated_capacity_lbs: concentratedCapacityLbs,
+    name,
+    series: category.series,
+    model_number: extractModelNumber(name),
+    tagline: null,
+    description: description || null,
+    short_description: shortDescription,
+    product_type: category.type,
+    tonnage_min: tonnage.min,
+    tonnage_max: tonnage.max,
+    deck_height_inches: parseDeckHeight(spec('Deck Height')),
+    deck_length_feet: parseLength(spec('Deck Length')),
+    overall_length_feet: parseLength(spec('Overall Length')),
+    axle_count: axles,
+    gooseneck_type: category.gooseneck,
+    empty_weight_lbs: null,
+    gvwr_lbs: null,
+    concentrated_capacity_lbs: null,
     source_url: sourceUrl,
   };
-}
-
-/**
- * Build images array for upsertProductImages.
- */
-function buildImages(pageData) {
-  return pageData.images.map((img) => ({
-    url: img.url,
-    alt_text: img.alt || `${pageData.name} trailer`,
-    source_url: pageData.sourceUrl,
-  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -655,95 +350,54 @@ async function main() {
   const manufacturerId = await getManufacturerId(supabase, MANUFACTURER_SLUG);
   console.log(`  Manufacturer ID: ${manufacturerId}\n`);
 
-  const browser = await createBrowser('new');
-  const page = await createPage(browser);
-
   const stats = { scraped: 0, upserted: 0, errors: 0 };
 
   try {
-    // ------------------------------------------------------------------
-    // Step 1: Discover product page URLs
-    // ------------------------------------------------------------------
-    console.log('Step 1: Discovering product pages...\n');
-    const productUrls = await discoverProductLinks(page);
-
-    if (productUrls.length === 0) {
+    console.log('Step 1: Discovering trailers from category pages...\n');
+    const products = await discoverProducts();
+    if (products.length === 0) {
       console.error('  No product pages discovered! Aborting.');
-      await browser.close();
       return;
     }
+    console.log(`\n  ${products.length} trailer pages to scrape\n`);
 
-    // Deduplicate by normalizing URLs
-    const uniqueUrls = [...new Set(productUrls.map((u) => u.replace(/\/$/, '') + '/'))];
-    console.log(`\n  ${uniqueUrls.length} unique product pages to scrape\n`);
-
-    // ------------------------------------------------------------------
-    // Step 2: Scrape each product page
-    // ------------------------------------------------------------------
     console.log('Step 2: Scraping individual product pages...');
-
-    for (let i = 0; i < uniqueUrls.length; i++) {
-      const url = uniqueUrls[i];
-      console.log(`\n[${i + 1}/${uniqueUrls.length}] ${url}`);
+    for (let i = 0; i < products.length; i++) {
+      const { url, category } = products[i];
+      console.log(`\n[${i + 1}/${products.length}] ${url}`);
 
       try {
-        const pageData = await scrapeProductPage(page, url);
+        const pageData = await scrapeProductPage(url, category);
         if (!pageData) {
           stats.errors++;
           continue;
         }
         stats.scraped++;
 
-        // Build structured data
         const product = buildProduct(pageData);
-        const images = buildImages(pageData);
-        const specs = categorizeSpecs(pageData.specs);
-
-        console.log(`    Product type: ${product.product_type}`);
-        console.log(`    Series: ${product.series || 'N/A'}`);
-        console.log(`    Model: ${product.model_number || 'N/A'}`);
-        console.log(`    Tonnage: ${product.tonnage_min || '?'}-${product.tonnage_max || '?'} ton`);
-        console.log(`    Gooseneck: ${product.gooseneck_type || 'N/A'}`);
-        console.log(`    Axles: ${product.axle_count || 'N/A'}`);
-        console.log(`    Specs: ${specs.length}, Images: ${images.length}`);
-
-        // ------------------------------------------------------------------
-        // Step 3: Upsert to DB
-        // ------------------------------------------------------------------
         const productId = await upsertProduct(supabase, manufacturerId, product);
         if (!productId) {
           console.error('    Failed to upsert product');
           stats.errors++;
           continue;
         }
-
-        await upsertProductImages(supabase, productId, images);
-        await upsertProductSpecs(supabase, productId, specs);
-
+        await upsertProductImages(supabase, productId, pageData.images);
+        await upsertProductSpecs(supabase, productId, pageData.specs);
         stats.upserted++;
-        console.log(`    Upserted product ID: ${productId}`);
       } catch (err) {
         console.error(`    Error processing ${url}: ${err.message}`);
         stats.errors++;
       }
 
-      // Polite delay between page loads
-      if (i < uniqueUrls.length - 1) {
-        await sleep(randomDelay());
-      }
+      if (i < products.length - 1) await sleep(randomDelay());
     }
 
-    // ------------------------------------------------------------------
-    // Step 4: Update product count
-    // ------------------------------------------------------------------
     console.log('\nStep 3: Updating product count...');
     const count = await updateProductCount(supabase, manufacturerId);
     console.log(`  Active products: ${count}`);
   } catch (err) {
     console.error(`Fatal error: ${err.message}`);
     stats.errors++;
-  } finally {
-    await browser.close();
   }
 
   printSummary(MANUFACTURER_NAME, stats);

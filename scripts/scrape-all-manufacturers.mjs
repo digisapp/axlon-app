@@ -45,6 +45,14 @@ const MANUFACTURERS = [
   { slug: 'smithco',         script: 'scrape-mfr-smithco.mjs' },
   { slug: 'mack',            script: 'scrape-mfr-mack.mjs' },
   { slug: 'felling',         script: 'scrape-mfr-felling.mjs' },
+  { slug: 'rogers',          script: 'scrape-mfr-rogers.mjs' },
+  { slug: 'brandt',          script: 'scrape-mfr-brandt.mjs' },
+  { slug: 'cozad',           script: 'scrape-mfr-cozad.mjs' },
+  { slug: 'interstate',      script: 'scrape-mfr-interstate.mjs' },
+  { slug: 'murray',          script: 'scrape-mfr-murray.mjs' },
+  { slug: 'alpha-hd',        script: 'scrape-mfr-alpha-hd.mjs' },
+  // scrape-mfr-traileze.mjs exists but traileze.com answers 403 to an
+  // identified crawler (Oct 2026) — not scheduled until that changes.
 ];
 
 // ---------------------------------------------------------------------------
